@@ -44,6 +44,7 @@ export default function PatientRegister() {
     }
     toast.success("Patient registered successfully");
     navigate(`/patient/${(data as any).id}`);
+  };
 
   return (
     <AppLayout>
