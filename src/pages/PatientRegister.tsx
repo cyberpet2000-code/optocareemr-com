@@ -93,7 +93,7 @@ export default function PatientRegister() {
           </div>
         </div>
         <div className="flex gap-3 pt-2">
-          <Button type="submit">Register Patient</Button>
+          <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Register Patient"}</Button>
           <Button type="button" variant="outline" onClick={() => navigate("/")}>Cancel</Button>
         </div>
       </form>
