@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { savePatient, type Patient } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 export default function PatientRegister() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     fullName: "", age: "", gender: "", phone: "",
     address: "", nextOfKin: "", insuranceName: "", enrolleeNumber: "",
@@ -18,27 +19,31 @@ export default function PatientRegister() {
 
   const set = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.fullName.trim() || !form.age || !form.gender) {
       toast.error("Please fill in required fields (Name, Age, Gender)");
       return;
     }
-    const patient: Patient = {
-      id: crypto.randomUUID(),
-      fullName: form.fullName.trim(),
+    setLoading(true);
+    const { data, error } = await supabase.from("Patients").insert({
+      full_name: form.fullName.trim(),
       age: parseInt(form.age),
       gender: form.gender,
       phone: form.phone.trim(),
       address: form.address.trim(),
-      nextOfKin: form.nextOfKin.trim(),
-      insuranceName: form.insuranceName.trim(),
-      enrolleeNumber: form.enrolleeNumber.trim(),
-      createdAt: new Date().toISOString(),
-    };
-    savePatient(patient);
+      next_of_kin: form.nextOfKin.trim(),
+      insurance_name: form.insuranceName.trim(),
+      enrollee_number: form.enrolleeNumber.trim(),
+    } as any).select().single();
+    setLoading(false);
+
+    if (error) {
+      toast.error("Failed to register patient: " + error.message);
+      return;
+    }
     toast.success("Patient registered successfully");
-    navigate(`/patient/${patient.id}`);
+    navigate(`/patient/${(data as any).id}`);
   };
 
   return (
@@ -88,7 +93,7 @@ export default function PatientRegister() {
           </div>
         </div>
         <div className="flex gap-3 pt-2">
-          <Button type="submit">Register Patient</Button>
+          <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Register Patient"}</Button>
           <Button type="button" variant="outline" onClick={() => navigate("/")}>Cancel</Button>
         </div>
       </form>
