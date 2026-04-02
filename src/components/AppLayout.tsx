@@ -1,6 +1,7 @@
-import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, UserPlus, Users, Menu, X } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { LayoutDashboard, UserPlus, Users, Menu, X, LogOut } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
