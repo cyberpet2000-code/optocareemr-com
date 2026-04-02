@@ -46,18 +46,107 @@ export type Database = {
       }
       Visits: {
         Row: {
+          auto_od_axis: string | null
+          auto_od_cylinder: string | null
+          auto_od_sphere: string | null
+          auto_os_axis: string | null
+          auto_os_cylinder: string | null
+          auto_os_sphere: string | null
+          chief_complaint: string | null
           created_at: string
+          diagnosis: string | null
+          drugs_given: string | null
+          duration: string | null
+          final_prescription: string | null
+          glasses_prescribed: string | null
           id: number
+          medical_history: string | null
+          ocular_history: string | null
+          patient_id: number | null
+          sub_od_axis: string | null
+          sub_od_cylinder: string | null
+          sub_od_sphere: string | null
+          sub_os_axis: string | null
+          sub_os_cylinder: string | null
+          sub_os_sphere: string | null
+          va_od_distance: string | null
+          va_od_near: string | null
+          va_os_distance: string | null
+          va_os_near: string | null
+          va_ou_distance: string | null
+          va_ou_near: string | null
         }
         Insert: {
+          auto_od_axis?: string | null
+          auto_od_cylinder?: string | null
+          auto_od_sphere?: string | null
+          auto_os_axis?: string | null
+          auto_os_cylinder?: string | null
+          auto_os_sphere?: string | null
+          chief_complaint?: string | null
           created_at?: string
+          diagnosis?: string | null
+          drugs_given?: string | null
+          duration?: string | null
+          final_prescription?: string | null
+          glasses_prescribed?: string | null
           id?: number
+          medical_history?: string | null
+          ocular_history?: string | null
+          patient_id?: number | null
+          sub_od_axis?: string | null
+          sub_od_cylinder?: string | null
+          sub_od_sphere?: string | null
+          sub_os_axis?: string | null
+          sub_os_cylinder?: string | null
+          sub_os_sphere?: string | null
+          va_od_distance?: string | null
+          va_od_near?: string | null
+          va_os_distance?: string | null
+          va_os_near?: string | null
+          va_ou_distance?: string | null
+          va_ou_near?: string | null
         }
         Update: {
+          auto_od_axis?: string | null
+          auto_od_cylinder?: string | null
+          auto_od_sphere?: string | null
+          auto_os_axis?: string | null
+          auto_os_cylinder?: string | null
+          auto_os_sphere?: string | null
+          chief_complaint?: string | null
           created_at?: string
+          diagnosis?: string | null
+          drugs_given?: string | null
+          duration?: string | null
+          final_prescription?: string | null
+          glasses_prescribed?: string | null
           id?: number
+          medical_history?: string | null
+          ocular_history?: string | null
+          patient_id?: number | null
+          sub_od_axis?: string | null
+          sub_od_cylinder?: string | null
+          sub_od_sphere?: string | null
+          sub_os_axis?: string | null
+          sub_os_cylinder?: string | null
+          sub_os_sphere?: string | null
+          va_od_distance?: string | null
+          va_od_near?: string | null
+          va_os_distance?: string | null
+          va_os_near?: string | null
+          va_ou_distance?: string | null
+          va_ou_near?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "Visits_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "Patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
