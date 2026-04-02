@@ -1,11 +1,48 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Users, CalendarCheck, UserPlus, ChevronRight } from "lucide-react";
-import { getPatients, getTodayVisitCount } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 
+interface PatientRow {
+  id: number;
+  full_name: string;
+  age: number | null;
+  gender: string | null;
+  phone: string;
+}
+
 export default function Dashboard() {
-  const patients = getPatients();
-  const todayVisits = getTodayVisitCount();
+  const [patients, setPatients] = useState<PatientRow[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [todayVisits, setTodayVisits] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const today = new Date().toISOString().split("T")[0];
+
+      const [patientsRes, countRes, visitsRes] = await Promise.all([
+        supabase
+          .from("Patients")
+          .select("id, full_name, age, gender, phone")
+          .order("created_at", { ascending: false })
+          .limit(5),
+        supabase.from("Patients").select("*", { count: "exact", head: true }),
+        supabase
+          .from("Visits")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", `${today}T00:00:00`)
+          .lt("created_at", `${today}T23:59:59.999`),
+      ]);
+
+      if (patientsRes.data) setPatients(patientsRes.data as unknown as PatientRow[]);
+      setTotalCount(countRes.count ?? 0);
+      setTodayVisits(visitsRes.count ?? 0);
+      setLoading(false);
+    }
+    load();
+  }, []);
 
   return (
     <AppLayout>
@@ -18,7 +55,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Total Patients</p>
-            <p className="text-2xl font-bold">{patients.length}</p>
+            <p className="text-2xl font-bold">{loading ? "—" : totalCount}</p>
           </div>
         </div>
 
@@ -28,7 +65,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Today's Visits</p>
-            <p className="text-2xl font-bold">{todayVisits}</p>
+            <p className="text-2xl font-bold">{loading ? "—" : todayVisits}</p>
           </div>
         </div>
 
@@ -46,24 +83,25 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Patients */}
       <div className="medical-card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="section-title">Recent Patients</h2>
           <Link to="/patients" className="text-sm text-primary hover:underline">View all</Link>
         </div>
-        {patients.length === 0 ? (
+        {loading ? (
+          <p className="text-muted-foreground text-sm py-8 text-center">Loading...</p>
+        ) : patients.length === 0 ? (
           <p className="text-muted-foreground text-sm py-8 text-center">No patients registered yet.</p>
         ) : (
           <div className="divide-y divide-border">
-            {patients.slice(-5).reverse().map(p => (
+            {patients.map(p => (
               <Link
                 key={p.id}
                 to={`/patient/${p.id}`}
                 className="flex items-center justify-between py-3 hover:bg-muted/50 -mx-2 px-2 rounded-lg transition-colors"
               >
                 <div>
-                  <p className="font-medium">{p.fullName}</p>
+                  <p className="font-medium">{p.full_name}</p>
                   <p className="text-sm text-muted-foreground">{p.gender}, {p.age} yrs • {p.phone}</p>
                 </div>
                 <ChevronRight size={16} className="text-muted-foreground" />
