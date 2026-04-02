@@ -1,16 +1,37 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Search, ChevronRight } from "lucide-react";
-import { getPatients } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { Input } from "@/components/ui/input";
 
+interface PatientRow {
+  id: number;
+  full_name: string;
+  age: number | null;
+  gender: string | null;
+  phone: string;
+  insurance_name: string;
+}
+
 export default function PatientList() {
-  const patients = getPatients();
+  const [patients, setPatients] = useState<PatientRow[]>([]);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("Patients")
+      .select("id, full_name, age, gender, phone, insurance_name")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        if (data) setPatients(data as unknown as PatientRow[]);
+        setLoading(false);
+      });
+  }, []);
 
   const filtered = patients.filter(p =>
-    p.fullName.toLowerCase().includes(search.toLowerCase()) ||
+    p.full_name.toLowerCase().includes(search.toLowerCase()) ||
     p.phone.includes(search)
   );
 
@@ -30,7 +51,9 @@ export default function PatientList() {
       </div>
 
       <div className="medical-card">
-        {filtered.length === 0 ? (
+        {loading ? (
+          <p className="text-muted-foreground text-sm py-8 text-center">Loading...</p>
+        ) : filtered.length === 0 ? (
           <p className="text-muted-foreground text-sm py-8 text-center">
             {patients.length === 0 ? "No patients registered yet." : "No matching patients found."}
           </p>
@@ -43,10 +66,10 @@ export default function PatientList() {
                 className="flex items-center justify-between py-3 hover:bg-muted/50 -mx-2 px-2 rounded-lg transition-colors"
               >
                 <div>
-                  <p className="font-medium">{p.fullName}</p>
+                  <p className="font-medium">{p.full_name}</p>
                   <p className="text-sm text-muted-foreground">
                     {p.gender}, {p.age} yrs • {p.phone}
-                    {p.insuranceName && ` • ${p.insuranceName}`}
+                    {p.insurance_name && ` • ${p.insurance_name}`}
                   </p>
                 </div>
                 <ChevronRight size={16} className="text-muted-foreground" />

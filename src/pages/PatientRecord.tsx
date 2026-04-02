@@ -99,7 +99,11 @@ interface VisitRow {
 
 export default function PatientRecord() {
   const { id } = useParams<{ id: string }>();
-  const patientId = Number(id);
+  const patientId = id ? parseInt(id, 10) : NaN;
+
+  if (isNaN(patientId)) {
+    return <AppLayout><p className="text-center py-12 text-muted-foreground">Invalid patient ID.</p></AppLayout>;
+  }
   const [patient, setPatient] = useState<PatientData | null>(null);
   const [visits, setVisits] = useState<VisitRow[]>([]);
   const [loading, setLoading] = useState(true);
