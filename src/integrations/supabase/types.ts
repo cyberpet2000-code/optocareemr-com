@@ -31,16 +31,40 @@ export type Database = {
       }
       Patients: {
         Row: {
+          address: string | null
+          age: number | null
           created_at: string
+          enrollee_number: string | null
+          full_name: string
+          gender: string | null
           id: number
+          insurance_name: string | null
+          next_of_kin: string | null
+          phone: string | null
         }
         Insert: {
+          address?: string | null
+          age?: number | null
           created_at?: string
+          enrollee_number?: string | null
+          full_name?: string
+          gender?: string | null
           id?: number
+          insurance_name?: string | null
+          next_of_kin?: string | null
+          phone?: string | null
         }
         Update: {
+          address?: string | null
+          age?: number | null
           created_at?: string
+          enrollee_number?: string | null
+          full_name?: string
+          gender?: string | null
           id?: number
+          insurance_name?: string | null
+          next_of_kin?: string | null
+          phone?: string | null
         }
         Relationships: []
       }
