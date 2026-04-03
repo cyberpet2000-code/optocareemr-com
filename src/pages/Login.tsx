@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 export default function Login() {
   const navigate = useNavigate();
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,25 +17,29 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-    if (isSignUp) {
+    if (mode === "forgot") {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      setLoading(false);
+      if (error) { toast.error(error.message); return; }
+      toast.success("Password reset link sent! Check your email.");
+      setMode("login");
+      return;
+    }
+
+    if (mode === "signup") {
       const { error } = await supabase.auth.signUp({
-        email,
-        password,
+        email, password,
         options: { emailRedirectTo: window.location.origin },
       });
       setLoading(false);
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
+      if (error) { toast.error(error.message); return; }
       toast.success("Account created! Check your email to confirm.");
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       setLoading(false);
-      if (error) {
-        toast.error(error.message);
-        return;
-      }
+      if (error) { toast.error(error.message); return; }
       navigate("/");
     }
   };
@@ -49,7 +53,7 @@ export default function Login() {
             <span className="text-2xl font-bold text-foreground">Optocare EMR</span>
           </div>
           <p className="text-muted-foreground text-sm">
-            {isSignUp ? "Create your account" : "Sign in to continue"}
+            {mode === "forgot" ? "Reset your password" : mode === "signup" ? "Create your account" : "Sign in to continue"}
           </p>
         </div>
 
@@ -58,21 +62,40 @@ export default function Login() {
             <Label>Email</Label>
             <Input type="email" required value={email} onChange={e => setEmail(e.target.value)} />
           </div>
-          <div className="space-y-1.5">
-            <Label>Password</Label>
-            <Input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} />
-          </div>
+          {mode !== "forgot" && (
+            <div className="space-y-1.5">
+              <Label>Password</Label>
+              <Input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} />
+            </div>
+          )}
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Please wait..." : isSignUp ? "Sign Up" : "Sign In"}
+            {loading ? "Please wait..." : mode === "forgot" ? "Send Reset Link" : mode === "signup" ? "Sign Up" : "Sign In"}
           </Button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground">
-          {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-          <button onClick={() => setIsSignUp(!isSignUp)} className="text-primary hover:underline font-medium">
-            {isSignUp ? "Sign in" : "Sign up"}
-          </button>
-        </p>
+        <div className="text-center text-sm text-muted-foreground space-y-1">
+          {mode === "login" && (
+            <>
+              <p>
+                <button onClick={() => setMode("forgot")} className="text-primary hover:underline font-medium">Forgot password?</button>
+              </p>
+              <p>
+                Don't have an account?{" "}
+                <button onClick={() => setMode("signup")} className="text-primary hover:underline font-medium">Sign up</button>
+              </p>
+            </>
+          )}
+          {mode === "signup" && (
+            <p>Already have an account?{" "}
+              <button onClick={() => setMode("login")} className="text-primary hover:underline font-medium">Sign in</button>
+            </p>
+          )}
+          {mode === "forgot" && (
+            <p>
+              <button onClick={() => setMode("login")} className="text-primary hover:underline font-medium">Back to sign in</button>
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

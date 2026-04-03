@@ -9,12 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
+const HMO_LIST = [
+  "Leadway Health", "Hygeia HMO", "AXA Mansard", "Reliance HMO",
+  "Clearline HMO", "Total Health Trust", "Redcare HMO", "Mediplan",
+  "Princeton HMO", "Novo Health", "Venus Medicare", "Zuma Health",
+];
+
 export default function PatientRegister() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     fullName: "", age: "", gender: "", phone: "",
-    address: "", nextOfKin: "", insuranceName: "", enrolleeNumber: "",
+    address: "", nextOfKin: "",
+    patientType: "Private" as "Private" | "HMO",
+    hmoProvider: "", enrolleeNumber: "",
   });
 
   const set = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }));
@@ -25,6 +33,10 @@ export default function PatientRegister() {
       toast.error("Please fill in required fields (Name, Age, Gender)");
       return;
     }
+    if (form.patientType === "HMO" && !form.hmoProvider) {
+      toast.error("Please select an HMO provider");
+      return;
+    }
     setLoading(true);
     const { data, error } = await supabase.from("Patients").insert({
       full_name: form.fullName.trim(),
@@ -33,8 +45,10 @@ export default function PatientRegister() {
       phone: form.phone.trim(),
       address: form.address.trim(),
       next_of_kin: form.nextOfKin.trim(),
-      insurance_name: form.insuranceName.trim(),
-      enrollee_number: form.enrolleeNumber.trim(),
+      patient_type: form.patientType,
+      hmo_provider: form.patientType === "HMO" ? form.hmoProvider : "",
+      insurance_name: form.patientType === "HMO" ? form.hmoProvider : "",
+      enrollee_number: form.patientType === "HMO" ? form.enrolleeNumber.trim() : "",
     } as any).select().single();
     setLoading(false);
 
@@ -83,14 +97,38 @@ export default function PatientRegister() {
             <Label>Address</Label>
             <Textarea value={form.address} onChange={e => set("address", e.target.value)} rows={2} maxLength={300} />
           </div>
+
+          {/* Patient Type */}
           <div className="space-y-1.5">
-            <Label>Health Insurance Name</Label>
-            <Input value={form.insuranceName} onChange={e => set("insuranceName", e.target.value)} maxLength={100} />
+            <Label>Patient Type *</Label>
+            <Select value={form.patientType} onValueChange={v => set("patientType", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Private">Private</SelectItem>
+                <SelectItem value="HMO">HMO</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label>Enrollee Number</Label>
-            <Input value={form.enrolleeNumber} onChange={e => set("enrolleeNumber", e.target.value)} maxLength={50} />
-          </div>
+
+          {form.patientType === "HMO" && (
+            <>
+              <div className="space-y-1.5">
+                <Label>HMO Provider *</Label>
+                <Select value={form.hmoProvider} onValueChange={v => set("hmoProvider", v)}>
+                  <SelectTrigger><SelectValue placeholder="Select HMO" /></SelectTrigger>
+                  <SelectContent>
+                    {HMO_LIST.map(h => (
+                      <SelectItem key={h} value={h}>{h}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Enrollee Number</Label>
+                <Input value={form.enrolleeNumber} onChange={e => set("enrolleeNumber", e.target.value)} maxLength={50} />
+              </div>
+            </>
+          )}
         </div>
         <div className="flex gap-3 pt-2">
           <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Register Patient"}</Button>

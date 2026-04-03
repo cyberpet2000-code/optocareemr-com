@@ -112,9 +112,12 @@ export type Database = {
           enrollee_number: string | null
           full_name: string
           gender: string | null
+          hmo_provider: string | null
           id: number
           insurance_name: string | null
           next_of_kin: string | null
+          patient_type: string
+          patient_uid: string | null
           phone: string | null
         }
         Insert: {
@@ -124,9 +127,12 @@ export type Database = {
           enrollee_number?: string | null
           full_name?: string
           gender?: string | null
+          hmo_provider?: string | null
           id?: number
           insurance_name?: string | null
           next_of_kin?: string | null
+          patient_type?: string
+          patient_uid?: string | null
           phone?: string | null
         }
         Update: {
@@ -136,9 +142,12 @@ export type Database = {
           enrollee_number?: string | null
           full_name?: string
           gender?: string | null
+          hmo_provider?: string | null
           id?: number
           insurance_name?: string | null
           next_of_kin?: string | null
+          patient_type?: string
+          patient_uid?: string | null
           phone?: string | null
         }
         Relationships: []
@@ -173,6 +182,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       Visits: {
         Row: {
           auto_od_axis: string | null
@@ -181,23 +208,45 @@ export type Database = {
           auto_os_axis: string | null
           auto_os_cylinder: string | null
           auto_os_sphere: string | null
+          auto_va_od: string | null
+          auto_va_os: string | null
           chief_complaint: string | null
           created_at: string
           diagnosis: string | null
           drugs_given: string | null
           duration: string | null
+          ext_conjunctiva: string | null
+          ext_cornea: string | null
+          ext_lids: string | null
           final_prescription: string | null
           glasses_prescribed: string | null
           id: number
+          int_cdr_od: string | null
+          int_cdr_os: string | null
+          int_fundoscopy_od: string | null
+          int_fundoscopy_os: string | null
+          int_fundus_bg: string | null
           medical_history: string | null
           ocular_history: string | null
           patient_id: number | null
+          pinhole_od: string | null
+          pinhole_os: string | null
+          reading_add_od: string | null
+          reading_add_os: string | null
+          reading_add_va_od: string | null
+          reading_add_va_os: string | null
           sub_od_axis: string | null
           sub_od_cylinder: string | null
           sub_od_sphere: string | null
           sub_os_axis: string | null
           sub_os_cylinder: string | null
           sub_os_sphere: string | null
+          sub_va_od: string | null
+          sub_va_os: string | null
+          tonometry_ampm: string | null
+          tonometry_od: string | null
+          tonometry_os: string | null
+          tonometry_time: string | null
           va_od_distance: string | null
           va_od_near: string | null
           va_os_distance: string | null
@@ -212,23 +261,45 @@ export type Database = {
           auto_os_axis?: string | null
           auto_os_cylinder?: string | null
           auto_os_sphere?: string | null
+          auto_va_od?: string | null
+          auto_va_os?: string | null
           chief_complaint?: string | null
           created_at?: string
           diagnosis?: string | null
           drugs_given?: string | null
           duration?: string | null
+          ext_conjunctiva?: string | null
+          ext_cornea?: string | null
+          ext_lids?: string | null
           final_prescription?: string | null
           glasses_prescribed?: string | null
           id?: number
+          int_cdr_od?: string | null
+          int_cdr_os?: string | null
+          int_fundoscopy_od?: string | null
+          int_fundoscopy_os?: string | null
+          int_fundus_bg?: string | null
           medical_history?: string | null
           ocular_history?: string | null
           patient_id?: number | null
+          pinhole_od?: string | null
+          pinhole_os?: string | null
+          reading_add_od?: string | null
+          reading_add_os?: string | null
+          reading_add_va_od?: string | null
+          reading_add_va_os?: string | null
           sub_od_axis?: string | null
           sub_od_cylinder?: string | null
           sub_od_sphere?: string | null
           sub_os_axis?: string | null
           sub_os_cylinder?: string | null
           sub_os_sphere?: string | null
+          sub_va_od?: string | null
+          sub_va_os?: string | null
+          tonometry_ampm?: string | null
+          tonometry_od?: string | null
+          tonometry_os?: string | null
+          tonometry_time?: string | null
           va_od_distance?: string | null
           va_od_near?: string | null
           va_os_distance?: string | null
@@ -243,23 +314,45 @@ export type Database = {
           auto_os_axis?: string | null
           auto_os_cylinder?: string | null
           auto_os_sphere?: string | null
+          auto_va_od?: string | null
+          auto_va_os?: string | null
           chief_complaint?: string | null
           created_at?: string
           diagnosis?: string | null
           drugs_given?: string | null
           duration?: string | null
+          ext_conjunctiva?: string | null
+          ext_cornea?: string | null
+          ext_lids?: string | null
           final_prescription?: string | null
           glasses_prescribed?: string | null
           id?: number
+          int_cdr_od?: string | null
+          int_cdr_os?: string | null
+          int_fundoscopy_od?: string | null
+          int_fundoscopy_os?: string | null
+          int_fundus_bg?: string | null
           medical_history?: string | null
           ocular_history?: string | null
           patient_id?: number | null
+          pinhole_od?: string | null
+          pinhole_os?: string | null
+          reading_add_od?: string | null
+          reading_add_os?: string | null
+          reading_add_va_od?: string | null
+          reading_add_va_os?: string | null
           sub_od_axis?: string | null
           sub_od_cylinder?: string | null
           sub_od_sphere?: string | null
           sub_os_axis?: string | null
           sub_os_cylinder?: string | null
           sub_os_sphere?: string | null
+          sub_va_od?: string | null
+          sub_va_os?: string | null
+          tonometry_ampm?: string | null
+          tonometry_od?: string | null
+          tonometry_os?: string | null
+          tonometry_time?: string | null
           va_od_distance?: string | null
           va_od_near?: string | null
           va_os_distance?: string | null
@@ -282,10 +375,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "doctor" | "receptionist"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -412,6 +511,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "doctor", "receptionist"],
+    },
   },
 } as const
