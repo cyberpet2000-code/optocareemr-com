@@ -12,6 +12,8 @@ interface PatientRow {
   gender: string | null;
   phone: string;
   insurance_name: string;
+  patient_type: string;
+  patient_uid: string;
 }
 
 export default function PatientList() {
@@ -22,7 +24,7 @@ export default function PatientList() {
   useEffect(() => {
     supabase
       .from("Patients")
-      .select("id, full_name, age, gender, phone, insurance_name")
+      .select("id, full_name, age, gender, phone, insurance_name, patient_type, patient_uid")
       .order("created_at", { ascending: false })
       .then(({ data }) => {
         if (data) setPatients(data as unknown as PatientRow[]);
@@ -32,7 +34,8 @@ export default function PatientList() {
 
   const filtered = patients.filter(p =>
     p.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    p.phone.includes(search)
+    p.phone?.includes(search) ||
+    p.patient_uid?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -41,12 +44,7 @@ export default function PatientList() {
         <h1 className="page-header">All Patients</h1>
         <div className="relative w-full sm:w-72">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search by name or phone..."
-            className="pl-9"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+          <Input placeholder="Search name, phone, or ID..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
 
@@ -60,16 +58,19 @@ export default function PatientList() {
         ) : (
           <div className="divide-y divide-border">
             {filtered.map(p => (
-              <Link
-                key={p.id}
-                to={`/patient/${p.id}`}
-                className="flex items-center justify-between py-3 hover:bg-muted/50 -mx-2 px-2 rounded-lg transition-colors"
-              >
+              <Link key={p.id} to={`/patient/${p.id}`}
+                className="flex items-center justify-between py-3 hover:bg-muted/50 -mx-2 px-2 rounded-lg transition-colors">
                 <div>
-                  <p className="font-medium">{p.full_name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{p.full_name}</p>
+                    <span className="text-xs font-mono text-muted-foreground">{p.patient_uid}</span>
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${p.patient_type === "HMO" ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"}`}>
+                      {p.patient_type}
+                    </span>
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     {p.gender}, {p.age} yrs • {p.phone}
-                    {p.insurance_name && ` • ${p.insurance_name}`}
+                    {p.patient_type === "HMO" && p.insurance_name && ` • ${p.insurance_name}`}
                   </p>
                 </div>
                 <ChevronRight size={16} className="text-muted-foreground" />
