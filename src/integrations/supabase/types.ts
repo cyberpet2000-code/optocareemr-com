@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string
+          created_at: string
+          created_by: string | null
+          id: string
+          patient_id: number | null
+          reason: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          patient_id?: number | null
+          reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          patient_id?: number | null
+          reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "Patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       Appointments: {
         Row: {
           created_at: string
@@ -165,6 +209,125 @@ export type Database = {
           id?: number
         }
         Relationships: []
+      }
+      inventory: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          drug_category: string | null
+          expiry_date: string | null
+          id: string
+          image_url: string | null
+          low_stock_threshold: number
+          name: string
+          price: number
+          stock: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          drug_category?: string | null
+          expiry_date?: string | null
+          id?: string
+          image_url?: string | null
+          low_stock_threshold?: number
+          name: string
+          price?: number
+          stock?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          drug_category?: string | null
+          expiry_date?: string | null
+          id?: string
+          image_url?: string | null
+          low_stock_threshold?: number
+          name?: string
+          price?: number
+          stock?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      inventory_sale_items: {
+        Row: {
+          id: string
+          inventory_id: string
+          quantity: number
+          sale_id: string
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          id?: string
+          inventory_id: string
+          quantity?: number
+          sale_id: string
+          total_price?: number
+          unit_price?: number
+        }
+        Update: {
+          id?: string
+          inventory_id?: string
+          quantity?: number
+          sale_id?: string
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_sale_items_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_sales: {
+        Row: {
+          created_at: string
+          id: string
+          patient_id: number | null
+          sold_by: string | null
+          total_amount: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          patient_id?: number | null
+          sold_by?: string | null
+          total_amount?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          patient_id?: number | null
+          sold_by?: string | null
+          total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_sales_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "Patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       Medication: {
         Row: {
