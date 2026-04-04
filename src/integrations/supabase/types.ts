@@ -59,6 +59,83 @@ export type Database = {
         }
         Relationships: []
       }
+      consultations: {
+        Row: {
+          complaint: string | null
+          created_at: string | null
+          diagnosis: string | null
+          doctor_id: string | null
+          id: string
+          patient_id: string | null
+          prescription: string | null
+          treatment: string | null
+          visual_acuity_left: string | null
+          visual_acuity_right: string | null
+        }
+        Insert: {
+          complaint?: string | null
+          created_at?: string | null
+          diagnosis?: string | null
+          doctor_id?: string | null
+          id?: string
+          patient_id?: string | null
+          prescription?: string | null
+          treatment?: string | null
+          visual_acuity_left?: string | null
+          visual_acuity_right?: string | null
+        }
+        Update: {
+          complaint?: string | null
+          created_at?: string | null
+          diagnosis?: string | null
+          doctor_id?: string | null
+          id?: string
+          patient_id?: string | null
+          prescription?: string | null
+          treatment?: string | null
+          visual_acuity_left?: string | null
+          visual_acuity_right?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultations_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drugs: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          price: number | null
+          stock: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name: string
+          price?: number | null
+          stock?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name?: string
+          price?: number | null
+          stock?: number | null
+        }
+        Relationships: []
+      }
       History: {
         Row: {
           created_at: string
@@ -101,6 +178,42 @@ export type Database = {
         Update: {
           created_at?: string
           id?: number
+        }
+        Relationships: []
+      }
+      patients: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          created_by: string | null
+          date_of_birth: string | null
+          doctor_id: string | null
+          full_name: string
+          gender: string | null
+          id: string
+          phone: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_of_birth?: string | null
+          doctor_id?: string | null
+          full_name: string
+          gender?: string | null
+          id?: string
+          phone?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          date_of_birth?: string | null
+          doctor_id?: string | null
+          full_name?: string
+          gender?: string | null
+          id?: string
+          phone?: string | null
         }
         Relationships: []
       }
@@ -166,6 +279,102 @@ export type Database = {
           id?: number
         }
         Relationships: []
+      }
+      Profile: {
+        Row: {
+          created_at: string
+          id: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          full_name: string | null
+          id: string
+          role: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          role?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          role?: string | null
+        }
+        Relationships: []
+      }
+      Role: {
+        Row: {
+          created_at: string
+          id: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+        }
+        Relationships: []
+      }
+      sales: {
+        Row: {
+          created_at: string | null
+          drug_id: string | null
+          id: string
+          patient_id: string | null
+          quantity: number
+          sold_by: string | null
+          total_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          drug_id?: string | null
+          id?: string
+          patient_id?: string | null
+          quantity: number
+          sold_by?: string | null
+          total_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          drug_id?: string | null
+          id?: string
+          patient_id?: string | null
+          quantity?: number
+          sold_by?: string | null
+          total_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_drug_id_fkey"
+            columns: ["drug_id"]
+            isOneToOne: false
+            referencedRelation: "drugs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       Sales: {
         Row: {
@@ -375,13 +584,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      has_role:
+        | {
+            Args: {
+              _role: Database["public"]["Enums"]["app_role"]
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | { Args: { required_role: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "doctor" | "receptionist"
