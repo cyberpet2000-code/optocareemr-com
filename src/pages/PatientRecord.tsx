@@ -409,9 +409,14 @@ export default function PatientRecord() {
               <div className="space-y-4">
                 {visits.map((v: any) => (
                   <details key={v.id} className="border border-border rounded-lg">
-                    <summary className="px-4 py-3 cursor-pointer hover:bg-muted/50 rounded-lg font-medium text-sm">
-                      {new Date(v.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
-                      {v.diagnosis && <span className="text-muted-foreground ml-2">— {v.diagnosis.slice(0, 60)}</span>}
+                    <summary className="px-4 py-3 cursor-pointer hover:bg-muted/50 rounded-lg font-medium text-sm flex items-center justify-between">
+                      <span>
+                        {new Date(v.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                        {v.diagnosis && <span className="text-muted-foreground ml-2">— {v.diagnosis.slice(0, 60)}</span>}
+                      </span>
+                      <Button variant="ghost" size="sm" onClick={(e) => { e.preventDefault(); generateVisitPdf(patient, v); }}>
+                        <Download size={14} className="mr-1" /> Export
+                      </Button>
                     </summary>
                     <div className="px-4 pb-4 text-sm space-y-3 border-t border-border pt-3">
                       {v.chief_complaint && <div><strong>Chief Complaint:</strong> {v.chief_complaint}</div>}
