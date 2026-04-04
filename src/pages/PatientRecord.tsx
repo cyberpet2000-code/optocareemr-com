@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Eye, FileText, Stethoscope, ClipboardList, History, Pencil, Search as SearchIcon, Gauge, Scan } from "lucide-react";
+import { ArrowLeft, Eye, FileText, Stethoscope, ClipboardList, History, Pencil, Search as SearchIcon, Gauge, Scan, Download } from "lucide-react";
+import { generateVisitPdf } from "@/lib/visitPdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const emptyForm = () => ({

@@ -8,6 +8,8 @@ import Dashboard from "./pages/Dashboard";
 import PatientRegister from "./pages/PatientRegister";
 import PatientList from "./pages/PatientList";
 import PatientRecord from "./pages/PatientRecord";
+import Appointments from "./pages/Appointments";
+import Inventory from "./pages/Inventory";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -33,6 +35,8 @@ function ProtectedRoutes() {
       <Route path="/register" element={<PatientRegister />} />
       <Route path="/patients" element={<PatientList />} />
       <Route path="/patient/:id" element={<PatientRecord />} />
+      <Route path="/appointments" element={<Appointments />} />
+      <Route path="/inventory" element={<Inventory />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

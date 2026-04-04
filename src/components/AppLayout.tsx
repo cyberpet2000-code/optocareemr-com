@@ -1,18 +1,14 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, UserPlus, Users, Menu, X, LogOut } from "lucide-react";
+import { LayoutDashboard, UserPlus, Users, Menu, X, LogOut, Calendar, Package, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-
-const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/patients", label: "Patients", icon: Users },
-  { to: "/register", label: "Add Patient", icon: UserPlus },
-];
+import { useRole } from "@/hooks/useRole";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { isAdmin, isDoctor, isReceptionist, roles } = useRole();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -20,9 +16,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     navigate("/login");
   };
 
+  // Build nav items based on role
+  const navItems: { to: string; label: string; icon: any }[] = [
+    { to: "/", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/patients", label: "Patients", icon: Users },
+    { to: "/register", label: "Add Patient", icon: UserPlus },
+    { to: "/appointments", label: "Appointments", icon: Calendar },
+    { to: "/inventory", label: "Inventory", icon: Package },
+  ];
+
+  const roleBadge = roles.length > 0 ? roles[0] : "staff";
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar */}
       <header className="sticky top-0 z-50 bg-primary text-primary-foreground shadow-md">
         <div className="flex items-center justify-between px-4 h-14 max-w-7xl mx-auto">
           <Link to="/" className="flex items-center gap-2 font-bold text-lg tracking-tight">
@@ -34,24 +40,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               const Icon = item.icon;
               const active = location.pathname === item.to;
               return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    active ? "bg-primary-foreground/20" : "hover:bg-primary-foreground/10"
-                  }`}
-                >
-                  <Icon size={16} />
-                  {item.label}
+                <Link key={item.to} to={item.to}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${active ? "bg-primary-foreground/20" : "hover:bg-primary-foreground/10"}`}>
+                  <Icon size={15} /> {item.label}
                 </Link>
               );
             })}
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-primary-foreground/10"
-            >
-              <LogOut size={16} />
-              Logout
+            <span className="text-xs bg-primary-foreground/20 px-2 py-1 rounded capitalize ml-2">{roleBadge}</span>
+            <button onClick={handleLogout} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-primary-foreground/10 ml-1">
+              <LogOut size={15} /> Logout
             </button>
           </nav>
           <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
@@ -64,31 +61,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               const Icon = item.icon;
               const active = location.pathname === item.to;
               return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    active ? "bg-primary-foreground/20" : "hover:bg-primary-foreground/10"
-                  }`}
-                >
-                  <Icon size={16} />
-                  {item.label}
+                <Link key={item.to} to={item.to} onClick={() => setMobileOpen(false)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${active ? "bg-primary-foreground/20" : "hover:bg-primary-foreground/10"}`}>
+                  <Icon size={16} /> {item.label}
                 </Link>
               );
             })}
-            <button
-              onClick={() => { setMobileOpen(false); handleLogout(); }}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-primary-foreground/10 w-full"
-            >
-              <LogOut size={16} />
-              Logout
+            <button onClick={() => { setMobileOpen(false); handleLogout(); }}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-primary-foreground/10 w-full">
+              <LogOut size={16} /> Logout
             </button>
           </nav>
         )}
       </header>
-
-      {/* Content */}
       <main className="max-w-7xl mx-auto px-4 py-6">{children}</main>
     </div>
   );
