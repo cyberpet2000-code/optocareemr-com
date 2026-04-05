@@ -13,7 +13,7 @@ export function useRole() {
     if (!user) { setRoles([]); setLoading(false); return; }
 
     supabase
-      .from("user_roles")
+      .from("user_role")
       .select("role")
       .eq("user_id", user.id)
       .then(({ data }) => {
@@ -26,7 +26,6 @@ export function useRole() {
   const isAdmin = hasRole("admin");
   const isDoctor = hasRole("doctor");
   const isReceptionist = hasRole("receptionist");
-  // If no roles assigned, treat as receptionist-level
   const canAccessClinical = isAdmin || isDoctor || roles.length === 0;
   const canAccessInventory = isAdmin || isReceptionist || roles.length === 0;
   const canAccessAdmin = isAdmin;

@@ -38,7 +38,7 @@ export default function PatientRegister() {
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase.from("Patients").insert({
+    const { data, error } = await supabase.from("patients").insert({
       full_name: form.fullName.trim(),
       age: parseInt(form.age),
       gender: form.gender,
@@ -49,7 +49,7 @@ export default function PatientRegister() {
       hmo_provider: form.patientType === "HMO" ? form.hmoProvider : "",
       insurance_name: form.patientType === "HMO" ? form.hmoProvider : "",
       enrollee_number: form.patientType === "HMO" ? form.enrolleeNumber.trim() : "",
-    } as any).select().single();
+    }).select().single();
     setLoading(false);
 
     if (error) {
@@ -57,7 +57,7 @@ export default function PatientRegister() {
       return;
     }
     toast.success("Patient registered successfully");
-    navigate(`/patient/${(data as any).id}`);
+    navigate(`/patient/${data.id}`);
   };
 
   return (
@@ -97,8 +97,6 @@ export default function PatientRegister() {
             <Label>Address</Label>
             <Textarea value={form.address} onChange={e => set("address", e.target.value)} rows={2} maxLength={300} />
           </div>
-
-          {/* Patient Type */}
           <div className="space-y-1.5">
             <Label>Patient Type *</Label>
             <Select value={form.patientType} onValueChange={v => set("patientType", v)}>
@@ -109,7 +107,6 @@ export default function PatientRegister() {
               </SelectContent>
             </Select>
           </div>
-
           {form.patientType === "HMO" && (
             <>
               <div className="space-y-1.5">

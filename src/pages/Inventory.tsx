@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, Plus, X, Search, AlertTriangle, DollarSign, ShoppingCart, Trash2, Edit2, BarChart3 } from "lucide-react";
+import { Package, Plus, X, Search, AlertTriangle, ShoppingCart, Trash2, Edit2, BarChart3, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const CATEGORIES = ["Frames", "Lenses", "Contact lenses", "Accessories", "Drugs / Eye drops"];
@@ -42,6 +42,7 @@ export default function Inventory() {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyProduct);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("All");
@@ -57,16 +58,32 @@ export default function Inventory() {
 
   useEffect(() => { loadItems(); }, []);
   useEffect(() => {
-    supabase.from("Patients").select("id, full_name").order("full_name").then(({ data }) => {
+    supabase.from("patients").select("id, full_name").order("full_name").then(({ data }) => {
       if (data) setPatients(data as any);
     });
   }, []);
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
+  const uploadImage = async (file: File): Promise<string | null> => {
+    const ext = file.name.split(".").pop();
+    const path = `${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("product-images").upload(path, file);
+    if (error) { toast.error("Image upload failed: " + error.message); return null; }
+    const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+    return data.publicUrl;
+  };
+
   const handleSubmit = async () => {
     if (!form.name.trim()) { toast.error("Product name is required"); return; }
     setSaving(true);
+
+    let imageUrl: string | null = null;
+    if (imageFile) {
+      imageUrl = await uploadImage(imageFile);
+      if (!imageUrl) { setSaving(false); return; }
+    }
+
     const payload: any = {
       name: form.name.trim(),
       category: form.category,
@@ -76,6 +93,7 @@ export default function Inventory() {
       drug_category: form.category === "Drugs / Eye drops" ? form.drugCategory || null : null,
       expiry_date: form.category === "Drugs / Eye drops" && form.expiryDate ? form.expiryDate : null,
     };
+    if (imageUrl) payload.image_url = imageUrl;
 
     let error;
     if (editId) {
@@ -87,7 +105,7 @@ export default function Inventory() {
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success(editId ? "Product updated" : "Product added");
-    setShowForm(false); setEditId(null); setForm(emptyProduct);
+    setShowForm(false); setEditId(null); setForm(emptyProduct); setImageFile(null);
     loadItems();
   };
 
@@ -106,6 +124,7 @@ export default function Inventory() {
       drugCategory: item.drug_category || "", expiryDate: item.expiry_date || "",
       lowStockThreshold: String(item.low_stock_threshold),
     });
+    setImageFile(null);
     setShowForm(true);
   };
 
@@ -166,7 +185,6 @@ export default function Inventory() {
     <AppLayout>
       <h1 className="page-header mb-6">Inventory</h1>
 
-      {/* Dashboard Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="stat-card">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Package className="text-primary" size={20} /></div>
@@ -189,7 +207,6 @@ export default function Inventory() {
           <TabsTrigger value="alerts"><AlertTriangle size={14} className="mr-1" /> Low Stock ({lowStockItems.length})</TabsTrigger>
         </TabsList>
 
-        {/* PRODUCTS TAB */}
         <TabsContent value="products" className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
@@ -203,7 +220,7 @@ export default function Inventory() {
                 {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Button onClick={() => { setShowForm(!showForm); setEditId(null); setForm(emptyProduct); }} size="sm">
+            <Button onClick={() => { setShowForm(!showForm); setEditId(null); setForm(emptyProduct); setImageFile(null); }} size="sm">
               {showForm ? <><X size={14} className="mr-1" /> Cancel</> : <><Plus size={14} className="mr-1" /> Add Product</>}
             </Button>
           </div>
@@ -223,6 +240,10 @@ export default function Inventory() {
                 <div className="space-y-1.5"><Label>Price (₦)</Label><Input type="number" min={0} value={form.price} onChange={e => set("price", e.target.value)} /></div>
                 <div className="space-y-1.5"><Label>Stock</Label><Input type="number" min={0} value={form.stock} onChange={e => set("stock", e.target.value)} /></div>
                 <div className="space-y-1.5"><Label>Low Stock Alert</Label><Input type="number" min={0} value={form.lowStockThreshold} onChange={e => set("lowStockThreshold", e.target.value)} /></div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>Product Image</Label>
+                  <Input type="file" accept="image/*" onChange={e => setImageFile(e.target.files?.[0] || null)} />
+                </div>
                 {form.category === "Drugs / Eye drops" && (
                   <>
                     <div className="space-y-1.5">
@@ -249,21 +270,28 @@ export default function Inventory() {
               <div className="divide-y divide-border">
                 {filtered.map(item => (
                   <div key={item.id} className="flex items-center justify-between py-3 -mx-2 px-2 hover:bg-muted/50 rounded-lg transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium">{item.name}</p>
-                        <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">{item.category}</span>
-                        {item.drug_category && <span className="text-xs bg-accent/10 text-accent px-1.5 py-0.5 rounded">{item.drug_category}</span>}
-                        {item.stock <= item.low_stock_threshold && (
-                          <span className="text-xs bg-destructive/10 text-destructive px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                            <AlertTriangle size={10} /> Low
-                          </span>
-                        )}
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      {item.image_url ? (
+                        <img src={item.image_url} alt={item.name} className="w-10 h-10 rounded-lg object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center"><ImageIcon size={16} className="text-muted-foreground" /></div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-medium">{item.name}</p>
+                          <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">{item.category}</span>
+                          {item.drug_category && <span className="text-xs bg-accent/10 text-accent px-1.5 py-0.5 rounded">{item.drug_category}</span>}
+                          {item.stock <= item.low_stock_threshold && (
+                            <span className="text-xs bg-destructive/10 text-destructive px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                              <AlertTriangle size={10} /> Low
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          ₦{item.price.toLocaleString()} • Stock: {item.stock}
+                          {item.expiry_date && ` • Exp: ${item.expiry_date}`}
+                        </p>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        ₦{item.price.toLocaleString()} • Stock: {item.stock}
-                        {item.expiry_date && ` • Exp: ${item.expiry_date}`}
-                      </p>
                     </div>
                     <div className="flex gap-1">
                       <Button variant="ghost" size="sm" onClick={() => startEdit(item)}><Edit2 size={14} /></Button>
@@ -276,10 +304,8 @@ export default function Inventory() {
           </div>
         </TabsContent>
 
-        {/* SELL TAB */}
         <TabsContent value="sell" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Product Selection */}
             <div>
               <div className="relative mb-3">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -302,7 +328,6 @@ export default function Inventory() {
               </div>
             </div>
 
-            {/* Cart */}
             <div className="form-section">
               <h2 className="section-title text-base"><ShoppingCart size={16} /> Cart</h2>
               <div className="space-y-1.5 mb-3">
@@ -340,7 +365,6 @@ export default function Inventory() {
           </div>
         </TabsContent>
 
-        {/* LOW STOCK TAB */}
         <TabsContent value="alerts">
           <div className="medical-card">
             {lowStockItems.length === 0 ? (

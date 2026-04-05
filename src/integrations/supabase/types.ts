@@ -108,6 +108,75 @@ export type Database = {
         }
         Relationships: []
       }
+      billings: {
+        Row: {
+          amount_paid: number
+          balance: number
+          consultation_fee: number
+          created_at: string
+          drug_cost: number
+          glasses_cost: number
+          id: string
+          other_charges: number
+          patient_id: number | null
+          patient_type: string
+          payment_method: string | null
+          payment_status: string
+          total_amount: number
+          updated_at: string
+          visit_id: number | null
+        }
+        Insert: {
+          amount_paid?: number
+          balance?: number
+          consultation_fee?: number
+          created_at?: string
+          drug_cost?: number
+          glasses_cost?: number
+          id?: string
+          other_charges?: number
+          patient_id?: number | null
+          patient_type?: string
+          payment_method?: string | null
+          payment_status?: string
+          total_amount?: number
+          updated_at?: string
+          visit_id?: number | null
+        }
+        Update: {
+          amount_paid?: number
+          balance?: number
+          consultation_fee?: number
+          created_at?: string
+          drug_cost?: number
+          glasses_cost?: number
+          id?: string
+          other_charges?: number
+          patient_id?: number | null
+          patient_type?: string
+          payment_method?: string | null
+          payment_status?: string
+          total_amount?: number
+          updated_at?: string
+          visit_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billings_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billings_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       claims: {
         Row: {
           created_at: string
@@ -206,6 +275,63 @@ export type Database = {
           id?: number
         }
         Relationships: []
+      }
+      hmo_claims: {
+        Row: {
+          approved_amount: number
+          billing_id: string | null
+          co_payment: number
+          created_at: string
+          hmo_name: string
+          id: string
+          notes: string | null
+          patient_id: number | null
+          service_cost: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_amount?: number
+          billing_id?: string | null
+          co_payment?: number
+          created_at?: string
+          hmo_name: string
+          id?: string
+          notes?: string | null
+          patient_id?: number | null
+          service_cost?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_amount?: number
+          billing_id?: string | null
+          co_payment?: number
+          created_at?: string
+          hmo_name?: string
+          id?: string
+          notes?: string | null
+          patient_id?: number | null
+          service_cost?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hmo_claims_billing_id_fkey"
+            columns: ["billing_id"]
+            isOneToOne: false
+            referencedRelation: "billings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hmo_claims_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hmos: {
         Row: {
