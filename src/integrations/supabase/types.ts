@@ -16,49 +16,84 @@ export type Database = {
     Tables: {
       appointments: {
         Row: {
-          appointment_date: string
-          appointment_time: string
-          created_at: string
-          created_by: string | null
+          appointment_date: string | null
+          appointment_time: string | null
+          created_at: string | null
           id: string
-          patient_id: number | null
+          patient_id: string | null
           reason: string | null
-          status: string
-          updated_at: string
+          reminder_sent: boolean | null
+          staff_id: string | null
+          status: string | null
         }
         Insert: {
-          appointment_date: string
-          appointment_time: string
-          created_at?: string
-          created_by?: string | null
+          appointment_date?: string | null
+          appointment_time?: string | null
+          created_at?: string | null
           id?: string
-          patient_id?: number | null
+          patient_id?: string | null
           reason?: string | null
-          status?: string
-          updated_at?: string
+          reminder_sent?: boolean | null
+          staff_id?: string | null
+          status?: string | null
         }
         Update: {
-          appointment_date?: string
-          appointment_time?: string
-          created_at?: string
-          created_by?: string | null
+          appointment_date?: string | null
+          appointment_time?: string | null
+          created_at?: string | null
           id?: string
-          patient_id?: number | null
+          patient_id?: string | null
           reason?: string | null
-          status?: string
-          updated_at?: string
+          reminder_sent?: boolean | null
+          staff_id?: string | null
+          status?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "appointments_patient_id_fkey"
-            columns: ["patient_id"]
+            foreignKeyName: "appointments_staff_id_fkey"
+            columns: ["staff_id"]
             isOneToOne: false
-            referencedRelation: "Patients"
+            referencedRelation: "staff"
             referencedColumns: ["id"]
           },
         ]
       }
-      Appointments: {
+      audit_log: {
+        Row: {
+          action: string | null
+          id: string
+          record_id: string | null
+          staff_id: string | null
+          table_name: string | null
+          timestamp: string | null
+        }
+        Insert: {
+          action?: string | null
+          id?: string
+          record_id?: string | null
+          staff_id?: string | null
+          table_name?: string | null
+          timestamp?: string | null
+        }
+        Update: {
+          action?: string | null
+          id?: string
+          record_id?: string | null
+          staff_id?: string | null
+          table_name?: string | null
+          timestamp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing: {
         Row: {
           created_at: string
           id: number
@@ -73,22 +108,7 @@ export type Database = {
         }
         Relationships: []
       }
-      Billing: {
-        Row: {
-          created_at: string
-          id: number
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-        }
-        Update: {
-          created_at?: string
-          id?: number
-        }
-        Relationships: []
-      }
-      Claims: {
+      claims: {
         Row: {
           created_at: string
           id: number
@@ -105,50 +125,42 @@ export type Database = {
       }
       consultations: {
         Row: {
-          complaint: string | null
+          chief_complaint: string | null
           created_at: string | null
           diagnosis: string | null
-          doctor_id: string | null
           id: string
+          notes: string | null
           patient_id: string | null
-          prescription: string | null
+          refraction: string | null
           treatment: string | null
-          visual_acuity_left: string | null
-          visual_acuity_right: string | null
+          va_od: string | null
+          va_os: string | null
         }
         Insert: {
-          complaint?: string | null
+          chief_complaint?: string | null
           created_at?: string | null
           diagnosis?: string | null
-          doctor_id?: string | null
           id?: string
+          notes?: string | null
           patient_id?: string | null
-          prescription?: string | null
+          refraction?: string | null
           treatment?: string | null
-          visual_acuity_left?: string | null
-          visual_acuity_right?: string | null
+          va_od?: string | null
+          va_os?: string | null
         }
         Update: {
-          complaint?: string | null
+          chief_complaint?: string | null
           created_at?: string | null
           diagnosis?: string | null
-          doctor_id?: string | null
           id?: string
+          notes?: string | null
           patient_id?: string | null
-          prescription?: string | null
+          refraction?: string | null
           treatment?: string | null
-          visual_acuity_left?: string | null
-          visual_acuity_right?: string | null
+          va_od?: string | null
+          va_os?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "consultations_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       drugs: {
         Row: {
@@ -180,7 +192,7 @@ export type Database = {
         }
         Relationships: []
       }
-      History: {
+      history: {
         Row: {
           created_at: string
           id: number
@@ -324,12 +336,12 @@ export type Database = {
             foreignKeyName: "inventory_sales_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
-            referencedRelation: "Patients"
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]
       }
-      Medication: {
+      medication: {
         Row: {
           created_at: string
           id: number
@@ -345,42 +357,6 @@ export type Database = {
         Relationships: []
       }
       patients: {
-        Row: {
-          address: string | null
-          created_at: string | null
-          created_by: string | null
-          date_of_birth: string | null
-          doctor_id: string | null
-          full_name: string
-          gender: string | null
-          id: string
-          phone: string | null
-        }
-        Insert: {
-          address?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          date_of_birth?: string | null
-          doctor_id?: string | null
-          full_name: string
-          gender?: string | null
-          id?: string
-          phone?: string | null
-        }
-        Update: {
-          address?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          date_of_birth?: string | null
-          doctor_id?: string | null
-          full_name?: string
-          gender?: string | null
-          id?: string
-          phone?: string | null
-        }
-        Relationships: []
-      }
-      Patients: {
         Row: {
           address: string | null
           age: number | null
@@ -428,22 +404,63 @@ export type Database = {
         }
         Relationships: []
       }
-      Products: {
+      prescriptions: {
         Row: {
-          created_at: string
-          id: number
+          add_power: string | null
+          consultation_id: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          od_axis: string | null
+          od_cylinder: string | null
+          od_sphere: string | null
+          os_axis: string | null
+          os_cylinder: string | null
+          os_sphere: string | null
+          patient_id: string | null
+          pd: string | null
         }
         Insert: {
-          created_at?: string
-          id?: number
+          add_power?: string | null
+          consultation_id?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          od_axis?: string | null
+          od_cylinder?: string | null
+          od_sphere?: string | null
+          os_axis?: string | null
+          os_cylinder?: string | null
+          os_sphere?: string | null
+          patient_id?: string | null
+          pd?: string | null
         }
         Update: {
-          created_at?: string
-          id?: number
+          add_power?: string | null
+          consultation_id?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          od_axis?: string | null
+          od_cylinder?: string | null
+          od_sphere?: string | null
+          os_axis?: string | null
+          os_cylinder?: string | null
+          os_sphere?: string | null
+          patient_id?: string | null
+          pd?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "prescriptions_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      Profile: {
+      products: {
         Row: {
           created_at: string
           id: number
@@ -479,7 +496,45 @@ export type Database = {
         }
         Relationships: []
       }
-      Role: {
+      receipts: {
+        Row: {
+          created_at: string | null
+          id: string
+          issued_by: string | null
+          payment_method: string | null
+          receipt_number: string | null
+          sale_id: string | null
+          total_amount: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          issued_by?: string | null
+          payment_method?: string | null
+          receipt_number?: string | null
+          sale_id?: string | null
+          total_amount?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          issued_by?: string | null
+          payment_method?: string | null
+          receipt_number?: string | null
+          sale_id?: string | null
+          total_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipts_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role: {
         Row: {
           created_at: string
           id: number
@@ -496,65 +551,74 @@ export type Database = {
       }
       sales: {
         Row: {
+          category: string | null
           created_at: string | null
-          drug_id: string | null
           id: string
+          inventory_id: string | null
+          item_name: string | null
           patient_id: string | null
-          quantity: number
-          sold_by: string | null
-          total_price: number | null
+          payment_status: string | null
+          price: number | null
+          quantity: number | null
+          total: number | null
         }
         Insert: {
+          category?: string | null
           created_at?: string | null
-          drug_id?: string | null
           id?: string
+          inventory_id?: string | null
+          item_name?: string | null
           patient_id?: string | null
-          quantity: number
-          sold_by?: string | null
-          total_price?: number | null
+          payment_status?: string | null
+          price?: number | null
+          quantity?: number | null
+          total?: number | null
         }
         Update: {
+          category?: string | null
           created_at?: string | null
-          drug_id?: string | null
           id?: string
+          inventory_id?: string | null
+          item_name?: string | null
           patient_id?: string | null
-          quantity?: number
-          sold_by?: string | null
-          total_price?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sales_drug_id_fkey"
-            columns: ["drug_id"]
-            isOneToOne: false
-            referencedRelation: "drugs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sales_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      Sales: {
-        Row: {
-          created_at: string
-          id: number
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-        }
-        Update: {
-          created_at?: string
-          id?: number
+          payment_status?: string | null
+          price?: number | null
+          quantity?: number | null
+          total?: number | null
         }
         Relationships: []
       }
-      user_roles: {
+      staff: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          full_name: string
+          id: string
+          password_hash: string | null
+          phone: string | null
+          role: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          password_hash?: string | null
+          phone?: string | null
+          role?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          password_hash?: string | null
+          phone?: string | null
+          role?: string | null
+        }
+        Relationships: []
+      }
+      user_role: {
         Row: {
           id: string
           role: Database["public"]["Enums"]["app_role"]
@@ -572,7 +636,7 @@ export type Database = {
         }
         Relationships: []
       }
-      Visits: {
+      visits: {
         Row: {
           auto_od_axis: string | null
           auto_od_cylinder: string | null
@@ -737,7 +801,7 @@ export type Database = {
             foreignKeyName: "Visits_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
-            referencedRelation: "Patients"
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]
