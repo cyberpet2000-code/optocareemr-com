@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 interface Appointment {
   id: string;
-  patient_id: number | null;
+  patient_id: string | null;
   appointment_date: string;
   appointment_time: string;
   reason: string | null;
@@ -50,11 +50,11 @@ export default function Appointments() {
     if (data && data.length > 0) {
       const patientIds = [...new Set(data.filter(a => a.patient_id).map(a => a.patient_id))];
       if (patientIds.length > 0) {
-        const { data: pats } = await supabase.from("Patients").select("id, full_name").in("id", patientIds as number[]);
-        const patMap = new Map((pats || []).map(p => [p.id, p.full_name]));
-        setAppointments(data.map(a => ({ ...a, patient_name: a.patient_id ? patMap.get(a.patient_id) || "Unknown" : "Walk-in" })));
+        const { data: pats } = await supabase.from("patients").select("id, full_name").in("id", patientIds as any);
+        const patMap = new Map((pats || []).map((p: any) => [String(p.id), p.full_name]));
+        setAppointments(data.map((a: any) => ({ ...a, patient_name: a.patient_id ? patMap.get(String(a.patient_id)) || "Unknown" : "Walk-in" })));
       } else {
-        setAppointments(data.map(a => ({ ...a, patient_name: "Walk-in" })));
+        setAppointments(data.map((a: any) => ({ ...a, patient_name: "Walk-in" })));
       }
     } else {
       setAppointments([]);
@@ -65,7 +65,7 @@ export default function Appointments() {
   useEffect(() => { loadAppointments(); }, [filterDate]);
 
   useEffect(() => {
-    supabase.from("Patients").select("id, full_name, patient_uid").order("full_name").then(({ data }) => {
+    supabase.from("patients").select("id, full_name, patient_uid").order("full_name").then(({ data }) => {
       if (data) setPatients(data as unknown as PatientOption[]);
     });
   }, []);
@@ -74,7 +74,7 @@ export default function Appointments() {
     if (!form.time) { toast.error("Please set a time"); return; }
     setSaving(true);
     const { error } = await supabase.from("appointments").insert({
-      patient_id: form.patientId ? parseInt(form.patientId) : null,
+      patient_id: form.patientId || null,
       appointment_date: format(form.date, "yyyy-MM-dd"),
       appointment_time: form.time,
       reason: form.reason || null,

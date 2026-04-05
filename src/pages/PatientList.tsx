@@ -23,7 +23,7 @@ export default function PatientList() {
 
   useEffect(() => {
     supabase
-      .from("Patients")
+      .from("patients")
       .select("id, full_name, age, gender, phone, insurance_name, patient_type, patient_uid")
       .order("created_at", { ascending: false })
       .then(({ data }) => {

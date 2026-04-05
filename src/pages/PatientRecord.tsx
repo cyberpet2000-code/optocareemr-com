@@ -106,8 +106,8 @@ export default function PatientRecord() {
     if (isNaN(patientId)) { setLoading(false); return; }
     async function load() {
       const [patRes, visRes] = await Promise.all([
-        supabase.from("Patients").select("*").eq("id", patientId).maybeSingle(),
-        supabase.from("Visits").select("*").eq("patient_id", patientId).order("created_at", { ascending: false }),
+        supabase.from("patients").select("*").eq("id", patientId).maybeSingle(),
+        supabase.from("visits").select("*").eq("patient_id", patientId).order("created_at", { ascending: false }),
       ]);
       if (patRes.data) setPatient(patRes.data as unknown as PatientData);
       if (visRes.data) setVisits(visRes.data);
@@ -124,7 +124,7 @@ export default function PatientRecord() {
 
   const handleSave = async () => {
     setSaving(true);
-    const { error } = await supabase.from("Visits").insert({
+    const { error } = await supabase.from("visits").insert({
       patient_id: patientId,
       va_od_distance: form.vaOdDistance || null,
       va_os_distance: form.vaOsDistance || null,
@@ -183,12 +183,12 @@ export default function PatientRecord() {
     }
     toast.success("Visit saved successfully");
     setForm(emptyForm());
-    const { data } = await supabase.from("Visits").select("*").eq("patient_id", patientId).order("created_at", { ascending: false });
+    const { data } = await supabase.from("visits").select("*").eq("patient_id", patientId).order("created_at", { ascending: false });
     if (data) setVisits(data);
   };
 
   const handleEditPatient = async () => {
-    const { error } = await supabase.from("Patients").update({
+    const { error } = await supabase.from("patients").update({
       full_name: editForm.full_name,
       age: editForm.age,
       gender: editForm.gender,
@@ -199,7 +199,7 @@ export default function PatientRecord() {
       hmo_provider: editForm.hmo_provider,
       insurance_name: editForm.patient_type === "HMO" ? editForm.hmo_provider : "",
       enrollee_number: editForm.enrollee_number,
-    } as any).eq("id", patientId);
+    }).eq("id", patientId);
     if (error) { toast.error(error.message); return; }
     toast.success("Patient info updated");
     setPatient({ ...patient!, ...editForm } as PatientData);
