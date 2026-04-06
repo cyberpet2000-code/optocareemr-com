@@ -30,106 +30,68 @@ export default function PatientRegister() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.fullName.trim() || !form.age || !form.gender) {
-      toast.error("Please fill in required fields (Name, Age, Gender)");
+      toast.error("Fill required fields (Name, Age, Gender)");
       return;
     }
     if (form.patientType === "HMO" && !form.hmoProvider) {
-      toast.error("Please select an HMO provider");
+      toast.error("Select HMO provider");
       return;
     }
     setLoading(true);
     const { data, error } = await supabase.from("patients").insert({
       full_name: form.fullName.trim(),
-      age: parseInt(form.age),
-      gender: form.gender,
-      phone: form.phone.trim(),
-      address: form.address.trim(),
-      next_of_kin: form.nextOfKin.trim(),
-      patient_type: form.patientType,
+      age: parseInt(form.age), gender: form.gender,
+      phone: form.phone.trim(), address: form.address.trim(),
+      next_of_kin: form.nextOfKin.trim(), patient_type: form.patientType,
       hmo_provider: form.patientType === "HMO" ? form.hmoProvider : "",
       insurance_name: form.patientType === "HMO" ? form.hmoProvider : "",
       enrollee_number: form.patientType === "HMO" ? form.enrolleeNumber.trim() : "",
     }).select().single();
     setLoading(false);
-
-    if (error) {
-      toast.error("Failed to register patient: " + error.message);
-      return;
-    }
-    toast.success("Patient registered successfully");
+    if (error) { toast.error(error.message); return; }
+    toast.success("Patient registered");
     navigate(`/patient/${data.id}`);
   };
 
   return (
     <AppLayout>
-      <h1 className="page-header mb-6">Register New Patient</h1>
+      <h1 className="page-header mb-5">Register Patient</h1>
       <form onSubmit={handleSubmit} className="form-section max-w-2xl">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label>Full Name *</Label>
-            <Input value={form.fullName} onChange={e => set("fullName", e.target.value)} maxLength={100} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Age *</Label>
-              <Input type="number" min={0} max={150} value={form.age} onChange={e => set("age", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Gender *</Label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1"><Label className="text-xs">Full Name *</Label><Input className="rounded-xl" value={form.fullName} onChange={e => set("fullName", e.target.value)} /></div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1"><Label className="text-xs">Age *</Label><Input className="rounded-xl" type="number" min={0} max={150} value={form.age} onChange={e => set("age", e.target.value)} /></div>
+            <div className="space-y-1"><Label className="text-xs">Gender *</Label>
               <Select value={form.gender} onValueChange={v => set("gender", v)}>
-                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Male">Male</SelectItem>
-                  <SelectItem value="Female">Female</SelectItem>
-                </SelectContent>
+                <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent><SelectItem value="Male">Male</SelectItem><SelectItem value="Female">Female</SelectItem></SelectContent>
               </Select>
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Phone Number</Label>
-            <Input value={form.phone} onChange={e => set("phone", e.target.value)} maxLength={20} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Next of Kin</Label>
-            <Input value={form.nextOfKin} onChange={e => set("nextOfKin", e.target.value)} maxLength={100} />
-          </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <Label>Address</Label>
-            <Textarea value={form.address} onChange={e => set("address", e.target.value)} rows={2} maxLength={300} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Patient Type *</Label>
+          <div className="space-y-1"><Label className="text-xs">Phone</Label><Input className="rounded-xl" value={form.phone} onChange={e => set("phone", e.target.value)} /></div>
+          <div className="space-y-1"><Label className="text-xs">Next of Kin</Label><Input className="rounded-xl" value={form.nextOfKin} onChange={e => set("nextOfKin", e.target.value)} /></div>
+          <div className="space-y-1 sm:col-span-2"><Label className="text-xs">Address</Label><Textarea className="rounded-xl" value={form.address} onChange={e => set("address", e.target.value)} rows={2} /></div>
+          <div className="space-y-1"><Label className="text-xs">Patient Type *</Label>
             <Select value={form.patientType} onValueChange={v => set("patientType", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Private">Private</SelectItem>
-                <SelectItem value="HMO">HMO</SelectItem>
-              </SelectContent>
+              <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="Private">Private</SelectItem><SelectItem value="HMO">HMO</SelectItem></SelectContent>
             </Select>
           </div>
           {form.patientType === "HMO" && (
             <>
-              <div className="space-y-1.5">
-                <Label>HMO Provider *</Label>
+              <div className="space-y-1"><Label className="text-xs">HMO Provider *</Label>
                 <Select value={form.hmoProvider} onValueChange={v => set("hmoProvider", v)}>
-                  <SelectTrigger><SelectValue placeholder="Select HMO" /></SelectTrigger>
-                  <SelectContent>
-                    {HMO_LIST.map(h => (
-                      <SelectItem key={h} value={h}>{h}</SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select HMO" /></SelectTrigger>
+                  <SelectContent>{HMO_LIST.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label>Enrollee Number</Label>
-                <Input value={form.enrolleeNumber} onChange={e => set("enrolleeNumber", e.target.value)} maxLength={50} />
-              </div>
+              <div className="space-y-1"><Label className="text-xs">Enrollee Number</Label><Input className="rounded-xl" value={form.enrolleeNumber} onChange={e => set("enrolleeNumber", e.target.value)} /></div>
             </>
           )}
         </div>
         <div className="flex gap-3 pt-2">
-          <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Register Patient"}</Button>
-          <Button type="button" variant="outline" onClick={() => navigate("/")}>Cancel</Button>
+          <Button type="submit" className="rounded-xl" disabled={loading}>{loading ? "Saving..." : "Register"}</Button>
+          <Button type="button" variant="outline" className="rounded-xl" onClick={() => navigate("/")}>Cancel</Button>
         </div>
       </form>
     </AppLayout>
