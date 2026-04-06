@@ -10,6 +10,7 @@ import PatientList from "./pages/PatientList";
 import PatientRecord from "./pages/PatientRecord";
 import Appointments from "./pages/Appointments";
 import Inventory from "./pages/Inventory";
+import Pharmacy from "./pages/Pharmacy";
 import Billing from "./pages/Billing";
 import SalesHistory from "./pages/SalesHistory";
 import AdminRoles from "./pages/AdminRoles";
@@ -25,7 +26,7 @@ function ProtectedRoutes() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
       </div>
     );
   }
@@ -40,6 +41,7 @@ function ProtectedRoutes() {
       <Route path="/patient/:id" element={<PatientRecord />} />
       <Route path="/appointments" element={<Appointments />} />
       <Route path="/inventory" element={<Inventory />} />
+      <Route path="/pharmacy" element={<Pharmacy />} />
       <Route path="/billing" element={<Billing />} />
       <Route path="/sales-history" element={<SalesHistory />} />
       <Route path="/admin/roles" element={<AdminRoles />} />
