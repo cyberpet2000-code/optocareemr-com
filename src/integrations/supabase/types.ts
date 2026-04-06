@@ -19,36 +19,52 @@ export type Database = {
           appointment_date: string | null
           appointment_time: string | null
           created_at: string | null
+          doctor_id: string | null
           id: string
-          patient_id: string | null
+          notes: string | null
+          patient_id: number | null
           reason: string | null
           reminder_sent: boolean | null
           staff_id: string | null
           status: string | null
+          visit_created: boolean | null
         }
         Insert: {
           appointment_date?: string | null
           appointment_time?: string | null
           created_at?: string | null
+          doctor_id?: string | null
           id?: string
-          patient_id?: string | null
+          notes?: string | null
+          patient_id?: number | null
           reason?: string | null
           reminder_sent?: boolean | null
           staff_id?: string | null
           status?: string | null
+          visit_created?: boolean | null
         }
         Update: {
           appointment_date?: string | null
           appointment_time?: string | null
           created_at?: string | null
+          doctor_id?: string | null
           id?: string
-          patient_id?: string | null
+          notes?: string | null
+          patient_id?: number | null
           reason?: string | null
           reminder_sent?: boolean | null
           staff_id?: string | null
           status?: string | null
+          visit_created?: boolean | null
         }
         Relationships: [
+          {
+            foreignKeyName: "appointments_patient_fk"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "appointments_staff_id_fkey"
             columns: ["staff_id"]
@@ -93,21 +109,6 @@ export type Database = {
           },
         ]
       }
-      billing: {
-        Row: {
-          created_at: string
-          id: number
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-        }
-        Update: {
-          created_at?: string
-          id?: number
-        }
-        Relationships: []
-      }
       billings: {
         Row: {
           amount_paid: number
@@ -116,10 +117,12 @@ export type Database = {
           created_at: string
           drug_cost: number
           glasses_cost: number
+          hmo_name: string | null
           id: string
           other_charges: number
           patient_id: number | null
           patient_type: string
+          payer_type: string | null
           payment_method: string | null
           payment_status: string
           total_amount: number
@@ -133,10 +136,12 @@ export type Database = {
           created_at?: string
           drug_cost?: number
           glasses_cost?: number
+          hmo_name?: string | null
           id?: string
           other_charges?: number
           patient_id?: number | null
           patient_type?: string
+          payer_type?: string | null
           payment_method?: string | null
           payment_status?: string
           total_amount?: number
@@ -150,10 +155,12 @@ export type Database = {
           created_at?: string
           drug_cost?: number
           glasses_cost?: number
+          hmo_name?: string | null
           id?: string
           other_charges?: number
           patient_id?: number | null
           patient_type?: string
+          payer_type?: string | null
           payment_method?: string | null
           payment_status?: string
           total_amount?: number
@@ -231,11 +238,64 @@ export type Database = {
         }
         Relationships: []
       }
+      dispensing: {
+        Row: {
+          dispensed_at: string | null
+          dispensed_by: string | null
+          drug_id: string | null
+          id: string
+          prescription_id: string | null
+          price: number | null
+          quantity: number
+        }
+        Insert: {
+          dispensed_at?: string | null
+          dispensed_by?: string | null
+          drug_id?: string | null
+          id?: string
+          prescription_id?: string | null
+          price?: number | null
+          quantity: number
+        }
+        Update: {
+          dispensed_at?: string | null
+          dispensed_by?: string | null
+          drug_id?: string | null
+          id?: string
+          prescription_id?: string | null
+          price?: number | null
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispensing_dispensed_by_fkey"
+            columns: ["dispensed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispensing_drug_id_fkey"
+            columns: ["drug_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispensing_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       drugs: {
         Row: {
           category: string | null
           created_at: string | null
           created_by: string | null
+          expiry_date: string | null
           id: string
           name: string
           price: number | null
@@ -245,6 +305,7 @@ export type Database = {
           category?: string | null
           created_at?: string | null
           created_by?: string | null
+          expiry_date?: string | null
           id?: string
           name: string
           price?: number | null
@@ -254,6 +315,7 @@ export type Database = {
           category?: string | null
           created_at?: string | null
           created_by?: string | null
+          expiry_date?: string | null
           id?: string
           name?: string
           price?: number | null
@@ -360,7 +422,7 @@ export type Database = {
           low_stock_threshold: number
           name: string
           price: number
-          stock: number
+          stock_quantity: number
           updated_at: string
         }
         Insert: {
@@ -374,7 +436,7 @@ export type Database = {
           low_stock_threshold?: number
           name: string
           price?: number
-          stock?: number
+          stock_quantity?: number
           updated_at?: string
         }
         Update: {
@@ -388,7 +450,7 @@ export type Database = {
           low_stock_threshold?: number
           name?: string
           price?: number
-          stock?: number
+          stock_quantity?: number
           updated_at?: string
         }
         Relationships: []
@@ -467,20 +529,61 @@ export type Database = {
           },
         ]
       }
-      medication: {
+      lens_prescriptions: {
         Row: {
-          created_at: string
-          id: number
+          created_at: string | null
+          id: string
+          ipd: string | null
+          lens_type: string | null
+          notes: string | null
+          od_axis: string | null
+          od_cyl: string | null
+          od_sph: string | null
+          os_axis: string | null
+          os_cyl: string | null
+          os_sph: string | null
+          patient_id: number | null
+          va: string | null
         }
         Insert: {
-          created_at?: string
-          id?: number
+          created_at?: string | null
+          id?: string
+          ipd?: string | null
+          lens_type?: string | null
+          notes?: string | null
+          od_axis?: string | null
+          od_cyl?: string | null
+          od_sph?: string | null
+          os_axis?: string | null
+          os_cyl?: string | null
+          os_sph?: string | null
+          patient_id?: number | null
+          va?: string | null
         }
         Update: {
-          created_at?: string
-          id?: number
+          created_at?: string | null
+          id?: string
+          ipd?: string | null
+          lens_type?: string | null
+          notes?: string | null
+          od_axis?: string | null
+          od_cyl?: string | null
+          od_sph?: string | null
+          os_axis?: string | null
+          os_cyl?: string | null
+          os_sph?: string | null
+          patient_id?: number | null
+          va?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "lens_prescriptions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       patients: {
         Row: {
@@ -530,6 +633,61 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          billing_id: string | null
+          created_at: string | null
+          id: string
+          paid_by: string | null
+          patient_id: number | null
+          payment_method: string | null
+          visit_id: number | null
+        }
+        Insert: {
+          amount: number
+          billing_id?: string | null
+          created_at?: string | null
+          id?: string
+          paid_by?: string | null
+          patient_id?: number | null
+          payment_method?: string | null
+          visit_id?: number | null
+        }
+        Update: {
+          amount?: number
+          billing_id?: string | null
+          created_at?: string | null
+          id?: string
+          paid_by?: string | null
+          patient_id?: number | null
+          payment_method?: string | null
+          visit_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_billing_fk"
+            columns: ["billing_id"]
+            isOneToOne: false
+            referencedRelation: "billings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_patient_fk"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_visit_fk"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prescriptions: {
         Row: {
           add_power: string | null
@@ -545,6 +703,7 @@ export type Database = {
           os_sphere: string | null
           patient_id: string | null
           pd: string | null
+          status: string | null
         }
         Insert: {
           add_power?: string | null
@@ -560,6 +719,7 @@ export type Database = {
           os_sphere?: string | null
           patient_id?: string | null
           pd?: string | null
+          status?: string | null
         }
         Update: {
           add_power?: string | null
@@ -575,6 +735,7 @@ export type Database = {
           os_sphere?: string | null
           patient_id?: string | null
           pd?: string | null
+          status?: string | null
         }
         Relationships: [
           {
@@ -764,6 +925,7 @@ export type Database = {
       }
       visits: {
         Row: {
+          aided_va: string | null
           auto_od_axis: string | null
           auto_od_cylinder: string | null
           auto_od_sphere: string | null
@@ -772,11 +934,13 @@ export type Database = {
           auto_os_sphere: string | null
           auto_va_od: string | null
           auto_va_os: string | null
+          case_history: string | null
           chief_complaint: string | null
           created_at: string
           diagnosis: string | null
           drugs_given: string | null
           duration: string | null
+          examination: string | null
           ext_conjunctiva: string | null
           ext_cornea: string | null
           ext_lids: string | null
@@ -797,6 +961,8 @@ export type Database = {
           reading_add_os: string | null
           reading_add_va_od: string | null
           reading_add_va_os: string | null
+          refraction: string | null
+          status: string | null
           sub_od_axis: string | null
           sub_od_cylinder: string | null
           sub_od_sphere: string | null
@@ -809,6 +975,8 @@ export type Database = {
           tonometry_od: string | null
           tonometry_os: string | null
           tonometry_time: string | null
+          treatment: string | null
+          unaided_va: string | null
           va_od_distance: string | null
           va_od_near: string | null
           va_os_distance: string | null
@@ -817,6 +985,7 @@ export type Database = {
           va_ou_near: string | null
         }
         Insert: {
+          aided_va?: string | null
           auto_od_axis?: string | null
           auto_od_cylinder?: string | null
           auto_od_sphere?: string | null
@@ -825,11 +994,13 @@ export type Database = {
           auto_os_sphere?: string | null
           auto_va_od?: string | null
           auto_va_os?: string | null
+          case_history?: string | null
           chief_complaint?: string | null
           created_at?: string
           diagnosis?: string | null
           drugs_given?: string | null
           duration?: string | null
+          examination?: string | null
           ext_conjunctiva?: string | null
           ext_cornea?: string | null
           ext_lids?: string | null
@@ -850,6 +1021,8 @@ export type Database = {
           reading_add_os?: string | null
           reading_add_va_od?: string | null
           reading_add_va_os?: string | null
+          refraction?: string | null
+          status?: string | null
           sub_od_axis?: string | null
           sub_od_cylinder?: string | null
           sub_od_sphere?: string | null
@@ -862,6 +1035,8 @@ export type Database = {
           tonometry_od?: string | null
           tonometry_os?: string | null
           tonometry_time?: string | null
+          treatment?: string | null
+          unaided_va?: string | null
           va_od_distance?: string | null
           va_od_near?: string | null
           va_os_distance?: string | null
@@ -870,6 +1045,7 @@ export type Database = {
           va_ou_near?: string | null
         }
         Update: {
+          aided_va?: string | null
           auto_od_axis?: string | null
           auto_od_cylinder?: string | null
           auto_od_sphere?: string | null
@@ -878,11 +1054,13 @@ export type Database = {
           auto_os_sphere?: string | null
           auto_va_od?: string | null
           auto_va_os?: string | null
+          case_history?: string | null
           chief_complaint?: string | null
           created_at?: string
           diagnosis?: string | null
           drugs_given?: string | null
           duration?: string | null
+          examination?: string | null
           ext_conjunctiva?: string | null
           ext_cornea?: string | null
           ext_lids?: string | null
@@ -903,6 +1081,8 @@ export type Database = {
           reading_add_os?: string | null
           reading_add_va_od?: string | null
           reading_add_va_os?: string | null
+          refraction?: string | null
+          status?: string | null
           sub_od_axis?: string | null
           sub_od_cylinder?: string | null
           sub_od_sphere?: string | null
@@ -915,6 +1095,8 @@ export type Database = {
           tonometry_od?: string | null
           tonometry_os?: string | null
           tonometry_time?: string | null
+          treatment?: string | null
+          unaided_va?: string | null
           va_od_distance?: string | null
           va_od_near?: string | null
           va_os_distance?: string | null
@@ -934,7 +1116,20 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      daily_income: {
+        Row: {
+          date: string | null
+          total_income: number | null
+        }
+        Relationships: []
+      }
+      payment_breakdown: {
+        Row: {
+          paid_by: string | null
+          total: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role:

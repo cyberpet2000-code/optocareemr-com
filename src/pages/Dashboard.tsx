@@ -1,129 +1,210 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Users, CalendarCheck, UserPlus, ChevronRight, Package, AlertTriangle, Calendar, DollarSign } from "lucide-react";
+import { Users, CalendarCheck, ChevronRight, Package, AlertTriangle, DollarSign, TrendingUp, Clock, Pill } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
-
-interface PatientRow {
-  id: number;
-  full_name: string;
-  age: number | null;
-  gender: string | null;
-  phone: string;
-}
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Dashboard() {
-  const [patients, setPatients] = useState<PatientRow[]>([]);
+  const { user } = useAuth();
   const [totalCount, setTotalCount] = useState(0);
   const [todayVisits, setTodayVisits] = useState(0);
   const [todayAppointments, setTodayAppointments] = useState(0);
-  const [totalProducts, setTotalProducts] = useState(0);
+  const [pendingBills, setPendingBills] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
-  const [privateIncome, setPrivateIncome] = useState(0);
-  const [hmoPending, setHmoPending] = useState(0);
-  const [hmoPaid, setHmoPaid] = useState(0);
+  const [recentPatients, setRecentPatients] = useState<any[]>([]);
+  const [upcomingAppts, setUpcomingAppts] = useState<any[]>([]);
+  const [drugAlerts, setDrugAlerts] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  };
+
+  const displayName = user?.user_metadata?.full_name || "Doctor";
 
   useEffect(() => {
     async function load() {
       const today = new Date().toISOString().split("T")[0];
 
-      const [patientsRes, countRes, visitsRes, apptRes, invRes, billingsRes, claimsRes] = await Promise.all([
-        supabase.from("patients").select("id, full_name, age, gender, phone").order("created_at", { ascending: false }).limit(5),
+      const [patientsRes, countRes, visitsRes, apptRes, pendingApptRes, invRes, billRes, drugsRes] = await Promise.all([
+        supabase.from("patients").select("id, full_name, age, gender, phone, patient_uid, patient_type").order("created_at", { ascending: false }).limit(5),
         supabase.from("patients").select("*", { count: "exact", head: true }),
-        supabase.from("visits").select("*", { count: "exact", head: true }).gte("created_at", `${today}T00:00:00`).lt("created_at", `${today}T23:59:59.999`),
+        supabase.from("visits").select("*", { count: "exact", head: true }).gte("created_at", `${today}T00:00:00`),
         supabase.from("appointments").select("*", { count: "exact", head: true }).eq("appointment_date", today).eq("status", "scheduled"),
-        supabase.from("inventory").select("id, stock, low_stock_threshold"),
-        supabase.from("billings").select("amount_paid, patient_type, payment_status"),
-        supabase.from("hmo_claims").select("service_cost, approved_amount, status"),
+        supabase.from("appointments").select("id, appointment_time, reason, patient_id").eq("appointment_date", today).eq("status", "scheduled").order("appointment_time").limit(5),
+        supabase.from("inventory").select("id, stock_quantity, low_stock_threshold"),
+        supabase.from("billings").select("total_amount, amount_paid, payment_status"),
+        supabase.from("drugs").select("id, stock, expiry_date"),
       ]);
 
-      if (patientsRes.data) setPatients(patientsRes.data as unknown as PatientRow[]);
+      if (patientsRes.data) setRecentPatients(patientsRes.data);
       setTotalCount(countRes.count ?? 0);
       setTodayVisits(visitsRes.count ?? 0);
       setTodayAppointments(apptRes.count ?? 0);
+
       if (invRes.data) {
-        setTotalProducts(invRes.data.length);
-        setLowStockCount(invRes.data.filter((i: any) => i.stock <= i.low_stock_threshold).length);
+        setLowStockCount(invRes.data.filter((i: any) => (i.stock_quantity ?? 0) <= (i.low_stock_threshold ?? 5)).length);
       }
-      if (billingsRes.data) {
-        setPrivateIncome(billingsRes.data.filter((b: any) => b.patient_type === "Private").reduce((s: number, b: any) => s + Number(b.amount_paid || 0), 0));
+
+      if (billRes.data) {
+        setTotalRevenue(billRes.data.reduce((s: number, b: any) => s + Number(b.amount_paid || 0), 0));
+        setPendingBills(billRes.data.filter((b: any) => b.payment_status === "Unpaid" || b.payment_status === "Partial").length);
       }
-      if (claimsRes.data) {
-        setHmoPending(claimsRes.data.filter((c: any) => c.status === "Pending" || c.status === "Partial").reduce((s: number, c: any) => s + Number(c.service_cost || 0), 0));
-        setHmoPaid(claimsRes.data.filter((c: any) => c.status === "Paid" || c.status === "Approved").reduce((s: number, c: any) => s + Number(c.approved_amount || 0), 0));
+
+      if (drugsRes.data) {
+        const thirtyDays = new Date();
+        thirtyDays.setDate(thirtyDays.getDate() + 30);
+        setDrugAlerts(drugsRes.data.filter((d: any) =>
+          (d.stock !== null && d.stock <= 5) ||
+          (d.expiry_date && new Date(d.expiry_date) <= thirtyDays)
+        ).length);
       }
+
+      // Resolve patient names for appointments
+      if (pendingApptRes.data && pendingApptRes.data.length > 0) {
+        const patIds = [...new Set(pendingApptRes.data.map((a: any) => a.patient_id).filter(Boolean))];
+        let patMap = new Map<number, string>();
+        if (patIds.length > 0) {
+          const { data: pats } = await supabase.from("patients").select("id, full_name").in("id", patIds as any);
+          patMap = new Map((pats || []).map((p: any) => [p.id, p.full_name]));
+        }
+        setUpcomingAppts(pendingApptRes.data.map((a: any) => ({
+          ...a,
+          patient_name: a.patient_id ? patMap.get(a.patient_id) || "Walk-in" : "Walk-in",
+        })));
+      }
+
       setLoading(false);
     }
     load();
   }, []);
 
+  const Metric = ({ icon: Icon, label, value, color, to }: any) => (
+    <Link to={to} className="stat-card group">
+      <div className={`w-11 h-11 rounded-2xl ${color} flex items-center justify-center shrink-0`}>
+        <Icon size={20} className="text-inherit" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">{label}</p>
+        <p className="text-xl font-bold tracking-tight">{loading ? "—" : value}</p>
+      </div>
+    </Link>
+  );
+
   return (
     <AppLayout>
-      <h1 className="page-header mb-6">Dashboard</h1>
+      {/* Greeting */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight">
+          {getGreeting()}, <span className="text-primary">{displayName}</span>
+        </h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+        </p>
+      </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* Metric Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <Metric icon={Users} label="Total Patients" value={totalCount} color="bg-primary/10 text-primary" to="/patients" />
+        <Metric icon={TrendingUp} label="Revenue" value={`₦${totalRevenue.toLocaleString()}`} color="bg-success/10 text-success" to="/billing" />
+        <Metric icon={DollarSign} label="Pending Bills" value={pendingBills} color="bg-warning/10 text-warning" to="/billing" />
+        <Metric icon={Pill} label="Drug Alerts" value={drugAlerts + lowStockCount} color="bg-destructive/10 text-destructive" to="/pharmacy" />
+      </div>
+
+      {/* Quick Stats Row */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="stat-card">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Users className="text-primary" size={20} /></div>
-          <div><p className="text-xs text-muted-foreground">Patients</p><p className="text-xl font-bold">{loading ? "—" : totalCount}</p></div>
+          <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+            <CalendarCheck className="text-accent" size={18} />
+          </div>
+          <div>
+            <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Today's Visits</p>
+            <p className="text-lg font-bold">{loading ? "—" : todayVisits}</p>
+          </div>
         </div>
         <div className="stat-card">
-          <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center"><CalendarCheck className="text-success" size={20} /></div>
-          <div><p className="text-xs text-muted-foreground">Today's Visits</p><p className="text-xl font-bold">{loading ? "—" : todayVisits}</p></div>
-        </div>
-        <div className="stat-card">
-          <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center"><Calendar className="text-accent" size={20} /></div>
-          <div><p className="text-xs text-muted-foreground">Appointments</p><p className="text-xl font-bold">{loading ? "—" : todayAppointments}</p></div>
-        </div>
-        <div className="stat-card">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Package className="text-primary" size={20} /></div>
-          <div><p className="text-xs text-muted-foreground">Products</p><p className="text-xl font-bold">{loading ? "—" : totalProducts}</p></div>
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Clock className="text-primary" size={18} />
+          </div>
+          <div>
+            <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Appointments</p>
+            <p className="text-lg font-bold">{loading ? "—" : todayAppointments}</p>
+          </div>
         </div>
       </div>
 
-      {/* Financial Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="stat-card">
-          <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center"><DollarSign className="text-success" size={20} /></div>
-          <div><p className="text-xs text-muted-foreground">Private Income</p><p className="text-lg font-bold">₦{loading ? "—" : privateIncome.toLocaleString()}</p></div>
-        </div>
-        <div className="stat-card">
-          <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center"><DollarSign className="text-warning" size={20} /></div>
-          <div><p className="text-xs text-muted-foreground">HMO Pending</p><p className="text-lg font-bold">₦{loading ? "—" : hmoPending.toLocaleString()}</p></div>
-        </div>
-        <div className="stat-card">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><DollarSign className="text-primary" size={20} /></div>
-          <div><p className="text-xs text-muted-foreground">HMO Paid</p><p className="text-lg font-bold">₦{loading ? "—" : hmoPaid.toLocaleString()}</p></div>
-        </div>
-      </div>
-
-      {lowStockCount > 0 && (
-        <Link to="/inventory" className="flex items-center gap-3 bg-destructive/5 border border-destructive/20 rounded-xl p-4 mb-6 hover:bg-destructive/10 transition-colors">
-          <AlertTriangle className="text-destructive" size={20} />
-          <span className="text-sm font-medium">{lowStockCount} item(s) low on stock</span>
-          <ChevronRight size={16} className="ml-auto text-muted-foreground" />
+      {/* Alerts */}
+      {(lowStockCount > 0 || drugAlerts > 0) && (
+        <Link to="/inventory" className="flex items-center gap-3 bg-destructive/5 border border-destructive/15 rounded-2xl p-4 mb-6 hover:bg-destructive/10 transition-all">
+          <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0">
+            <AlertTriangle className="text-destructive" size={18} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">Stock Alerts</p>
+            <p className="text-xs text-muted-foreground">{lowStockCount + drugAlerts} item(s) need attention</p>
+          </div>
+          <ChevronRight size={16} className="text-muted-foreground shrink-0" />
         </Link>
       )}
 
+      {/* Upcoming Appointments */}
+      {upcomingAppts.length > 0 && (
+        <div className="medical-card mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="section-title"><Clock size={16} /> Today's Schedule</h2>
+            <Link to="/appointments" className="text-xs text-primary font-medium hover:underline">View all</Link>
+          </div>
+          <div className="space-y-2">
+            {upcomingAppts.map((a: any) => (
+              <div key={a.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/50 hover:bg-muted transition-all">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Clock size={14} className="text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{a.patient_name}</p>
+                  <p className="text-xs text-muted-foreground">{a.appointment_time}{a.reason ? ` • ${a.reason}` : ""}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Patients */}
       <div className="medical-card">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="section-title">Recent Patients</h2>
-          <Link to="/patients" className="text-sm text-primary hover:underline">View all</Link>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="section-title"><Users size={16} /> Recent Patients</h2>
+          <Link to="/patients" className="text-xs text-primary font-medium hover:underline">View all</Link>
         </div>
         {loading ? (
-          <p className="text-muted-foreground text-sm py-8 text-center">Loading...</p>
-        ) : patients.length === 0 ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          </div>
+        ) : recentPatients.length === 0 ? (
           <p className="text-muted-foreground text-sm py-8 text-center">No patients registered yet.</p>
         ) : (
-          <div className="divide-y divide-border">
-            {patients.map(p => (
+          <div className="space-y-1">
+            {recentPatients.map((p: any) => (
               <Link key={p.id} to={`/patient/${p.id}`}
-                className="flex items-center justify-between py-3 hover:bg-muted/50 -mx-2 px-2 rounded-lg transition-colors">
-                <div>
-                  <p className="font-medium">{p.full_name}</p>
-                  <p className="text-sm text-muted-foreground">{p.gender}, {p.age} yrs • {p.phone}</p>
+                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/50 transition-all group">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-bold text-primary">{(p.full_name || "?")[0]}</span>
                 </div>
-                <ChevronRight size={16} className="text-muted-foreground" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium truncate">{p.full_name}</p>
+                    <span className="text-[10px] font-mono text-muted-foreground">{p.patient_uid}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {p.gender}, {p.age} yrs • {p.phone}
+                  </p>
+                </div>
+                <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
               </Link>
             ))}
           </div>
