@@ -14,10 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string | null
+          clinic_id: string | null
+          id: string
+          record_id: string | null
+          table_name: string | null
+          timestamp: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          clinic_id?: string | null
+          id?: string
+          record_id?: string | null
+          table_name?: string | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          clinic_id?: string | null
+          id?: string
+          record_id?: string | null
+          table_name?: string | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      alerts: {
+        Row: {
+          alert_type: string | null
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          message: string | null
+          patient_id: string | null
+          status: string | null
+        }
+        Insert: {
+          alert_type?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          patient_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          alert_type?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          patient_id?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           appointment_date: string | null
           appointment_time: string | null
+          clinic_id: string | null
           created_at: string | null
           doctor_id: string | null
           id: string
@@ -32,6 +93,7 @@ export type Database = {
         Insert: {
           appointment_date?: string | null
           appointment_time?: string | null
+          clinic_id?: string | null
           created_at?: string | null
           doctor_id?: string | null
           id?: string
@@ -46,6 +108,7 @@ export type Database = {
         Update: {
           appointment_date?: string | null
           appointment_time?: string | null
+          clinic_id?: string | null
           created_at?: string | null
           doctor_id?: string | null
           id?: string
@@ -77,6 +140,7 @@ export type Database = {
       audit_log: {
         Row: {
           action: string | null
+          clinic_id: string | null
           id: string
           record_id: string | null
           staff_id: string | null
@@ -85,6 +149,7 @@ export type Database = {
         }
         Insert: {
           action?: string | null
+          clinic_id?: string | null
           id?: string
           record_id?: string | null
           staff_id?: string | null
@@ -93,6 +158,7 @@ export type Database = {
         }
         Update: {
           action?: string | null
+          clinic_id?: string | null
           id?: string
           record_id?: string | null
           staff_id?: string | null
@@ -109,22 +175,109 @@ export type Database = {
           },
         ]
       }
-      billings: {
+      audit_logs: {
+        Row: {
+          action: string | null
+          clinic_id: string | null
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string | null
+          timestamp: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          clinic_id?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          clinic_id?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      auto_appointments: {
+        Row: {
+          clinic_id: string
+          created_at: string | null
+          id: string
+          patient_id: string
+          priority: string | null
+          reason: string | null
+          scheduled_date: string | null
+          status: string | null
+          visit_id: string | null
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string | null
+          id?: string
+          patient_id: string
+          priority?: string | null
+          reason?: string | null
+          scheduled_date?: string | null
+          status?: string | null
+          visit_id?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string | null
+          id?: string
+          patient_id?: string
+          priority?: string | null
+          reason?: string | null
+          scheduled_date?: string | null
+          status?: string | null
+          visit_id?: string | null
+        }
+        Relationships: []
+      }
+      billing: {
         Row: {
           amount_paid: number
           balance: number
+          branch_id: string | null
+          clinic_id: string | null
           consultation_fee: number
+          contact_lens_amount: number | null
+          cost_price: number | null
           created_at: string
+          discount_amount: number | null
           drug_cost: number
+          frame_amount: number | null
           glasses_cost: number
+          hmo_covered_amount: number | null
+          hmo_id: string | null
           hmo_name: string | null
+          hmo_plan_id: string | null
           id: string
+          lens_amount: number | null
+          other_amount: number | null
           other_charges: number
+          patient_due: number | null
           patient_id: number | null
+          patient_payable: number | null
           patient_type: string
           payer_type: string | null
           payment_method: string | null
           payment_status: string
+          payment_type: string | null
+          status: string | null
           total_amount: number
           updated_at: string
           visit_id: number | null
@@ -132,18 +285,33 @@ export type Database = {
         Insert: {
           amount_paid?: number
           balance?: number
+          branch_id?: string | null
+          clinic_id?: string | null
           consultation_fee?: number
+          contact_lens_amount?: number | null
+          cost_price?: number | null
           created_at?: string
+          discount_amount?: number | null
           drug_cost?: number
+          frame_amount?: number | null
           glasses_cost?: number
+          hmo_covered_amount?: number | null
+          hmo_id?: string | null
           hmo_name?: string | null
+          hmo_plan_id?: string | null
           id?: string
+          lens_amount?: number | null
+          other_amount?: number | null
           other_charges?: number
+          patient_due?: number | null
           patient_id?: number | null
+          patient_payable?: number | null
           patient_type?: string
           payer_type?: string | null
           payment_method?: string | null
           payment_status?: string
+          payment_type?: string | null
+          status?: string | null
           total_amount?: number
           updated_at?: string
           visit_id?: number | null
@@ -151,18 +319,33 @@ export type Database = {
         Update: {
           amount_paid?: number
           balance?: number
+          branch_id?: string | null
+          clinic_id?: string | null
           consultation_fee?: number
+          contact_lens_amount?: number | null
+          cost_price?: number | null
           created_at?: string
+          discount_amount?: number | null
           drug_cost?: number
+          frame_amount?: number | null
           glasses_cost?: number
+          hmo_covered_amount?: number | null
+          hmo_id?: string | null
           hmo_name?: string | null
+          hmo_plan_id?: string | null
           id?: string
+          lens_amount?: number | null
+          other_amount?: number | null
           other_charges?: number
+          patient_due?: number | null
           patient_id?: number | null
+          patient_payable?: number | null
           patient_type?: string
           payer_type?: string | null
           payment_method?: string | null
           payment_status?: string
+          payment_type?: string | null
+          status?: string | null
           total_amount?: number
           updated_at?: string
           visit_id?: number | null
@@ -179,29 +362,692 @@ export type Database = {
             foreignKeyName: "billings_visit_id_fkey"
             columns: ["visit_id"]
             isOneToOne: false
+            referencedRelation: "hospital_flow"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billings_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "live_patient_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billings_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
             referencedRelation: "visits"
             referencedColumns: ["id"]
           },
         ]
       }
+      billing_items: {
+        Row: {
+          billing_id: string
+          clinic_id: string
+          created_at: string | null
+          id: string
+          item_name: string
+          item_type: string
+          quantity: number | null
+          total_price: number | null
+          unit_price: number
+        }
+        Insert: {
+          billing_id: string
+          clinic_id: string
+          created_at?: string | null
+          id?: string
+          item_name: string
+          item_type: string
+          quantity?: number | null
+          total_price?: number | null
+          unit_price: number
+        }
+        Update: {
+          billing_id?: string
+          clinic_id?: string
+          created_at?: string | null
+          id?: string
+          item_name?: string
+          item_type?: string
+          quantity?: number | null
+          total_price?: number | null
+          unit_price?: number
+        }
+        Relationships: []
+      }
+      billing_local: {
+        Row: {
+          amount_paid: number | null
+          clinic_id: string | null
+          created_at: string | null
+          local_id: string
+          patient_due: number | null
+          patient_id: number | null
+          payment_status: string | null
+          payment_type: string | null
+          pending_sync: boolean | null
+          server_id: string | null
+          total_amount: number | null
+          visit_id: number | null
+          visit_local_id: string | null
+        }
+        Insert: {
+          amount_paid?: number | null
+          clinic_id?: string | null
+          created_at?: string | null
+          local_id: string
+          patient_due?: number | null
+          patient_id?: number | null
+          payment_status?: string | null
+          payment_type?: string | null
+          pending_sync?: boolean | null
+          server_id?: string | null
+          total_amount?: number | null
+          visit_id?: number | null
+          visit_local_id?: string | null
+        }
+        Update: {
+          amount_paid?: number | null
+          clinic_id?: string | null
+          created_at?: string | null
+          local_id?: string
+          patient_due?: number | null
+          patient_id?: number | null
+          payment_status?: string | null
+          payment_type?: string | null
+          pending_sync?: boolean | null
+          server_id?: string | null
+          total_amount?: number | null
+          visit_id?: number | null
+          visit_local_id?: string | null
+        }
+        Relationships: []
+      }
+      branch_feature_flags: {
+        Row: {
+          billing_enabled: boolean | null
+          branch_id: string | null
+          clinic_id: string
+          hmo_enabled: boolean | null
+          id: string
+          pharmacy_enabled: boolean | null
+        }
+        Insert: {
+          billing_enabled?: boolean | null
+          branch_id?: string | null
+          clinic_id: string
+          hmo_enabled?: boolean | null
+          id?: string
+          pharmacy_enabled?: boolean | null
+        }
+        Update: {
+          billing_enabled?: boolean | null
+          branch_id?: string | null
+          clinic_id?: string
+          hmo_enabled?: boolean | null
+          id?: string
+          pharmacy_enabled?: boolean | null
+        }
+        Relationships: []
+      }
+      cache_refresh_queue: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          status: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          status?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
+      cataract_cases: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          eye: string | null
+          id: number
+          notes: string | null
+          patient_id: number | null
+          severity: string | null
+          surgery_date: string | null
+          surgery_status: string | null
+          visit_id: number | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          eye?: string | null
+          id?: number
+          notes?: string | null
+          patient_id?: number | null
+          severity?: string | null
+          surgery_date?: string | null
+          surgery_status?: string | null
+          visit_id?: number | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          eye?: string | null
+          id?: number
+          notes?: string | null
+          patient_id?: number | null
+          severity?: string | null
+          surgery_date?: string | null
+          surgery_status?: string | null
+          visit_id?: number | null
+        }
+        Relationships: []
+      }
       claims: {
         Row: {
+          clinic_id: string | null
           created_at: string
           id: number
         }
         Insert: {
+          clinic_id?: string | null
           created_at?: string
           id?: number
         }
         Update: {
+          clinic_id?: string | null
           created_at?: string
           id?: number
+        }
+        Relationships: []
+      }
+      clinic_dashboard_cache: {
+        Row: {
+          clinic_id: string
+          total_patients: number | null
+          total_revenue: number | null
+          total_visits: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          clinic_id: string
+          total_patients?: number | null
+          total_revenue?: number | null
+          total_visits?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          total_patients?: number | null
+          total_revenue?: number | null
+          total_visits?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      clinic_feature_flags: {
+        Row: {
+          appointments_enabled: boolean | null
+          billing_enabled: boolean | null
+          clinic_id: string
+          created_at: string | null
+          hmo_enabled: boolean | null
+          id: string
+          inventory_enabled: boolean | null
+          pharmacy_enabled: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          appointments_enabled?: boolean | null
+          billing_enabled?: boolean | null
+          clinic_id: string
+          created_at?: string | null
+          hmo_enabled?: boolean | null
+          id?: string
+          inventory_enabled?: boolean | null
+          pharmacy_enabled?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          appointments_enabled?: boolean | null
+          billing_enabled?: boolean | null
+          clinic_id?: string
+          created_at?: string | null
+          hmo_enabled?: boolean | null
+          id?: string
+          inventory_enabled?: boolean | null
+          pharmacy_enabled?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      clinic_health_scores: {
+        Row: {
+          clinic_id: string
+          error_count: number | null
+          health_score: number | null
+          last_updated: string | null
+          slow_queries: number | null
+          uptime_percentage: number | null
+        }
+        Insert: {
+          clinic_id: string
+          error_count?: number | null
+          health_score?: number | null
+          last_updated?: string | null
+          slow_queries?: number | null
+          uptime_percentage?: number | null
+        }
+        Update: {
+          clinic_id?: string
+          error_count?: number | null
+          health_score?: number | null
+          last_updated?: string | null
+          slow_queries?: number | null
+          uptime_percentage?: number | null
+        }
+        Relationships: []
+      }
+      clinic_onboarding_log: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          status: string | null
+          step: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          step?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          step?: string | null
+        }
+        Relationships: []
+      }
+      clinic_performance_logs: {
+        Row: {
+          action: string | null
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          response_time_ms: number | null
+        }
+        Insert: {
+          action?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          response_time_ms?: number | null
+        }
+        Update: {
+          action?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          response_time_ms?: number | null
+        }
+        Relationships: []
+      }
+      clinic_performance_metrics: {
+        Row: {
+          avg_response_time_ms: number | null
+          calculated_at: string | null
+          clinic_id: string | null
+          id: string
+          last_24h_requests: number | null
+          record_growth_rate: number | null
+          request_count: number | null
+        }
+        Insert: {
+          avg_response_time_ms?: number | null
+          calculated_at?: string | null
+          clinic_id?: string | null
+          id?: string
+          last_24h_requests?: number | null
+          record_growth_rate?: number | null
+          request_count?: number | null
+        }
+        Update: {
+          avg_response_time_ms?: number | null
+          calculated_at?: string | null
+          clinic_id?: string | null
+          id?: string
+          last_24h_requests?: number | null
+          record_growth_rate?: number | null
+          request_count?: number | null
+        }
+        Relationships: []
+      }
+      clinic_revenue_performance: {
+        Row: {
+          clinic_id: string | null
+          health_score: number | null
+          id: string
+          plan: string | null
+          revenue: number | null
+          risk_level: string | null
+          suggested_action: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          health_score?: number | null
+          id?: string
+          plan?: string | null
+          revenue?: number | null
+          risk_level?: string | null
+          suggested_action?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          health_score?: number | null
+          id?: string
+          plan?: string | null
+          revenue?: number | null
+          risk_level?: string | null
+          suggested_action?: string | null
+        }
+        Relationships: []
+      }
+      clinic_settings: {
+        Row: {
+          clinic_address: string | null
+          clinic_id: string
+          clinic_logo: string | null
+          clinic_name: string
+          clinic_phone: string | null
+          created_at: string | null
+          id: string
+          primary_color: string | null
+          secondary_color: string | null
+        }
+        Insert: {
+          clinic_address?: string | null
+          clinic_id: string
+          clinic_logo?: string | null
+          clinic_name: string
+          clinic_phone?: string | null
+          created_at?: string | null
+          id?: string
+          primary_color?: string | null
+          secondary_color?: string | null
+        }
+        Update: {
+          clinic_address?: string | null
+          clinic_id?: string
+          clinic_logo?: string | null
+          clinic_name?: string
+          clinic_phone?: string | null
+          created_at?: string | null
+          id?: string
+          primary_color?: string | null
+          secondary_color?: string | null
+        }
+        Relationships: []
+      }
+      clinic_subscriptions: {
+        Row: {
+          branch_limit: number | null
+          clinic_id: string | null
+          created_at: string | null
+          end_date: string | null
+          id: string
+          paystack_customer_id: string | null
+          paystack_subscription_id: string | null
+          plan: string | null
+          start_date: string | null
+          status: string | null
+        }
+        Insert: {
+          branch_limit?: number | null
+          clinic_id?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          paystack_customer_id?: string | null
+          paystack_subscription_id?: string | null
+          plan?: string | null
+          start_date?: string | null
+          status?: string | null
+        }
+        Update: {
+          branch_limit?: number | null
+          clinic_id?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          paystack_customer_id?: string | null
+          paystack_subscription_id?: string | null
+          plan?: string | null
+          start_date?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      clinic_switch_log: {
+        Row: {
+          admin_id: string | null
+          clinic_id: string
+          created_at: string | null
+          from_clinic: string | null
+          id: string
+          to_clinic: string | null
+        }
+        Insert: {
+          admin_id?: string | null
+          clinic_id: string
+          created_at?: string | null
+          from_clinic?: string | null
+          id?: string
+          to_clinic?: string | null
+        }
+        Update: {
+          admin_id?: string | null
+          clinic_id?: string
+          created_at?: string | null
+          from_clinic?: string | null
+          id?: string
+          to_clinic?: string | null
+        }
+        Relationships: []
+      }
+      clinic_system_issues: {
+        Row: {
+          clinic_id: string | null
+          detected_at: string | null
+          id: string
+          issue_type: string | null
+          resolved: boolean | null
+          severity: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          detected_at?: string | null
+          id?: string
+          issue_type?: string | null
+          resolved?: boolean | null
+          severity?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          detected_at?: string | null
+          id?: string
+          issue_type?: string | null
+          resolved?: boolean | null
+          severity?: string | null
+        }
+        Relationships: []
+      }
+      clinic_traffic_forecast: {
+        Row: {
+          clinic_id: string | null
+          expected_spike_time: string | null
+          id: string
+          predicted_load_score: number | null
+          status: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          expected_spike_time?: string | null
+          id?: string
+          predicted_load_score?: number | null
+          status?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          expected_spike_time?: string | null
+          id?: string
+          predicted_load_score?: number | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      clinical_rules: {
+        Row: {
+          action_type: string
+          clinic_id: string
+          condition_type: string
+          created_at: string | null
+          follow_up_days: number | null
+          id: string
+          operator: string
+          rule_name: string
+          threshold_value: string
+        }
+        Insert: {
+          action_type: string
+          clinic_id: string
+          condition_type: string
+          created_at?: string | null
+          follow_up_days?: number | null
+          id?: string
+          operator: string
+          rule_name: string
+          threshold_value: string
+        }
+        Update: {
+          action_type?: string
+          clinic_id?: string
+          condition_type?: string
+          created_at?: string | null
+          follow_up_days?: number | null
+          id?: string
+          operator?: string
+          rule_name?: string
+          threshold_value?: string
+        }
+        Relationships: []
+      }
+      clinics: {
+        Row: {
+          billing_enabled: boolean | null
+          created_at: string | null
+          email: string | null
+          first_patient_created: boolean | null
+          first_patient_done: boolean | null
+          hmo_enabled: boolean | null
+          id: string
+          is_active: boolean | null
+          last_upgrade_prompt: string | null
+          modules_configured: boolean | null
+          modules_setup_done: boolean | null
+          name: string
+          onboarding_score: number | null
+          onboarding_step: string | null
+          parent_clinic_id: string | null
+          pharmacy_enabled: boolean | null
+          phone: string | null
+          setup_completed: boolean | null
+          staff_added: boolean | null
+          staff_setup_done: boolean | null
+          subscription_status: string | null
+          trial_end_date: string | null
+          trial_start_date: string | null
+          type: string | null
+          upgrade_prompt_count: number | null
+          website: string | null
+          wizard_skipped: boolean | null
+        }
+        Insert: {
+          billing_enabled?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          first_patient_created?: boolean | null
+          first_patient_done?: boolean | null
+          hmo_enabled?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          last_upgrade_prompt?: string | null
+          modules_configured?: boolean | null
+          modules_setup_done?: boolean | null
+          name: string
+          onboarding_score?: number | null
+          onboarding_step?: string | null
+          parent_clinic_id?: string | null
+          pharmacy_enabled?: boolean | null
+          phone?: string | null
+          setup_completed?: boolean | null
+          staff_added?: boolean | null
+          staff_setup_done?: boolean | null
+          subscription_status?: string | null
+          trial_end_date?: string | null
+          trial_start_date?: string | null
+          type?: string | null
+          upgrade_prompt_count?: number | null
+          website?: string | null
+          wizard_skipped?: boolean | null
+        }
+        Update: {
+          billing_enabled?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          first_patient_created?: boolean | null
+          first_patient_done?: boolean | null
+          hmo_enabled?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          last_upgrade_prompt?: string | null
+          modules_configured?: boolean | null
+          modules_setup_done?: boolean | null
+          name?: string
+          onboarding_score?: number | null
+          onboarding_step?: string | null
+          parent_clinic_id?: string | null
+          pharmacy_enabled?: boolean | null
+          phone?: string | null
+          setup_completed?: boolean | null
+          staff_added?: boolean | null
+          staff_setup_done?: boolean | null
+          subscription_status?: string | null
+          trial_end_date?: string | null
+          trial_start_date?: string | null
+          type?: string | null
+          upgrade_prompt_count?: number | null
+          website?: string | null
+          wizard_skipped?: boolean | null
         }
         Relationships: []
       }
       consultations: {
         Row: {
           chief_complaint: string | null
+          clinic_id: string | null
           created_at: string | null
           diagnosis: string | null
           id: string
@@ -214,6 +1060,7 @@ export type Database = {
         }
         Insert: {
           chief_complaint?: string | null
+          clinic_id?: string | null
           created_at?: string | null
           diagnosis?: string | null
           id?: string
@@ -226,6 +1073,7 @@ export type Database = {
         }
         Update: {
           chief_complaint?: string | null
+          clinic_id?: string | null
           created_at?: string | null
           diagnosis?: string | null
           id?: string
@@ -240,6 +1088,7 @@ export type Database = {
       }
       dispensing: {
         Row: {
+          clinic_id: string | null
           dispensed_at: string | null
           dispensed_by: string | null
           drug_id: string | null
@@ -249,6 +1098,7 @@ export type Database = {
           quantity: number
         }
         Insert: {
+          clinic_id?: string | null
           dispensed_at?: string | null
           dispensed_by?: string | null
           drug_id?: string | null
@@ -258,6 +1108,7 @@ export type Database = {
           quantity: number
         }
         Update: {
+          clinic_id?: string | null
           dispensed_at?: string | null
           dispensed_by?: string | null
           drug_id?: string | null
@@ -293,6 +1144,7 @@ export type Database = {
       drugs: {
         Row: {
           category: string | null
+          clinic_id: string | null
           created_at: string | null
           created_by: string | null
           expiry_date: string | null
@@ -303,6 +1155,7 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          clinic_id?: string | null
           created_at?: string | null
           created_by?: string | null
           expiry_date?: string | null
@@ -313,6 +1166,7 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          clinic_id?: string | null
           created_at?: string | null
           created_by?: string | null
           expiry_date?: string | null
@@ -323,18 +1177,213 @@ export type Database = {
         }
         Relationships: []
       }
+      expenses: {
+        Row: {
+          amount: number | null
+          clinic_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+        }
+        Insert: {
+          amount?: number | null
+          clinic_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+        }
+        Update: {
+          amount?: number | null
+          clinic_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      feature_rollouts: {
+        Row: {
+          created_at: string | null
+          enabled: boolean | null
+          feature_name: string | null
+          id: string
+          rollout_percentage: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          enabled?: boolean | null
+          feature_name?: string | null
+          id?: string
+          rollout_percentage?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          enabled?: boolean | null
+          feature_name?: string | null
+          id?: string
+          rollout_percentage?: number | null
+        }
+        Relationships: []
+      }
+      feature_usage_logs: {
+        Row: {
+          action: string | null
+          clinic_id: string | null
+          created_at: string | null
+          feature_name: string | null
+          id: string
+        }
+        Insert: {
+          action?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          feature_name?: string | null
+          id?: string
+        }
+        Update: {
+          action?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          feature_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      followups: {
+        Row: {
+          clinic_id: string
+          created_at: string | null
+          due_date: string
+          id: string
+          patient_id: string
+          reason: string | null
+          status: string | null
+          visit_id: string | null
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string | null
+          due_date: string
+          id?: string
+          patient_id: string
+          reason?: string | null
+          status?: string | null
+          visit_id?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string | null
+          due_date?: string
+          id?: string
+          patient_id?: string
+          reason?: string | null
+          status?: string | null
+          visit_id?: string | null
+        }
+        Relationships: []
+      }
+      glaucoma_records: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          cup_disc_ratio_od: string | null
+          cup_disc_ratio_os: string | null
+          id: number
+          iop_od: number | null
+          iop_os: number | null
+          notes: string | null
+          patient_id: number | null
+          visit_id: number | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          cup_disc_ratio_od?: string | null
+          cup_disc_ratio_os?: string | null
+          id?: number
+          iop_od?: number | null
+          iop_os?: number | null
+          notes?: string | null
+          patient_id?: number | null
+          visit_id?: number | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          cup_disc_ratio_od?: string | null
+          cup_disc_ratio_os?: string | null
+          id?: number
+          iop_od?: number | null
+          iop_os?: number | null
+          notes?: string | null
+          patient_id?: number | null
+          visit_id?: number | null
+        }
+        Relationships: []
+      }
       history: {
         Row: {
+          clinic_id: string | null
           created_at: string
           id: number
         }
         Insert: {
+          clinic_id?: string | null
           created_at?: string
           id?: number
         }
         Update: {
+          clinic_id?: string | null
           created_at?: string
           id?: number
+        }
+        Relationships: []
+      }
+      hmo_approvals: {
+        Row: {
+          approval_reference: string | null
+          approved_amount: number | null
+          approved_by: string | null
+          clinic_id: string | null
+          created_at: string | null
+          hmo_id: string
+          id: string
+          new_id: string | null
+          notes: string | null
+          requested_amount: number | null
+          status: string | null
+          updated_at: string | null
+          visit_id: string
+        }
+        Insert: {
+          approval_reference?: string | null
+          approved_amount?: number | null
+          approved_by?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          hmo_id: string
+          id?: string
+          new_id?: string | null
+          notes?: string | null
+          requested_amount?: number | null
+          status?: string | null
+          updated_at?: string | null
+          visit_id: string
+        }
+        Update: {
+          approval_reference?: string | null
+          approved_amount?: number | null
+          approved_by?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          hmo_id?: string
+          id?: string
+          new_id?: string | null
+          notes?: string | null
+          requested_amount?: number | null
+          status?: string | null
+          updated_at?: string | null
+          visit_id?: string
         }
         Relationships: []
       }
@@ -342,6 +1391,8 @@ export type Database = {
         Row: {
           approved_amount: number
           billing_id: string | null
+          branch_id: string | null
+          clinic_id: string | null
           co_payment: number
           created_at: string
           hmo_name: string
@@ -355,6 +1406,8 @@ export type Database = {
         Insert: {
           approved_amount?: number
           billing_id?: string | null
+          branch_id?: string | null
+          clinic_id?: string | null
           co_payment?: number
           created_at?: string
           hmo_name: string
@@ -368,6 +1421,8 @@ export type Database = {
         Update: {
           approved_amount?: number
           billing_id?: string | null
+          branch_id?: string | null
+          clinic_id?: string | null
           co_payment?: number
           created_at?: string
           hmo_name?: string
@@ -383,7 +1438,14 @@ export type Database = {
             foreignKeyName: "hmo_claims_billing_id_fkey"
             columns: ["billing_id"]
             isOneToOne: false
-            referencedRelation: "billings"
+            referencedRelation: "billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hmo_claims_billing_id_fkey"
+            columns: ["billing_id"]
+            isOneToOne: false
+            referencedRelation: "billing_with_total"
             referencedColumns: ["id"]
           },
           {
@@ -395,24 +1457,157 @@ export type Database = {
           },
         ]
       }
-      hmos: {
+      hmo_history: {
         Row: {
-          created_at: string
-          id: number
+          change_reason: string | null
+          changed_by: string | null
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          new_hmo_id: string | null
+          new_payment_type: string | null
+          old_hmo_id: string | null
+          old_payment_type: string | null
+          patient_id: string
         }
         Insert: {
-          created_at?: string
-          id?: number
+          change_reason?: string | null
+          changed_by?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          new_hmo_id?: string | null
+          new_payment_type?: string | null
+          old_hmo_id?: string | null
+          old_payment_type?: string | null
+          patient_id: string
         }
         Update: {
+          change_reason?: string | null
+          changed_by?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          new_hmo_id?: string | null
+          new_payment_type?: string | null
+          old_hmo_id?: string | null
+          old_payment_type?: string | null
+          patient_id?: string
+        }
+        Relationships: []
+      }
+      hmo_payments: {
+        Row: {
+          amount_paid: number | null
+          claim_id: string
+          clinic_id: string
+          id: string
+          payment_date: string | null
+          payment_status: string | null
+        }
+        Insert: {
+          amount_paid?: number | null
+          claim_id: string
+          clinic_id: string
+          id?: string
+          payment_date?: string | null
+          payment_status?: string | null
+        }
+        Update: {
+          amount_paid?: number | null
+          claim_id?: string
+          clinic_id?: string
+          id?: string
+          payment_date?: string | null
+          payment_status?: string | null
+        }
+        Relationships: []
+      }
+      hmo_plans: {
+        Row: {
+          clinic_id: string | null
+          consultation_limit: number | null
+          created_at: string | null
+          drug_limit: number | null
+          hmo_id: string
+          id: string
+          new_id: string | null
+          plan_name: string
+          requires_approval: boolean | null
+          total_annual_limit: number | null
+          used_amount: number | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          consultation_limit?: number | null
+          created_at?: string | null
+          drug_limit?: number | null
+          hmo_id: string
+          id?: string
+          new_id?: string | null
+          plan_name: string
+          requires_approval?: boolean | null
+          total_annual_limit?: number | null
+          used_amount?: number | null
+        }
+        Update: {
+          clinic_id?: string | null
+          consultation_limit?: number | null
+          created_at?: string | null
+          drug_limit?: number | null
+          hmo_id?: string
+          id?: string
+          new_id?: string | null
+          plan_name?: string
+          requires_approval?: boolean | null
+          total_annual_limit?: number | null
+          used_amount?: number | null
+        }
+        Relationships: []
+      }
+      hmos: {
+        Row: {
+          clinic_id: string | null
+          contact_phone: string | null
+          created_at: string
+          email: string | null
+          id: number
+          name: string | null
+          new_id: string | null
+          portal_type: string | null
+          status: string | null
+          website: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          contact_phone?: string | null
           created_at?: string
+          email?: string | null
           id?: number
+          name?: string | null
+          new_id?: string | null
+          portal_type?: string | null
+          status?: string | null
+          website?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          email?: string | null
+          id?: number
+          name?: string | null
+          new_id?: string | null
+          portal_type?: string | null
+          status?: string | null
+          website?: string | null
         }
         Relationships: []
       }
       inventory: {
         Row: {
           category: string
+          clinic_id: string | null
           created_at: string
           created_by: string | null
           drug_category: string | null
@@ -420,13 +1615,17 @@ export type Database = {
           id: string
           image_url: string | null
           low_stock_threshold: number
+          min_stock: number | null
           name: string
           price: number
+          reorder_level: number | null
+          stock: number | null
           stock_quantity: number
           updated_at: string
         }
         Insert: {
           category?: string
+          clinic_id?: string | null
           created_at?: string
           created_by?: string | null
           drug_category?: string | null
@@ -434,13 +1633,17 @@ export type Database = {
           id?: string
           image_url?: string | null
           low_stock_threshold?: number
+          min_stock?: number | null
           name: string
           price?: number
+          reorder_level?: number | null
+          stock?: number | null
           stock_quantity?: number
           updated_at?: string
         }
         Update: {
           category?: string
+          clinic_id?: string | null
           created_at?: string
           created_by?: string | null
           drug_category?: string | null
@@ -448,8 +1651,11 @@ export type Database = {
           id?: string
           image_url?: string | null
           low_stock_threshold?: number
+          min_stock?: number | null
           name?: string
           price?: number
+          reorder_level?: number | null
+          stock?: number | null
           stock_quantity?: number
           updated_at?: string
         }
@@ -457,6 +1663,7 @@ export type Database = {
       }
       inventory_sale_items: {
         Row: {
+          clinic_id: string | null
           id: string
           inventory_id: string
           quantity: number
@@ -465,6 +1672,7 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          clinic_id?: string | null
           id?: string
           inventory_id: string
           quantity?: number
@@ -473,6 +1681,7 @@ export type Database = {
           unit_price?: number
         }
         Update: {
+          clinic_id?: string | null
           id?: string
           inventory_id?: string
           quantity?: number
@@ -499,6 +1708,7 @@ export type Database = {
       }
       inventory_sales: {
         Row: {
+          clinic_id: string | null
           created_at: string
           id: string
           patient_id: number | null
@@ -506,6 +1716,7 @@ export type Database = {
           total_amount: number
         }
         Insert: {
+          clinic_id?: string | null
           created_at?: string
           id?: string
           patient_id?: number | null
@@ -513,6 +1724,7 @@ export type Database = {
           total_amount?: number
         }
         Update: {
+          clinic_id?: string | null
           created_at?: string
           id?: string
           patient_id?: number | null
@@ -531,6 +1743,7 @@ export type Database = {
       }
       lens_prescriptions: {
         Row: {
+          clinic_id: string | null
           created_at: string | null
           id: string
           ipd: string | null
@@ -546,6 +1759,7 @@ export type Database = {
           va: string | null
         }
         Insert: {
+          clinic_id?: string | null
           created_at?: string | null
           id?: string
           ipd?: string | null
@@ -561,6 +1775,7 @@ export type Database = {
           va?: string | null
         }
         Update: {
+          clinic_id?: string | null
           created_at?: string | null
           id?: string
           ipd?: string | null
@@ -585,60 +1800,326 @@ export type Database = {
           },
         ]
       }
+      migration_log: {
+        Row: {
+          created_at: string | null
+          error: string | null
+          id: number
+          query: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error?: string | null
+          id?: number
+          query?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error?: string | null
+          id?: number
+          query?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      onboarding_progress: {
+        Row: {
+          clinic_id: string | null
+          completed: boolean | null
+          id: string
+          step: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          completed?: boolean | null
+          id?: string
+          step?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          completed?: boolean | null
+          id?: string
+          step?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      patient_hmos: {
+        Row: {
+          clinic_id: string
+          created_at: string | null
+          hmo_id: string
+          id: string
+          patient_id: string
+          plan_id: string
+          status: string | null
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string | null
+          hmo_id: string
+          id?: string
+          patient_id: string
+          plan_id: string
+          status?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string | null
+          hmo_id?: string
+          id?: string
+          patient_id?: string
+          plan_id?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
+          active_hmo_id: string | null
+          active_hmo_plan_id: string | null
           address: string | null
           age: number | null
+          assigned_doctor: string | null
+          branch_id: string | null
+          clinic_id: string | null
           created_at: string
+          created_by: string | null
+          current_payment_type: string | null
           enrollee_number: string | null
           full_name: string
           gender: string | null
           hmo_provider: string | null
           id: number
           insurance_name: string | null
+          is_locked: boolean | null
+          last_refraction_date: string | null
+          last_updated_by: string | null
+          locked_by: string | null
+          new_id: string | null
           next_of_kin: string | null
+          next_refraction_due: string | null
           patient_type: string
           patient_uid: string | null
+          patient_uuid: string | null
+          payment_type: Database["public"]["Enums"]["payment_type_enum"] | null
+          phone: string | null
+          priority: string | null
+          queue_number: number
+          queue_status: string | null
+          refraction_status: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active_hmo_id?: string | null
+          active_hmo_plan_id?: string | null
+          address?: string | null
+          age?: number | null
+          assigned_doctor?: string | null
+          branch_id?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_payment_type?: string | null
+          enrollee_number?: string | null
+          full_name?: string
+          gender?: string | null
+          hmo_provider?: string | null
+          id?: number
+          insurance_name?: string | null
+          is_locked?: boolean | null
+          last_refraction_date?: string | null
+          last_updated_by?: string | null
+          locked_by?: string | null
+          new_id?: string | null
+          next_of_kin?: string | null
+          next_refraction_due?: string | null
+          patient_type?: string
+          patient_uid?: string | null
+          patient_uuid?: string | null
+          payment_type?: Database["public"]["Enums"]["payment_type_enum"] | null
+          phone?: string | null
+          priority?: string | null
+          queue_number?: number
+          queue_status?: string | null
+          refraction_status?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active_hmo_id?: string | null
+          active_hmo_plan_id?: string | null
+          address?: string | null
+          age?: number | null
+          assigned_doctor?: string | null
+          branch_id?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_payment_type?: string | null
+          enrollee_number?: string | null
+          full_name?: string
+          gender?: string | null
+          hmo_provider?: string | null
+          id?: number
+          insurance_name?: string | null
+          is_locked?: boolean | null
+          last_refraction_date?: string | null
+          last_updated_by?: string | null
+          locked_by?: string | null
+          new_id?: string | null
+          next_of_kin?: string | null
+          next_refraction_due?: string | null
+          patient_type?: string
+          patient_uid?: string | null
+          patient_uuid?: string | null
+          payment_type?: Database["public"]["Enums"]["payment_type_enum"] | null
+          phone?: string | null
+          priority?: string | null
+          queue_number?: number
+          queue_status?: string | null
+          refraction_status?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_assigned_doctor"
+            columns: ["assigned_doctor"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patients_local: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          deleted: boolean | null
+          local_id: string
+          name: string | null
+          pending_sync: boolean | null
+          phone: string | null
+          server_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          deleted?: boolean | null
+          local_id: string
+          name?: string | null
+          pending_sync?: boolean | null
+          phone?: string | null
+          server_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          deleted?: boolean | null
+          local_id?: string
+          name?: string | null
+          pending_sync?: boolean | null
+          phone?: string | null
+          server_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      patients_new: {
+        Row: {
+          active_hmo_id: string | null
+          address: string | null
+          age: number | null
+          clinic_id: string | null
+          created_at: string | null
+          full_name: string | null
+          gender: string | null
+          id: string
+          payment_type: string | null
           phone: string | null
         }
         Insert: {
+          active_hmo_id?: string | null
           address?: string | null
           age?: number | null
-          created_at?: string
-          enrollee_number?: string | null
-          full_name?: string
+          clinic_id?: string | null
+          created_at?: string | null
+          full_name?: string | null
           gender?: string | null
-          hmo_provider?: string | null
-          id?: number
-          insurance_name?: string | null
-          next_of_kin?: string | null
-          patient_type?: string
-          patient_uid?: string | null
+          id?: string
+          payment_type?: string | null
           phone?: string | null
         }
         Update: {
+          active_hmo_id?: string | null
           address?: string | null
           age?: number | null
-          created_at?: string
-          enrollee_number?: string | null
-          full_name?: string
+          clinic_id?: string | null
+          created_at?: string | null
+          full_name?: string | null
           gender?: string | null
-          hmo_provider?: string | null
-          id?: number
-          insurance_name?: string | null
-          next_of_kin?: string | null
-          patient_type?: string
-          patient_uid?: string | null
+          id?: string
+          payment_type?: string | null
           phone?: string | null
+        }
+        Relationships: []
+      }
+      payment_reminders: {
+        Row: {
+          channel: string | null
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          last_sent_at: string | null
+          max_retries: number | null
+          reminder_type: string | null
+          retry_count: number | null
+          sent: boolean | null
+          status: string | null
+        }
+        Insert: {
+          channel?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_sent_at?: string | null
+          max_retries?: number | null
+          reminder_type?: string | null
+          retry_count?: number | null
+          sent?: boolean | null
+          status?: string | null
+        }
+        Update: {
+          channel?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_sent_at?: string | null
+          max_retries?: number | null
+          reminder_type?: string | null
+          retry_count?: number | null
+          sent?: boolean | null
+          status?: string | null
         }
         Relationships: []
       }
       payments: {
         Row: {
           amount: number
+          bill_id: string | null
           billing_id: string | null
+          clinic_id: string | null
           created_at: string | null
           id: string
+          method: string | null
           paid_by: string | null
           patient_id: number | null
           payment_method: string | null
@@ -646,9 +2127,12 @@ export type Database = {
         }
         Insert: {
           amount: number
+          bill_id?: string | null
           billing_id?: string | null
+          clinic_id?: string | null
           created_at?: string | null
           id?: string
+          method?: string | null
           paid_by?: string | null
           patient_id?: number | null
           payment_method?: string | null
@@ -656,9 +2140,12 @@ export type Database = {
         }
         Update: {
           amount?: number
+          bill_id?: string | null
           billing_id?: string | null
+          clinic_id?: string | null
           created_at?: string | null
           id?: string
+          method?: string | null
           paid_by?: string | null
           patient_id?: number | null
           payment_method?: string | null
@@ -669,7 +2156,14 @@ export type Database = {
             foreignKeyName: "payments_billing_fk"
             columns: ["billing_id"]
             isOneToOne: false
-            referencedRelation: "billings"
+            referencedRelation: "billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_billing_fk"
+            columns: ["billing_id"]
+            isOneToOne: false
+            referencedRelation: "billing_with_total"
             referencedColumns: ["id"]
           },
           {
@@ -683,17 +2177,117 @@ export type Database = {
             foreignKeyName: "payments_visit_fk"
             columns: ["visit_id"]
             isOneToOne: false
+            referencedRelation: "hospital_flow"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_visit_fk"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "live_patient_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_visit_fk"
+            columns: ["visit_id"]
+            isOneToOne: false
             referencedRelation: "visits"
             referencedColumns: ["id"]
           },
         ]
       }
+      pharmacy: {
+        Row: {
+          branch_id: string | null
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          inventory_id: string | null
+          patient_id: number | null
+          price: number | null
+          quantity: number
+          total: number | null
+        }
+        Insert: {
+          branch_id?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          inventory_id?: string | null
+          patient_id?: number | null
+          price?: number | null
+          quantity: number
+          total?: number | null
+        }
+        Update: {
+          branch_id?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          inventory_id?: string | null
+          patient_id?: number | null
+          price?: number | null
+          quantity?: number
+          total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pharmacy_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pharmacy_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pharmacy_sales: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          inventory_id: string | null
+          patient_id: string | null
+          price: number | null
+          quantity: number | null
+          total: number | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          inventory_id?: string | null
+          patient_id?: string | null
+          price?: number | null
+          quantity?: number | null
+          total?: number | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          inventory_id?: string | null
+          patient_id?: string | null
+          price?: number | null
+          quantity?: number | null
+          total?: number | null
+        }
+        Relationships: []
+      }
       prescriptions: {
         Row: {
           add_power: string | null
+          clinic_id: string | null
           consultation_id: string | null
           created_at: string | null
           id: string
+          inventory_id: string | null
           notes: string | null
           od_axis: string | null
           od_cylinder: string | null
@@ -707,9 +2301,11 @@ export type Database = {
         }
         Insert: {
           add_power?: string | null
+          clinic_id?: string | null
           consultation_id?: string | null
           created_at?: string | null
           id?: string
+          inventory_id?: string | null
           notes?: string | null
           od_axis?: string | null
           od_cylinder?: string | null
@@ -723,9 +2319,11 @@ export type Database = {
         }
         Update: {
           add_power?: string | null
+          clinic_id?: string | null
           consultation_id?: string | null
           created_at?: string | null
           id?: string
+          inventory_id?: string | null
           notes?: string | null
           od_axis?: string | null
           od_cylinder?: string | null
@@ -747,16 +2345,49 @@ export type Database = {
           },
         ]
       }
+      prescriptions_local: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          local_id: string
+          notes: string | null
+          patient_id: number | null
+          pending_sync: boolean | null
+          server_id: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          local_id: string
+          notes?: string | null
+          patient_id?: number | null
+          pending_sync?: boolean | null
+          server_id?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          local_id?: string
+          notes?: string | null
+          patient_id?: number | null
+          pending_sync?: boolean | null
+          server_id?: string | null
+        }
+        Relationships: []
+      }
       products: {
         Row: {
+          clinic_id: string | null
           created_at: string
           id: number
         }
         Insert: {
+          clinic_id?: string | null
           created_at?: string
           id?: number
         }
         Update: {
+          clinic_id?: string | null
           created_at?: string
           id?: number
         }
@@ -764,27 +2395,64 @@ export type Database = {
       }
       profiles: {
         Row: {
+          clinic_id: string | null
           created_at: string | null
           full_name: string | null
           id: string
+          is_super_admin: boolean | null
+          phone: string | null
           role: string | null
+          status: string | null
         }
         Insert: {
+          clinic_id?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string
+          is_super_admin?: boolean | null
+          phone?: string | null
           role?: string | null
+          status?: string | null
         }
         Update: {
+          clinic_id?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string
+          is_super_admin?: boolean | null
+          phone?: string | null
           role?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      query_performance_logs: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          execution_time_ms: number | null
+          id: string
+          query: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          query?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          query?: string | null
         }
         Relationships: []
       }
       receipts: {
         Row: {
+          clinic_id: string
           created_at: string | null
           id: string
           issued_by: string | null
@@ -794,6 +2462,7 @@ export type Database = {
           total_amount: number | null
         }
         Insert: {
+          clinic_id: string
           created_at?: string | null
           id?: string
           issued_by?: string | null
@@ -803,6 +2472,7 @@ export type Database = {
           total_amount?: number | null
         }
         Update: {
+          clinic_id?: string
           created_at?: string | null
           id?: string
           issued_by?: string | null
@@ -820,6 +2490,171 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      refraction: {
+        Row: {
+          add_power: number | null
+          axis_od: number | null
+          axis_os: number | null
+          clinic_id: string | null
+          created_at: string | null
+          cylinder_od: number | null
+          cylinder_os: number | null
+          id: string
+          old_prescription: string | null
+          sphere_od: number | null
+          sphere_os: number | null
+          va_od: string | null
+          va_os: string | null
+          visit_id: number | null
+        }
+        Insert: {
+          add_power?: number | null
+          axis_od?: number | null
+          axis_os?: number | null
+          clinic_id?: string | null
+          created_at?: string | null
+          cylinder_od?: number | null
+          cylinder_os?: number | null
+          id?: string
+          old_prescription?: string | null
+          sphere_od?: number | null
+          sphere_os?: number | null
+          va_od?: string | null
+          va_os?: string | null
+          visit_id?: number | null
+        }
+        Update: {
+          add_power?: number | null
+          axis_od?: number | null
+          axis_os?: number | null
+          clinic_id?: string | null
+          created_at?: string | null
+          cylinder_od?: number | null
+          cylinder_os?: number | null
+          id?: string
+          old_prescription?: string | null
+          sphere_od?: number | null
+          sphere_os?: number | null
+          va_od?: string | null
+          va_os?: string | null
+          visit_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refraction_visit_fk"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "hospital_flow"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refraction_visit_fk"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "live_patient_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refraction_visit_fk"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restock_history: {
+        Row: {
+          added_by: string | null
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          inventory_id: string | null
+          new_stock: number | null
+          note: string | null
+          previous_stock: number | null
+          quantity_added: number | null
+        }
+        Insert: {
+          added_by?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          inventory_id?: string | null
+          new_stock?: number | null
+          note?: string | null
+          previous_stock?: number | null
+          quantity_added?: number | null
+        }
+        Update: {
+          added_by?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          inventory_id?: string | null
+          new_stock?: number | null
+          note?: string | null
+          previous_stock?: number | null
+          quantity_added?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restock_history_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restock_logs: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          inventory_id: string | null
+          quantity: number | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          inventory_id?: string | null
+          quantity?: number | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          inventory_id?: string | null
+          quantity?: number | null
+        }
+        Relationships: []
+      }
+      rls_policy_audit: {
+        Row: {
+          created_at: string | null
+          id: number
+          is_safe: boolean | null
+          policy_name: string | null
+          table_name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          is_safe?: boolean | null
+          policy_name?: string | null
+          table_name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          is_safe?: boolean | null
+          policy_name?: string | null
+          table_name?: string | null
+        }
+        Relationships: []
       }
       role: {
         Row: {
@@ -839,6 +2674,7 @@ export type Database = {
       sales: {
         Row: {
           category: string | null
+          clinic_id: string | null
           created_at: string | null
           id: string
           inventory_id: string | null
@@ -851,6 +2687,7 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          clinic_id?: string | null
           created_at?: string | null
           id?: string
           inventory_id?: string | null
@@ -863,6 +2700,7 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          clinic_id?: string | null
           created_at?: string | null
           id?: string
           inventory_id?: string | null
@@ -875,8 +2713,126 @@ export type Database = {
         }
         Relationships: []
       }
+      sandbox_clones: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          sandbox_clinic_id: string | null
+          source_clinic_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          sandbox_clinic_id?: string | null
+          source_clinic_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          sandbox_clinic_id?: string | null
+          source_clinic_id?: string | null
+        }
+        Relationships: []
+      }
+      schema_drift_log: {
+        Row: {
+          detected_at: string | null
+          id: number
+          issue: string | null
+          table_name: string | null
+        }
+        Insert: {
+          detected_at?: string | null
+          id?: number
+          issue?: string | null
+          table_name?: string | null
+        }
+        Update: {
+          detected_at?: string | null
+          id?: number
+          issue?: string | null
+          table_name?: string | null
+        }
+        Relationships: []
+      }
+      shifts: {
+        Row: {
+          break_end: string | null
+          break_start: string | null
+          clinic_id: string | null
+          clock_in: string | null
+          clock_out: string | null
+          created_at: string | null
+          id: string
+          role: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          break_end?: string | null
+          break_start?: string | null
+          clinic_id?: string | null
+          clock_in?: string | null
+          clock_out?: string | null
+          created_at?: string | null
+          id?: string
+          role?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          break_end?: string | null
+          break_start?: string | null
+          clinic_id?: string | null
+          clock_in?: string | null
+          clock_out?: string | null
+          created_at?: string | null
+          id?: string
+          role?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      smart_alerts: {
+        Row: {
+          alert_type: string | null
+          clinic_id: string
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string | null
+          patient_id: string | null
+          severity: string | null
+        }
+        Insert: {
+          alert_type?: string | null
+          clinic_id: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          patient_id?: string | null
+          severity?: string | null
+        }
+        Update: {
+          alert_type?: string | null
+          clinic_id?: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          patient_id?: string | null
+          severity?: string | null
+        }
+        Relationships: []
+      }
       staff: {
         Row: {
+          clinic_id: string | null
           created_at: string | null
           email: string | null
           full_name: string
@@ -886,6 +2842,7 @@ export type Database = {
           role: string | null
         }
         Insert: {
+          clinic_id?: string | null
           created_at?: string | null
           email?: string | null
           full_name: string
@@ -895,6 +2852,7 @@ export type Database = {
           role?: string | null
         }
         Update: {
+          clinic_id?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string
@@ -905,18 +2863,234 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_logs: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          device_id: string | null
+          event: string | null
+          id: string
+          message: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          device_id?: string | null
+          event?: string | null
+          id?: string
+          message?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          device_id?: string | null
+          event?: string | null
+          id?: string
+          message?: string | null
+        }
+        Relationships: []
+      }
+      sync_metrics: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          last_sync_duration_ms: number | null
+          total_failed: number | null
+          total_synced: number | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_sync_duration_ms?: number | null
+          total_failed?: number | null
+          total_synced?: number | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_sync_duration_ms?: number | null
+          total_failed?: number | null
+          total_synced?: number | null
+        }
+        Relationships: []
+      }
+      sync_queue: {
+        Row: {
+          action: string
+          clinic_id: string
+          created_at: string | null
+          device_id: string
+          id: number
+          payload: Json | null
+          status: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          clinic_id: string
+          created_at?: string | null
+          device_id: string
+          id?: number
+          payload?: Json | null
+          status?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          clinic_id?: string
+          created_at?: string | null
+          device_id?: string
+          id?: number
+          payload?: Json | null
+          status?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
+      sync_state: {
+        Row: {
+          clinic_id: string
+          device_id: string
+          id: string
+          last_online: string | null
+          last_sync: string | null
+          queue_count: number | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          clinic_id: string
+          device_id: string
+          id?: string
+          last_online?: string | null
+          last_sync?: string | null
+          queue_count?: number | null
+          status: string
+          updated_at?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          device_id?: string
+          id?: string
+          last_online?: string | null
+          last_sync?: string | null
+          queue_count?: number | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sync_status: {
+        Row: {
+          clinic_id: string
+          device_id: string
+          id: string
+          last_online_at: string | null
+          last_synced_at: string | null
+          pending_operations: number | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          clinic_id: string
+          device_id: string
+          id?: string
+          last_online_at?: string | null
+          last_synced_at?: string | null
+          pending_operations?: number | null
+          status: string
+          updated_at?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          device_id?: string
+          id?: string
+          last_online_at?: string | null
+          last_synced_at?: string | null
+          pending_operations?: number | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      system_action_approvals: {
+        Row: {
+          action_type: string | null
+          approved_by: string | null
+          clinic_id: string | null
+          created_at: string | null
+          description: string | null
+          executed_at: string | null
+          id: string
+          requested_by: string | null
+          severity: string | null
+          status: string | null
+        }
+        Insert: {
+          action_type?: string | null
+          approved_by?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          executed_at?: string | null
+          id?: string
+          requested_by?: string | null
+          severity?: string | null
+          status?: string | null
+        }
+        Update: {
+          action_type?: string | null
+          approved_by?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          executed_at?: string | null
+          id?: string
+          requested_by?: string | null
+          severity?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      system_safety_rules: {
+        Row: {
+          action_type: string | null
+          auto_allowed: boolean | null
+          id: string
+          requires_approval: boolean | null
+        }
+        Insert: {
+          action_type?: string | null
+          auto_allowed?: boolean | null
+          id?: string
+          requires_approval?: boolean | null
+        }
+        Update: {
+          action_type?: string | null
+          auto_allowed?: boolean | null
+          id?: string
+          requires_approval?: boolean | null
+        }
+        Relationships: []
+      }
       user_role: {
         Row: {
+          clinic_id: string
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
+          clinic_id: string
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
+          clinic_id?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
@@ -934,10 +3108,15 @@ export type Database = {
           auto_os_sphere: string | null
           auto_va_od: string | null
           auto_va_os: string | null
+          branch_id: string | null
           case_history: string | null
           chief_complaint: string | null
+          clinic_id: string | null
           created_at: string
           diagnosis: string | null
+          dispensed_drugs: boolean | null
+          dispensed_glasses: boolean | null
+          doctor_id: string | null
           drugs_given: string | null
           duration: string | null
           examination: string | null
@@ -945,16 +3124,25 @@ export type Database = {
           ext_cornea: string | null
           ext_lids: string | null
           final_prescription: string | null
+          glasses_dispensed: boolean | null
+          glasses_payment_status: string | null
           glasses_prescribed: string | null
+          glasses_status: string | null
+          hmo_id: string | null
+          hmo_plan_id: string | null
           id: number
           int_cdr_od: string | null
           int_cdr_os: string | null
           int_fundoscopy_od: string | null
           int_fundoscopy_os: string | null
           int_fundus_bg: string | null
+          is_hmo: boolean | null
           medical_history: string | null
+          new_id: string | null
           ocular_history: string | null
           patient_id: number | null
+          patient_uuid: string | null
+          payment_type: string | null
           pinhole_od: string | null
           pinhole_os: string | null
           reading_add_od: string | null
@@ -994,10 +3182,15 @@ export type Database = {
           auto_os_sphere?: string | null
           auto_va_od?: string | null
           auto_va_os?: string | null
+          branch_id?: string | null
           case_history?: string | null
           chief_complaint?: string | null
+          clinic_id?: string | null
           created_at?: string
           diagnosis?: string | null
+          dispensed_drugs?: boolean | null
+          dispensed_glasses?: boolean | null
+          doctor_id?: string | null
           drugs_given?: string | null
           duration?: string | null
           examination?: string | null
@@ -1005,16 +3198,25 @@ export type Database = {
           ext_cornea?: string | null
           ext_lids?: string | null
           final_prescription?: string | null
+          glasses_dispensed?: boolean | null
+          glasses_payment_status?: string | null
           glasses_prescribed?: string | null
+          glasses_status?: string | null
+          hmo_id?: string | null
+          hmo_plan_id?: string | null
           id?: number
           int_cdr_od?: string | null
           int_cdr_os?: string | null
           int_fundoscopy_od?: string | null
           int_fundoscopy_os?: string | null
           int_fundus_bg?: string | null
+          is_hmo?: boolean | null
           medical_history?: string | null
+          new_id?: string | null
           ocular_history?: string | null
           patient_id?: number | null
+          patient_uuid?: string | null
+          payment_type?: string | null
           pinhole_od?: string | null
           pinhole_os?: string | null
           reading_add_od?: string | null
@@ -1054,10 +3256,15 @@ export type Database = {
           auto_os_sphere?: string | null
           auto_va_od?: string | null
           auto_va_os?: string | null
+          branch_id?: string | null
           case_history?: string | null
           chief_complaint?: string | null
+          clinic_id?: string | null
           created_at?: string
           diagnosis?: string | null
+          dispensed_drugs?: boolean | null
+          dispensed_glasses?: boolean | null
+          doctor_id?: string | null
           drugs_given?: string | null
           duration?: string | null
           examination?: string | null
@@ -1065,16 +3272,25 @@ export type Database = {
           ext_cornea?: string | null
           ext_lids?: string | null
           final_prescription?: string | null
+          glasses_dispensed?: boolean | null
+          glasses_payment_status?: string | null
           glasses_prescribed?: string | null
+          glasses_status?: string | null
+          hmo_id?: string | null
+          hmo_plan_id?: string | null
           id?: number
           int_cdr_od?: string | null
           int_cdr_os?: string | null
           int_fundoscopy_od?: string | null
           int_fundoscopy_os?: string | null
           int_fundus_bg?: string | null
+          is_hmo?: boolean | null
           medical_history?: string | null
+          new_id?: string | null
           ocular_history?: string | null
           patient_id?: number | null
+          patient_uuid?: string | null
+          payment_type?: string | null
           pinhole_od?: string | null
           pinhole_os?: string | null
           reading_add_od?: string | null
@@ -1106,6 +3322,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_visits_patient"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "Visits_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
@@ -1114,14 +3337,257 @@ export type Database = {
           },
         ]
       }
+      visits_local: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          local_id: string
+          patient_id: number | null
+          patient_local_id: string | null
+          pending_sync: boolean | null
+          server_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          local_id: string
+          patient_id?: number | null
+          patient_local_id?: string | null
+          pending_sync?: boolean | null
+          server_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          local_id?: string
+          patient_id?: number | null
+          patient_local_id?: string | null
+          pending_sync?: boolean | null
+          server_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      your_table_name: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          id: string | null
+          paid_at: string | null
+          patient_id: number | null
+          status: string | null
+          visit_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string | null
+          paid_at?: string | null
+          patient_id?: number | null
+          status?: string | null
+          visit_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          id?: string | null
+          paid_at?: string | null
+          patient_id?: number | null
+          status?: string | null
+          visit_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
+      admin_revenue: {
+        Row: {
+          payment_type: string | null
+          revenue: number | null
+          total_bills: number | null
+        }
+        Relationships: []
+      }
+      admin_revenue_summary: {
+        Row: {
+          payment_type: string | null
+          total_bills: number | null
+          total_revenue: number | null
+        }
+        Relationships: []
+      }
+      billing_with_total: {
+        Row: {
+          amount_paid: number | null
+          clinic_id: string | null
+          created_at: string | null
+          id: string | null
+          patient_due: number | null
+          patient_id: number | null
+          payer_type: string | null
+          payment_status: string | null
+          payment_type: string | null
+          total_amount: number | null
+        }
+        Insert: {
+          amount_paid?: number | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          patient_due?: number | null
+          patient_id?: number | null
+          payer_type?: string | null
+          payment_status?: string | null
+          payment_type?: string | null
+          total_amount?: number | null
+        }
+        Update: {
+          amount_paid?: number | null
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          patient_due?: number | null
+          patient_id?: number | null
+          payer_type?: string | null
+          payment_status?: string | null
+          payment_type?: string | null
+          total_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billings_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_income: {
         Row: {
           date: string | null
           total_income: number | null
         }
         Relationships: []
+      }
+      hmo_vs_cash_summary: {
+        Row: {
+          payment_type: string | null
+          total_due: number | null
+          total_paid: number | null
+          total_revenue: number | null
+          total_transactions: number | null
+        }
+        Relationships: []
+      }
+      hospital_flow: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          id: number | null
+          patient_id: number | null
+          status: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: number | null
+          patient_id?: number | null
+          status?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: number | null
+          patient_id?: number | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_visits_patient"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Visits_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lens_prescription_print: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          patient_id: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          patient_id?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          patient_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lens_prescriptions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_patient_queue: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          id: number | null
+          patient_id: number | null
+          status: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: number | null
+          patient_id?: number | null
+          status?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: number | null
+          patient_id?: number | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_visits_patient"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Visits_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_breakdown: {
         Row: {
@@ -1132,6 +3598,69 @@ export type Database = {
       }
     }
     Functions: {
+      analyze_clinic_revenue_health: { Args: never; Returns: undefined }
+      approve_system_action: {
+        Args: { approval_id: string }
+        Returns: undefined
+      }
+      calculate_health_score: { Args: { cid: string }; Returns: number }
+      can_add_branch: { Args: { org_id: string }; Returns: boolean }
+      check_policy_safety: { Args: { policy_text: string }; Returns: boolean }
+      check_reminder: { Args: { p_clinic_id: string }; Returns: boolean }
+      clinic_match: { Args: never; Returns: boolean }
+      clone_clinic_to_sandbox: {
+        Args: { sandbox_name: string; source_clinic: string }
+        Returns: string
+      }
+      complete_clinic_setup: { Args: never; Returns: undefined }
+      create_clinic_with_admin:
+        | { Args: { admin_id: string; clinic_name: string }; Returns: string }
+        | {
+            Args: {
+              admin_email: string
+              admin_id: string
+              admin_name: string
+              clinic_name: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              admin_name: string
+              admin_user_id: string
+              clinic_name: string
+            }
+            Returns: string
+          }
+      current_clinic_id: { Args: never; Returns: string }
+      detect_clinic_issues: { Args: never; Returns: undefined }
+      detect_issue_to_approval: { Args: never; Returns: undefined }
+      enforce_branch_limits: { Args: { p_org_id: string }; Returns: undefined }
+      execute_approved_action: {
+        Args: { approval_id: string }
+        Returns: undefined
+      }
+      freeze_extra_branches: { Args: { p_org_id: string }; Returns: undefined }
+      get_due_reminders: {
+        Args: never
+        Returns: {
+          clinic_id: string
+          email: string
+          phone: string
+          reminder_type: string
+        }[]
+      }
+      get_my_clinic_id: { Args: never; Returns: string }
+      get_plan_features: {
+        Args: { plan: string }
+        Returns: {
+          appointments: boolean
+          billing: boolean
+          hmo: boolean
+          inventory: boolean
+          pharmacy: boolean
+        }[]
+      }
       has_role:
         | {
             Args: {
@@ -1141,9 +3670,59 @@ export type Database = {
             Returns: boolean
           }
         | { Args: { required_role: string }; Returns: boolean }
+      is_clinic_unpaid: { Args: { p_clinic_id: string }; Returns: boolean }
+      is_feature_enabled: {
+        Args: { feature_name: string; p_clinic_id: string }
+        Returns: boolean
+      }
+      is_feature_in_rollout: {
+        Args: { clinic_id: string; feature: string }
+        Returns: boolean
+      }
+      is_table: { Args: { obj: string }; Returns: boolean }
+      is_view: { Args: { obj: string }; Returns: boolean }
+      log_hmo_change: {
+        Args: {
+          p_changed_by: string
+          p_new_hmo: string
+          p_new_payment: string
+          p_old_hmo: string
+          p_old_payment: string
+          p_patient_id: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      predict_clinic_load: { Args: never; Returns: undefined }
+      predict_slow_clinic: {
+        Args: never
+        Returns: {
+          clinic_id: string
+          risk_level: string
+        }[]
+      }
+      preload_clinic_cache: { Args: { cid: string }; Returns: undefined }
+      process_cache_queue: { Args: never; Returns: undefined }
+      process_retry_reminders: { Args: never; Returns: undefined }
+      refresh_clinic_dashboard_cache: {
+        Args: { cid: string }
+        Returns: undefined
+      }
+      require_clinic: { Args: never; Returns: undefined }
+      reset_sandbox_clinic: { Args: { sandbox_id: string }; Returns: undefined }
+      seed_sandbox_data: { Args: { sandbox_id: string }; Returns: undefined }
+      self_heal_clinic: { Args: { cid: string }; Returns: undefined }
+      send_prescription_to_pharmacy: {
+        Args: { p_visit_id: string }
+        Returns: undefined
+      }
+      set_active_clinic: { Args: { target_clinic: string }; Returns: undefined }
+      suggest_query_fix: { Args: { q: string }; Returns: string }
+      validate_target_object: { Args: { obj: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "doctor" | "receptionist"
+      payment_type_enum: "private" | "hmo"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1272,6 +3851,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "doctor", "receptionist"],
+      payment_type_enum: ["private", "hmo"],
     },
   },
 } as const
