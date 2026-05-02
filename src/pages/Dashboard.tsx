@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Users, CalendarCheck, ChevronRight, Package, AlertTriangle, DollarSign, TrendingUp, Clock, Pill } from "lucide-react";
+import { Users, ChevronRight, AlertTriangle, DollarSign, TrendingUp, Clock, Pill } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,18 +28,17 @@ export default function Dashboard() {
   const displayName = user?.user_metadata?.full_name || "Doctor";
 
   useEffect(() => {
-    async function load() {
+    (async () => {
       const today = new Date().toISOString().split("T")[0];
 
-      const [patientsRes, countRes, visitsRes, apptRes, pendingApptRes, invRes, billRes, drugsRes] = await Promise.all([
-        supabase.from("patients").select("id, full_name, age, gender, phone, patient_uid, patient_type").order("created_at", { ascending: false }).limit(5),
+      const [patientsRes, countRes, visitsRes, apptRes, pendingApptRes, invRes, billRes] = await Promise.all([
+        supabase.from("patients").select("id, full_name, age, gender, phone, payment_type, queue_number").order("created_at", { ascending: false }).limit(5),
         supabase.from("patients").select("*", { count: "exact", head: true }),
         supabase.from("visits").select("*", { count: "exact", head: true }).gte("created_at", `${today}T00:00:00`),
-        supabase.from("appointments").select("*", { count: "exact", head: true }).eq("appointment_date", today).eq("status", "scheduled"),
-        supabase.from("appointments").select("id, appointment_time, reason, patient_id").eq("appointment_date", today).eq("status", "scheduled").order("appointment_time").limit(5),
-        supabase.from("inventory").select("id, stock_quantity, low_stock_threshold"),
-        supabase.from("billings").select("total_amount, amount_paid, payment_status"),
-        supabase.from("drugs").select("id, stock, expiry_date"),
+        supabase.from("appointments").select("*", { count: "exact", head: true }).eq("appointment_date", today).in("status", ["pending", "confirmed"]),
+        supabase.from("appointments").select("id, appointment_time, reason, patient_id").eq("appointment_date", today).in("status", ["pending", "confirmed"]).order("appointment_time").limit(5),
+        supabase.from("inventory").select("id, stock_quantity, low_stock_threshold, expiry_date, category"),
+        supabase.from("billing").select("total_amount, amount_paid, status"),
       ]);
 
       if (patientsRes.data) setRecentPatients(patientsRes.data);
@@ -48,29 +47,22 @@ export default function Dashboard() {
       setTodayAppointments(apptRes.count ?? 0);
 
       if (invRes.data) {
+        const thirtyDays = new Date();
+        thirtyDays.setDate(thirtyDays.getDate() + 30);
         setLowStockCount(invRes.data.filter((i: any) => (i.stock_quantity ?? 0) <= (i.low_stock_threshold ?? 5)).length);
+        setDrugAlerts(invRes.data.filter((i: any) => i.category === "Drugs" && i.expiry_date && new Date(i.expiry_date) <= thirtyDays).length);
       }
 
       if (billRes.data) {
         setTotalRevenue(billRes.data.reduce((s: number, b: any) => s + Number(b.amount_paid || 0), 0));
-        setPendingBills(billRes.data.filter((b: any) => b.payment_status === "Unpaid" || b.payment_status === "Partial").length);
+        setPendingBills(billRes.data.filter((b: any) => b.status === "pending" || b.status === "partial").length);
       }
 
-      if (drugsRes.data) {
-        const thirtyDays = new Date();
-        thirtyDays.setDate(thirtyDays.getDate() + 30);
-        setDrugAlerts(drugsRes.data.filter((d: any) =>
-          (d.stock !== null && d.stock <= 5) ||
-          (d.expiry_date && new Date(d.expiry_date) <= thirtyDays)
-        ).length);
-      }
-
-      // Resolve patient names for appointments
       if (pendingApptRes.data && pendingApptRes.data.length > 0) {
-        const patIds = [...new Set(pendingApptRes.data.map((a: any) => a.patient_id).filter(Boolean))];
-        let patMap = new Map<number, string>();
+        const patIds = [...new Set(pendingApptRes.data.map((a: any) => a.patient_id).filter(Boolean))] as string[];
+        let patMap = new Map<string, string>();
         if (patIds.length > 0) {
-          const { data: pats } = await supabase.from("patients").select("id, full_name").in("id", patIds as any);
+          const { data: pats } = await supabase.from("patients").select("id, full_name").in("id", patIds);
           patMap = new Map((pats || []).map((p: any) => [p.id, p.full_name]));
         }
         setUpcomingAppts(pendingApptRes.data.map((a: any) => ({
@@ -80,14 +72,13 @@ export default function Dashboard() {
       }
 
       setLoading(false);
-    }
-    load();
+    })();
   }, []);
 
   const Metric = ({ icon: Icon, label, value, color, to }: any) => (
     <Link to={to} className="stat-card group">
       <div className={`w-11 h-11 rounded-2xl ${color} flex items-center justify-center shrink-0`}>
-        <Icon size={20} className="text-inherit" />
+        <Icon size={20} />
       </div>
       <div className="min-w-0">
         <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">{label}</p>
@@ -98,7 +89,6 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      {/* Greeting */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">
           {getGreeting()}, <span className="text-primary">{displayName}</span>
@@ -108,19 +98,17 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <Metric icon={Users} label="Total Patients" value={totalCount} color="bg-primary/10 text-primary" to="/patients" />
         <Metric icon={TrendingUp} label="Revenue" value={`₦${totalRevenue.toLocaleString()}`} color="bg-success/10 text-success" to="/billing" />
         <Metric icon={DollarSign} label="Pending Bills" value={pendingBills} color="bg-warning/10 text-warning" to="/billing" />
-        <Metric icon={Pill} label="Drug Alerts" value={drugAlerts + lowStockCount} color="bg-destructive/10 text-destructive" to="/pharmacy" />
+        <Metric icon={Pill} label="Stock Alerts" value={drugAlerts + lowStockCount} color="bg-destructive/10 text-destructive" to="/pharmacy" />
       </div>
 
-      {/* Quick Stats Row */}
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="stat-card">
           <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-            <CalendarCheck className="text-accent" size={18} />
+            <Clock className="text-accent" size={18} />
           </div>
           <div>
             <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Today's Visits</p>
@@ -138,7 +126,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Alerts */}
       {(lowStockCount > 0 || drugAlerts > 0) && (
         <Link to="/inventory" className="flex items-center gap-3 bg-destructive/5 border border-destructive/15 rounded-2xl p-4 mb-6 hover:bg-destructive/10 transition-all">
           <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0">
@@ -152,7 +139,6 @@ export default function Dashboard() {
         </Link>
       )}
 
-      {/* Upcoming Appointments */}
       {upcomingAppts.length > 0 && (
         <div className="medical-card mb-6">
           <div className="flex items-center justify-between mb-3">
@@ -175,7 +161,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Recent Patients */}
       <div className="medical-card">
         <div className="flex items-center justify-between mb-3">
           <h2 className="section-title"><Users size={16} /> Recent Patients</h2>
@@ -198,7 +183,7 @@ export default function Dashboard() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium truncate">{p.full_name}</p>
-                    <span className="text-[10px] font-mono text-muted-foreground">{p.patient_uid}</span>
+                    <span className="text-[10px] font-mono text-muted-foreground">#{p.queue_number}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {p.gender}, {p.age} yrs • {p.phone}

@@ -11,7 +11,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "sonner";
 import { CalendarIcon, Plus, X, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 
 interface Appointment {
   id: string;
@@ -20,12 +19,13 @@ interface Appointment {
   appointment_time: string;
   reason: string | null;
   status: string;
+  source: string;
   patient_name?: string;
 }
 
 export default function Appointments() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [patients, setPatients] = useState<{ id: number; full_name: string; patient_uid: string }[]>([]);
+  const [patients, setPatients] = useState<{ id: string; full_name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [filterDate, setFilterDate] = useState<Date>(new Date());
@@ -33,17 +33,21 @@ export default function Appointments() {
   const [saving, setSaving] = useState(false);
 
   const loadAppointments = async () => {
+    setLoading(true);
     const dateStr = format(filterDate, "yyyy-MM-dd");
-    const { data } = await supabase.from("appointments").select("*").eq("appointment_date", dateStr).order("appointment_time");
+    const { data } = await supabase
+      .from("appointments")
+      .select("*")
+      .eq("appointment_date", dateStr)
+      .order("appointment_time");
     if (data && data.length > 0) {
-      const patientIds = [...new Set(data.filter(a => a.patient_id).map(a => a.patient_id))];
+      const patientIds = [...new Set(data.filter((a: any) => a.patient_id).map((a: any) => a.patient_id))];
+      let patMap = new Map<string, string>();
       if (patientIds.length > 0) {
-        const { data: pats } = await supabase.from("patients").select("id, full_name").in("id", patientIds as any);
-        const patMap = new Map((pats || []).map((p: any) => [String(p.id), p.full_name]));
-        setAppointments(data.map((a: any) => ({ ...a, patient_name: a.patient_id ? patMap.get(String(a.patient_id)) || "Unknown" : "Walk-in" })));
-      } else {
-        setAppointments(data.map((a: any) => ({ ...a, patient_name: "Walk-in" })));
+        const { data: pats } = await supabase.from("patients").select("id, full_name").in("id", patientIds as string[]);
+        patMap = new Map((pats || []).map((p: any) => [p.id, p.full_name]));
       }
+      setAppointments(data.map((a: any) => ({ ...a, patient_name: a.patient_id ? patMap.get(a.patient_id) || "Unknown" : "Walk-in" })));
     } else {
       setAppointments([]);
     }
@@ -52,7 +56,7 @@ export default function Appointments() {
 
   useEffect(() => { loadAppointments(); }, [filterDate]);
   useEffect(() => {
-    supabase.from("patients").select("id, full_name, patient_uid").order("full_name").then(({ data }) => {
+    supabase.from("patients").select("id, full_name").order("full_name").then(({ data }) => {
       if (data) setPatients(data as any);
     });
   }, []);
@@ -65,7 +69,8 @@ export default function Appointments() {
       appointment_date: format(form.date, "yyyy-MM-dd"),
       appointment_time: form.time,
       reason: form.reason || null,
-      status: "scheduled",
+      status: "pending",
+      source: "manual",
     } as any);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
@@ -82,7 +87,8 @@ export default function Appointments() {
 
   const statusStyle = (s: string) => {
     if (s === "completed") return "bg-success/10 text-success";
-    if (s === "cancelled") return "bg-destructive/10 text-destructive";
+    if (s === "cancelled" || s === "missed") return "bg-destructive/10 text-destructive";
+    if (s === "confirmed") return "bg-accent/10 text-accent";
     return "bg-primary/10 text-primary";
   };
 
@@ -103,7 +109,7 @@ export default function Appointments() {
               <Select value={form.patientId} onValueChange={v => setForm(f => ({ ...f, patientId: v }))}>
                 <SelectTrigger className="rounded-xl"><SelectValue placeholder="Walk-in" /></SelectTrigger>
                 <SelectContent>
-                  {patients.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.full_name} ({p.patient_uid})</SelectItem>)}
+                  {patients.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -164,14 +170,15 @@ export default function Appointments() {
                 <Clock size={16} className="text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-bold">{a.appointment_time}</span>
                   <span className="text-sm font-medium truncate">{a.patient_name}</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${statusStyle(a.status)}`}>{a.status}</span>
+                  {a.source === "auto" && <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">auto</span>}
                 </div>
                 {a.reason && <p className="text-xs text-muted-foreground mt-0.5 truncate">{a.reason}</p>}
               </div>
-              {a.status === "scheduled" && (
+              {(a.status === "pending" || a.status === "confirmed") && (
                 <div className="flex gap-1 shrink-0">
                   <button onClick={() => updateStatus(a.id, "completed")} className="p-2 rounded-xl hover:bg-muted transition-colors">
                     <CheckCircle2 size={16} className="text-success" />
