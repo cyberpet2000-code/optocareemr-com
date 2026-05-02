@@ -3721,7 +3721,7 @@ export type Database = {
       validate_target_object: { Args: { obj: string }; Returns: undefined }
     }
     Enums: {
-      app_role: "admin" | "doctor" | "receptionist"
+      app_role: "admin" | "doctor" | "receptionist" | "super_admin"
       payment_type_enum: "private" | "hmo"
     }
     CompositeTypes: {
@@ -3850,7 +3850,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "doctor", "receptionist"],
+      app_role: ["admin", "doctor", "receptionist", "super_admin"],
       payment_type_enum: ["private", "hmo"],
     },
   },
