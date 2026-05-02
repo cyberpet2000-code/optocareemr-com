@@ -8,15 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Pill, Search, AlertTriangle, Plus, X, Ban } from "lucide-react";
 
-const DRUG_CATEGORIES = ["Antibiotics", "Anti-inflammatory", "Lubricants", "Anti-glaucoma", "Mydriatics", "Others"];
-
 interface Drug {
   id: string;
   name: string;
-  category: string | null;
-  price: number | null;
-  stock: number | null;
+  drug_category: string | null;
+  price: number;
+  stock_quantity: number;
   expiry_date: string | null;
+  low_stock_threshold: number;
 }
 
 interface DispenseItem {
@@ -32,12 +31,16 @@ export default function Pharmacy() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<DispenseItem[]>([]);
-  const [patients, setPatients] = useState<{ id: number; full_name: string }[]>([]);
+  const [patients, setPatients] = useState<{ id: string; full_name: string }[]>([]);
   const [selectedPatient, setSelectedPatient] = useState("");
   const [dispensing, setDispensing] = useState(false);
 
   const loadDrugs = async () => {
-    const { data } = await supabase.from("drugs").select("*").order("name");
+    const { data } = await supabase
+      .from("inventory")
+      .select("id, name, drug_category, price, stock_quantity, expiry_date, low_stock_threshold")
+      .eq("category", "Drugs")
+      .order("name");
     if (data) setDrugs(data as unknown as Drug[]);
     setLoading(false);
   };
@@ -54,17 +57,18 @@ export default function Pharmacy() {
 
   const isExpiringSoon = (d: Drug) => d.expiry_date && new Date(d.expiry_date) <= thirtyDaysFromNow;
   const isExpired = (d: Drug) => d.expiry_date && new Date(d.expiry_date) < new Date();
-  const isOutOfStock = (d: Drug) => (d.stock ?? 0) <= 0;
+  const isOutOfStock = (d: Drug) => (d.stock_quantity ?? 0) <= 0;
+  const isLow = (d: Drug) => !isOutOfStock(d) && d.stock_quantity <= (d.low_stock_threshold ?? 5);
 
   const addToCart = (drug: Drug) => {
     if (isOutOfStock(drug)) { toast.error("Out of stock"); return; }
     if (isExpired(drug)) { toast.error("Drug has expired"); return; }
     const existing = cart.find(c => c.drug_id === drug.id);
     if (existing) {
-      if (existing.quantity >= (drug.stock ?? 0)) { toast.error("Not enough stock"); return; }
+      if (existing.quantity >= drug.stock_quantity) { toast.error("Not enough stock"); return; }
       setCart(cart.map(c => c.drug_id === drug.id ? { ...c, quantity: c.quantity + 1 } : c));
     } else {
-      setCart([...cart, { drug_id: drug.id, name: drug.name, quantity: 1, price: drug.price ?? 0, available: drug.stock ?? 0 }]);
+      setCart([...cart, { drug_id: drug.id, name: drug.name, quantity: 1, price: drug.price ?? 0, available: drug.stock_quantity }]);
     }
   };
 
@@ -80,13 +84,20 @@ export default function Pharmacy() {
     setDispensing(true);
 
     for (const item of cart) {
-      const { error } = await supabase.from("dispensing").insert({
-        drug_id: item.drug_id,
+      const drug = drugs.find(d => d.id === item.drug_id);
+      if (!drug) continue;
+      // Record sale
+      await supabase.from("pharmacy_sales").insert({
+        patient_id: selectedPatient || null,
+        inventory_id: item.drug_id,
         quantity: item.quantity,
-        price: item.price * item.quantity,
-        dispensed_at: new Date().toISOString(),
+        price: item.price,
+        total: item.price * item.quantity,
       } as any);
-      if (error) { toast.error(`Failed: ${error.message}`); setDispensing(false); return; }
+      // Decrement stock
+      await supabase.from("inventory").update({
+        stock_quantity: drug.stock_quantity - item.quantity,
+      }).eq("id", item.drug_id);
     }
 
     toast.success("Drugs dispensed — stock updated");
@@ -105,7 +116,6 @@ export default function Pharmacy() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-        {/* Drug list */}
         <div className="lg:col-span-3 space-y-3">
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -117,7 +127,7 @@ export default function Pharmacy() {
               <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-8 text-sm text-muted-foreground">No drugs found.</div>
+            <div className="text-center py-8 text-sm text-muted-foreground">No drugs found. Add drug items in the Optical Shop with category "Drugs".</div>
           ) : (
             <div className="space-y-2">
               {filtered.map(drug => (
@@ -125,13 +135,13 @@ export default function Pharmacy() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-semibold">{drug.name}</p>
-                      {drug.category && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-md">{drug.category}</span>}
+                      {drug.drug_category && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-md">{drug.drug_category}</span>}
                       {isOutOfStock(drug) && (
                         <span className="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
                           <Ban size={8} /> Out of Stock
                         </span>
                       )}
-                      {!isOutOfStock(drug) && (drug.stock ?? 0) <= 5 && (
+                      {isLow(drug) && (
                         <span className="text-[10px] bg-warning/10 text-warning px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
                           <AlertTriangle size={8} /> Low
                         </span>
@@ -140,15 +150,15 @@ export default function Pharmacy() {
                         <span className="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-md">Expired</span>
                       )}
                       {!isExpired(drug) && isExpiringSoon(drug) && (
-                        <span className="text-[10px] bg-warning/10 text-warning px-1.5 py-0.5 rounded-md">⚠️ Exp. soon</span>
+                        <span className="text-[10px] bg-warning/10 text-warning px-1.5 py-0.5 rounded-md">Exp. soon</span>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      ₦{(drug.price ?? 0).toLocaleString()} • Stock: {drug.stock ?? 0}
+                      ₦{(drug.price ?? 0).toLocaleString()} • Stock: {drug.stock_quantity}
                       {drug.expiry_date && ` • Exp: ${drug.expiry_date}`}
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" className="rounded-xl shrink-0" onClick={() => addToCart(drug)} disabled={isOutOfStock(drug) || isExpired(drug)}>
+                  <Button variant="outline" size="sm" className="rounded-xl shrink-0" onClick={() => addToCart(drug)} disabled={isOutOfStock(drug) || !!isExpired(drug)}>
                     <Plus size={14} />
                   </Button>
                 </div>
@@ -157,7 +167,6 @@ export default function Pharmacy() {
           )}
         </div>
 
-        {/* Dispensing cart */}
         <div className="lg:col-span-2">
           <div className="form-section sticky top-20">
             <h2 className="section-title text-sm"><Pill size={14} /> Dispense</h2>
@@ -166,7 +175,7 @@ export default function Pharmacy() {
               <Select value={selectedPatient} onValueChange={setSelectedPatient}>
                 <SelectTrigger className="rounded-xl"><SelectValue placeholder="Walk-in" /></SelectTrigger>
                 <SelectContent>
-                  {patients.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.full_name}</SelectItem>)}
+                  {patients.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

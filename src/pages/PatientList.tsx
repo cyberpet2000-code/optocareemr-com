@@ -7,14 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 interface PatientRow {
-  id: number;
+  id: string;
   full_name: string;
   age: number | null;
   gender: string | null;
   phone: string;
-  insurance_name: string;
-  patient_type: string;
-  patient_uid: string;
+  payment_type: string;
+  active_hmo_id: string | null;
+  queue_number: number;
+  hmo_name?: string;
 }
 
 export default function PatientList() {
@@ -23,20 +24,26 @@ export default function PatientList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase
-      .from("patients")
-      .select("id, full_name, age, gender, phone, insurance_name, patient_type, patient_uid")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        if (data) setPatients(data as unknown as PatientRow[]);
-        setLoading(false);
-      });
+    (async () => {
+      const { data } = await supabase
+        .from("patients")
+        .select("id, full_name, age, gender, phone, payment_type, active_hmo_id, queue_number")
+        .order("created_at", { ascending: false });
+      if (!data) { setLoading(false); return; }
+      const hmoIds = [...new Set(data.map((p: any) => p.active_hmo_id).filter(Boolean))];
+      let hmoMap = new Map<string, string>();
+      if (hmoIds.length > 0) {
+        const { data: hmos } = await supabase.from("hmos").select("id, name").in("id", hmoIds as string[]);
+        hmoMap = new Map((hmos || []).map((h: any) => [h.id, h.name]));
+      }
+      setPatients(data.map((p: any) => ({ ...p, hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined })));
+      setLoading(false);
+    })();
   }, []);
 
   const filtered = patients.filter(p =>
     p.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    p.phone?.includes(search) ||
-    p.patient_uid?.toLowerCase().includes(search.toLowerCase())
+    p.phone?.includes(search)
   );
 
   return (
@@ -52,7 +59,7 @@ export default function PatientList() {
 
       <div className="relative mb-4">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search name, phone, or ID..." className="pl-9 rounded-xl bg-card" value={search} onChange={e => setSearch(e.target.value)} />
+        <Input placeholder="Search name or phone..." className="pl-9 rounded-xl bg-card" value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
       {loading ? (
@@ -67,45 +74,48 @@ export default function PatientList() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map(p => (
-            <div key={p.id} className="medical-card p-3 flex items-center gap-3">
-              <Link to={`/patient/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-bold text-primary">{(p.full_name || "?")[0]}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-semibold truncate">{p.full_name}</p>
-                    <span className="text-[10px] font-mono text-muted-foreground">{p.patient_uid}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${
-                      p.patient_type === "HMO" ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"
-                    }`}>
-                      {p.patient_type}
-                    </span>
+          {filtered.map(p => {
+            const isHmo = p.payment_type === "hmo";
+            return (
+              <div key={p.id} className="medical-card p-3 flex items-center gap-3">
+                <Link to={`/patient/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-bold text-primary">{(p.full_name || "?")[0]}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {p.gender}, {p.age} yrs • {p.phone}
-                  </p>
-                </div>
-              </Link>
-              <div className="flex items-center gap-1 shrink-0">
-                {p.phone && (
-                  <>
-                    <a href={`tel:${p.phone}`} className="p-2 rounded-xl hover:bg-muted transition-colors" title="Call">
-                      <Phone size={14} className="text-success" />
-                    </a>
-                    <a href={`https://wa.me/${p.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer"
-                      className="p-2 rounded-xl hover:bg-muted transition-colors" title="WhatsApp">
-                      <MessageCircle size={14} className="text-success" />
-                    </a>
-                  </>
-                )}
-                <Link to={`/patient/${p.id}`} className="p-2 rounded-xl hover:bg-muted transition-colors">
-                  <ChevronRight size={14} className="text-muted-foreground" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold truncate">{p.full_name}</p>
+                      <span className="text-[10px] font-mono text-muted-foreground">#{p.queue_number}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium uppercase ${
+                        isHmo ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"
+                      }`}>
+                        {isHmo ? (p.hmo_name || "HMO") : "Private"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {p.gender}, {p.age} yrs • {p.phone}
+                    </p>
+                  </div>
                 </Link>
+                <div className="flex items-center gap-1 shrink-0">
+                  {p.phone && (
+                    <>
+                      <a href={`tel:${p.phone}`} className="p-2 rounded-xl hover:bg-muted transition-colors" title="Call">
+                        <Phone size={14} className="text-success" />
+                      </a>
+                      <a href={`https://wa.me/${p.phone.replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer"
+                        className="p-2 rounded-xl hover:bg-muted transition-colors" title="WhatsApp">
+                        <MessageCircle size={14} className="text-success" />
+                      </a>
+                    </>
+                  )}
+                  <Link to={`/patient/${p.id}`} className="p-2 rounded-xl hover:bg-muted transition-colors">
+                    <ChevronRight size={14} className="text-muted-foreground" />
+                  </Link>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </AppLayout>

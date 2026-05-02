@@ -10,11 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, Plus, X, Search, AlertTriangle, ShoppingCart, Trash2, Edit2, BarChart3, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-const CATEGORIES = ["Frames", "Lenses", "Contact lenses", "Accessories", "Drugs / Eye drops"];
+const CATEGORIES = ["Frames", "Lenses", "Contact Lenses", "Accessories", "Drugs"];
 const DRUG_CATEGORIES = ["Antibiotics", "Anti-inflammatory", "Lubricants", "Anti-glaucoma", "Mydriatics", "Others"];
 
 interface InventoryItem {
-  id: string; name: string; category: string; price: number; stock: number;
+  id: string; name: string; category: string; price: number; stock_quantity: number;
   image_url: string | null; drug_category: string | null; expiry_date: string | null; low_stock_threshold: number;
 }
 
@@ -36,7 +36,7 @@ export default function Inventory() {
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("All");
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [patients, setPatients] = useState<{ id: number; full_name: string }[]>([]);
+  const [patients, setPatients] = useState<{ id: string; full_name: string }[]>([]);
   const [salePatientId, setSalePatientId] = useState("");
 
   const loadItems = async () => {
@@ -70,15 +70,23 @@ export default function Inventory() {
     if (imageFile) { imageUrl = await uploadImage(imageFile); if (!imageUrl) { setSaving(false); return; } }
 
     const payload: any = {
-      name: form.name.trim(), category: form.category, price: parseFloat(form.price) || 0,
-      stock: parseInt(form.stock) || 0, low_stock_threshold: parseInt(form.lowStockThreshold) || 5,
-      drug_category: form.category === "Drugs / Eye drops" ? form.drugCategory || null : null,
-      expiry_date: form.category === "Drugs / Eye drops" && form.expiryDate ? form.expiryDate : null,
+      name: form.name.trim(),
+      category: form.category,
+      price: parseFloat(form.price) || 0,
+      stock_quantity: parseInt(form.stock) || 0,
+      low_stock_threshold: parseInt(form.lowStockThreshold) || 5,
+      min_stock: parseInt(form.lowStockThreshold) || 5,
+      drug_category: form.category === "Drugs" ? (form.drugCategory || null) : null,
+      expiry_date: form.category === "Drugs" && form.expiryDate ? form.expiryDate : null,
     };
     if (imageUrl) payload.image_url = imageUrl;
     let error;
-    if (editId) { ({ error } = await supabase.from("inventory").update(payload).eq("id", editId)); }
-    else { payload.created_by = user?.id; ({ error } = await supabase.from("inventory").insert(payload)); }
+    if (editId) {
+      ({ error } = await supabase.from("inventory").update(payload).eq("id", editId));
+    } else {
+      payload.created_by = user?.id;
+      ({ error } = await supabase.from("inventory").insert(payload));
+    }
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success(editId ? "Updated" : "Added");
@@ -93,18 +101,23 @@ export default function Inventory() {
 
   const startEdit = (item: InventoryItem) => {
     setEditId(item.id);
-    setForm({ name: item.name, category: item.category, price: String(item.price), stock: String(item.stock), drugCategory: item.drug_category || "", expiryDate: item.expiry_date || "", lowStockThreshold: String(item.low_stock_threshold) });
+    setForm({
+      name: item.name, category: item.category,
+      price: String(item.price), stock: String(item.stock_quantity),
+      drugCategory: item.drug_category || "", expiryDate: item.expiry_date || "",
+      lowStockThreshold: String(item.low_stock_threshold),
+    });
     setImageFile(null); setShowForm(true);
   };
 
   const addToCart = (item: InventoryItem) => {
     const existing = cart.find(c => c.inventory_id === item.id);
     if (existing) {
-      if (existing.quantity >= item.stock) { toast.error("Not enough stock"); return; }
+      if (existing.quantity >= item.stock_quantity) { toast.error("Not enough stock"); return; }
       setCart(cart.map(c => c.inventory_id === item.id ? { ...c, quantity: c.quantity + 1 } : c));
     } else {
-      if (item.stock < 1) { toast.error("Out of stock"); return; }
-      setCart([...cart, { inventory_id: item.id, name: item.name, quantity: 1, unit_price: item.price, available_stock: item.stock }]);
+      if (item.stock_quantity < 1) { toast.error("Out of stock"); return; }
+      setCart([...cart, { inventory_id: item.id, name: item.name, quantity: 1, unit_price: item.price, available_stock: item.stock_quantity }]);
     }
   };
 
@@ -116,19 +129,34 @@ export default function Inventory() {
     if (cart.length === 0) { toast.error("Cart empty"); return; }
     setSaving(true);
     const { data: sale, error } = await supabase.from("inventory_sales").insert({
-      patient_id: salePatientId ? parseInt(salePatientId) : null, sold_by: user?.id, total_amount: cartTotal,
+      patient_id: salePatientId || null,
+      sold_by: user?.id,
+      total_amount: cartTotal,
     } as any).select().single();
     if (error || !sale) { toast.error(error?.message || "Failed"); setSaving(false); return; }
-    const saleItems = cart.map(c => ({ sale_id: (sale as any).id, inventory_id: c.inventory_id, quantity: c.quantity, unit_price: c.unit_price, total_price: c.quantity * c.unit_price }));
+    const saleItems = cart.map(c => ({
+      sale_id: (sale as any).id,
+      inventory_id: c.inventory_id,
+      quantity: c.quantity,
+      unit_price: c.unit_price,
+      total_price: c.quantity * c.unit_price,
+    }));
     const { error: itemsErr } = await supabase.from("inventory_sale_items").insert(saleItems as any);
+    if (itemsErr) { toast.error(itemsErr.message); setSaving(false); return; }
+    // Decrement stock
+    for (const c of cart) {
+      const item = items.find(i => i.id === c.inventory_id);
+      if (item) {
+        await supabase.from("inventory").update({ stock_quantity: item.stock_quantity - c.quantity }).eq("id", item.id);
+      }
+    }
     setSaving(false);
-    if (itemsErr) { toast.error(itemsErr.message); return; }
     toast.success("Sale completed"); setCart([]); setSalePatientId(""); loadItems();
   };
 
   const filtered = items.filter(i => (filterCat === "All" || i.category === filterCat) && i.name.toLowerCase().includes(search.toLowerCase()));
-  const lowStockItems = items.filter(i => i.stock <= i.low_stock_threshold);
-  const totalValue = items.reduce((sum, i) => sum + i.price * i.stock, 0);
+  const lowStockItems = items.filter(i => i.stock_quantity <= i.low_stock_threshold);
+  const totalValue = items.reduce((sum, i) => sum + i.price * i.stock_quantity, 0);
 
   return (
     <AppLayout>
@@ -186,7 +214,7 @@ export default function Inventory() {
                 <div className="space-y-1"><Label className="text-xs">Stock</Label><Input className="rounded-xl" type="number" min={0} value={form.stock} onChange={e => set("stock", e.target.value)} /></div>
                 <div className="space-y-1"><Label className="text-xs">Low Alert</Label><Input className="rounded-xl" type="number" min={0} value={form.lowStockThreshold} onChange={e => set("lowStockThreshold", e.target.value)} /></div>
                 <div className="space-y-1 sm:col-span-2"><Label className="text-xs">Image</Label><Input className="rounded-xl" type="file" accept="image/*" onChange={e => setImageFile(e.target.files?.[0] || null)} /></div>
-                {form.category === "Drugs / Eye drops" && (
+                {form.category === "Drugs" && (
                   <>
                     <div className="space-y-1"><Label className="text-xs">Drug Category</Label>
                       <Select value={form.drugCategory} onValueChange={v => set("drugCategory", v)}>
@@ -219,9 +247,9 @@ export default function Inventory() {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <p className="text-sm font-semibold">{item.name}</p>
                       <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-md">{item.category}</span>
-                      {item.stock <= item.low_stock_threshold && <span className="text-[10px] bg-destructive/10 text-destructive px-1 py-0.5 rounded-md">Low</span>}
+                      {item.stock_quantity <= item.low_stock_threshold && <span className="text-[10px] bg-destructive/10 text-destructive px-1 py-0.5 rounded-md">Low</span>}
                     </div>
-                    <p className="text-xs text-muted-foreground">₦{item.price.toLocaleString()} • Stock: {item.stock}</p>
+                    <p className="text-xs text-muted-foreground">₦{item.price.toLocaleString()} • Stock: {item.stock_quantity}</p>
                   </div>
                   <div className="flex gap-0.5 shrink-0">
                     <button onClick={() => startEdit(item)} className="p-2 rounded-xl hover:bg-muted transition-colors"><Edit2 size={12} /></button>
@@ -241,11 +269,11 @@ export default function Inventory() {
                 <Input placeholder="Search products..." className="pl-9 rounded-xl bg-card" value={search} onChange={e => setSearch(e.target.value)} />
               </div>
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {items.filter(i => i.name.toLowerCase().includes(search.toLowerCase()) && i.stock > 0).map(item => (
+                {items.filter(i => i.name.toLowerCase().includes(search.toLowerCase()) && i.stock_quantity > 0).map(item => (
                   <div key={item.id} className="medical-card p-2.5 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-semibold">{item.name}</p>
-                      <p className="text-[10px] text-muted-foreground">₦{item.price.toLocaleString()} • Stock: {item.stock}</p>
+                      <p className="text-[10px] text-muted-foreground">₦{item.price.toLocaleString()} • Stock: {item.stock_quantity}</p>
                     </div>
                     <Button variant="outline" size="sm" className="rounded-xl h-7" onClick={() => addToCart(item)}><Plus size={12} /></Button>
                   </div>
@@ -259,7 +287,7 @@ export default function Inventory() {
                   <Label className="text-xs">Patient (optional)</Label>
                   <Select value={salePatientId} onValueChange={setSalePatientId}>
                     <SelectTrigger className="rounded-xl"><SelectValue placeholder="Walk-in" /></SelectTrigger>
-                    <SelectContent>{patients.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.full_name}</SelectItem>)}</SelectContent>
+                    <SelectContent>{patients.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 {cart.length === 0 ? (
@@ -298,7 +326,7 @@ export default function Inventory() {
                     <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center"><AlertTriangle size={16} className="text-destructive" /></div>
                     <div>
                       <p className="text-sm font-semibold">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">Stock: {item.stock} / Min: {item.low_stock_threshold}</p>
+                      <p className="text-xs text-muted-foreground">Stock: {item.stock_quantity} / Min: {item.low_stock_threshold}</p>
                     </div>
                   </div>
                   <Button variant="outline" size="sm" className="rounded-xl text-xs" onClick={() => startEdit(item)}>Restock</Button>

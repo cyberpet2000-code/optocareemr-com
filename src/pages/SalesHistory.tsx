@@ -4,7 +4,10 @@ import AppLayout from "@/components/AppLayout";
 import { History } from "lucide-react";
 
 interface SaleRecord {
-  id: string; total_amount: number; created_at: string; patient_name?: string;
+  id: string;
+  total_amount: number;
+  created_at: string;
+  patient_name?: string;
   items: { name: string; quantity: number; unit_price: number; total_price: number }[];
 }
 
@@ -13,39 +16,51 @@ export default function SalesHistory() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
-      const { data: salesData } = await supabase.from("inventory_sales").select("*").order("created_at", { ascending: false }).limit(100);
+    (async () => {
+      const { data: salesData } = await supabase
+        .from("inventory_sales").select("*")
+        .order("created_at", { ascending: false }).limit(100);
       if (!salesData || salesData.length === 0) { setLoading(false); return; }
+
       const saleIds = salesData.map((s: any) => s.id);
-      const patientIds = [...new Set(salesData.map((s: any) => s.patient_id).filter(Boolean))];
+      const patientIds = [...new Set(salesData.map((s: any) => s.patient_id).filter(Boolean))] as string[];
+
       const [itemsRes, patsRes] = await Promise.all([
         supabase.from("inventory_sale_items").select("*").in("sale_id", saleIds),
-        patientIds.length > 0 ? supabase.from("patients").select("id, full_name").in("id", patientIds as any) : { data: [] },
+        patientIds.length > 0
+          ? supabase.from("patients").select("id, full_name").in("id", patientIds)
+          : Promise.resolve({ data: [] as any[] }),
       ]);
       const patMap = new Map((patsRes.data || []).map((p: any) => [p.id, p.full_name]));
+
       const itemsBySale = new Map<string, any[]>();
       (itemsRes.data || []).forEach((item: any) => {
         const arr = itemsBySale.get(item.sale_id) || [];
         arr.push(item);
         itemsBySale.set(item.sale_id, arr);
       });
-      const invIds = [...new Set((itemsRes.data || []).map((i: any) => i.inventory_id))];
+
+      const invIds = [...new Set((itemsRes.data || []).map((i: any) => i.inventory_id))] as string[];
       let invMap = new Map<string, string>();
       if (invIds.length > 0) {
         const { data: invData } = await supabase.from("inventory").select("id, name").in("id", invIds);
         invMap = new Map((invData || []).map((i: any) => [i.id, i.name]));
       }
+
       setSales(salesData.map((s: any) => ({
-        id: s.id, total_amount: s.total_amount, created_at: s.created_at,
+        id: s.id,
+        total_amount: s.total_amount,
+        created_at: s.created_at,
         patient_name: s.patient_id ? patMap.get(s.patient_id) || "Unknown" : "Walk-in",
         items: (itemsBySale.get(s.id) || []).map((item: any) => ({
           name: invMap.get(item.inventory_id) || "Unknown",
-          quantity: item.quantity, unit_price: item.unit_price, total_price: item.total_price,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
         })),
       })));
       setLoading(false);
-    }
-    load();
+    })();
   }, []);
 
   return (

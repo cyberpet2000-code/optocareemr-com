@@ -1,77 +1,42 @@
+// Minimal text-based visit export (no external PDF lib).
 export function generateVisitPdf(patient: any, visit: any) {
   const date = new Date(visit.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-
   const lines: string[] = [];
-  const add = (label: string, value: string | null | undefined) => { if (value) lines.push(`${label}: ${value}`); };
-  const addPair = (l1: string, v1: string | null, l2: string, v2: string | null) => {
-    const parts = [];
-    if (v1) parts.push(`${l1}: ${v1}`);
-    if (v2) parts.push(`${l2}: ${v2}`);
-    if (parts.length) lines.push(parts.join("  |  "));
-  };
+  const add = (label: string, value: any) => { if (value !== null && value !== undefined && value !== "") lines.push(`${label}: ${value}`); };
 
-  lines.push("═══════════════════════════════════════════════");
-  lines.push("              OPTOCARE EMR — VISIT RECORD");
-  lines.push("═══════════════════════════════════════════════");
+  lines.push("===============================================");
+  lines.push("           OPTOCARE EMR — VISIT RECORD");
+  lines.push("===============================================");
   lines.push("");
-  lines.push(`Patient: ${patient.full_name}  (${patient.patient_uid || ""})`);
-  lines.push(`Age: ${patient.age}  |  Gender: ${patient.gender}  |  Phone: ${patient.phone}`);
-  if (patient.patient_type === "HMO") lines.push(`HMO: ${patient.hmo_provider} (${patient.enrollee_number})`);
+  lines.push(`Patient: ${patient.full_name}`);
+  add("Age", patient.age);
+  add("Gender", patient.gender);
+  add("Phone", patient.phone);
+  add("Payment Type", patient.payment_type);
   lines.push(`Visit Date: ${date}`);
   lines.push("");
-  lines.push("──── VISUAL ACUITY ────");
-  addPair("VA OD Dist", visit.va_od_distance, "VA OS Dist", visit.va_os_distance);
-  add("VA OU Dist", visit.va_ou_distance);
-  addPair("VA OD Near", visit.va_od_near, "VA OS Near", visit.va_os_near);
-  addPair("Pinhole OD", visit.pinhole_od, "Pinhole OS", visit.pinhole_os);
-
+  lines.push("---- VISUAL ACUITY ----");
+  add("VA Unaided OD", visit.va_unaided_od);
+  add("VA Unaided OS", visit.va_unaided_os);
+  add("VA Aided OD", visit.va_aided_od);
+  add("VA Aided OS", visit.va_aided_os);
+  add("Old Lens Prescription", visit.old_lens_prescription);
   lines.push("");
-  lines.push("──── AUTO REFRACTION ────");
-  addPair("OD Sph/Cyl/Axis", [visit.auto_od_sphere, visit.auto_od_cylinder, visit.auto_od_axis].filter(Boolean).join("/") || null,
-          "VA OD", visit.auto_va_od);
-  addPair("OS Sph/Cyl/Axis", [visit.auto_os_sphere, visit.auto_os_cylinder, visit.auto_os_axis].filter(Boolean).join("/") || null,
-          "VA OS", visit.auto_va_os);
-
-  lines.push("");
-  lines.push("──── SUBJECTIVE REFRACTION ────");
-  addPair("OD Sph/Cyl/Axis", [visit.sub_od_sphere, visit.sub_od_cylinder, visit.sub_od_axis].filter(Boolean).join("/") || null,
-          "VA OD", visit.sub_va_od);
-  addPair("OS Sph/Cyl/Axis", [visit.sub_os_sphere, visit.sub_os_cylinder, visit.sub_os_axis].filter(Boolean).join("/") || null,
-          "VA OS", visit.sub_va_os);
-  addPair("Reading Add OD", visit.reading_add_od, "VA", visit.reading_add_va_od);
-  addPair("Reading Add OS", visit.reading_add_os, "VA", visit.reading_add_va_os);
-
-  lines.push("");
-  lines.push("──── EXAMINATION ────");
-  add("Lids", visit.ext_lids);
-  add("Conjunctiva", visit.ext_conjunctiva);
-  add("Cornea", visit.ext_cornea);
-  addPair("Fundoscopy OD", visit.int_fundoscopy_od, "OS", visit.int_fundoscopy_os);
-  addPair("CDR OD", visit.int_cdr_od, "CDR OS", visit.int_cdr_os);
-  add("Fundus Background", visit.int_fundus_bg);
-
-  lines.push("");
-  lines.push("──── TONOMETRY ────");
-  addPair("IOP OD", visit.tonometry_od ? `${visit.tonometry_od} mmHg` : null,
-          "IOP OS", visit.tonometry_os ? `${visit.tonometry_os} mmHg` : null);
-  if (visit.tonometry_time) lines.push(`Time: ${visit.tonometry_time} ${visit.tonometry_ampm || ""}`);
-
-  lines.push("");
-  lines.push("──── CASE HISTORY ────");
+  lines.push("---- HISTORY ----");
   add("Chief Complaint", visit.chief_complaint);
-  add("Duration", visit.duration);
-  add("Ocular History", visit.ocular_history);
-  add("Medical History", visit.medical_history);
-
+  add("History", visit.history);
   lines.push("");
-  lines.push("──── DIAGNOSIS & TREATMENT ────");
+  lines.push("---- EXAMINATION ----");
+  add("Examination", visit.examination);
+  add("IOP OD (mmHg)", visit.iop_od);
+  add("IOP OS (mmHg)", visit.iop_os);
+  lines.push("");
+  lines.push("---- DIAGNOSIS / TREATMENT ----");
   add("Diagnosis", visit.diagnosis);
-  add("Final Prescription", visit.final_prescription);
-  add("Drugs Given", visit.drugs_given);
-  add("Glasses Prescribed", visit.glasses_prescribed);
-
+  add("Treatment", visit.treatment);
+  add("Notes", visit.notes);
   lines.push("");
-  lines.push("═══════════════════════════════════════════════");
+  lines.push("===============================================");
   lines.push("Generated by Optocare EMR");
 
   const content = lines.join("\n");
@@ -79,7 +44,7 @@ export function generateVisitPdf(patient: any, visit: any) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `visit-${patient.full_name.replace(/\s+/g, "_")}-${date.replace(/\s+/g, "_")}.txt`;
+  a.download = `visit-${(patient.full_name || "patient").replace(/\s+/g, "_")}-${date.replace(/\s+/g, "_")}.txt`;
   a.click();
   URL.revokeObjectURL(url);
 }

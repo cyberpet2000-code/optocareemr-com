@@ -48,91 +48,112 @@ export type Database = {
         Row: {
           alert_type: string | null
           clinic_id: string | null
-          created_at: string | null
+          created_at: string
           id: string
           message: string | null
           patient_id: string | null
-          status: string | null
+          severity: string
+          status: string
+          visit_id: string | null
         }
         Insert: {
           alert_type?: string | null
           clinic_id?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           message?: string | null
           patient_id?: string | null
-          status?: string | null
+          severity?: string
+          status?: string
+          visit_id?: string | null
         }
         Update: {
           alert_type?: string | null
           clinic_id?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           message?: string | null
           patient_id?: string | null
-          status?: string | null
-        }
-        Relationships: []
-      }
-      appointments: {
-        Row: {
-          appointment_date: string | null
-          appointment_time: string | null
-          clinic_id: string | null
-          created_at: string | null
-          doctor_id: string | null
-          id: string
-          notes: string | null
-          patient_id: number | null
-          reason: string | null
-          reminder_sent: boolean | null
-          staff_id: string | null
-          status: string | null
-          visit_created: boolean | null
-        }
-        Insert: {
-          appointment_date?: string | null
-          appointment_time?: string | null
-          clinic_id?: string | null
-          created_at?: string | null
-          doctor_id?: string | null
-          id?: string
-          notes?: string | null
-          patient_id?: number | null
-          reason?: string | null
-          reminder_sent?: boolean | null
-          staff_id?: string | null
-          status?: string | null
-          visit_created?: boolean | null
-        }
-        Update: {
-          appointment_date?: string | null
-          appointment_time?: string | null
-          clinic_id?: string | null
-          created_at?: string | null
-          doctor_id?: string | null
-          id?: string
-          notes?: string | null
-          patient_id?: number | null
-          reason?: string | null
-          reminder_sent?: boolean | null
-          staff_id?: string | null
-          status?: string | null
-          visit_created?: boolean | null
+          severity?: string
+          status?: string
+          visit_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "appointments_patient_fk"
+            foreignKeyName: "alerts_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "appointments_staff_id_fkey"
-            columns: ["staff_id"]
+            foreignKeyName: "alerts_visit_id_fkey"
+            columns: ["visit_id"]
             isOneToOne: false
-            referencedRelation: "staff"
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string | null
+          clinic_id: string | null
+          created_at: string
+          doctor_id: string | null
+          id: string
+          notes: string | null
+          patient_id: string | null
+          priority: string | null
+          reason: string | null
+          source: string | null
+          status: string
+          visit_id: string | null
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          priority?: string | null
+          reason?: string | null
+          source?: string | null
+          status?: string
+          visit_id?: string | null
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          priority?: string | null
+          reason?: string | null
+          source?: string | null
+          status?: string
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
             referencedColumns: ["id"]
           },
         ]
@@ -211,169 +232,91 @@ export type Database = {
         }
         Relationships: []
       }
-      auto_appointments: {
-        Row: {
-          clinic_id: string
-          created_at: string | null
-          id: string
-          patient_id: string
-          priority: string | null
-          reason: string | null
-          scheduled_date: string | null
-          status: string | null
-          visit_id: string | null
-        }
-        Insert: {
-          clinic_id: string
-          created_at?: string | null
-          id?: string
-          patient_id: string
-          priority?: string | null
-          reason?: string | null
-          scheduled_date?: string | null
-          status?: string | null
-          visit_id?: string | null
-        }
-        Update: {
-          clinic_id?: string
-          created_at?: string | null
-          id?: string
-          patient_id?: string
-          priority?: string | null
-          reason?: string | null
-          scheduled_date?: string | null
-          status?: string | null
-          visit_id?: string | null
-        }
-        Relationships: []
-      }
       billing: {
         Row: {
           amount_paid: number
           balance: number
-          branch_id: string | null
           clinic_id: string | null
           consultation_fee: number
-          contact_lens_amount: number | null
-          cost_price: number | null
           created_at: string
-          discount_amount: number | null
-          drug_cost: number
-          frame_amount: number | null
-          glasses_cost: number
           hmo_covered_amount: number | null
           hmo_id: string | null
-          hmo_name: string | null
           hmo_plan_id: string | null
           id: string
-          lens_amount: number | null
-          other_amount: number | null
-          other_charges: number
-          patient_due: number | null
-          patient_id: number | null
+          items_total: number
+          notes: string | null
+          patient_id: string | null
           patient_payable: number | null
-          patient_type: string
-          payer_type: string | null
-          payment_method: string | null
-          payment_status: string
-          payment_type: string | null
-          status: string | null
+          payer_type: string
+          status: string
           total_amount: number
           updated_at: string
-          visit_id: number | null
+          visit_id: string | null
         }
         Insert: {
           amount_paid?: number
           balance?: number
-          branch_id?: string | null
           clinic_id?: string | null
           consultation_fee?: number
-          contact_lens_amount?: number | null
-          cost_price?: number | null
           created_at?: string
-          discount_amount?: number | null
-          drug_cost?: number
-          frame_amount?: number | null
-          glasses_cost?: number
           hmo_covered_amount?: number | null
           hmo_id?: string | null
-          hmo_name?: string | null
           hmo_plan_id?: string | null
           id?: string
-          lens_amount?: number | null
-          other_amount?: number | null
-          other_charges?: number
-          patient_due?: number | null
-          patient_id?: number | null
+          items_total?: number
+          notes?: string | null
+          patient_id?: string | null
           patient_payable?: number | null
-          patient_type?: string
-          payer_type?: string | null
-          payment_method?: string | null
-          payment_status?: string
-          payment_type?: string | null
-          status?: string | null
+          payer_type?: string
+          status?: string
           total_amount?: number
           updated_at?: string
-          visit_id?: number | null
+          visit_id?: string | null
         }
         Update: {
           amount_paid?: number
           balance?: number
-          branch_id?: string | null
           clinic_id?: string | null
           consultation_fee?: number
-          contact_lens_amount?: number | null
-          cost_price?: number | null
           created_at?: string
-          discount_amount?: number | null
-          drug_cost?: number
-          frame_amount?: number | null
-          glasses_cost?: number
           hmo_covered_amount?: number | null
           hmo_id?: string | null
-          hmo_name?: string | null
           hmo_plan_id?: string | null
           id?: string
-          lens_amount?: number | null
-          other_amount?: number | null
-          other_charges?: number
-          patient_due?: number | null
-          patient_id?: number | null
+          items_total?: number
+          notes?: string | null
+          patient_id?: string | null
           patient_payable?: number | null
-          patient_type?: string
-          payer_type?: string | null
-          payment_method?: string | null
-          payment_status?: string
-          payment_type?: string | null
-          status?: string | null
+          payer_type?: string
+          status?: string
           total_amount?: number
           updated_at?: string
-          visit_id?: number | null
+          visit_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "billings_patient_id_fkey"
+            foreignKeyName: "billing_hmo_id_fkey"
+            columns: ["hmo_id"]
+            isOneToOne: false
+            referencedRelation: "hmos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_hmo_plan_id_fkey"
+            columns: ["hmo_plan_id"]
+            isOneToOne: false
+            referencedRelation: "hmo_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "billings_visit_id_fkey"
-            columns: ["visit_id"]
-            isOneToOne: false
-            referencedRelation: "hospital_flow"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "billings_visit_id_fkey"
-            columns: ["visit_id"]
-            isOneToOne: false
-            referencedRelation: "live_patient_queue"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "billings_visit_id_fkey"
+            foreignKeyName: "billing_visit_id_fkey"
             columns: ["visit_id"]
             isOneToOne: false
             referencedRelation: "visits"
@@ -384,86 +327,56 @@ export type Database = {
       billing_items: {
         Row: {
           billing_id: string
-          clinic_id: string
-          created_at: string | null
+          clinic_id: string | null
+          created_at: string
           id: string
+          inventory_id: string | null
           item_name: string
           item_type: string
-          quantity: number | null
-          total_price: number | null
+          quantity: number
+          total_price: number
           unit_price: number
         }
         Insert: {
           billing_id: string
-          clinic_id: string
-          created_at?: string | null
+          clinic_id?: string | null
+          created_at?: string
           id?: string
+          inventory_id?: string | null
           item_name: string
           item_type: string
-          quantity?: number | null
-          total_price?: number | null
-          unit_price: number
+          quantity?: number
+          total_price?: number
+          unit_price?: number
         }
         Update: {
           billing_id?: string
-          clinic_id?: string
-          created_at?: string | null
+          clinic_id?: string | null
+          created_at?: string
           id?: string
+          inventory_id?: string | null
           item_name?: string
           item_type?: string
-          quantity?: number | null
-          total_price?: number | null
+          quantity?: number
+          total_price?: number
           unit_price?: number
         }
-        Relationships: []
-      }
-      billing_local: {
-        Row: {
-          amount_paid: number | null
-          clinic_id: string | null
-          created_at: string | null
-          local_id: string
-          patient_due: number | null
-          patient_id: number | null
-          payment_status: string | null
-          payment_type: string | null
-          pending_sync: boolean | null
-          server_id: string | null
-          total_amount: number | null
-          visit_id: number | null
-          visit_local_id: string | null
-        }
-        Insert: {
-          amount_paid?: number | null
-          clinic_id?: string | null
-          created_at?: string | null
-          local_id: string
-          patient_due?: number | null
-          patient_id?: number | null
-          payment_status?: string | null
-          payment_type?: string | null
-          pending_sync?: boolean | null
-          server_id?: string | null
-          total_amount?: number | null
-          visit_id?: number | null
-          visit_local_id?: string | null
-        }
-        Update: {
-          amount_paid?: number | null
-          clinic_id?: string | null
-          created_at?: string | null
-          local_id?: string
-          patient_due?: number | null
-          patient_id?: number | null
-          payment_status?: string | null
-          payment_type?: string | null
-          pending_sync?: boolean | null
-          server_id?: string | null
-          total_amount?: number | null
-          visit_id?: number | null
-          visit_local_id?: string | null
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "billing_items_billing_id_fkey"
+            columns: ["billing_id"]
+            isOneToOne: false
+            referencedRelation: "billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_items_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       branch_feature_flags: {
         Row: {
@@ -510,63 +423,6 @@ export type Database = {
           created_at?: string | null
           id?: string
           status?: string | null
-        }
-        Relationships: []
-      }
-      cataract_cases: {
-        Row: {
-          clinic_id: string | null
-          created_at: string | null
-          eye: string | null
-          id: number
-          notes: string | null
-          patient_id: number | null
-          severity: string | null
-          surgery_date: string | null
-          surgery_status: string | null
-          visit_id: number | null
-        }
-        Insert: {
-          clinic_id?: string | null
-          created_at?: string | null
-          eye?: string | null
-          id?: number
-          notes?: string | null
-          patient_id?: number | null
-          severity?: string | null
-          surgery_date?: string | null
-          surgery_status?: string | null
-          visit_id?: number | null
-        }
-        Update: {
-          clinic_id?: string | null
-          created_at?: string | null
-          eye?: string | null
-          id?: number
-          notes?: string | null
-          patient_id?: number | null
-          severity?: string | null
-          surgery_date?: string | null
-          surgery_status?: string | null
-          visit_id?: number | null
-        }
-        Relationships: []
-      }
-      claims: {
-        Row: {
-          clinic_id: string | null
-          created_at: string
-          id: number
-        }
-        Insert: {
-          clinic_id?: string | null
-          created_at?: string
-          id?: number
-        }
-        Update: {
-          clinic_id?: string | null
-          created_at?: string
-          id?: number
         }
         Relationships: []
       }
@@ -1044,103 +900,6 @@ export type Database = {
         }
         Relationships: []
       }
-      consultations: {
-        Row: {
-          chief_complaint: string | null
-          clinic_id: string | null
-          created_at: string | null
-          diagnosis: string | null
-          id: string
-          notes: string | null
-          patient_id: string | null
-          refraction: string | null
-          treatment: string | null
-          va_od: string | null
-          va_os: string | null
-        }
-        Insert: {
-          chief_complaint?: string | null
-          clinic_id?: string | null
-          created_at?: string | null
-          diagnosis?: string | null
-          id?: string
-          notes?: string | null
-          patient_id?: string | null
-          refraction?: string | null
-          treatment?: string | null
-          va_od?: string | null
-          va_os?: string | null
-        }
-        Update: {
-          chief_complaint?: string | null
-          clinic_id?: string | null
-          created_at?: string | null
-          diagnosis?: string | null
-          id?: string
-          notes?: string | null
-          patient_id?: string | null
-          refraction?: string | null
-          treatment?: string | null
-          va_od?: string | null
-          va_os?: string | null
-        }
-        Relationships: []
-      }
-      dispensing: {
-        Row: {
-          clinic_id: string | null
-          dispensed_at: string | null
-          dispensed_by: string | null
-          drug_id: string | null
-          id: string
-          prescription_id: string | null
-          price: number | null
-          quantity: number
-        }
-        Insert: {
-          clinic_id?: string | null
-          dispensed_at?: string | null
-          dispensed_by?: string | null
-          drug_id?: string | null
-          id?: string
-          prescription_id?: string | null
-          price?: number | null
-          quantity: number
-        }
-        Update: {
-          clinic_id?: string | null
-          dispensed_at?: string | null
-          dispensed_by?: string | null
-          drug_id?: string | null
-          id?: string
-          prescription_id?: string | null
-          price?: number | null
-          quantity?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dispensing_dispensed_by_fkey"
-            columns: ["dispensed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dispensing_drug_id_fkey"
-            columns: ["drug_id"]
-            isOneToOne: false
-            referencedRelation: "inventory"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dispensing_prescription_id_fkey"
-            columns: ["prescription_id"]
-            isOneToOne: false
-            referencedRelation: "prescriptions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       drugs: {
         Row: {
           category: string | null
@@ -1174,30 +933,6 @@ export type Database = {
           name?: string
           price?: number | null
           stock?: number | null
-        }
-        Relationships: []
-      }
-      expenses: {
-        Row: {
-          amount: number | null
-          clinic_id: string | null
-          created_at: string | null
-          description: string | null
-          id: string
-        }
-        Insert: {
-          amount?: number | null
-          clinic_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
-        }
-        Update: {
-          amount?: number | null
-          clinic_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string
         }
         Relationships: []
       }
@@ -1251,154 +986,64 @@ export type Database = {
       }
       followups: {
         Row: {
-          clinic_id: string
-          created_at: string | null
+          clinic_id: string | null
+          created_at: string
           due_date: string
           id: string
           patient_id: string
           reason: string | null
-          status: string | null
+          status: string
           visit_id: string | null
         }
         Insert: {
-          clinic_id: string
-          created_at?: string | null
+          clinic_id?: string | null
+          created_at?: string
           due_date: string
           id?: string
           patient_id: string
           reason?: string | null
-          status?: string | null
+          status?: string
           visit_id?: string | null
         }
         Update: {
-          clinic_id?: string
-          created_at?: string | null
+          clinic_id?: string | null
+          created_at?: string
           due_date?: string
           id?: string
           patient_id?: string
           reason?: string | null
-          status?: string | null
+          status?: string
           visit_id?: string | null
         }
-        Relationships: []
-      }
-      glaucoma_records: {
-        Row: {
-          clinic_id: string | null
-          created_at: string | null
-          cup_disc_ratio_od: string | null
-          cup_disc_ratio_os: string | null
-          id: number
-          iop_od: number | null
-          iop_os: number | null
-          notes: string | null
-          patient_id: number | null
-          visit_id: number | null
-        }
-        Insert: {
-          clinic_id?: string | null
-          created_at?: string | null
-          cup_disc_ratio_od?: string | null
-          cup_disc_ratio_os?: string | null
-          id?: number
-          iop_od?: number | null
-          iop_os?: number | null
-          notes?: string | null
-          patient_id?: number | null
-          visit_id?: number | null
-        }
-        Update: {
-          clinic_id?: string | null
-          created_at?: string | null
-          cup_disc_ratio_od?: string | null
-          cup_disc_ratio_os?: string | null
-          id?: number
-          iop_od?: number | null
-          iop_os?: number | null
-          notes?: string | null
-          patient_id?: number | null
-          visit_id?: number | null
-        }
-        Relationships: []
-      }
-      history: {
-        Row: {
-          clinic_id: string | null
-          created_at: string
-          id: number
-        }
-        Insert: {
-          clinic_id?: string | null
-          created_at?: string
-          id?: number
-        }
-        Update: {
-          clinic_id?: string | null
-          created_at?: string
-          id?: number
-        }
-        Relationships: []
-      }
-      hmo_approvals: {
-        Row: {
-          approval_reference: string | null
-          approved_amount: number | null
-          approved_by: string | null
-          clinic_id: string | null
-          created_at: string | null
-          hmo_id: string
-          id: string
-          new_id: string | null
-          notes: string | null
-          requested_amount: number | null
-          status: string | null
-          updated_at: string | null
-          visit_id: string
-        }
-        Insert: {
-          approval_reference?: string | null
-          approved_amount?: number | null
-          approved_by?: string | null
-          clinic_id?: string | null
-          created_at?: string | null
-          hmo_id: string
-          id?: string
-          new_id?: string | null
-          notes?: string | null
-          requested_amount?: number | null
-          status?: string | null
-          updated_at?: string | null
-          visit_id: string
-        }
-        Update: {
-          approval_reference?: string | null
-          approved_amount?: number | null
-          approved_by?: string | null
-          clinic_id?: string | null
-          created_at?: string | null
-          hmo_id?: string
-          id?: string
-          new_id?: string | null
-          notes?: string | null
-          requested_amount?: number | null
-          status?: string | null
-          updated_at?: string | null
-          visit_id?: string
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "followups_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followups_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hmo_claims: {
         Row: {
           approved_amount: number
           billing_id: string | null
-          branch_id: string | null
           clinic_id: string | null
           co_payment: number
           created_at: string
-          hmo_name: string
+          hmo_id: string | null
+          hmo_name: string | null
           id: string
           notes: string | null
-          patient_id: number | null
+          patient_id: string | null
           service_cost: number
           status: string
           updated_at: string
@@ -1406,14 +1051,14 @@ export type Database = {
         Insert: {
           approved_amount?: number
           billing_id?: string | null
-          branch_id?: string | null
           clinic_id?: string | null
           co_payment?: number
           created_at?: string
-          hmo_name: string
+          hmo_id?: string | null
+          hmo_name?: string | null
           id?: string
           notes?: string | null
-          patient_id?: number | null
+          patient_id?: string | null
           service_cost?: number
           status?: string
           updated_at?: string
@@ -1421,14 +1066,14 @@ export type Database = {
         Update: {
           approved_amount?: number
           billing_id?: string | null
-          branch_id?: string | null
           clinic_id?: string | null
           co_payment?: number
           created_at?: string
-          hmo_name?: string
+          hmo_id?: string | null
+          hmo_name?: string | null
           id?: string
           notes?: string | null
-          patient_id?: number | null
+          patient_id?: string | null
           service_cost?: number
           status?: string
           updated_at?: string
@@ -1442,10 +1087,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "hmo_claims_billing_id_fkey"
-            columns: ["billing_id"]
+            foreignKeyName: "hmo_claims_hmo_id_fkey"
+            columns: ["hmo_id"]
             isOneToOne: false
-            referencedRelation: "billing_with_total"
+            referencedRelation: "hmos"
             referencedColumns: ["id"]
           },
           {
@@ -1462,11 +1107,13 @@ export type Database = {
           change_reason: string | null
           changed_by: string | null
           clinic_id: string | null
-          created_at: string | null
+          created_at: string
           id: string
           new_hmo_id: string | null
+          new_hmo_plan_id: string | null
           new_payment_type: string | null
           old_hmo_id: string | null
+          old_hmo_plan_id: string | null
           old_payment_type: string | null
           patient_id: string
         }
@@ -1474,11 +1121,13 @@ export type Database = {
           change_reason?: string | null
           changed_by?: string | null
           clinic_id?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           new_hmo_id?: string | null
+          new_hmo_plan_id?: string | null
           new_payment_type?: string | null
           old_hmo_id?: string | null
+          old_hmo_plan_id?: string | null
           old_payment_type?: string | null
           patient_id: string
         }
@@ -1486,120 +1135,99 @@ export type Database = {
           change_reason?: string | null
           changed_by?: string | null
           clinic_id?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           new_hmo_id?: string | null
+          new_hmo_plan_id?: string | null
           new_payment_type?: string | null
           old_hmo_id?: string | null
+          old_hmo_plan_id?: string | null
           old_payment_type?: string | null
           patient_id?: string
         }
-        Relationships: []
-      }
-      hmo_payments: {
-        Row: {
-          amount_paid: number | null
-          claim_id: string
-          clinic_id: string
-          id: string
-          payment_date: string | null
-          payment_status: string | null
-        }
-        Insert: {
-          amount_paid?: number | null
-          claim_id: string
-          clinic_id: string
-          id?: string
-          payment_date?: string | null
-          payment_status?: string | null
-        }
-        Update: {
-          amount_paid?: number | null
-          claim_id?: string
-          clinic_id?: string
-          id?: string
-          payment_date?: string | null
-          payment_status?: string | null
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "hmo_history_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hmo_plans: {
         Row: {
           clinic_id: string | null
-          consultation_limit: number | null
-          created_at: string | null
-          drug_limit: number | null
+          coverage_limit: number | null
+          created_at: string
           hmo_id: string
           id: string
-          new_id: string | null
           plan_name: string
-          requires_approval: boolean | null
-          total_annual_limit: number | null
+          status: string
           used_amount: number | null
         }
         Insert: {
           clinic_id?: string | null
-          consultation_limit?: number | null
-          created_at?: string | null
-          drug_limit?: number | null
+          coverage_limit?: number | null
+          created_at?: string
           hmo_id: string
           id?: string
-          new_id?: string | null
           plan_name: string
-          requires_approval?: boolean | null
-          total_annual_limit?: number | null
+          status?: string
           used_amount?: number | null
         }
         Update: {
           clinic_id?: string | null
-          consultation_limit?: number | null
-          created_at?: string | null
-          drug_limit?: number | null
+          coverage_limit?: number | null
+          created_at?: string
           hmo_id?: string
           id?: string
-          new_id?: string | null
           plan_name?: string
-          requires_approval?: boolean | null
-          total_annual_limit?: number | null
+          status?: string
           used_amount?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "hmo_plans_hmo_id_fkey"
+            columns: ["hmo_id"]
+            isOneToOne: false
+            referencedRelation: "hmos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hmos: {
         Row: {
           clinic_id: string | null
-          contact_phone: string | null
           created_at: string
           email: string | null
-          id: number
-          name: string | null
-          new_id: string | null
-          portal_type: string | null
-          status: string | null
+          id: string
+          name: string
+          phone: string | null
+          status: string
+          updated_at: string
           website: string | null
         }
         Insert: {
           clinic_id?: string | null
-          contact_phone?: string | null
           created_at?: string
           email?: string | null
-          id?: number
-          name?: string | null
-          new_id?: string | null
-          portal_type?: string | null
-          status?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
           website?: string | null
         }
         Update: {
           clinic_id?: string | null
-          contact_phone?: string | null
           created_at?: string
           email?: string | null
-          id?: number
-          name?: string | null
-          new_id?: string | null
-          portal_type?: string | null
-          status?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
           website?: string | null
         }
         Relationships: []
@@ -1615,11 +1243,9 @@ export type Database = {
           id: string
           image_url: string | null
           low_stock_threshold: number
-          min_stock: number | null
+          min_stock: number
           name: string
           price: number
-          reorder_level: number | null
-          stock: number | null
           stock_quantity: number
           updated_at: string
         }
@@ -1633,11 +1259,9 @@ export type Database = {
           id?: string
           image_url?: string | null
           low_stock_threshold?: number
-          min_stock?: number | null
+          min_stock?: number
           name: string
           price?: number
-          reorder_level?: number | null
-          stock?: number | null
           stock_quantity?: number
           updated_at?: string
         }
@@ -1651,11 +1275,9 @@ export type Database = {
           id?: string
           image_url?: string | null
           low_stock_threshold?: number
-          min_stock?: number | null
+          min_stock?: number
           name?: string
           price?: number
-          reorder_level?: number | null
-          stock?: number | null
           stock_quantity?: number
           updated_at?: string
         }
@@ -1711,7 +1333,7 @@ export type Database = {
           clinic_id: string | null
           created_at: string
           id: string
-          patient_id: number | null
+          patient_id: string | null
           sold_by: string | null
           total_amount: number
         }
@@ -1719,7 +1341,7 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string
           id?: string
-          patient_id?: number | null
+          patient_id?: string | null
           sold_by?: string | null
           total_amount?: number
         }
@@ -1727,78 +1349,11 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string
           id?: string
-          patient_id?: number | null
+          patient_id?: string | null
           sold_by?: string | null
           total_amount?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "inventory_sales_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lens_prescriptions: {
-        Row: {
-          clinic_id: string | null
-          created_at: string | null
-          id: string
-          ipd: string | null
-          lens_type: string | null
-          notes: string | null
-          od_axis: string | null
-          od_cyl: string | null
-          od_sph: string | null
-          os_axis: string | null
-          os_cyl: string | null
-          os_sph: string | null
-          patient_id: number | null
-          va: string | null
-        }
-        Insert: {
-          clinic_id?: string | null
-          created_at?: string | null
-          id?: string
-          ipd?: string | null
-          lens_type?: string | null
-          notes?: string | null
-          od_axis?: string | null
-          od_cyl?: string | null
-          od_sph?: string | null
-          os_axis?: string | null
-          os_cyl?: string | null
-          os_sph?: string | null
-          patient_id?: number | null
-          va?: string | null
-        }
-        Update: {
-          clinic_id?: string | null
-          created_at?: string | null
-          id?: string
-          ipd?: string | null
-          lens_type?: string | null
-          notes?: string | null
-          od_axis?: string | null
-          od_cyl?: string | null
-          od_sph?: string | null
-          os_axis?: string | null
-          os_cyl?: string | null
-          os_sph?: string | null
-          patient_id?: number | null
-          va?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lens_prescriptions_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       migration_log: {
         Row: {
@@ -1848,36 +1403,6 @@ export type Database = {
         }
         Relationships: []
       }
-      patient_hmos: {
-        Row: {
-          clinic_id: string
-          created_at: string | null
-          hmo_id: string
-          id: string
-          patient_id: string
-          plan_id: string
-          status: string | null
-        }
-        Insert: {
-          clinic_id: string
-          created_at?: string | null
-          hmo_id: string
-          id?: string
-          patient_id: string
-          plan_id: string
-          status?: string | null
-        }
-        Update: {
-          clinic_id?: string
-          created_at?: string | null
-          hmo_id?: string
-          id?: string
-          patient_id?: string
-          plan_id?: string
-          status?: string | null
-        }
-        Relationships: []
-      }
       patients: {
         Row: {
           active_hmo_id: string | null
@@ -1885,190 +1410,65 @@ export type Database = {
           address: string | null
           age: number | null
           assigned_doctor: string | null
-          branch_id: string | null
           clinic_id: string | null
           created_at: string
           created_by: string | null
-          current_payment_type: string | null
           enrollee_number: string | null
           full_name: string
           gender: string | null
-          hmo_provider: string | null
-          id: number
-          insurance_name: string | null
-          is_locked: boolean | null
-          last_refraction_date: string | null
-          last_updated_by: string | null
-          locked_by: string | null
-          new_id: string | null
-          next_of_kin: string | null
-          next_refraction_due: string | null
-          patient_type: string
-          patient_uid: string | null
-          patient_uuid: string | null
-          payment_type: Database["public"]["Enums"]["payment_type_enum"] | null
-          phone: string | null
-          priority: string | null
-          queue_number: number
-          queue_status: string | null
-          refraction_status: string | null
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          active_hmo_id?: string | null
-          active_hmo_plan_id?: string | null
-          address?: string | null
-          age?: number | null
-          assigned_doctor?: string | null
-          branch_id?: string | null
-          clinic_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          current_payment_type?: string | null
-          enrollee_number?: string | null
-          full_name?: string
-          gender?: string | null
-          hmo_provider?: string | null
-          id?: number
-          insurance_name?: string | null
-          is_locked?: boolean | null
-          last_refraction_date?: string | null
-          last_updated_by?: string | null
-          locked_by?: string | null
-          new_id?: string | null
-          next_of_kin?: string | null
-          next_refraction_due?: string | null
-          patient_type?: string
-          patient_uid?: string | null
-          patient_uuid?: string | null
-          payment_type?: Database["public"]["Enums"]["payment_type_enum"] | null
-          phone?: string | null
-          priority?: string | null
-          queue_number?: number
-          queue_status?: string | null
-          refraction_status?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          active_hmo_id?: string | null
-          active_hmo_plan_id?: string | null
-          address?: string | null
-          age?: number | null
-          assigned_doctor?: string | null
-          branch_id?: string | null
-          clinic_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          current_payment_type?: string | null
-          enrollee_number?: string | null
-          full_name?: string
-          gender?: string | null
-          hmo_provider?: string | null
-          id?: number
-          insurance_name?: string | null
-          is_locked?: boolean | null
-          last_refraction_date?: string | null
-          last_updated_by?: string | null
-          locked_by?: string | null
-          new_id?: string | null
-          next_of_kin?: string | null
-          next_refraction_due?: string | null
-          patient_type?: string
-          patient_uid?: string | null
-          patient_uuid?: string | null
-          payment_type?: Database["public"]["Enums"]["payment_type_enum"] | null
-          phone?: string | null
-          priority?: string | null
-          queue_number?: number
-          queue_status?: string | null
-          refraction_status?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_assigned_doctor"
-            columns: ["assigned_doctor"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      patients_local: {
-        Row: {
-          clinic_id: string | null
-          created_at: string | null
-          deleted: boolean | null
-          local_id: string
-          name: string | null
-          pending_sync: boolean | null
-          phone: string | null
-          server_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          clinic_id?: string | null
-          created_at?: string | null
-          deleted?: boolean | null
-          local_id: string
-          name?: string | null
-          pending_sync?: boolean | null
-          phone?: string | null
-          server_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          clinic_id?: string | null
-          created_at?: string | null
-          deleted?: boolean | null
-          local_id?: string
-          name?: string | null
-          pending_sync?: boolean | null
-          phone?: string | null
-          server_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      patients_new: {
-        Row: {
-          active_hmo_id: string | null
-          address: string | null
-          age: number | null
-          clinic_id: string | null
-          created_at: string | null
-          full_name: string | null
-          gender: string | null
           id: string
-          payment_type: string | null
+          next_of_kin: string | null
+          payment_type: string
           phone: string | null
+          priority: string
+          queue_number: number
+          queue_status: string
+          status: string
+          updated_at: string
         }
         Insert: {
           active_hmo_id?: string | null
+          active_hmo_plan_id?: string | null
           address?: string | null
           age?: number | null
+          assigned_doctor?: string | null
           clinic_id?: string | null
-          created_at?: string | null
-          full_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          enrollee_number?: string | null
+          full_name?: string
           gender?: string | null
           id?: string
-          payment_type?: string | null
+          next_of_kin?: string | null
+          payment_type?: string
           phone?: string | null
+          priority?: string
+          queue_number?: number
+          queue_status?: string
+          status?: string
+          updated_at?: string
         }
         Update: {
           active_hmo_id?: string | null
+          active_hmo_plan_id?: string | null
           address?: string | null
           age?: number | null
+          assigned_doctor?: string | null
           clinic_id?: string | null
-          created_at?: string | null
-          full_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          enrollee_number?: string | null
+          full_name?: string
           gender?: string | null
           id?: string
-          payment_type?: string | null
+          next_of_kin?: string | null
+          payment_type?: string
           phone?: string | null
+          priority?: string
+          queue_number?: number
+          queue_status?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2114,135 +1514,40 @@ export type Database = {
       payments: {
         Row: {
           amount: number
-          bill_id: string | null
-          billing_id: string | null
+          billing_id: string
           clinic_id: string | null
-          created_at: string | null
+          created_at: string
           id: string
-          method: string | null
-          paid_by: string | null
-          patient_id: number | null
-          payment_method: string | null
-          visit_id: number | null
+          method: string
+          paid_by: string
+          received_by: string | null
         }
         Insert: {
           amount: number
-          bill_id?: string | null
-          billing_id?: string | null
+          billing_id: string
           clinic_id?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
-          method?: string | null
-          paid_by?: string | null
-          patient_id?: number | null
-          payment_method?: string | null
-          visit_id?: number | null
+          method?: string
+          paid_by?: string
+          received_by?: string | null
         }
         Update: {
           amount?: number
-          bill_id?: string | null
-          billing_id?: string | null
+          billing_id?: string
           clinic_id?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
-          method?: string | null
-          paid_by?: string | null
-          patient_id?: number | null
-          payment_method?: string | null
-          visit_id?: number | null
+          method?: string
+          paid_by?: string
+          received_by?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "payments_billing_fk"
+            foreignKeyName: "payments_billing_id_fkey"
             columns: ["billing_id"]
             isOneToOne: false
             referencedRelation: "billing"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_billing_fk"
-            columns: ["billing_id"]
-            isOneToOne: false
-            referencedRelation: "billing_with_total"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_patient_fk"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_visit_fk"
-            columns: ["visit_id"]
-            isOneToOne: false
-            referencedRelation: "hospital_flow"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_visit_fk"
-            columns: ["visit_id"]
-            isOneToOne: false
-            referencedRelation: "live_patient_queue"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_visit_fk"
-            columns: ["visit_id"]
-            isOneToOne: false
-            referencedRelation: "visits"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pharmacy: {
-        Row: {
-          branch_id: string | null
-          clinic_id: string | null
-          created_at: string | null
-          id: string
-          inventory_id: string | null
-          patient_id: number | null
-          price: number | null
-          quantity: number
-          total: number | null
-        }
-        Insert: {
-          branch_id?: string | null
-          clinic_id?: string | null
-          created_at?: string | null
-          id?: string
-          inventory_id?: string | null
-          patient_id?: number | null
-          price?: number | null
-          quantity: number
-          total?: number | null
-        }
-        Update: {
-          branch_id?: string | null
-          clinic_id?: string | null
-          created_at?: string | null
-          id?: string
-          inventory_id?: string | null
-          patient_id?: number | null
-          price?: number | null
-          quantity?: number
-          total?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pharmacy_inventory_id_fkey"
-            columns: ["inventory_id"]
-            isOneToOne: false
-            referencedRelation: "inventory"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pharmacy_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]
@@ -2250,148 +1555,60 @@ export type Database = {
       pharmacy_sales: {
         Row: {
           clinic_id: string | null
-          created_at: string | null
+          created_at: string
           id: string
           inventory_id: string | null
           patient_id: string | null
           price: number | null
-          quantity: number | null
+          quantity: number
           total: number | null
+          visit_id: string | null
         }
         Insert: {
           clinic_id?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           inventory_id?: string | null
           patient_id?: string | null
           price?: number | null
-          quantity?: number | null
+          quantity?: number
           total?: number | null
+          visit_id?: string | null
         }
         Update: {
           clinic_id?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           inventory_id?: string | null
           patient_id?: string | null
           price?: number | null
-          quantity?: number | null
+          quantity?: number
           total?: number | null
-        }
-        Relationships: []
-      }
-      prescriptions: {
-        Row: {
-          add_power: string | null
-          clinic_id: string | null
-          consultation_id: string | null
-          created_at: string | null
-          id: string
-          inventory_id: string | null
-          notes: string | null
-          od_axis: string | null
-          od_cylinder: string | null
-          od_sphere: string | null
-          os_axis: string | null
-          os_cylinder: string | null
-          os_sphere: string | null
-          patient_id: string | null
-          pd: string | null
-          status: string | null
-        }
-        Insert: {
-          add_power?: string | null
-          clinic_id?: string | null
-          consultation_id?: string | null
-          created_at?: string | null
-          id?: string
-          inventory_id?: string | null
-          notes?: string | null
-          od_axis?: string | null
-          od_cylinder?: string | null
-          od_sphere?: string | null
-          os_axis?: string | null
-          os_cylinder?: string | null
-          os_sphere?: string | null
-          patient_id?: string | null
-          pd?: string | null
-          status?: string | null
-        }
-        Update: {
-          add_power?: string | null
-          clinic_id?: string | null
-          consultation_id?: string | null
-          created_at?: string | null
-          id?: string
-          inventory_id?: string | null
-          notes?: string | null
-          od_axis?: string | null
-          od_cylinder?: string | null
-          od_sphere?: string | null
-          os_axis?: string | null
-          os_cylinder?: string | null
-          os_sphere?: string | null
-          patient_id?: string | null
-          pd?: string | null
-          status?: string | null
+          visit_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "prescriptions_consultation_id_fkey"
-            columns: ["consultation_id"]
+            foreignKeyName: "pharmacy_sales_inventory_id_fkey"
+            columns: ["inventory_id"]
             isOneToOne: false
-            referencedRelation: "consultations"
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pharmacy_sales_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pharmacy_sales_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
             referencedColumns: ["id"]
           },
         ]
-      }
-      prescriptions_local: {
-        Row: {
-          clinic_id: string | null
-          created_at: string | null
-          local_id: string
-          notes: string | null
-          patient_id: number | null
-          pending_sync: boolean | null
-          server_id: string | null
-        }
-        Insert: {
-          clinic_id?: string | null
-          created_at?: string | null
-          local_id: string
-          notes?: string | null
-          patient_id?: number | null
-          pending_sync?: boolean | null
-          server_id?: string | null
-        }
-        Update: {
-          clinic_id?: string | null
-          created_at?: string | null
-          local_id?: string
-          notes?: string | null
-          patient_id?: number | null
-          pending_sync?: boolean | null
-          server_id?: string | null
-        }
-        Relationships: []
-      }
-      products: {
-        Row: {
-          clinic_id: string | null
-          created_at: string
-          id: number
-        }
-        Insert: {
-          clinic_id?: string | null
-          created_at?: string
-          id?: number
-        }
-        Update: {
-          clinic_id?: string | null
-          created_at?: string
-          id?: number
-        }
-        Relationships: []
       }
       profiles: {
         Row: {
@@ -2450,125 +1667,11 @@ export type Database = {
         }
         Relationships: []
       }
-      receipts: {
-        Row: {
-          clinic_id: string
-          created_at: string | null
-          id: string
-          issued_by: string | null
-          payment_method: string | null
-          receipt_number: string | null
-          sale_id: string | null
-          total_amount: number | null
-        }
-        Insert: {
-          clinic_id: string
-          created_at?: string | null
-          id?: string
-          issued_by?: string | null
-          payment_method?: string | null
-          receipt_number?: string | null
-          sale_id?: string | null
-          total_amount?: number | null
-        }
-        Update: {
-          clinic_id?: string
-          created_at?: string | null
-          id?: string
-          issued_by?: string | null
-          payment_method?: string | null
-          receipt_number?: string | null
-          sale_id?: string | null
-          total_amount?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "receipts_sale_id_fkey"
-            columns: ["sale_id"]
-            isOneToOne: false
-            referencedRelation: "sales"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      refraction: {
-        Row: {
-          add_power: number | null
-          axis_od: number | null
-          axis_os: number | null
-          clinic_id: string | null
-          created_at: string | null
-          cylinder_od: number | null
-          cylinder_os: number | null
-          id: string
-          old_prescription: string | null
-          sphere_od: number | null
-          sphere_os: number | null
-          va_od: string | null
-          va_os: string | null
-          visit_id: number | null
-        }
-        Insert: {
-          add_power?: number | null
-          axis_od?: number | null
-          axis_os?: number | null
-          clinic_id?: string | null
-          created_at?: string | null
-          cylinder_od?: number | null
-          cylinder_os?: number | null
-          id?: string
-          old_prescription?: string | null
-          sphere_od?: number | null
-          sphere_os?: number | null
-          va_od?: string | null
-          va_os?: string | null
-          visit_id?: number | null
-        }
-        Update: {
-          add_power?: number | null
-          axis_od?: number | null
-          axis_os?: number | null
-          clinic_id?: string | null
-          created_at?: string | null
-          cylinder_od?: number | null
-          cylinder_os?: number | null
-          id?: string
-          old_prescription?: string | null
-          sphere_od?: number | null
-          sphere_os?: number | null
-          va_od?: string | null
-          va_os?: string | null
-          visit_id?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "refraction_visit_fk"
-            columns: ["visit_id"]
-            isOneToOne: false
-            referencedRelation: "hospital_flow"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "refraction_visit_fk"
-            columns: ["visit_id"]
-            isOneToOne: false
-            referencedRelation: "live_patient_queue"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "refraction_visit_fk"
-            columns: ["visit_id"]
-            isOneToOne: false
-            referencedRelation: "visits"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       restock_history: {
         Row: {
           added_by: string | null
           clinic_id: string | null
-          created_at: string | null
+          created_at: string
           id: string
           inventory_id: string | null
           new_stock: number | null
@@ -2579,7 +1682,7 @@ export type Database = {
         Insert: {
           added_by?: string | null
           clinic_id?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           inventory_id?: string | null
           new_stock?: number | null
@@ -2590,7 +1693,7 @@ export type Database = {
         Update: {
           added_by?: string | null
           clinic_id?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
           inventory_id?: string | null
           new_stock?: number | null
@@ -2607,30 +1710,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      restock_logs: {
-        Row: {
-          clinic_id: string | null
-          created_at: string | null
-          id: string
-          inventory_id: string | null
-          quantity: number | null
-        }
-        Insert: {
-          clinic_id?: string | null
-          created_at?: string | null
-          id?: string
-          inventory_id?: string | null
-          quantity?: number | null
-        }
-        Update: {
-          clinic_id?: string | null
-          created_at?: string | null
-          id?: string
-          inventory_id?: string | null
-          quantity?: number | null
-        }
-        Relationships: []
       }
       rls_policy_audit: {
         Row: {
@@ -3076,21 +2155,24 @@ export type Database = {
         }
         Relationships: []
       }
-      user_role: {
+      user_roles: {
         Row: {
-          clinic_id: string
+          clinic_id: string | null
+          created_at: string
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
-          clinic_id: string
+          clinic_id?: string | null
+          created_at?: string
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
-          clinic_id?: string
+          clinic_id?: string | null
+          created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
@@ -3099,237 +2181,86 @@ export type Database = {
       }
       visits: {
         Row: {
-          aided_va: string | null
-          auto_od_axis: string | null
-          auto_od_cylinder: string | null
-          auto_od_sphere: string | null
-          auto_os_axis: string | null
-          auto_os_cylinder: string | null
-          auto_os_sphere: string | null
-          auto_va_od: string | null
-          auto_va_os: string | null
-          branch_id: string | null
-          case_history: string | null
+          active_hmo_id: string | null
+          active_hmo_plan_id: string | null
           chief_complaint: string | null
           clinic_id: string | null
+          completed_at: string | null
           created_at: string
           diagnosis: string | null
-          dispensed_drugs: boolean | null
-          dispensed_glasses: boolean | null
           doctor_id: string | null
-          drugs_given: string | null
-          duration: string | null
           examination: string | null
-          ext_conjunctiva: string | null
-          ext_cornea: string | null
-          ext_lids: string | null
-          final_prescription: string | null
-          glasses_dispensed: boolean | null
-          glasses_payment_status: string | null
-          glasses_prescribed: string | null
-          glasses_status: string | null
-          hmo_id: string | null
-          hmo_plan_id: string | null
-          id: number
-          int_cdr_od: string | null
-          int_cdr_os: string | null
-          int_fundoscopy_od: string | null
-          int_fundoscopy_os: string | null
-          int_fundus_bg: string | null
-          is_hmo: boolean | null
-          medical_history: string | null
-          new_id: string | null
-          ocular_history: string | null
-          patient_id: number | null
-          patient_uuid: string | null
-          payment_type: string | null
-          pinhole_od: string | null
-          pinhole_os: string | null
-          reading_add_od: string | null
-          reading_add_os: string | null
-          reading_add_va_od: string | null
-          reading_add_va_os: string | null
-          refraction: string | null
-          status: string | null
-          sub_od_axis: string | null
-          sub_od_cylinder: string | null
-          sub_od_sphere: string | null
-          sub_os_axis: string | null
-          sub_os_cylinder: string | null
-          sub_os_sphere: string | null
-          sub_va_od: string | null
-          sub_va_os: string | null
-          tonometry_ampm: string | null
-          tonometry_od: string | null
-          tonometry_os: string | null
-          tonometry_time: string | null
+          history: string | null
+          id: string
+          iop_od: number | null
+          iop_os: number | null
+          notes: string | null
+          old_lens_prescription: string | null
+          patient_id: string
+          payment_type: string
+          status: string
           treatment: string | null
-          unaided_va: string | null
-          va_od_distance: string | null
-          va_od_near: string | null
-          va_os_distance: string | null
-          va_os_near: string | null
-          va_ou_distance: string | null
-          va_ou_near: string | null
+          updated_at: string
+          va_aided_od: string | null
+          va_aided_os: string | null
+          va_unaided_od: string | null
+          va_unaided_os: string | null
         }
         Insert: {
-          aided_va?: string | null
-          auto_od_axis?: string | null
-          auto_od_cylinder?: string | null
-          auto_od_sphere?: string | null
-          auto_os_axis?: string | null
-          auto_os_cylinder?: string | null
-          auto_os_sphere?: string | null
-          auto_va_od?: string | null
-          auto_va_os?: string | null
-          branch_id?: string | null
-          case_history?: string | null
+          active_hmo_id?: string | null
+          active_hmo_plan_id?: string | null
           chief_complaint?: string | null
           clinic_id?: string | null
+          completed_at?: string | null
           created_at?: string
           diagnosis?: string | null
-          dispensed_drugs?: boolean | null
-          dispensed_glasses?: boolean | null
           doctor_id?: string | null
-          drugs_given?: string | null
-          duration?: string | null
           examination?: string | null
-          ext_conjunctiva?: string | null
-          ext_cornea?: string | null
-          ext_lids?: string | null
-          final_prescription?: string | null
-          glasses_dispensed?: boolean | null
-          glasses_payment_status?: string | null
-          glasses_prescribed?: string | null
-          glasses_status?: string | null
-          hmo_id?: string | null
-          hmo_plan_id?: string | null
-          id?: number
-          int_cdr_od?: string | null
-          int_cdr_os?: string | null
-          int_fundoscopy_od?: string | null
-          int_fundoscopy_os?: string | null
-          int_fundus_bg?: string | null
-          is_hmo?: boolean | null
-          medical_history?: string | null
-          new_id?: string | null
-          ocular_history?: string | null
-          patient_id?: number | null
-          patient_uuid?: string | null
-          payment_type?: string | null
-          pinhole_od?: string | null
-          pinhole_os?: string | null
-          reading_add_od?: string | null
-          reading_add_os?: string | null
-          reading_add_va_od?: string | null
-          reading_add_va_os?: string | null
-          refraction?: string | null
-          status?: string | null
-          sub_od_axis?: string | null
-          sub_od_cylinder?: string | null
-          sub_od_sphere?: string | null
-          sub_os_axis?: string | null
-          sub_os_cylinder?: string | null
-          sub_os_sphere?: string | null
-          sub_va_od?: string | null
-          sub_va_os?: string | null
-          tonometry_ampm?: string | null
-          tonometry_od?: string | null
-          tonometry_os?: string | null
-          tonometry_time?: string | null
+          history?: string | null
+          id?: string
+          iop_od?: number | null
+          iop_os?: number | null
+          notes?: string | null
+          old_lens_prescription?: string | null
+          patient_id: string
+          payment_type?: string
+          status?: string
           treatment?: string | null
-          unaided_va?: string | null
-          va_od_distance?: string | null
-          va_od_near?: string | null
-          va_os_distance?: string | null
-          va_os_near?: string | null
-          va_ou_distance?: string | null
-          va_ou_near?: string | null
+          updated_at?: string
+          va_aided_od?: string | null
+          va_aided_os?: string | null
+          va_unaided_od?: string | null
+          va_unaided_os?: string | null
         }
         Update: {
-          aided_va?: string | null
-          auto_od_axis?: string | null
-          auto_od_cylinder?: string | null
-          auto_od_sphere?: string | null
-          auto_os_axis?: string | null
-          auto_os_cylinder?: string | null
-          auto_os_sphere?: string | null
-          auto_va_od?: string | null
-          auto_va_os?: string | null
-          branch_id?: string | null
-          case_history?: string | null
+          active_hmo_id?: string | null
+          active_hmo_plan_id?: string | null
           chief_complaint?: string | null
           clinic_id?: string | null
+          completed_at?: string | null
           created_at?: string
           diagnosis?: string | null
-          dispensed_drugs?: boolean | null
-          dispensed_glasses?: boolean | null
           doctor_id?: string | null
-          drugs_given?: string | null
-          duration?: string | null
           examination?: string | null
-          ext_conjunctiva?: string | null
-          ext_cornea?: string | null
-          ext_lids?: string | null
-          final_prescription?: string | null
-          glasses_dispensed?: boolean | null
-          glasses_payment_status?: string | null
-          glasses_prescribed?: string | null
-          glasses_status?: string | null
-          hmo_id?: string | null
-          hmo_plan_id?: string | null
-          id?: number
-          int_cdr_od?: string | null
-          int_cdr_os?: string | null
-          int_fundoscopy_od?: string | null
-          int_fundoscopy_os?: string | null
-          int_fundus_bg?: string | null
-          is_hmo?: boolean | null
-          medical_history?: string | null
-          new_id?: string | null
-          ocular_history?: string | null
-          patient_id?: number | null
-          patient_uuid?: string | null
-          payment_type?: string | null
-          pinhole_od?: string | null
-          pinhole_os?: string | null
-          reading_add_od?: string | null
-          reading_add_os?: string | null
-          reading_add_va_od?: string | null
-          reading_add_va_os?: string | null
-          refraction?: string | null
-          status?: string | null
-          sub_od_axis?: string | null
-          sub_od_cylinder?: string | null
-          sub_od_sphere?: string | null
-          sub_os_axis?: string | null
-          sub_os_cylinder?: string | null
-          sub_os_sphere?: string | null
-          sub_va_od?: string | null
-          sub_va_os?: string | null
-          tonometry_ampm?: string | null
-          tonometry_od?: string | null
-          tonometry_os?: string | null
-          tonometry_time?: string | null
+          history?: string | null
+          id?: string
+          iop_od?: number | null
+          iop_os?: number | null
+          notes?: string | null
+          old_lens_prescription?: string | null
+          patient_id?: string
+          payment_type?: string
+          status?: string
           treatment?: string | null
-          unaided_va?: string | null
-          va_od_distance?: string | null
-          va_od_near?: string | null
-          va_os_distance?: string | null
-          va_os_near?: string | null
-          va_ou_distance?: string | null
-          va_ou_near?: string | null
+          updated_at?: string
+          va_aided_od?: string | null
+          va_aided_os?: string | null
+          va_unaided_od?: string | null
+          va_unaided_os?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "fk_visits_patient"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Visits_patient_id_fkey"
+            foreignKeyName: "visits_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
@@ -3405,197 +2336,7 @@ export type Database = {
       }
     }
     Views: {
-      admin_revenue: {
-        Row: {
-          payment_type: string | null
-          revenue: number | null
-          total_bills: number | null
-        }
-        Relationships: []
-      }
-      admin_revenue_summary: {
-        Row: {
-          payment_type: string | null
-          total_bills: number | null
-          total_revenue: number | null
-        }
-        Relationships: []
-      }
-      billing_with_total: {
-        Row: {
-          amount_paid: number | null
-          clinic_id: string | null
-          created_at: string | null
-          id: string | null
-          patient_due: number | null
-          patient_id: number | null
-          payer_type: string | null
-          payment_status: string | null
-          payment_type: string | null
-          total_amount: number | null
-        }
-        Insert: {
-          amount_paid?: number | null
-          clinic_id?: string | null
-          created_at?: string | null
-          id?: string | null
-          patient_due?: number | null
-          patient_id?: number | null
-          payer_type?: string | null
-          payment_status?: string | null
-          payment_type?: string | null
-          total_amount?: number | null
-        }
-        Update: {
-          amount_paid?: number | null
-          clinic_id?: string | null
-          created_at?: string | null
-          id?: string | null
-          patient_due?: number | null
-          patient_id?: number | null
-          payer_type?: string | null
-          payment_status?: string | null
-          payment_type?: string | null
-          total_amount?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "billings_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      daily_income: {
-        Row: {
-          date: string | null
-          total_income: number | null
-        }
-        Relationships: []
-      }
-      hmo_vs_cash_summary: {
-        Row: {
-          payment_type: string | null
-          total_due: number | null
-          total_paid: number | null
-          total_revenue: number | null
-          total_transactions: number | null
-        }
-        Relationships: []
-      }
-      hospital_flow: {
-        Row: {
-          clinic_id: string | null
-          created_at: string | null
-          id: number | null
-          patient_id: number | null
-          status: string | null
-        }
-        Insert: {
-          clinic_id?: string | null
-          created_at?: string | null
-          id?: number | null
-          patient_id?: number | null
-          status?: string | null
-        }
-        Update: {
-          clinic_id?: string | null
-          created_at?: string | null
-          id?: number | null
-          patient_id?: number | null
-          status?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_visits_patient"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Visits_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lens_prescription_print: {
-        Row: {
-          created_at: string | null
-          id: string | null
-          patient_id: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string | null
-          patient_id?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string | null
-          patient_id?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lens_prescriptions_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      live_patient_queue: {
-        Row: {
-          clinic_id: string | null
-          created_at: string | null
-          id: number | null
-          patient_id: number | null
-          status: string | null
-        }
-        Insert: {
-          clinic_id?: string | null
-          created_at?: string | null
-          id?: number | null
-          patient_id?: number | null
-          status?: string | null
-        }
-        Update: {
-          clinic_id?: string | null
-          created_at?: string | null
-          id?: number | null
-          patient_id?: number | null
-          status?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_visits_patient"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "Visits_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      payment_breakdown: {
-        Row: {
-          paid_by: string | null
-          total: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       analyze_clinic_revenue_health: { Args: never; Returns: undefined }
@@ -3679,6 +2420,7 @@ export type Database = {
         Args: { clinic_id: string; feature: string }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_table: { Args: { obj: string }; Returns: boolean }
       is_view: { Args: { obj: string }; Returns: boolean }
       log_hmo_change: {

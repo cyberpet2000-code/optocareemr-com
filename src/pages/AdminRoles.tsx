@@ -24,7 +24,7 @@ export default function AdminRoles() {
   const loadUsers = async () => {
     const [{ data: profiles }, { data: roleData }] = await Promise.all([
       supabase.from("profiles").select("id, full_name"),
-      supabase.from("user_role").select("user_id, role"),
+      supabase.from("user_roles").select("user_id, role"),
     ]);
     const roleMap = new Map<string, AppRole[]>();
     (roleData || []).forEach((r: any) => {
@@ -38,15 +38,15 @@ export default function AdminRoles() {
 
   const addRole = async () => {
     if (!selectedUserId) { toast.error("Select a user"); return; }
-    const user = users.find(u => u.id === selectedUserId);
-    if (user?.roles.includes(selectedRole)) { toast.error("Already assigned"); return; }
-    const { error } = await supabase.from("user_role").insert({ user_id: selectedUserId, role: selectedRole });
+    const u = users.find(x => x.id === selectedUserId);
+    if (u?.roles.includes(selectedRole)) { toast.error("Already assigned"); return; }
+    const { error } = await supabase.from("user_roles").insert({ user_id: selectedUserId, role: selectedRole } as any);
     if (error) { toast.error(error.message); return; }
     toast.success("Role assigned"); loadUsers();
   };
 
   const removeRole = async (userId: string, role: AppRole) => {
-    await supabase.from("user_role").delete().eq("user_id", userId).eq("role", role);
+    await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role);
     toast.success("Removed"); loadUsers();
   };
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
@@ -9,21 +9,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
-const HMO_LIST = [
-  "Leadway Health", "Hygeia HMO", "AXA Mansard", "Reliance HMO",
-  "Clearline HMO", "Total Health Trust", "Redcare HMO", "Mediplan",
-  "Princeton HMO", "Novo Health", "Venus Medicare", "Zuma Health",
-];
-
 export default function PatientRegister() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [hmos, setHmos] = useState<{ id: string; name: string }[]>([]);
   const [form, setForm] = useState({
     fullName: "", age: "", gender: "", phone: "",
     address: "", nextOfKin: "",
-    patientType: "Private" as "Private" | "HMO",
-    hmoProvider: "", enrolleeNumber: "",
+    paymentType: "private" as "private" | "hmo",
+    activeHmoId: "", enrolleeNumber: "",
+    priority: "normal" as "normal" | "follow_up" | "emergency",
   });
+
+  useEffect(() => {
+    supabase.from("hmos").select("id, name").eq("status", "active").order("name").then(({ data }) => {
+      if (data) setHmos(data as any);
+    });
+  }, []);
 
   const set = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }));
 
@@ -33,24 +35,28 @@ export default function PatientRegister() {
       toast.error("Fill required fields (Name, Age, Gender)");
       return;
     }
-    if (form.patientType === "HMO" && !form.hmoProvider) {
+    if (form.paymentType === "hmo" && !form.activeHmoId) {
       toast.error("Select HMO provider");
       return;
     }
     setLoading(true);
     const { data, error } = await supabase.from("patients").insert({
       full_name: form.fullName.trim(),
-      age: parseInt(form.age), gender: form.gender,
-      phone: form.phone.trim(), address: form.address.trim(),
-      next_of_kin: form.nextOfKin.trim(), patient_type: form.patientType,
-      hmo_provider: form.patientType === "HMO" ? form.hmoProvider : "",
-      insurance_name: form.patientType === "HMO" ? form.hmoProvider : "",
-      enrollee_number: form.patientType === "HMO" ? form.enrolleeNumber.trim() : "",
-    }).select().single();
+      age: parseInt(form.age),
+      gender: form.gender,
+      phone: form.phone.trim(),
+      address: form.address.trim(),
+      next_of_kin: form.nextOfKin.trim(),
+      payment_type: form.paymentType,
+      active_hmo_id: form.paymentType === "hmo" ? form.activeHmoId : null,
+      enrollee_number: form.paymentType === "hmo" ? form.enrolleeNumber.trim() : "",
+      priority: form.priority,
+      queue_status: "waiting",
+    } as any).select().single();
     setLoading(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Patient registered");
-    navigate(`/patient/${data.id}`);
+    navigate(`/patient/${data!.id}`);
   };
 
   return (
@@ -71,18 +77,35 @@ export default function PatientRegister() {
           <div className="space-y-1"><Label className="text-xs">Phone</Label><Input className="rounded-xl" value={form.phone} onChange={e => set("phone", e.target.value)} /></div>
           <div className="space-y-1"><Label className="text-xs">Next of Kin</Label><Input className="rounded-xl" value={form.nextOfKin} onChange={e => set("nextOfKin", e.target.value)} /></div>
           <div className="space-y-1 sm:col-span-2"><Label className="text-xs">Address</Label><Textarea className="rounded-xl" value={form.address} onChange={e => set("address", e.target.value)} rows={2} /></div>
-          <div className="space-y-1"><Label className="text-xs">Patient Type *</Label>
-            <Select value={form.patientType} onValueChange={v => set("patientType", v)}>
+          <div className="space-y-1"><Label className="text-xs">Payment Type *</Label>
+            <Select value={form.paymentType} onValueChange={v => set("paymentType", v)}>
               <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="Private">Private</SelectItem><SelectItem value="HMO">HMO</SelectItem></SelectContent>
+              <SelectContent>
+                <SelectItem value="private">Private (Self-pay)</SelectItem>
+                <SelectItem value="hmo">HMO</SelectItem>
+              </SelectContent>
             </Select>
           </div>
-          {form.patientType === "HMO" && (
+          <div className="space-y-1"><Label className="text-xs">Priority</Label>
+            <Select value={form.priority} onValueChange={v => set("priority", v)}>
+              <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="follow_up">Follow-up</SelectItem>
+                <SelectItem value="emergency">Emergency</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {form.paymentType === "hmo" && (
             <>
               <div className="space-y-1"><Label className="text-xs">HMO Provider *</Label>
-                <Select value={form.hmoProvider} onValueChange={v => set("hmoProvider", v)}>
+                <Select value={form.activeHmoId} onValueChange={v => set("activeHmoId", v)}>
                   <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select HMO" /></SelectTrigger>
-                  <SelectContent>{HMO_LIST.map(h => <SelectItem key={h} value={h}>{h}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {hmos.length === 0
+                      ? <SelectItem value="__none__" disabled>No HMOs configured</SelectItem>
+                      : hmos.map(h => <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1"><Label className="text-xs">Enrollee Number</Label><Input className="rounded-xl" value={form.enrolleeNumber} onChange={e => set("enrolleeNumber", e.target.value)} /></div>
