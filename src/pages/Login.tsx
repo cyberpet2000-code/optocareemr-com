@@ -37,10 +37,18 @@ export default function Login() {
       if (error) { toast.error(error.message); return; }
       toast.success("Account created! Check your email to confirm.");
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       setLoading(false);
       if (error) { toast.error(error.message); return; }
-      navigate("/");
+      // Role-based redirect
+      let dest = "/";
+      if (data.user) {
+        const { data: rolesData } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id);
+        const roles = (rolesData || []).map((r: any) => r.role);
+        if (roles.includes("super_admin")) dest = "/admin/roles";
+        else if (roles.includes("receptionist") && !roles.includes("admin") && !roles.includes("doctor")) dest = "/queue";
+      }
+      navigate(dest);
     }
   };
 
