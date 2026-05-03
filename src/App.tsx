@@ -14,6 +14,8 @@ import Pharmacy from "./pages/Pharmacy";
 import Billing from "./pages/Billing";
 import SalesHistory from "./pages/SalesHistory";
 import AdminRoles from "./pages/AdminRoles";
+import Queue from "./pages/Queue";
+import HmoManagement from "./pages/HmoManagement";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -39,6 +41,8 @@ function ProtectedRoutes() {
       <Route path="/register" element={<PatientRegister />} />
       <Route path="/patients" element={<PatientList />} />
       <Route path="/patient/:id" element={<PatientRecord />} />
+      <Route path="/queue" element={<Queue />} />
+      <Route path="/hmos" element={<HmoManagement />} />
       <Route path="/appointments" element={<Appointments />} />
       <Route path="/inventory" element={<Inventory />} />
       <Route path="/pharmacy" element={<Pharmacy />} />
