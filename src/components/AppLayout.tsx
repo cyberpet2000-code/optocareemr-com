@@ -1,15 +1,16 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, ShoppingBag, Pill, DollarSign, LogOut, Menu, X, ShieldCheck, Calendar, History, UserPlus, Settings } from "lucide-react";
+import { LayoutDashboard, Users, ShoppingBag, Pill, DollarSign, LogOut, Menu, X, ShieldCheck, Calendar, History, UserPlus, ListOrdered, Building2 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
+import TrialBanner from "@/components/TrialBanner";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/queue", label: "Queue", icon: ListOrdered },
   { to: "/patients", label: "Patients", icon: Users },
-  { to: "/inventory", label: "Optical", icon: ShoppingBag },
-  { to: "/pharmacy", label: "Pharmacy", icon: Pill },
   { to: "/billing", label: "Billing", icon: DollarSign },
+  { to: "/inventory", label: "Optical", icon: ShoppingBag },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -32,6 +33,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const moreItems = [
     { to: "/register", label: "Add Patient", icon: UserPlus },
     { to: "/appointments", label: "Appointments", icon: Calendar },
+    { to: "/pharmacy", label: "Pharmacy", icon: Pill },
+    { to: "/hmos", label: "HMOs", icon: Building2 },
     { to: "/sales-history", label: "Sales History", icon: History },
     ...(isAdmin ? [{ to: "/admin/roles", label: "Manage Roles", icon: ShieldCheck }] : []),
   ];
@@ -130,6 +133,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto px-4 py-5 animate-page">
+        <TrialBanner />
         {children}
       </main>
 
