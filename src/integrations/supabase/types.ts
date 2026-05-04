@@ -2610,6 +2610,7 @@ export type Database = {
         Returns: string
       }
       complete_clinic_setup: { Args: never; Returns: undefined }
+      complete_onboarding: { Args: { _clinic_id: string }; Returns: undefined }
       create_clinic_with_admin:
         | { Args: { admin_id: string; clinic_name: string }; Returns: string }
         | {
@@ -2687,6 +2688,7 @@ export type Database = {
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_table: { Args: { obj: string }; Returns: boolean }
+      is_trial_active: { Args: { _clinic_id: string }; Returns: boolean }
       is_view: { Args: { obj: string }; Returns: boolean }
       log_hmo_change: {
         Args: {
@@ -2724,6 +2726,10 @@ export type Database = {
         Returns: undefined
       }
       set_active_clinic: { Args: { target_clinic: string }; Returns: undefined }
+      smart_initialize_clinic: {
+        Args: { _clinic_id: string; _clinic_type: string }
+        Returns: Json
+      }
       suggest_query_fix: { Args: { q: string }; Returns: string }
       validate_target_object: { Args: { obj: string }; Returns: undefined }
     }

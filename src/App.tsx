@@ -1,9 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { useClinic } from "@/hooks/useClinic";
+import { useRole } from "@/hooks/useRole";
 import Dashboard from "./pages/Dashboard";
 import PatientRegister from "./pages/PatientRegister";
 import PatientList from "./pages/PatientList";
@@ -16,27 +18,41 @@ import SalesHistory from "./pages/SalesHistory";
 import AdminRoles from "./pages/AdminRoles";
 import Queue from "./pages/Queue";
 import HmoManagement from "./pages/HmoManagement";
+import Onboarding from "./pages/Onboarding";
+import SuperAdminCreateClinic from "./pages/SuperAdminCreateClinic";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+function Spinner() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+    </div>
+  );
+}
+
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
+  const { clinic, loading: clinicLoading } = useClinic();
+  const { isSuperAdmin, loading: roleLoading } = useRole();
+  const location = useLocation();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
-
+  if (loading) return <Spinner />;
   if (!user) return <Navigate to="/login" replace />;
+  if (clinicLoading || roleLoading) return <Spinner />;
+
+  // Onboarding gate: any non-super-admin clinic user with setup_completed=false → /onboarding
+  const onOnboarding = location.pathname.startsWith("/onboarding");
+  if (!isSuperAdmin && clinic && clinic.setup_completed === false && !onOnboarding) {
+    return <Navigate to="/onboarding" replace />;
+  }
 
   return (
     <Routes>
+      <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/" element={<Dashboard />} />
       <Route path="/register" element={<PatientRegister />} />
       <Route path="/patients" element={<PatientList />} />
@@ -49,6 +65,11 @@ function ProtectedRoutes() {
       <Route path="/billing" element={<Billing />} />
       <Route path="/sales-history" element={<SalesHistory />} />
       <Route path="/admin/roles" element={<AdminRoles />} />
+      {/* Super-admin */}
+      <Route path="/super-admin" element={<Dashboard />} />
+      <Route path="/super-admin/create-clinic" element={<SuperAdminCreateClinic />} />
+      <Route path="/super-admin/clinics" element={<AdminRoles />} />
+      <Route path="/super-admin/performance" element={<Dashboard />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
