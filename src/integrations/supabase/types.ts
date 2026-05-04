@@ -405,6 +405,30 @@ export type Database = {
         }
         Relationships: []
       }
+      branches: {
+        Row: {
+          address: string | null
+          clinic_id: string
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          address?: string | null
+          clinic_id: string
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          address?: string | null
+          clinic_id?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       cache_refresh_queue: {
         Row: {
           clinic_id: string | null
@@ -510,6 +534,30 @@ export type Database = {
           last_updated?: string | null
           slow_queries?: number | null
           uptime_percentage?: number | null
+        }
+        Relationships: []
+      }
+      clinic_invites: {
+        Row: {
+          clinic_id: string | null
+          email: string | null
+          id: string
+          role: string | null
+          token: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          email?: string | null
+          id?: string
+          role?: string | null
+          token?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          email?: string | null
+          id?: string
+          role?: string | null
+          token?: string | null
         }
         Relationships: []
       }
@@ -774,6 +822,38 @@ export type Database = {
         }
         Relationships: []
       }
+      clinic_users: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          role: string | null
+          user_id: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          role?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          role?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinical_rules: {
         Row: {
           action_type: string
@@ -814,6 +894,8 @@ export type Database = {
         Row: {
           billing_enabled: boolean | null
           created_at: string | null
+          custom_footer: string | null
+          display_name: string | null
           email: string | null
           first_patient_created: boolean | null
           first_patient_done: boolean | null
@@ -821,6 +903,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_upgrade_prompt: string | null
+          logo_url: string | null
           modules_configured: boolean | null
           modules_setup_done: boolean | null
           name: string
@@ -829,13 +912,16 @@ export type Database = {
           parent_clinic_id: string | null
           pharmacy_enabled: boolean | null
           phone: string | null
+          secondary_color: string | null
           setup_completed: boolean | null
           staff_added: boolean | null
           staff_setup_done: boolean | null
           subscription_status: string | null
+          theme_color: string | null
           trial_end_date: string | null
           trial_start_date: string | null
           type: string | null
+          updated_at: string | null
           upgrade_prompt_count: number | null
           website: string | null
           wizard_skipped: boolean | null
@@ -843,6 +929,8 @@ export type Database = {
         Insert: {
           billing_enabled?: boolean | null
           created_at?: string | null
+          custom_footer?: string | null
+          display_name?: string | null
           email?: string | null
           first_patient_created?: boolean | null
           first_patient_done?: boolean | null
@@ -850,6 +938,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_upgrade_prompt?: string | null
+          logo_url?: string | null
           modules_configured?: boolean | null
           modules_setup_done?: boolean | null
           name: string
@@ -858,13 +947,16 @@ export type Database = {
           parent_clinic_id?: string | null
           pharmacy_enabled?: boolean | null
           phone?: string | null
+          secondary_color?: string | null
           setup_completed?: boolean | null
           staff_added?: boolean | null
           staff_setup_done?: boolean | null
           subscription_status?: string | null
+          theme_color?: string | null
           trial_end_date?: string | null
           trial_start_date?: string | null
           type?: string | null
+          updated_at?: string | null
           upgrade_prompt_count?: number | null
           website?: string | null
           wizard_skipped?: boolean | null
@@ -872,6 +964,8 @@ export type Database = {
         Update: {
           billing_enabled?: boolean | null
           created_at?: string | null
+          custom_footer?: string | null
+          display_name?: string | null
           email?: string | null
           first_patient_created?: boolean | null
           first_patient_done?: boolean | null
@@ -879,6 +973,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_upgrade_prompt?: string | null
+          logo_url?: string | null
           modules_configured?: boolean | null
           modules_setup_done?: boolean | null
           name?: string
@@ -887,13 +982,16 @@ export type Database = {
           parent_clinic_id?: string | null
           pharmacy_enabled?: boolean | null
           phone?: string | null
+          secondary_color?: string | null
           setup_completed?: boolean | null
           staff_added?: boolean | null
           staff_setup_done?: boolean | null
           subscription_status?: string | null
+          theme_color?: string | null
           trial_end_date?: string | null
           trial_start_date?: string | null
           type?: string | null
+          updated_at?: string | null
           upgrade_prompt_count?: number | null
           website?: string | null
           wizard_skipped?: boolean | null
@@ -933,6 +1031,24 @@ export type Database = {
           name?: string
           price?: number | null
           stock?: number | null
+        }
+        Relationships: []
+      }
+      feature_flags: {
+        Row: {
+          clinic_id: string | null
+          feature: string | null
+          id: string
+        }
+        Insert: {
+          clinic_id?: string | null
+          feature?: string | null
+          id?: string
+        }
+        Update: {
+          clinic_id?: string | null
+          feature?: string | null
+          id?: string
         }
         Relationships: []
       }
@@ -1234,6 +1350,7 @@ export type Database = {
       }
       inventory: {
         Row: {
+          branch_id: string | null
           category: string
           clinic_id: string | null
           created_at: string
@@ -1250,6 +1367,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          branch_id?: string | null
           category?: string
           clinic_id?: string | null
           created_at?: string
@@ -1266,6 +1384,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          branch_id?: string | null
           category?: string
           clinic_id?: string | null
           created_at?: string
@@ -1355,6 +1474,36 @@ export type Database = {
         }
         Relationships: []
       }
+      invites: {
+        Row: {
+          accepted: boolean | null
+          clinic_id: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          role: string | null
+          token: string | null
+        }
+        Insert: {
+          accepted?: boolean | null
+          clinic_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          role?: string | null
+          token?: string | null
+        }
+        Update: {
+          accepted?: boolean | null
+          clinic_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          role?: string | null
+          token?: string | null
+        }
+        Relationships: []
+      }
       migration_log: {
         Row: {
           created_at: string | null
@@ -1410,6 +1559,7 @@ export type Database = {
           address: string | null
           age: number | null
           assigned_doctor: string | null
+          branch_id: string | null
           clinic_id: string | null
           created_at: string
           created_by: string | null
@@ -1432,6 +1582,7 @@ export type Database = {
           address?: string | null
           age?: number | null
           assigned_doctor?: string | null
+          branch_id?: string | null
           clinic_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -1454,6 +1605,7 @@ export type Database = {
           address?: string | null
           age?: number | null
           assigned_doctor?: string | null
+          branch_id?: string | null
           clinic_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -1610,8 +1762,52 @@ export type Database = {
           },
         ]
       }
+      platform_settings: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          favicon_url: string | null
+          id: string
+          logo_url: string | null
+          powered_by_text: string | null
+          show_powered_by: boolean | null
+          support_email: string | null
+          system_name: string | null
+          updated_at: string | null
+          white_label_enabled: boolean | null
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          favicon_url?: string | null
+          id?: string
+          logo_url?: string | null
+          powered_by_text?: string | null
+          show_powered_by?: boolean | null
+          support_email?: string | null
+          system_name?: string | null
+          updated_at?: string | null
+          white_label_enabled?: boolean | null
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          favicon_url?: string | null
+          id?: string
+          logo_url?: string | null
+          powered_by_text?: string | null
+          show_powered_by?: boolean | null
+          support_email?: string | null
+          system_name?: string | null
+          updated_at?: string | null
+          white_label_enabled?: boolean | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          avatar_url: string | null
+          branch_id: string | null
           clinic_id: string | null
           created_at: string | null
           full_name: string | null
@@ -1620,8 +1816,11 @@ export type Database = {
           phone: string | null
           role: string | null
           status: string | null
+          title: string | null
         }
         Insert: {
+          avatar_url?: string | null
+          branch_id?: string | null
           clinic_id?: string | null
           created_at?: string | null
           full_name?: string | null
@@ -1630,8 +1829,11 @@ export type Database = {
           phone?: string | null
           role?: string | null
           status?: string | null
+          title?: string | null
         }
         Update: {
+          avatar_url?: string | null
+          branch_id?: string | null
           clinic_id?: string | null
           created_at?: string | null
           full_name?: string | null
@@ -1640,6 +1842,7 @@ export type Database = {
           phone?: string | null
           role?: string | null
           status?: string | null
+          title?: string | null
         }
         Relationships: []
       }
@@ -1747,6 +1950,18 @@ export type Database = {
         Update: {
           created_at?: string
           id?: number
+        }
+        Relationships: []
+      }
+      roles: {
+        Row: {
+          name: string
+        }
+        Insert: {
+          name: string
+        }
+        Update: {
+          name?: string
         }
         Relationships: []
       }
@@ -2155,6 +2370,38 @@ export type Database = {
         }
         Relationships: []
       }
+      user_clinics: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          id: string
+          role: string | null
+          user_id: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          role?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          id?: string
+          role?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_clinics_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           clinic_id: string | null
@@ -2336,7 +2583,15 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      my_profile: {
+        Row: {
+          clinic_id: string | null
+          full_name: string | null
+          role: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       analyze_clinic_revenue_health: { Args: never; Returns: undefined }
@@ -2349,6 +2604,7 @@ export type Database = {
       check_policy_safety: { Args: { policy_text: string }; Returns: boolean }
       check_reminder: { Args: { p_clinic_id: string }; Returns: boolean }
       clinic_match: { Args: never; Returns: boolean }
+      clone_clinic: { Args: { source_clinic_id: string }; Returns: string }
       clone_clinic_to_sandbox: {
         Args: { sandbox_name: string; source_clinic: string }
         Returns: string
@@ -2392,6 +2648,15 @@ export type Database = {
         }[]
       }
       get_my_clinic_id: { Args: never; Returns: string }
+      get_my_profile: {
+        Args: never
+        Returns: {
+          clinic_id: string
+          full_name: string
+          role: string
+          user_id: string
+        }[]
+      }
       get_plan_features: {
         Args: { plan: string }
         Returns: {
