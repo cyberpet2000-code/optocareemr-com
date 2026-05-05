@@ -8,11 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ShieldCheck, Plus, Trash2, Search } from "lucide-react";
 import { useRole, type AppRole } from "@/hooks/useRole";
+import { useAuth } from "@/hooks/useAuth";
+import { logSuperAdminAction } from "@/lib/superAdminAudit";
 
 const ROLES: AppRole[] = ["admin", "doctor", "receptionist"];
 
-export default function AdminRoles() {
+export default function AdminRoles({ embedded = false }: { embedded?: boolean }) {
   const { isAdmin } = useRole();
+  const { user } = useAuth();
   const [users, setUsers] = useState<{ id: string; full_name: string | null; roles: AppRole[] }[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -42,11 +45,23 @@ export default function AdminRoles() {
     if (u?.roles.includes(selectedRole)) { toast.error("Already assigned"); return; }
     const { error } = await supabase.from("user_roles").insert({ user_id: selectedUserId, role: selectedRole } as any);
     if (error) { toast.error(error.message); return; }
+    await logSuperAdminAction(user?.id, {
+      action: "super_admin_role_assigned",
+      table_name: "user_roles",
+      record_id: selectedUserId,
+      new_data: { role: selectedRole },
+    });
     toast.success("Role assigned"); loadUsers();
   };
 
   const removeRole = async (userId: string, role: AppRole) => {
     await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
+    await logSuperAdminAction(user?.id, {
+      action: "super_admin_role_removed",
+      table_name: "user_roles",
+      record_id: userId,
+      old_data: { role },
+    });
     toast.success("Removed"); loadUsers();
   };
 
@@ -61,8 +76,8 @@ export default function AdminRoles() {
     );
   }
 
-  return (
-    <AppLayout>
+  const content = (
+    <>
       <h1 className="page-header mb-5 flex items-center gap-2"><ShieldCheck size={20} /> Roles</h1>
 
       <div className="form-section mb-5 max-w-lg">
@@ -112,6 +127,8 @@ export default function AdminRoles() {
           ))}
         </div>
       )}
-    </AppLayout>
+    </>
   );
+
+  return embedded ? content : <AppLayout>{content}</AppLayout>;
 }
