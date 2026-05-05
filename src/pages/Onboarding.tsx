@@ -32,8 +32,19 @@ export default function Onboarding() {
     if (!loading && clinic?.setup_completed) navigate("/", { replace: true });
   }, [loading, clinic, navigate]);
 
-  if (loading || !clinic) {
-    return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading…</div>;
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading user session…</div>;
+  }
+  if (!clinic) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-sm text-center space-y-3">
+          <h1 className="text-lg font-semibold">No clinic linked to your account</h1>
+          <p className="text-sm text-muted-foreground">Contact your administrator or sign in with the correct account.</p>
+          <Button variant="outline" onClick={() => navigate("/login")}>Back to login</Button>
+        </div>
+      </div>
+    );
   }
 
   const next = () => setStep(s => Math.min(s + 1, STEP_LABELS.length - 1));
