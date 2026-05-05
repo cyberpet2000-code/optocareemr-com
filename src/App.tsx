@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
 import { useRole } from "@/hooks/useRole";
 import AppLayout from "@/components/AppLayout";
+import { ACCESS_TIMEOUT_MS, resolveDefaultRoute, resolveProtectedRoute } from "@/lib/route-access";
 import Dashboard from "./pages/Dashboard";
 import PatientRegister from "./pages/PatientRegister";
 import PatientList from "./pages/PatientList";
@@ -23,6 +25,8 @@ import Onboarding from "./pages/Onboarding";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import SuperAdminClinics from "./pages/SuperAdminClinics";
 import SuperAdminCreateClinic from "./pages/SuperAdminCreateClinic";
+import SuperAdminControlCenter from "./pages/SuperAdminControlCenter";
+import SuperAdminSafety from "./pages/SuperAdminSafety";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -41,75 +45,105 @@ function FullScreenLoader({ label = "Loading…" }: { label?: string }) {
 function SuperAdminOnly({ children }: { children: React.ReactNode }) {
   const { isSuperAdmin, loading } = useRole();
   if (loading) return <FullScreenLoader label="Verifying access…" />;
-  if (!isSuperAdmin) return <Navigate to="/" replace />;
+  if (!isSuperAdmin) return <Navigate to="/dashboard" replace />;
   return <AppLayout>{children}</AppLayout>;
 }
 
-// Clinic pages wrap themselves in AppLayout
-
-
-function ProtectedRoutes() {
-  const { user, loading: authLoading } = useAuth();
+function ProtectedRouteGate() {
+  const { user, loading: authLoading, signOut } = useAuth();
   const { clinic, profile, loading: clinicLoading } = useClinic();
   const { isSuperAdmin, loading: roleLoading } = useRole();
   const location = useLocation();
+  const [timedOut, setTimedOut] = useState(false);
 
-  // 1. Wait for auth
-  if (authLoading) return <FullScreenLoader label="Loading session…" />;
-  if (!user) return <Navigate to="/login" replace />;
+  useEffect(() => {
+    if (authLoading) {
+      setTimedOut(false);
+      return;
+    }
 
-  // 2. Wait for profile + roles before any routing decision
-  if (clinicLoading || roleLoading) return <FullScreenLoader label="Loading user session…" />;
+    if (!user || (!clinicLoading && !roleLoading)) {
+      setTimedOut(false);
+      return;
+    }
 
-  // 3. Super admin: always under /super-admin/*, never onboarding, never clinic dashboard
-  if (isSuperAdmin) {
-    if (!location.pathname.startsWith("/super-admin")) {
-      return <Navigate to="/super-admin" replace />;
-    }
-  } else {
-    // 4. Regular clinic users: enforce onboarding if clinic exists and setup not done
-    const onOnboarding = location.pathname.startsWith("/onboarding");
-    if (clinic && clinic.setup_completed === false && !onOnboarding) {
-      return <Navigate to="/onboarding" replace />;
-    }
-    // Block /super-admin/* for non-super-admins
-    if (location.pathname.startsWith("/super-admin")) {
-      return <Navigate to="/" replace />;
-    }
+    const timer = window.setTimeout(() => {
+      setTimedOut(true);
+      void signOut();
+    }, ACCESS_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [authLoading, clinicLoading, roleLoading, signOut, user]);
+
+  const decision = resolveProtectedRoute({
+    path: location.pathname,
+    isAuthenticated: !!user,
+    isAuthLoading: authLoading,
+    isContextLoading: clinicLoading || roleLoading,
+    didTimeout: timedOut,
+    isSuperAdmin,
+    setupCompleted: clinic?.setup_completed,
+  });
+
+  if (decision.type === "loading") {
+    return <FullScreenLoader label={decision.label} />;
   }
 
+  if (decision.type === "redirect") {
+    return <Navigate to={decision.to} replace />;
+  }
+
+  return null;
+}
+
+export function AppRoutes() {
+  const location = useLocation();
+
+  const isPublicRoute = location.pathname === "/login" || location.pathname === "/reset-password";
+
   return (
-    <Routes>
-      {/* Onboarding (non-super-admin only, no AppLayout) */}
-      <Route path="/onboarding" element={<Onboarding />} />
+    <>
+      {!isPublicRoute && <ProtectedRouteGate />}
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-      {/* Super Admin */}
-      <Route path="/super-admin" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
-      <Route path="/super-admin/create-clinic" element={<SuperAdminOnly><SuperAdminCreateClinic /></SuperAdminOnly>} />
-      <Route path="/super-admin/clinics" element={<SuperAdminOnly><SuperAdminClinics /></SuperAdminOnly>} />
-      <Route path="/super-admin/users" element={<SuperAdminOnly><AdminRoles /></SuperAdminOnly>} />
-      <Route path="/super-admin/performance" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
-      <Route path="/super-admin/control" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
-      <Route path="/super-admin/safety" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
+        <Route path="/onboarding" element={<Onboarding />} />
 
-      {/* Clinic app */}
-      <Route path="/" element={<Dashboard />} />
-      <Route path="/register" element={<PatientRegister />} />
-      <Route path="/patients" element={<PatientList />} />
-      <Route path="/patient/:id" element={<PatientRecord />} />
-      <Route path="/queue" element={<Queue />} />
-      <Route path="/hmos" element={<HmoManagement />} />
-      <Route path="/appointments" element={<Appointments />} />
-      <Route path="/inventory" element={<Inventory />} />
-      <Route path="/pharmacy" element={<Pharmacy />} />
-      <Route path="/billing" element={<Billing />} />
-      <Route path="/sales-history" element={<SalesHistory />} />
-      <Route path="/admin/roles" element={<AdminRoles />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        <Route path="/super-admin" element={<Navigate to="/super-admin-dashboard" replace />} />
+        <Route path="/super-admin-dashboard" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
+        <Route path="/super-admin/create-clinic" element={<SuperAdminOnly><SuperAdminCreateClinic /></SuperAdminOnly>} />
+        <Route path="/super-admin/clinics" element={<SuperAdminOnly><SuperAdminClinics /></SuperAdminOnly>} />
+        <Route path="/super-admin/users" element={<SuperAdminOnly><AdminRoles embedded /></SuperAdminOnly>} />
+        <Route path="/super-admin/performance" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
+        <Route path="/super-admin/control" element={<SuperAdminOnly><SuperAdminControlCenter /></SuperAdminOnly>} />
+        <Route path="/super-admin/safety" element={<SuperAdminOnly><SuperAdminSafety /></SuperAdminOnly>} />
+
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/register" element={<PatientRegister />} />
+        <Route path="/patients" element={<PatientList />} />
+        <Route path="/patient/:id" element={<PatientRecord />} />
+        <Route path="/queue" element={<Queue />} />
+        <Route path="/hmos" element={<HmoManagement />} />
+        <Route path="/appointments" element={<Appointments />} />
+        <Route path="/inventory" element={<Inventory />} />
+        <Route path="/pharmacy" element={<Pharmacy />} />
+        <Route path="/billing" element={<Billing />} />
+        <Route path="/sales-history" element={<SalesHistory />} />
+        <Route path="/admin/roles" element={<AdminRoles />} />
+        <Route path="/" element={<LandingRedirect />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 }
 
+function LandingRedirect() {
+  const { clinic } = useClinic();
+  const { isSuperAdmin } = useRole();
+
+  return <Navigate to={resolveDefaultRoute({ isSuperAdmin, setupCompleted: clinic?.setup_completed })} replace />;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -117,11 +151,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/*" element={<ProtectedRoutes />} />
-        </Routes>
+        <AppRoutes />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
