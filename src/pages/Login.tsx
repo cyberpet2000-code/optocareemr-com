@@ -45,7 +45,9 @@ export default function Login() {
       if (data.user) {
         const { data: rolesData } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id);
         const roles = (rolesData || []).map((r: any) => r.role);
-        if (roles.includes("super_admin")) dest = "/admin/roles";
+        const { data: prof } = await supabase.from("profiles").select("role, is_super_admin").eq("id", data.user.id).maybeSingle();
+        const isSuper = roles.includes("super_admin") || (prof as any)?.role === "super_admin" || (prof as any)?.is_super_admin === true;
+        if (isSuper) dest = "/super-admin";
         else if (roles.includes("receptionist") && !roles.includes("admin") && !roles.includes("doctor")) dest = "/queue";
       }
       navigate(dest);
