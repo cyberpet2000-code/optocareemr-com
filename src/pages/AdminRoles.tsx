@@ -46,7 +46,7 @@ export default function AdminRoles() {
   };
 
   const removeRole = async (userId: string, role: AppRole) => {
-    await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role);
+    await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
     toast.success("Removed"); loadUsers();
   };
 
