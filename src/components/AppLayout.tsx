@@ -45,13 +45,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (isSuperAdmin) {
     primary = [
-      { to: "/super-admin", label: "Overview", icon: LayoutDashboard },
+      { to: "/super-admin-dashboard", label: "Overview", icon: LayoutDashboard },
       { to: "/super-admin/clinics", label: "Clinics", icon: Building2 },
       { to: "/super-admin/performance", label: "Performance", icon: Activity },
     ];
     secondary = [
       { to: "/super-admin/create-clinic", label: "Create Clinic", icon: Sparkles },
-      { to: "/admin/roles", label: "Users", icon: ShieldCheck },
+      { to: "/super-admin/users", label: "Users", icon: ShieldCheck },
     ];
   } else if (isDoctor && !isAdmin) {
     primary = [
