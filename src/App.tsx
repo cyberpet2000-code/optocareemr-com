@@ -45,9 +45,8 @@ function SuperAdminOnly({ children }: { children: React.ReactNode }) {
   return <AppLayout>{children}</AppLayout>;
 }
 
-function ClinicRoute({ children }: { children: React.ReactNode }) {
-  return <AppLayout>{children}</AppLayout>;
-}
+// Clinic pages wrap themselves in AppLayout
+
 
 function ProtectedRoutes() {
   const { user, loading: authLoading } = useAuth();
