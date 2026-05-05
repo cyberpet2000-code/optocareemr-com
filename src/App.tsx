@@ -105,6 +105,11 @@ function ProtectedRoutes() {
       <Route path="/billing" element={<Billing />} />
       <Route path="/sales-history" element={<SalesHistory />} />
       <Route path="/admin/roles" element={<AdminRoles />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
