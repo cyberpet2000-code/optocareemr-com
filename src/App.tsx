@@ -93,22 +93,18 @@ function ProtectedRoutes() {
       <Route path="/super-admin/safety" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
 
       {/* Clinic app */}
-      <Route path="/" element={<ClinicRoute><Dashboard /></ClinicRoute>} />
-      <Route path="/register" element={<ClinicRoute><PatientRegister /></ClinicRoute>} />
-      <Route path="/patients" element={<ClinicRoute><PatientList /></ClinicRoute>} />
-      <Route path="/patient/:id" element={<ClinicRoute><PatientRecord /></ClinicRoute>} />
-      <Route path="/queue" element={<ClinicRoute><Queue /></ClinicRoute>} />
-      <Route path="/hmos" element={<ClinicRoute><HmoManagement /></ClinicRoute>} />
-      <Route path="/appointments" element={<ClinicRoute><Appointments /></ClinicRoute>} />
-      <Route path="/inventory" element={<ClinicRoute><Inventory /></ClinicRoute>} />
-      <Route path="/pharmacy" element={<ClinicRoute><Pharmacy /></ClinicRoute>} />
-      <Route path="/billing" element={<ClinicRoute><Billing /></ClinicRoute>} />
-      <Route path="/sales-history" element={<ClinicRoute><SalesHistory /></ClinicRoute>} />
-      <Route path="/admin/roles" element={<ClinicRoute><AdminRoles /></ClinicRoute>} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-}
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/register" element={<PatientRegister />} />
+      <Route path="/patients" element={<PatientList />} />
+      <Route path="/patient/:id" element={<PatientRecord />} />
+      <Route path="/queue" element={<Queue />} />
+      <Route path="/hmos" element={<HmoManagement />} />
+      <Route path="/appointments" element={<Appointments />} />
+      <Route path="/inventory" element={<Inventory />} />
+      <Route path="/pharmacy" element={<Pharmacy />} />
+      <Route path="/billing" element={<Billing />} />
+      <Route path="/sales-history" element={<SalesHistory />} />
+      <Route path="/admin/roles" element={<AdminRoles />} />
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
