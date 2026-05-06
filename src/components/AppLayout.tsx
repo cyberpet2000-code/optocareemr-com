@@ -45,7 +45,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (isSuperAdmin) {
     primary = [
-      { to: "/super-admin-dashboard", label: "Overview", icon: LayoutDashboard },
+      { to: "/super-admin", label: "Overview", icon: LayoutDashboard },
       { to: "/super-admin/clinics", label: "Clinics", icon: Building2 },
       { to: "/super-admin/performance", label: "Performance", icon: Activity },
     ];
@@ -69,7 +69,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   } else {
     // admin (or no roles fallback)
     primary = [
-      { to: "/", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/queue", label: "Queue", icon: ListOrdered },
       { to: "/patients", label: "Patients", icon: Users },
       { to: "/billing", label: "Billing", icon: DollarSign },
