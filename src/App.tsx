@@ -50,8 +50,8 @@ function SuperAdminOnly({ children }: { children: React.ReactNode }) {
 }
 
 function ProtectedRouteGate() {
-  const { user, loading: authLoading, signOut } = useAuth();
-  const { clinic, profile, loading: clinicLoading } = useClinic();
+  const { user, loading: authLoading } = useAuth();
+  const { clinic, loading: clinicLoading } = useClinic();
   const { isSuperAdmin, loading: roleLoading } = useRole();
   const location = useLocation();
   const [timedOut, setTimedOut] = useState(false);
@@ -69,11 +69,10 @@ function ProtectedRouteGate() {
 
     const timer = window.setTimeout(() => {
       setTimedOut(true);
-      void signOut();
     }, ACCESS_TIMEOUT_MS);
 
     return () => window.clearTimeout(timer);
-  }, [authLoading, clinicLoading, roleLoading, signOut, user]);
+  }, [authLoading, clinicLoading, roleLoading, user]);
 
   const decision = resolveProtectedRoute({
     path: location.pathname,
