@@ -14,6 +14,7 @@ type ProtectedRouteInput = {
 type RouteDecision =
   | { type: "allow" }
   | { type: "loading"; label: string }
+  | { type: "error"; label: string }
   | { type: "redirect"; to: string };
 
 export function resolveDefaultRoute({
@@ -27,7 +28,6 @@ export function resolveDefaultRoute({
 }) {
   if (role === "super_admin") return "/super-admin";
   if (!clinicId || setupCompleted === false) return "/onboarding";
-  if (setupCompleted === false) return "/onboarding";
   return "/dashboard";
 }
 
@@ -45,7 +45,7 @@ export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision
   }
 
   if (roleMissing) {
-    return { type: "loading", label: "User role not configured. Contact support." };
+    return { type: "error", label: "User role not configured. Contact support." };
   }
 
   if (path === "/") {
@@ -53,7 +53,7 @@ export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision
   }
 
   if (path.startsWith("/super-admin")) {
-    return isSuperAdmin ? { type: "allow" } : { type: "redirect", to: requiresOnboarding ? "/onboarding" : "/dashboard" };
+    return { type: "allow" };
   }
 
   if (path === "/onboarding") {
