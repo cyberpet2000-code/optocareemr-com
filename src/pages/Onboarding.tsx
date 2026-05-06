@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
+import { useRole } from "@/hooks/useRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,7 @@ const STEP_LABELS = ["Welcome", "Confirm", "Type", "Modules", "Staff", "First pa
 export default function Onboarding() {
   const navigate = useNavigate();
   const { clinic, profile, trialDaysLeft, loading, reload } = useClinic();
+  const { role, loading: roleLoading } = useRole();
   const [step, setStep] = useState(0);
   const [clinicType, setClinicType] = useState("eye_clinic");
   const [modules, setModules] = useState({ billing: true, hmo: true, pharmacy: true, appointments: true });
@@ -29,19 +31,23 @@ export default function Onboarding() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && clinic?.setup_completed) navigate("/", { replace: true });
-  }, [loading, clinic, navigate]);
+    if (roleLoading) return;
+    if (role === "super_admin") {
+      navigate("/super-admin", { replace: true });
+      return;
+    }
+    if (!loading && clinic?.setup_completed) navigate("/dashboard", { replace: true });
+  }, [loading, clinic, navigate, role, roleLoading]);
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading user session…</div>;
+  if (loading || roleLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading OptoCare...</div>;
   }
-  if (!clinic) {
+  if (!clinic || !profile?.clinic_id) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-sm text-center space-y-3">
-          <h1 className="text-lg font-semibold">No clinic linked to your account</h1>
-          <p className="text-sm text-muted-foreground">Contact your administrator or sign in with the correct account.</p>
-          <Button variant="outline" onClick={() => navigate("/login")}>Back to login</Button>
+          <h1 className="text-lg font-semibold">Setting up your clinic...</h1>
+          <p className="text-sm text-muted-foreground">We’re preparing your workspace and onboarding access.</p>
         </div>
       </div>
     );

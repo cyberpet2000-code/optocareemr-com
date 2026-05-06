@@ -40,13 +40,13 @@ export default function Login() {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       setLoading(false);
       if (error) { toast.error(error.message); return; }
-      // Role-based redirect
       let dest = "/";
       if (data.user) {
+        const { data: prof } = await supabase.from("profiles").select("role, is_super_admin").eq("id", data.user.id).maybeSingle();
         const { data: rolesData } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id);
         const roles = (rolesData || []).map((r: any) => r.role);
-        const { data: prof } = await supabase.from("profiles").select("role, is_super_admin").eq("id", data.user.id).maybeSingle();
-        const isSuper = roles.includes("super_admin") || (prof as any)?.role === "super_admin" || (prof as any)?.is_super_admin === true;
+        const primaryRole = (prof as any)?.is_super_admin ? "super_admin" : (prof as any)?.role || roles[0] || null;
+        const isSuper = primaryRole === "super_admin";
         if (isSuper) dest = "/super-admin";
         else if (roles.includes("receptionist") && !roles.includes("admin") && !roles.includes("doctor")) dest = "/queue";
       }
