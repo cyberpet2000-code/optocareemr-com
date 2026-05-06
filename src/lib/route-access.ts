@@ -1,4 +1,4 @@
-export const ACCESS_TIMEOUT_MS = 12000;
+export const ACCESS_TIMEOUT_MS = 5000;
 
 type ProtectedRouteInput = {
   path: string;
