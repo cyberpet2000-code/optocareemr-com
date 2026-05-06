@@ -119,8 +119,8 @@ export function AppRoutes() {
 
         <Route path="/onboarding" element={<Onboarding />} />
 
-        <Route path="/super-admin" element={<Navigate to="/super-admin-dashboard" replace />} />
-        <Route path="/super-admin-dashboard" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
+        <Route path="/super-admin" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
+        <Route path="/super-admin-dashboard" element={<Navigate to="/super-admin" replace />} />
         <Route path="/super-admin/create-clinic" element={<SuperAdminOnly><SuperAdminCreateClinic /></SuperAdminOnly>} />
         <Route path="/super-admin/clinics" element={<SuperAdminOnly><SuperAdminClinics /></SuperAdminOnly>} />
         <Route path="/super-admin/users" element={<SuperAdminOnly><AdminRoles embedded /></SuperAdminOnly>} />
