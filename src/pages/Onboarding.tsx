@@ -246,9 +246,16 @@ export default function Onboarding() {
           {step === 6 && (
             <div className="text-center space-y-4 py-6">
               <CheckCircle2 className="mx-auto text-primary" size={48} />
-              <h2 className="text-2xl font-bold">You're all set!</h2>
-              <p className="text-muted-foreground">{clinic.name} is ready to use.</p>
-              <Button onClick={finish} disabled={busy} size="lg">{busy ? "Finishing…" : "Go to Dashboard"}</Button>
+              <h2 className="text-2xl font-bold">Ready to finalize</h2>
+              <p className="text-muted-foreground">
+                Click below to complete setup for <strong>{clinic.name}</strong>. This saves your configuration and unlocks the dashboard.
+              </p>
+              <Button onClick={finish} disabled={busy} size="lg" className="w-full sm:w-auto">
+                {busy ? "Creating clinic..." : "Finish Setup & Create Clinic"}
+              </Button>
+              <div>
+                <Button variant="ghost" onClick={back} disabled={busy}>Back</Button>
+              </div>
             </div>
           )}
         </div>
