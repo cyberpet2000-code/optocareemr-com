@@ -43,15 +43,46 @@ Deno.serve(async (req) => {
       return json({ error: "Password must be at least 8 characters" }, 400);
     }
 
-    // Create auth user (auto-confirmed)
-    const { data: created, error: createErr } = await admin.auth.admin.createUser({
-      email: admin_email,
-      password: admin_password,
-      email_confirm: true,
-      user_metadata: { full_name: admin_full_name },
-    });
-    if (createErr || !created.user) return json({ error: createErr?.message || "User create failed" }, 400);
-    const newUserId = created.user.id;
+    // Resolve auth user: reuse if exists, otherwise create
+    let newUserId: string | null = null;
+    let userWasCreated = false;
+
+    const emailLower = String(admin_email).toLowerCase();
+    // Look up existing user by email (paginate defensively)
+    try {
+      for (let page = 1; page <= 20 && !newUserId; page++) {
+        const { data: list, error: listErr } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+        if (listErr) { console.error("listUsers error", listErr); break; }
+        const found = list?.users?.find((u: any) => (u.email || "").toLowerCase() === emailLower);
+        if (found) { newUserId = found.id; break; }
+        if (!list?.users || list.users.length < 200) break;
+      }
+    } catch (e) {
+      console.error("user lookup failed", e);
+    }
+
+    if (!newUserId) {
+      const { data: created, error: createErr } = await admin.auth.admin.createUser({
+        email: admin_email,
+        password: admin_password,
+        email_confirm: true,
+        user_metadata: { full_name: admin_full_name },
+      });
+      if (createErr || !created.user) {
+        console.error("createUser failed", createErr);
+        return json({ error: createErr?.message || "User create failed" }, 400);
+      }
+      newUserId = created.user.id;
+      userWasCreated = true;
+    } else {
+      console.log("Reusing existing auth user", newUserId);
+      // Ensure existing user is not already attached to a clinic as admin
+      const { data: existingProfile } = await admin
+        .from("profiles").select("clinic_id, role").eq("id", newUserId).maybeSingle();
+      if (existingProfile?.clinic_id) {
+        return json({ error: "This user is already assigned to a clinic" }, 409);
+      }
+    }
 
     // Create clinic
     const trialStart = new Date();
@@ -72,7 +103,8 @@ Deno.serve(async (req) => {
       .select("id")
       .single();
     if (clinicErr || !clinic) {
-      await admin.auth.admin.deleteUser(newUserId).catch(() => {});
+      if (userWasCreated) await admin.auth.admin.deleteUser(newUserId).catch(() => {});
+      console.error("clinic insert failed", clinicErr);
       return json({ error: clinicErr?.message || "Clinic insert failed" }, 400);
     }
 
