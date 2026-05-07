@@ -9,6 +9,7 @@ import { toast } from "sonner";
 export default function SuperAdminClinics() {
   const [clinics, setClinics] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [enteringId, setEnteringId] = useState<string | null>(null);
   const { switchClinic } = useAccess();
   const navigate = useNavigate();
 
@@ -23,9 +24,17 @@ export default function SuperAdminClinics() {
   }, []);
 
   const enter = async (c: any) => {
-    await switchClinic(c.id);
-    toast.success(`Entered ${c.name}`);
-    navigate(c.setup_completed ? "/dashboard" : "/onboarding", { replace: true });
+    if (enteringId) return;
+    setEnteringId(c.id);
+    try {
+      await switchClinic(c.id);
+      toast.success(`Entered ${c.name}`);
+      navigate(c.setup_completed ? "/dashboard" : "/onboarding", { replace: true });
+    } catch (e: any) {
+      toast.error(`Could not enter clinic: ${e?.message || "unknown error"}`);
+    } finally {
+      setEnteringId(null);
+    }
   };
 
   return (
