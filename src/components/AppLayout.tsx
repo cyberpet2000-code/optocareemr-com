@@ -152,6 +152,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {menuOpen && (
           <div className="border-t border-border/60 px-4 pb-3 pt-2 space-y-1 animate-fade-in bg-card">
             <div className="px-1 py-1.5"><ClinicSwitcher /></div>
+            {[...primary, ...secondary].map(item => {
               const Icon = item.icon;
               return (
                 <Link key={item.to} to={item.to} onClick={() => setMenuOpen(false)}
