@@ -561,6 +561,30 @@ export type Database = {
         }
         Relationships: []
       }
+      clinic_modules: {
+        Row: {
+          clinic_id: string
+          created_at: string | null
+          enabled: boolean | null
+          id: string
+          module: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          module: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          module?: string
+        }
+        Relationships: []
+      }
       clinic_onboarding_log: {
         Row: {
           clinic_id: string | null
