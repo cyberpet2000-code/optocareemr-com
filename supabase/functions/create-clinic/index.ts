@@ -103,7 +103,8 @@ Deno.serve(async (req) => {
       .select("id")
       .single();
     if (clinicErr || !clinic) {
-      await admin.auth.admin.deleteUser(newUserId).catch(() => {});
+      if (userWasCreated) await admin.auth.admin.deleteUser(newUserId).catch(() => {});
+      console.error("clinic insert failed", clinicErr);
       return json({ error: clinicErr?.message || "Clinic insert failed" }, 400);
     }
 
