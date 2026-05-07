@@ -119,7 +119,7 @@ export default function Onboarding() {
     if (error) { toast.error(error.message); return; }
     toast.success("Setup complete!");
     await reload();
-    navigate("/", { replace: true });
+    navigate("/dashboard", { replace: true });
   };
 
   return (
