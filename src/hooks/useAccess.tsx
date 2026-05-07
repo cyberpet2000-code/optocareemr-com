@@ -154,6 +154,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     user,
     authLoading,
     profile,
+    profileError,
     clinic,
     roles,
     role,
@@ -165,7 +166,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     roleMissing,
     reload: () => loadAccess(user),
     signOut: () => supabase.auth.signOut(),
-  }), [authLoading, clinic, clinicLoading, isAuthenticated, isAuthReady, loadAccess, profile, profileLoading, role, roleLoading, roleMissing, roles, user]);
+  }), [authLoading, clinic, clinicLoading, isAuthenticated, isAuthReady, loadAccess, profile, profileError, profileLoading, role, roleLoading, roleMissing, roles, user]);
 
   return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>;
 }
