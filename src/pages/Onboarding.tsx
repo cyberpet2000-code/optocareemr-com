@@ -115,10 +115,15 @@ export default function Onboarding() {
   const finish = async () => {
     setBusy(true);
     const { error } = await supabase.rpc("complete_onboarding", { _clinic_id: clinic.id });
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      const { error: upErr } = await supabase.from("clinics")
+        .update({ setup_completed: true, modules_configured: true, modules_setup_done: true } as any)
+        .eq("id", clinic.id);
+      if (upErr) { setBusy(false); toast.error(upErr.message); return; }
+    }
     toast.success("Setup complete!");
     await reload();
+    setBusy(false);
     navigate("/dashboard", { replace: true });
   };
 
