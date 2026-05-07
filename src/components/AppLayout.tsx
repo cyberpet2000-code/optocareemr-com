@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useClinic } from "@/hooks/useClinic";
 import TrialBanner from "@/components/TrialBanner";
+import ClinicSwitcher from "@/components/ClinicSwitcher";
 
 function getGreeting(): string {
   const h = new Date().getHours();
