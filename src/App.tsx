@@ -28,6 +28,7 @@ import SuperAdminClinics from "./pages/SuperAdminClinics";
 import SuperAdminCreateClinic from "./pages/SuperAdminCreateClinic";
 import SuperAdminControlCenter from "./pages/SuperAdminControlCenter";
 import SuperAdminSafety from "./pages/SuperAdminSafety";
+import SuperAdminSwitchAudit from "./pages/SuperAdminSwitchAudit";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
