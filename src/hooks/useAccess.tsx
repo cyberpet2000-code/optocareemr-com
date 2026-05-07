@@ -53,15 +53,23 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     setProfileLoading(true);
     setRoleLoading(true);
     setClinicLoading(true);
+    setProfileError(null);
 
-    const [profileResult, userRolesResult] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("id, full_name, role, clinic_id, is_super_admin, title")
-        .eq("id", nextUser.id)
-        .maybeSingle(),
-      supabase.from("user_roles").select("role").eq("user_id", nextUser.id),
-    ]);
+    console.log("AUTH USER:", nextUser.id);
+
+    const profileResult = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", nextUser.id)
+      .maybeSingle();
+
+    console.log("PROFILE DATA:", profileResult.data);
+    console.log("PROFILE ERROR:", profileResult.error);
+
+    const userRolesResult = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", nextUser.id);
 
     if (requestRef.current !== requestId) {
       return;
@@ -75,6 +83,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     const nextRoles = Array.from(new Set([primaryRole, ...fallbackRoles].filter(Boolean))) as string[];
 
     setProfile(nextProfile);
+    setProfileError(profileResult.error || null);
     setRoles(nextRoles);
     setRole(primaryRole);
     setProfileLoading(false);
