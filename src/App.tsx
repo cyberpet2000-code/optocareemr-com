@@ -160,35 +160,6 @@ function LandingRedirect() {
   return <Navigate to={resolveDefaultRoute({ role, clinicId: effectiveClinicId ?? profile?.clinic_id, setupCompleted: clinic?.setup_completed })} replace />;
 }
 
-function AuthDebugCard() {
-  const location = useLocation();
-  const { user, isAuthReady, profile, profileError, role, profileLoading } = useAccess();
-
-  if (location.pathname === "/login" || location.pathname === "/reset-password") {
-    return null;
-  }
-
-  return (
-    <div className="fixed bottom-3 left-3 right-3 z-50 sm:left-auto sm:right-4 sm:w-80 rounded-lg border bg-card/95 p-3 shadow-lg backdrop-blur">
-      <div className="text-xs font-semibold text-foreground">Auth Debug</div>
-      <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-        <div><span className="text-foreground">user.id:</span> {user?.id || "—"}</div>
-        <div><span className="text-foreground">user.email:</span> {user?.email || "—"}</div>
-        <div><span className="text-foreground">profile.role:</span> {profile?.role || role || "—"}</div>
-        <div><span className="text-foreground">clinic_id:</span> {profile?.clinic_id || "—"}</div>
-        <div><span className="text-foreground">profileLoading:</span> {profileLoading ? "true" : "false"}</div>
-        <div><span className="text-foreground">isAuthReady:</span> {isAuthReady ? "true" : "false"}</div>
-        {profileError && (
-          <div className="mt-1 rounded bg-destructive/10 p-1.5 text-destructive">
-            <div className="font-semibold">Profile Error:</div>
-            <div>{profileError.message || JSON.stringify(profileError)}</div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -197,7 +168,6 @@ const App = () => (
       <AccessProvider>
         <BrowserRouter>
           <AppRoutes />
-          {import.meta.env.DEV && <AuthDebugCard />}
         </BrowserRouter>
       </AccessProvider>
     </TooltipProvider>
