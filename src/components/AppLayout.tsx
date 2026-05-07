@@ -181,7 +181,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto px-4 py-5 animate-page">
-        {name && (
+        {name && location.pathname !== "/dashboard" && (
           <h1 className="text-lg lg:text-xl font-semibold mb-3 text-foreground">{greeting}</h1>
         )}
         <TrialBanner />
