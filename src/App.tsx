@@ -197,7 +197,7 @@ const App = () => (
       <AccessProvider>
         <BrowserRouter>
           <AppRoutes />
-          <AuthDebugCard />
+          {import.meta.env.DEV && <AuthDebugCard />}
         </BrowserRouter>
       </AccessProvider>
     </TooltipProvider>
