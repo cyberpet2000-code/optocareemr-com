@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Plus } from "lucide-react";
+import { Building2, Plus, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAccess } from "@/hooks/useAccess";
+import { toast } from "sonner";
 
 export default function SuperAdminClinics() {
   const [clinics, setClinics] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { switchClinic } = useAccess();
+  const navigate = useNavigate();
 
   useEffect(() => {
     (async () => {
@@ -17,6 +21,12 @@ export default function SuperAdminClinics() {
       setLoading(false);
     })();
   }, []);
+
+  const enter = async (c: any) => {
+    await switchClinic(c.id);
+    toast.success(`Entered ${c.name}`);
+    navigate(c.setup_completed ? "/dashboard" : "/onboarding", { replace: true });
+  };
 
   return (
     <div className="space-y-5">
@@ -43,6 +53,7 @@ export default function SuperAdminClinics() {
                 <th className="py-2 pr-3">Setup</th>
                 <th className="py-2 pr-3">Trial Ends</th>
                 <th className="py-2 pr-3">Active</th>
+                <th className="py-2 pr-3"></th>
               </tr>
             </thead>
             <tbody>
@@ -53,6 +64,11 @@ export default function SuperAdminClinics() {
                   <td className="py-2.5 pr-3 text-xs">{c.setup_completed ? "✓ Done" : "Pending"}</td>
                   <td className="py-2.5 pr-3 text-xs text-muted-foreground">{c.trial_end_date ? new Date(c.trial_end_date).toLocaleDateString() : "—"}</td>
                   <td className="py-2.5 pr-3 text-xs">{c.is_active ? "Yes" : "No"}</td>
+                  <td className="py-2.5 pr-3 text-right">
+                    <Button size="sm" variant="outline" onClick={() => enter(c)}>
+                      <LogIn size={14} className="mr-1" /> Enter
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>

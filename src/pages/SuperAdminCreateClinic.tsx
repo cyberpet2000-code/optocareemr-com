@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useRole } from "@/hooks/useRole";
+import { useAccess } from "@/hooks/useAccess";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { Building2, ArrowLeft } from "lucide-react";
 export default function SuperAdminCreateClinic() {
   const navigate = useNavigate();
   const { isSuperAdmin, loading: roleLoading } = useRole();
+  const { switchClinic } = useAccess();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     clinic_name: "",
@@ -37,19 +39,13 @@ export default function SuperAdminCreateClinic() {
       return;
     }
     const newClinicId = (data as any)?.clinic_id;
-    if (newClinicId) {
-      try { localStorage.setItem("active_clinic_id", newClinicId); } catch {}
+    if (!newClinicId) {
+      toast.error("Clinic created but no id returned");
+      return;
     }
-    toast.success("Clinic created successfully and is now in trial mode");
-    // Super admin returns to clinics list (where they can enter the new clinic).
-    // Clinic admin/owner accounts are separate users — they will be routed to onboarding on their first login.
-    if (isSuperAdmin) {
-      navigate("/super-admin/clinics");
-    } else if (newClinicId) {
-      navigate(`/onboarding?clinic_id=${newClinicId}`);
-    } else {
-      navigate("/onboarding");
-    }
+    await switchClinic(newClinicId);
+    toast.success("Clinic created — entering onboarding");
+    navigate("/onboarding", { replace: true });
   };
 
   return (
