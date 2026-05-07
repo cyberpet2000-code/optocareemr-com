@@ -32,6 +32,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [roleLoading, setRoleLoading] = useState(false);
   const [clinicLoading, setClinicLoading] = useState(false);
+  const [profileError, setProfileError] = useState<any>(null);
   const requestRef = useRef(0);
 
   const loadAccess = useCallback(async (nextUser = user) => {
