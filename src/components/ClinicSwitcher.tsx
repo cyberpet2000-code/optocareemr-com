@@ -32,11 +32,12 @@ export default function ClinicSwitcher() {
     setSwitching(true);
     const target = clinics.find(c => c.id === clinicId);
     try {
-      await switchClinic(clinicId);
-      toast.success(`Switched to ${target?.name || "clinic"}`);
+      const granted = await switchClinic(clinicId);
+      if (granted) toast.success(`Access granted — switched to ${target?.name || "clinic"}`);
+      else toast.warning(`Switched to ${target?.name || "clinic"} (access flagged)`);
       navigate(target?.setup_completed ? "/dashboard" : "/onboarding", { replace: true });
     } catch (e: any) {
-      toast.error(`Switch failed: ${e?.message || "unknown error"}`);
+      toast.error(`Access denied: ${e?.message || "unknown error"}`);
     } finally {
       setSwitching(false);
     }
