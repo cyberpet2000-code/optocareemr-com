@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccess } from "@/hooks/useAccess";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,6 +11,7 @@ type ClinicRow = { id: string; name: string; setup_completed: boolean | null };
 export default function ClinicSwitcher() {
   const { role, activeClinicId, switchClinic } = useAccess();
   const navigate = useNavigate();
+  const location = useLocation();
   const [clinics, setClinics] = useState<ClinicRow[]>([]);
   const [switching, setSwitching] = useState(false);
 
@@ -23,6 +24,8 @@ export default function ClinicSwitcher() {
   }, [role]);
 
   if (role !== "super_admin") return null;
+  // Only show switcher in super-admin workspace to enforce isolation
+  if (!location.pathname.startsWith("/super-admin")) return null;
 
   const onChange = async (clinicId: string) => {
     if (clinicId === activeClinicId || switching) return;
