@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useClinic } from "@/hooks/useClinic";
 import TrialBanner from "@/components/TrialBanner";
+import ClinicSwitcher from "@/components/ClinicSwitcher";
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -116,6 +117,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             })}
           </nav>
           <div className="flex items-center gap-2">
+            <ClinicSwitcher />
             <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-lg capitalize font-medium">
               {ROLE_TITLE[primaryRole] || primaryRole}
             </span>
@@ -149,6 +151,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Mobile dropdown menu */}
         {menuOpen && (
           <div className="border-t border-border/60 px-4 pb-3 pt-2 space-y-1 animate-fade-in bg-card">
+            <div className="px-1 py-1.5"><ClinicSwitcher /></div>
             {[...primary, ...secondary].map(item => {
               const Icon = item.icon;
               return (

@@ -152,10 +152,33 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   }, [authLoading, user, activeClinicId, loadAccess]);
 
   const switchClinic = useCallback(async (clinicId: string | null) => {
+    const fromClinic = activeClinicId;
     persistActive(clinicId);
     setActiveClinicIdState(clinicId);
-    await loadAccess(user, clinicId);
-  }, [loadAccess, user]);
+    let granted = true;
+    let reason: string | null = null;
+    try {
+      await loadAccess(user, clinicId);
+    } catch (e: any) {
+      granted = false;
+      reason = e?.message || "load failed";
+      throw e;
+    } finally {
+      if (user && clinicId) {
+        try {
+          await supabase.from("clinic_switch_log").insert({
+            admin_id: user.id,
+            from_clinic: fromClinic,
+            to_clinic: clinicId,
+            clinic_id: clinicId,
+            access_granted: granted,
+            reason,
+          } as any);
+        } catch {}
+      }
+    }
+    return granted;
+  }, [loadAccess, user, activeClinicId]);
 
   const isAuthenticated = Boolean(user);
   const isAuthReady = !authLoading && (!isAuthenticated || (!profileLoading && !roleLoading && !clinicLoading));
