@@ -21,7 +21,7 @@ const STEP_LABELS = ["Welcome", "Confirm", "Type", "Modules", "Staff", "First pa
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { clinic, profile, trialDaysLeft, loading, reload } = useClinic();
+  const { clinic, profile, trialDaysLeft, loading, reload, switchClinic } = useClinic();
   const { role, loading: roleLoading } = useRole();
   const [step, setStep] = useState(0);
   const [clinicType, setClinicType] = useState("eye_clinic");
@@ -31,23 +31,24 @@ export default function Onboarding() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (roleLoading) return;
-    if (role === "super_admin") {
-      navigate("/super-admin", { replace: true });
-      return;
+    if (roleLoading || loading) return;
+    if (clinic?.setup_completed) {
+      navigate(role === "super_admin" ? "/super-admin" : "/dashboard", { replace: true });
     }
-    if (!loading && clinic?.setup_completed) navigate("/dashboard", { replace: true });
   }, [loading, clinic, navigate, role, roleLoading]);
 
   if (loading || roleLoading) {
     return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading OptoCare...</div>;
   }
-  if (!clinic || !profile?.clinic_id) {
+  if (!clinic) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-sm text-center space-y-3">
-          <h1 className="text-lg font-semibold">Setting up your clinic...</h1>
-          <p className="text-sm text-muted-foreground">We’re preparing your workspace and onboarding access.</p>
+          <h1 className="text-lg font-semibold">No active clinic</h1>
+          <p className="text-sm text-muted-foreground">Select a clinic from the super-admin clinics list to continue setup.</p>
+          {role === "super_admin" && (
+            <Button onClick={() => navigate("/super-admin/clinics")}>Go to Clinics</Button>
+          )}
         </div>
       </div>
     );

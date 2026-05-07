@@ -26,7 +26,10 @@ export function resolveDefaultRoute({
   clinicId: string | null | undefined;
   setupCompleted: boolean | null | undefined;
 }) {
-  if (role === "super_admin") return "/super-admin";
+  if (role === "super_admin") {
+    if (clinicId && setupCompleted === false) return "/onboarding";
+    return "/super-admin";
+  }
   if (!clinicId || setupCompleted === false) return "/onboarding";
   return "/dashboard";
 }
