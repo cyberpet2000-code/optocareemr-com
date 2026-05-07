@@ -22,6 +22,12 @@ const ROLE_TITLE: Record<string, string> = {
   super_admin: "Super Admin",
 };
 
+export type Workspace = "super-admin" | "clinic";
+
+export function resolveWorkspace(pathname: string): Workspace {
+  return pathname.startsWith("/super-admin") ? "super-admin" : "clinic";
+}
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -29,6 +35,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isAdmin, isSuperAdmin, isDoctor, isReceptionist, roles } = useRole();
   const { profile } = useClinic();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const workspace = resolveWorkspace(location.pathname);
 
   const handleLogout = async () => {
     await signOut();
@@ -40,11 +48,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return location.pathname.startsWith(path);
   };
 
-  // Build nav by role
+  // Workspace-aware navigation: super-admin routes get platform nav,
+  // clinic routes get clinic nav (regardless of whether user is super_admin).
   let primary: { to: string; label: string; icon: any }[] = [];
   let secondary: { to: string; label: string; icon: any }[] = [];
 
-  if (isSuperAdmin) {
+  if (workspace === "super-admin") {
     primary = [
       { to: "/super-admin", label: "Overview", icon: LayoutDashboard },
       { to: "/super-admin/clinics", label: "Clinics", icon: Building2 },
@@ -53,8 +62,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     secondary = [
       { to: "/super-admin/create-clinic", label: "Create Clinic", icon: Sparkles },
       { to: "/super-admin/users", label: "Users", icon: ShieldCheck },
+      { to: "/super-admin/audit", label: "Switch Audit", icon: History },
     ];
-  } else if (isDoctor && !isAdmin) {
+  } else if (isDoctor && !isAdmin && !isSuperAdmin) {
     primary = [
       { to: "/queue", label: "Queue", icon: ListOrdered },
       { to: "/patients", label: "Patients", icon: Users },
