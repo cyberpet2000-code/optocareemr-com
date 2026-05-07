@@ -96,7 +96,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     ];
   }
 
-  const primaryRole = isSuperAdmin ? "super_admin" : roles[0] || "admin";
+  const primaryRole = workspace === "super-admin" ? "super_admin" : (roles.find(r => r !== "super_admin") || (isSuperAdmin ? "admin" : roles[0]) || "admin");
   const title = ROLE_TITLE[primaryRole] || "";
   const name = profile?.full_name?.split(" ").slice(0, 2).join(" ") || "";
   const greeting = `${getGreeting()}${name ? `, ${title} ${name}` : ""}`;
