@@ -154,7 +154,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const switchClinic = useCallback(async (clinicId: string | null) => {
     persistActive(clinicId);
     setActiveClinicIdState(clinicId);
-  }, []);
+    await loadAccess(user, clinicId);
+  }, [loadAccess, user]);
 
   const isAuthenticated = Boolean(user);
   const isAuthReady = !authLoading && (!isAuthenticated || (!profileLoading && !roleLoading && !clinicLoading));
