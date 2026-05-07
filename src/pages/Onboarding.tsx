@@ -33,7 +33,7 @@ export default function Onboarding() {
   useEffect(() => {
     if (roleLoading || loading) return;
     if (clinic?.setup_completed) {
-      navigate(role === "super_admin" ? "/super-admin" : "/dashboard", { replace: true });
+      navigate("/dashboard", { replace: true });
     }
   }, [loading, clinic, navigate, role, roleLoading]);
 
