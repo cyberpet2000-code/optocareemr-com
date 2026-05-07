@@ -117,6 +117,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             })}
           </nav>
           <div className="flex items-center gap-2">
+            <ClinicSwitcher />
             <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-lg capitalize font-medium">
               {ROLE_TITLE[primaryRole] || primaryRole}
             </span>
