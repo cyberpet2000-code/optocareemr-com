@@ -57,8 +57,11 @@ export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision
   }
 
   if (path === "/onboarding") {
-    if (isSuperAdmin) return { type: "redirect", to: "/super-admin" };
-    return requiresOnboarding ? { type: "allow" } : { type: "redirect", to: "/dashboard" };
+    if (!clinicId) {
+      return isSuperAdmin ? { type: "redirect", to: "/super-admin" } : { type: "error", label: "No active clinic. Contact support." };
+    }
+    if (setupCompleted === false) return { type: "allow" };
+    return { type: "redirect", to: isSuperAdmin ? "/super-admin" : "/dashboard" };
   }
 
   if (path.startsWith("/dashboard")) {
