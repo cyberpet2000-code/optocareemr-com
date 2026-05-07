@@ -74,8 +74,8 @@ export default function SuperAdminClinics() {
                   <td className="py-2.5 pr-3 text-xs text-muted-foreground">{c.trial_end_date ? new Date(c.trial_end_date).toLocaleDateString() : "—"}</td>
                   <td className="py-2.5 pr-3 text-xs">{c.is_active ? "Yes" : "No"}</td>
                   <td className="py-2.5 pr-3 text-right">
-                    <Button size="sm" variant="outline" onClick={() => enter(c)}>
-                      <LogIn size={14} className="mr-1" /> Enter
+                    <Button size="sm" variant="outline" onClick={() => enter(c)} disabled={enteringId === c.id || !!enteringId}>
+                      <LogIn size={14} className="mr-1" /> {enteringId === c.id ? "Entering…" : "Enter"}
                     </Button>
                   </td>
                 </tr>
