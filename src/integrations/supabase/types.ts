@@ -849,6 +849,13 @@ export type Database = {
             foreignKeyName: "clinic_users_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2585,10 +2592,43 @@ export type Database = {
     Views: {
       my_profile: {
         Row: {
+          avatar_url: string | null
+          branch_id: string | null
           clinic_id: string | null
+          created_at: string | null
           full_name: string | null
+          id: string | null
+          is_super_admin: boolean | null
+          phone: string | null
           role: string | null
-          user_id: string | null
+          status: string | null
+          title: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          branch_id?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string | null
+          is_super_admin?: boolean | null
+          phone?: string | null
+          role?: string | null
+          status?: string | null
+          title?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          branch_id?: string | null
+          clinic_id?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string | null
+          is_super_admin?: boolean | null
+          phone?: string | null
+          role?: string | null
+          status?: string | null
+          title?: string | null
         }
         Relationships: []
       }
