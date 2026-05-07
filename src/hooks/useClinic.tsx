@@ -21,7 +21,7 @@ export interface ProfileInfo {
 }
 
 export function useClinic() {
-  const { profile, clinic, profileLoading, clinicLoading, reload } = useAccess();
+  const { profile, clinic, profileLoading, clinicLoading, reload, switchClinic, activeClinicId, effectiveClinicId } = useAccess();
   const loading = profileLoading || clinicLoading;
 
   const trialDaysLeft = (() => {
@@ -38,5 +38,5 @@ export function useClinic() {
 
   const canWrite = !trialExpired || profile?.is_super_admin === true || profile?.role === "super_admin";
 
-  return { profile: profile as ProfileInfo | null, clinic: clinic as ClinicInfo | null, loading, trialDaysLeft, trialExpired, canWrite, reload };
+  return { profile: profile as ProfileInfo | null, clinic: clinic as ClinicInfo | null, loading, trialDaysLeft, trialExpired, canWrite, reload, switchClinic, activeClinicId, effectiveClinicId };
 }

@@ -60,7 +60,7 @@ function SuperAdminOnly({ children }: { children: React.ReactNode }) {
 
 function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const { clinic, profile } = useClinic();
+  const { clinic, profile, effectiveClinicId } = useClinic();
   const { role } = useRole();
   const { isAuthReady, roleMissing } = useAccess();
   const location = useLocation();
@@ -85,7 +85,7 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
     isAuthReady,
     didTimeout: timedOut,
     role,
-    clinicId: profile?.clinic_id,
+    clinicId: effectiveClinicId ?? profile?.clinic_id,
     setupCompleted: clinic?.setup_completed,
     roleMissing,
   });
@@ -154,10 +154,10 @@ export function AppRoutes() {
 }
 
 function LandingRedirect() {
-  const { clinic, profile } = useClinic();
+  const { clinic, profile, effectiveClinicId } = useClinic();
   const { role } = useRole();
 
-  return <Navigate to={resolveDefaultRoute({ role, clinicId: profile?.clinic_id, setupCompleted: clinic?.setup_completed })} replace />;
+  return <Navigate to={resolveDefaultRoute({ role, clinicId: effectiveClinicId ?? profile?.clinic_id, setupCompleted: clinic?.setup_completed })} replace />;
 }
 
 function AuthDebugCard() {
