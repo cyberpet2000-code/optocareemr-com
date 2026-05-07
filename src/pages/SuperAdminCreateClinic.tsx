@@ -36,8 +36,20 @@ export default function SuperAdminCreateClinic() {
       toast.error((data as any)?.error || error?.message || "Failed to create clinic");
       return;
     }
+    const newClinicId = (data as any)?.clinic_id;
+    if (newClinicId) {
+      try { localStorage.setItem("active_clinic_id", newClinicId); } catch {}
+    }
     toast.success("Clinic created successfully and is now in trial mode");
-    navigate("/super-admin/clinics");
+    // Super admin returns to clinics list (where they can enter the new clinic).
+    // Clinic admin/owner accounts are separate users — they will be routed to onboarding on their first login.
+    if (isSuperAdmin) {
+      navigate("/super-admin/clinics");
+    } else if (newClinicId) {
+      navigate(`/onboarding?clinic_id=${newClinicId}`);
+    } else {
+      navigate("/onboarding");
+    }
   };
 
   return (
