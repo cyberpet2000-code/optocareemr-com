@@ -70,11 +70,18 @@ export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision
   }
 
   if (path.startsWith("/dashboard")) {
-    return isSuperAdmin ? { type: "redirect", to: "/super-admin" } : requiresOnboarding ? { type: "redirect", to: "/onboarding" } : { type: "allow" };
+    if (isSuperAdmin) {
+      if (!hasActiveClinic) return { type: "redirect", to: "/super-admin" };
+      if (setupCompleted === false) return { type: "redirect", to: "/onboarding" };
+      return { type: "allow" };
+    }
+    return requiresOnboarding ? { type: "redirect", to: "/onboarding" } : { type: "allow" };
   }
 
   if (isSuperAdmin && !path.startsWith("/super-admin")) {
-    return { type: "redirect", to: "/super-admin" };
+    if (!hasActiveClinic) return { type: "redirect", to: "/super-admin" };
+    if (setupCompleted === false && path !== "/onboarding") return { type: "redirect", to: "/onboarding" };
+    return { type: "allow" };
   }
 
   if (requiresOnboarding) {
