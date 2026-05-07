@@ -37,14 +37,14 @@ export default function SuperAdminSwitchAudit() {
       const [logs, cs, ps] = await Promise.all([
         supabase.from("clinic_switch_log").select("*").order("created_at", { ascending: false }).limit(1000),
         supabase.from("clinics").select("id, name"),
-        supabase.from("profiles").select("id, full_name, email" as any),
+        supabase.from("profiles").select("*"),
       ]);
       setRows((logs.data as any) || []);
       const cmap: Record<string, string> = {};
       ((cs.data as Clinic[]) || []).forEach(c => { cmap[c.id] = c.name; });
       setClinics(cmap);
       const amap: Record<string, string> = {};
-      ((ps.data as Profile[]) || []).forEach(p => { amap[p.id] = p.full_name || (p as any).email || p.id; });
+      ((ps.data as any[]) || []).forEach((p: any) => { amap[p.id] = p.full_name || p.email || p.id; });
       setAdmins(amap);
       setLoading(false);
     })();
