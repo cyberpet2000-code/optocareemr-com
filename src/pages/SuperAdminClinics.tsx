@@ -27,11 +27,12 @@ export default function SuperAdminClinics() {
     if (enteringId) return;
     setEnteringId(c.id);
     try {
-      await switchClinic(c.id);
-      toast.success(`Entered ${c.name}`);
+      const granted = await switchClinic(c.id);
+      if (granted) toast.success(`Access granted — entered ${c.name}`);
+      else toast.warning(`Entered ${c.name} (access flagged)`);
       navigate(c.setup_completed ? "/dashboard" : "/onboarding", { replace: true });
     } catch (e: any) {
-      toast.error(`Could not enter clinic: ${e?.message || "unknown error"}`);
+      toast.error(`Access denied: ${e?.message || "unknown error"}`);
     } finally {
       setEnteringId(null);
     }
