@@ -770,27 +770,33 @@ export type Database = {
       }
       clinic_switch_log: {
         Row: {
+          access_granted: boolean | null
           admin_id: string | null
           clinic_id: string
           created_at: string | null
           from_clinic: string | null
           id: string
+          reason: string | null
           to_clinic: string | null
         }
         Insert: {
+          access_granted?: boolean | null
           admin_id?: string | null
           clinic_id: string
           created_at?: string | null
           from_clinic?: string | null
           id?: string
+          reason?: string | null
           to_clinic?: string | null
         }
         Update: {
+          access_granted?: boolean | null
           admin_id?: string | null
           clinic_id?: string
           created_at?: string | null
           from_clinic?: string | null
           id?: string
+          reason?: string | null
           to_clinic?: string | null
         }
         Relationships: []
