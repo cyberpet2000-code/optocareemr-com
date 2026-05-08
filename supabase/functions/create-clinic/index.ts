@@ -134,7 +134,9 @@ Deno.serve(async (req) => {
 
     if (invErr || !invite) {
       console.error("clinic_invites insert failed", invErr);
-      await admin.from("clinics").delete().eq("id", clinic.id).catch(() => {});
+      if (!reused) {
+        await admin.from("clinics").delete().eq("id", clinic.id).catch(() => {});
+      }
       return json({ error: invErr?.message || "Failed to create invite" }, 400);
     }
 
