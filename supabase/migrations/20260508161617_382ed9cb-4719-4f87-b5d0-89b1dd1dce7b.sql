@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS clinics_name_lower_unique ON public.clinics (lower(name));
