@@ -132,11 +132,19 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     setRoleLoading(false);
 
     const isSuper = primaryRole === "super_admin";
-    // STRICT: super_admin only enters a clinic via explicit switch (activeClinicId).
-    // Non-super: prefer explicit active selection, fallback to profile.clinic_id (legacy single-clinic users).
+    // STRICT: every user (including super_admin) needs a user_roles row to enter a clinic.
+    // Drop stale localStorage active clinic if no membership exists.
+    const hasMembershipForOverride = overrideClinicId
+      ? membershipRows.some(m => m.clinic_id === overrideClinicId)
+      : false;
+    const validatedOverride = hasMembershipForOverride ? overrideClinicId : null;
+    if (overrideClinicId && !hasMembershipForOverride) {
+      persistActive(null);
+      setActiveClinicIdState(null);
+    }
     const effectiveClinicId = isSuper
-      ? overrideClinicId
-      : (overrideClinicId || nextProfile?.clinic_id || null);
+      ? validatedOverride
+      : (validatedOverride || (membershipRows.some(m => m.clinic_id === nextProfile?.clinic_id) ? nextProfile?.clinic_id : null) || null);
 
     if (!effectiveClinicId) {
       setClinic(null); setClinicLoading(false); applyClinicTheme(null); return;
