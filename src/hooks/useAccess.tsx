@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { assertClinicAccess } from "@/lib/route-access";
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
 const ACTIVE_CLINIC_KEY = "active_clinic_id";
