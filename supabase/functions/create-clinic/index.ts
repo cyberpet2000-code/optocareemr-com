@@ -61,28 +61,61 @@ Deno.serve(async (req) => {
       return json({ error: "Valid admin email is required" }, 400);
     }
 
-    // 1) Create the clinic
-    const trialStart = new Date();
-    const trialEnd = new Date(trialStart.getTime() + 14 * 86400000);
-    console.log("Creating clinic", { clinic_name, admin_email });
-    const { data: clinic, error: clinicErr } = await admin
+    // 1) Idempotency check — return existing clinic if name (case-insensitive) already exists
+    console.log("Checking for existing clinic by name", { clinic_name });
+    const { data: existing, error: existingErr } = await admin
       .from("clinics")
-      .insert({
-        name: clinic_name,
-        email: admin_email,
-        is_active: true,
-        subscription_status: "trial",
-        trial_start_date: trialStart.toISOString(),
-        trial_end_date: trialEnd.toISOString(),
-        setup_completed: false,
-        onboarding_step: "welcome",
-      })
       .select("id, name")
-      .single();
+      .ilike("name", clinic_name)
+      .maybeSingle();
+    if (existingErr) {
+      console.error("existing clinic lookup failed", existingErr);
+    }
 
-    if (clinicErr || !clinic) {
-      console.error("clinic insert failed", clinicErr);
-      return json({ error: clinicErr?.message || "Clinic insert failed" }, 400);
+    let clinic: { id: string; name: string };
+    let reused = false;
+
+    if (existing) {
+      console.log("Clinic already exists — reusing", { clinic_id: existing.id });
+      clinic = existing as any;
+      reused = true;
+    } else {
+      const trialStart = new Date();
+      const trialEnd = new Date(trialStart.getTime() + 14 * 86400000);
+      console.log("Creating clinic", { clinic_name, admin_email });
+      const { data: created, error: clinicErr } = await admin
+        .from("clinics")
+        .insert({
+          name: clinic_name,
+          email: admin_email,
+          is_active: true,
+          subscription_status: "trial",
+          trial_start_date: trialStart.toISOString(),
+          trial_end_date: trialEnd.toISOString(),
+          setup_completed: false,
+          onboarding_step: "welcome",
+        })
+        .select("id, name")
+        .single();
+
+      if (clinicErr || !created) {
+        // If unique-index race condition, fall back to existing
+        if ((clinicErr as any)?.code === "23505") {
+          const { data: race } = await admin
+            .from("clinics").select("id, name").ilike("name", clinic_name).maybeSingle();
+          if (race) {
+            clinic = race as any;
+            reused = true;
+          } else {
+            return json({ error: clinicErr?.message || "Clinic insert failed" }, 400);
+          }
+        } else {
+          console.error("clinic insert failed", clinicErr);
+          return json({ error: clinicErr?.message || "Clinic insert failed" }, 400);
+        }
+      } else {
+        clinic = created as any;
+      }
     }
 
     // 2) Create the invite (token defaults to gen_random_uuid())
@@ -101,7 +134,9 @@ Deno.serve(async (req) => {
 
     if (invErr || !invite) {
       console.error("clinic_invites insert failed", invErr);
-      await admin.from("clinics").delete().eq("id", clinic.id).catch(() => {});
+      if (!reused) {
+        await admin.from("clinics").delete().eq("id", clinic.id).catch(() => {});
+      }
       return json({ error: invErr?.message || "Failed to create invite" }, 400);
     }
 
@@ -137,6 +172,7 @@ Deno.serve(async (req) => {
 
     return json({
       ok: true,
+      reused,
       clinic_id: clinic.id,
       clinic_name: clinic.name,
       invite_token: invite.token,
