@@ -15,6 +15,7 @@ interface PatientRow {
   payment_type: string;
   active_hmo_id: string | null;
   queue_number: number;
+  patient_number: string | null;
   hmo_name?: string;
 }
 
