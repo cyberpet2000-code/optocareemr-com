@@ -66,6 +66,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const [activeClinicId, setActiveClinicIdState] = useState<string | null>(() => {
     try { return localStorage.getItem(ACTIVE_CLINIC_KEY); } catch { return null; }
   });
+  const [memberships, setMemberships] = useState<Array<{ clinic_id: string; role: string; clinic_name: string | null; setup_completed: boolean | null }>>([]);
   const requestRef = useRef(0);
 
   const persistActive = (id: string | null) => {
