@@ -172,6 +172,7 @@ Deno.serve(async (req) => {
 
     return json({
       ok: true,
+      reused,
       clinic_id: clinic.id,
       clinic_name: clinic.name,
       invite_token: invite.token,
