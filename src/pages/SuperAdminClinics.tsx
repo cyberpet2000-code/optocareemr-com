@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Plus, LogIn } from "lucide-react";
+import { Building2, Plus, LogIn, UserPlus, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAccess } from "@/hooks/useAccess";
 import { toast } from "sonner";
 
@@ -12,6 +15,13 @@ export default function SuperAdminClinics() {
   const [enteringId, setEnteringId] = useState<string | null>(null);
   const { switchClinic } = useAccess();
   const navigate = useNavigate();
+
+  // Invite dialog state
+  const [inviteFor, setInviteFor] = useState<{ id: string; name: string } | null>(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -35,6 +45,41 @@ export default function SuperAdminClinics() {
       toast.error(`Access denied: ${e?.message || "unknown error"}`);
     } finally {
       setEnteringId(null);
+    }
+  };
+
+  const openInvite = (c: any) => {
+    setInviteFor({ id: c.id, name: c.name });
+    setInviteEmail("");
+    setInviteLink(null);
+    setCopied(false);
+  };
+
+  const sendInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteFor) return;
+    setInviting(true);
+    const { data, error } = await supabase.functions.invoke("create-clinic-invite", {
+      body: { clinic_id: inviteFor.id, email: inviteEmail.trim(), role: "admin", origin: window.location.origin },
+    });
+    setInviting(false);
+    if (error || (data as any)?.error) {
+      toast.error((data as any)?.error || error?.message || "Failed to create invite");
+      return;
+    }
+    const link = (data as any)?.link as string;
+    setInviteLink(link);
+    toast.success("Invite created. Share the link with the admin.");
+  };
+
+  const copyLink = async () => {
+    if (!inviteLink) return;
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Could not copy link");
     }
   };
 
@@ -75,9 +120,14 @@ export default function SuperAdminClinics() {
                   <td className="py-2.5 pr-3 text-xs text-muted-foreground">{c.trial_end_date ? new Date(c.trial_end_date).toLocaleDateString() : "—"}</td>
                   <td className="py-2.5 pr-3 text-xs">{c.is_active ? "Yes" : "No"}</td>
                   <td className="py-2.5 pr-3 text-right">
-                    <Button size="sm" variant="outline" onClick={() => enter(c)} disabled={enteringId === c.id || !!enteringId}>
-                      <LogIn size={14} className="mr-1" /> {enteringId === c.id ? "Entering…" : "Enter"}
-                    </Button>
+                    <div className="inline-flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => openInvite(c)}>
+                        <UserPlus size={14} className="mr-1" /> Invite admin
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => enter(c)} disabled={enteringId === c.id || !!enteringId}>
+                        <LogIn size={14} className="mr-1" /> {enteringId === c.id ? "Entering…" : "Enter"}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -85,6 +135,60 @@ export default function SuperAdminClinics() {
           </table>
         )}
       </div>
+
+      <Dialog open={!!inviteFor} onOpenChange={(o) => !o && setInviteFor(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Invite clinic admin</DialogTitle>
+          </DialogHeader>
+          {inviteFor && (
+            <form onSubmit={sendInvite} className="space-y-3">
+              <div className="text-xs text-muted-foreground">Clinic: <span className="font-medium text-foreground">{inviteFor.name}</span></div>
+              <div className="space-y-1.5">
+                <Label>Admin email</Label>
+                <Input
+                  type="email"
+                  required
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  disabled={!!inviteLink}
+                  placeholder="admin@clinic.com"
+                />
+              </div>
+
+              {inviteLink ? (
+                <div className="space-y-2">
+                  <Label>Share this link</Label>
+                  <div className="flex items-stretch gap-2">
+                    <Input readOnly value={inviteLink} onFocus={(e) => e.currentTarget.select()} />
+                    <Button type="button" variant="outline" onClick={copyLink}>
+                      {copied ? <Check size={14} /> : <Copy size={14} />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    The recipient will sign in (or sign up) with this email and will be granted clinic admin access.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  We'll generate a single-use link. Share it with the admin — they'll sign in with this email to accept.
+                </p>
+              )}
+
+              <DialogFooter>
+                <Button type="button" variant="ghost" onClick={() => setInviteFor(null)}>
+                  {inviteLink ? "Done" : "Cancel"}
+                </Button>
+                {!inviteLink && (
+                  <Button type="submit" disabled={inviting}>
+                    {inviting ? "Creating…" : "Create invite"}
+                  </Button>
+                )}
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
