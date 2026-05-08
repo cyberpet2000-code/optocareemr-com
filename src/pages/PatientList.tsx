@@ -86,6 +86,7 @@ export default function PatientList() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-semibold truncate">{p.full_name}</p>
+                      {p.patient_number && <span className="text-[10px] font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">{p.patient_number}</span>}
                       <span className="text-[10px] font-mono text-muted-foreground">#{p.queue_number}</span>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium uppercase ${
                         isHmo ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"
