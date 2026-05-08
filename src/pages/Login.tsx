@@ -57,7 +57,7 @@ export default function Login() {
         } else if (isSuper) {
           dest = "/super-admin";
         } else if (clinicMemberships.length === 0) {
-          dest = "/select-clinic";
+          dest = "/no-access";
         } else {
           dest = "/select-clinic";
         }

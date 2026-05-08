@@ -540,23 +540,32 @@ export type Database = {
       clinic_invites: {
         Row: {
           clinic_id: string | null
+          created_at: string | null
           email: string | null
           id: string
+          invited_by: string | null
           role: string | null
+          status: string | null
           token: string | null
         }
         Insert: {
           clinic_id?: string | null
+          created_at?: string | null
           email?: string | null
           id?: string
+          invited_by?: string | null
           role?: string | null
+          status?: string | null
           token?: string | null
         }
         Update: {
           clinic_id?: string | null
+          created_at?: string | null
           email?: string | null
           id?: string
+          invited_by?: string | null
           role?: string | null
+          status?: string | null
           token?: string | null
         }
         Relationships: []
@@ -704,6 +713,7 @@ export type Database = {
           id: string
           primary_color: string | null
           secondary_color: string | null
+          setup_completed: boolean | null
         }
         Insert: {
           clinic_address?: string | null
@@ -715,6 +725,7 @@ export type Database = {
           id?: string
           primary_color?: string | null
           secondary_color?: string | null
+          setup_completed?: boolean | null
         }
         Update: {
           clinic_address?: string | null
@@ -726,6 +737,7 @@ export type Database = {
           id?: string
           primary_color?: string | null
           secondary_color?: string | null
+          setup_completed?: boolean | null
         }
         Relationships: []
       }
