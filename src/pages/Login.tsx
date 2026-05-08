@@ -49,7 +49,12 @@ export default function Login() {
         const clinicMemberships = Array.from(new Set(rows.map(r => r.clinic_id).filter(Boolean) as string[]));
         // Clear any stale active clinic on a fresh login
         try { localStorage.removeItem("active_clinic_id"); } catch {}
-        if (isSuper) {
+        // Honor pending invite token (set by /accept-invite when unauthenticated)
+        let pendingInvite: string | null = null;
+        try { pendingInvite = sessionStorage.getItem("pending_invite_token"); } catch {}
+        if (pendingInvite) {
+          dest = `/accept-invite?token=${encodeURIComponent(pendingInvite)}`;
+        } else if (isSuper) {
           dest = "/super-admin";
         } else if (clinicMemberships.length === 0) {
           dest = "/select-clinic";
