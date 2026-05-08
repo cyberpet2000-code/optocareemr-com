@@ -242,9 +242,14 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const isAuthReady = !authLoading && (!isAuthenticated || (!profileLoading && !roleLoading && !clinicLoading));
   const roleMissing = isAuthenticated && isAuthReady && !role;
 
+  const hasMembershipForActive = activeClinicId
+    ? memberships.some(m => m.clinic_id === activeClinicId)
+    : false;
   const effectiveClinicId = role === "super_admin"
-    ? activeClinicId
-    : (activeClinicId || profile?.clinic_id || null);
+    ? (hasMembershipForActive ? activeClinicId : null)
+    : (hasMembershipForActive
+        ? activeClinicId
+        : (memberships.some(m => m.clinic_id === profile?.clinic_id) ? profile?.clinic_id : null) || null);
 
   const value = useMemo(() => ({
     user, authLoading, profile, profileError, clinic, roles, role, memberships,
