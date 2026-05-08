@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { assertClinicAccess } from "@/lib/route-access";
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
 const ACTIVE_CLINIC_KEY = "active_clinic_id";
@@ -131,11 +132,19 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     setRoleLoading(false);
 
     const isSuper = primaryRole === "super_admin";
-    // STRICT: super_admin only enters a clinic via explicit switch (activeClinicId).
-    // Non-super: prefer explicit active selection, fallback to profile.clinic_id (legacy single-clinic users).
+    // STRICT: every user (including super_admin) needs a user_roles row to enter a clinic.
+    // Drop stale localStorage active clinic if no membership exists.
+    const hasMembershipForOverride = overrideClinicId
+      ? membershipRows.some(m => m.clinic_id === overrideClinicId)
+      : false;
+    const validatedOverride = hasMembershipForOverride ? overrideClinicId : null;
+    if (overrideClinicId && !hasMembershipForOverride) {
+      persistActive(null);
+      setActiveClinicIdState(null);
+    }
     const effectiveClinicId = isSuper
-      ? overrideClinicId
-      : (overrideClinicId || nextProfile?.clinic_id || null);
+      ? validatedOverride
+      : (validatedOverride || (membershipRows.some(m => m.clinic_id === nextProfile?.clinic_id) ? nextProfile?.clinic_id : null) || null);
 
     if (!effectiveClinicId) {
       setClinic(null); setClinicLoading(false); applyClinicTheme(null); return;
@@ -182,21 +191,25 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     let granted = true;
     let reason: string | null = null;
 
-    // Validate membership for non-super-admins, and even for super_admin verify clinic exists
+    // SINGLE SOURCE OF TRUTH: every user (including super_admin) must have a user_roles
+    // record for the target clinic. No bypasses.
     if (clinicId && user) {
-      const isSuper = role === "super_admin" || profile?.is_super_admin === true;
-      if (!isSuper) {
-        const { data: membership } = await supabase
-          .from("user_roles")
-          .select("clinic_id")
-          .eq("user_id", user.id)
-          .eq("clinic_id", clinicId)
-          .maybeSingle();
-        if (!membership) {
-          granted = false;
-          reason = "no membership in target clinic";
-          throw new Error("You do not have access to this clinic.");
-        }
+      const grantedRole = await assertClinicAccess(supabase as any, user.id, clinicId);
+      if (!grantedRole) {
+        granted = false;
+        reason = "no membership in target clinic";
+        // Log denial then throw
+        try {
+          await supabase.from("clinic_switch_log").insert({
+            admin_id: user.id,
+            from_clinic: fromClinic,
+            to_clinic: clinicId,
+            clinic_id: clinicId,
+            access_granted: false,
+            reason,
+          } as any);
+        } catch {}
+        throw new Error("You do not have access to this clinic.");
       }
     }
 
@@ -229,9 +242,14 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const isAuthReady = !authLoading && (!isAuthenticated || (!profileLoading && !roleLoading && !clinicLoading));
   const roleMissing = isAuthenticated && isAuthReady && !role;
 
+  const hasMembershipForActive = activeClinicId
+    ? memberships.some(m => m.clinic_id === activeClinicId)
+    : false;
   const effectiveClinicId = role === "super_admin"
-    ? activeClinicId
-    : (activeClinicId || profile?.clinic_id || null);
+    ? (hasMembershipForActive ? activeClinicId : null)
+    : (hasMembershipForActive
+        ? activeClinicId
+        : (memberships.some(m => m.clinic_id === profile?.clinic_id) ? profile?.clinic_id : null) || null);
 
   const value = useMemo(() => ({
     user, authLoading, profile, profileError, clinic, roles, role, memberships,
