@@ -20,7 +20,6 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
 
-    // Resolve the caller from their JWT.
     const userClient = createClient(url, anon, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -31,6 +30,7 @@ Deno.serve(async (req) => {
     }
     const callerId = userData.user.id;
     const callerEmail = userData.user.email ?? null;
+    console.log("Using existing authenticated user", { user_id: callerId, email: callerEmail });
 
     const admin = createClient(url, serviceKey);
 
@@ -49,9 +49,9 @@ Deno.serve(async (req) => {
       return json({ error: "Clinic name is required" }, 400);
     }
 
-    // 1) Create clinic
     const trialStart = new Date();
     const trialEnd = new Date(trialStart.getTime() + 14 * 86400000);
+    console.log("Creating clinic", { clinic_name: String(clinic_name).trim(), user_id: callerId });
     const { data: clinic, error: clinicErr } = await admin
       .from("clinics")
       .insert({
@@ -73,8 +73,6 @@ Deno.serve(async (req) => {
       return json({ error: clinicErr?.message || "Clinic insert failed" }, 400);
     }
 
-    // 2) Ensure caller has a profile (no duplicates — upsert by id).
-    //    Do NOT overwrite their primary clinic_id if already set; only fill if null.
     const profilePayload: Record<string, unknown> = {
       id: callerId,
       full_name: callerProfile?.full_name || userData.user.user_metadata?.full_name || callerEmail,
@@ -93,7 +91,6 @@ Deno.serve(async (req) => {
       return json({ error: profileErr.message }, 400);
     }
 
-    // 3) Link caller to clinic via clinic_users (idempotent — supports multi-clinic membership)
     const { error: linkErr } = await admin
       .from("clinic_users")
       .upsert(
@@ -106,12 +103,15 @@ Deno.serve(async (req) => {
       return json({ error: linkErr.message }, 400);
     }
 
-    // 4) Grant clinic_admin role (ignore unique-conflict)
+    console.log("Assigning clinic role", { clinic_id: clinic.id, user_id: callerId, role: "admin" });
     const { error: roleErr } = await admin
       .from("user_roles")
       .insert({ user_id: callerId, role: "admin" } as any);
     if (roleErr && !String(roleErr.message || "").toLowerCase().includes("duplicate")) {
-      console.warn("user_roles insert warning", roleErr);
+      console.error("user_roles insert failed", roleErr);
+      await admin.from("clinic_users").delete().eq("user_id", callerId).eq("clinic_id", clinic.id).catch(() => {});
+      await admin.from("clinics").delete().eq("id", clinic.id).catch(() => {});
+      return json({ error: roleErr.message }, 400);
     }
 
     return json({ ok: true, clinic_id: clinic.id, user_id: callerId });
