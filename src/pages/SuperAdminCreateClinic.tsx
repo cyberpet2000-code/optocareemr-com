@@ -16,9 +16,6 @@ export default function SuperAdminCreateClinic() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     clinic_name: "",
-    admin_full_name: "",
-    admin_email: "",
-    admin_password: "",
     phone: "",
   });
 
@@ -59,7 +56,7 @@ export default function SuperAdminCreateClinic() {
         </div>
         <div>
           <h1 className="text-xl font-bold">Create Clinic</h1>
-          <p className="text-sm text-muted-foreground">Provision a new clinic with admin access (14-day trial)</p>
+          <p className="text-sm text-muted-foreground">Provision a new clinic linked to your account (14-day trial)</p>
         </div>
       </div>
 
@@ -68,25 +65,13 @@ export default function SuperAdminCreateClinic() {
           <Label>Clinic Name *</Label>
           <Input required value={form.clinic_name} onChange={e => set("clinic_name", e.target.value)} maxLength={120} />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label>Admin Full Name *</Label>
-            <Input required value={form.admin_full_name} onChange={e => set("admin_full_name", e.target.value)} maxLength={120} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Phone (optional)</Label>
-            <Input value={form.phone} onChange={e => set("phone", e.target.value)} maxLength={32} />
-          </div>
-        </div>
         <div className="space-y-1.5">
-          <Label>Admin Email *</Label>
-          <Input type="email" required value={form.admin_email} onChange={e => set("admin_email", e.target.value)} />
+          <Label>Phone (optional)</Label>
+          <Input value={form.phone} onChange={e => set("phone", e.target.value)} maxLength={32} />
         </div>
-        <div className="space-y-1.5">
-          <Label>Admin Password *</Label>
-          <Input type="password" required minLength={8} value={form.admin_password} onChange={e => set("admin_password", e.target.value)} />
-          <p className="text-xs text-muted-foreground">Minimum 8 characters. Share securely with the admin.</p>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          You will be added as the clinic admin using your current account. You can switch into this clinic afterwards.
+        </p>
 
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Creating clinic..." : "Create Clinic"}
