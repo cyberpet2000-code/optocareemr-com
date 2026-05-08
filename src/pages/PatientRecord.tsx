@@ -40,11 +40,11 @@ const emptyVisitForm = () => ({
   vaAidedOdPh: "", vaAidedOsPh: "",
   vaAidedNearOu: "",
   // Auto refraction
-  autoOdSphere: "", autoOdCyl: "", autoOdAxis: "",
-  autoOsSphere: "", autoOsCyl: "", autoOsAxis: "",
+  autoOdSphere: "", autoOdCyl: "", autoOdAxis: "", autoVaOd: "",
+  autoOsSphere: "", autoOsCyl: "", autoOsAxis: "", autoVaOs: "",
   // Subjective refraction
-  subOdSphere: "", subOdCyl: "", subOdAxis: "",
-  subOsSphere: "", subOsCyl: "", subOsAxis: "",
+  subOdSphere: "", subOdCyl: "", subOdAxis: "", subVaOd: "",
+  subOsSphere: "", subOsCyl: "", subOsAxis: "", subVaOs: "",
   subReadingAdd: "", subVaOutcome: "",
   examination: "",
   iopOd: "", iopOs: "",
