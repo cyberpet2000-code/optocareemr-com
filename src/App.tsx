@@ -31,6 +31,7 @@ import SuperAdminSafety from "./pages/SuperAdminSafety";
 import SuperAdminSwitchAudit from "./pages/SuperAdminSwitchAudit";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
+import SelectClinic from "./pages/SelectClinic";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
