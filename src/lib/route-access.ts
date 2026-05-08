@@ -9,6 +9,7 @@ type ProtectedRouteInput = {
   clinicId: string | null | undefined;
   setupCompleted: boolean | null | undefined;
   roleMissing: boolean;
+  membershipsCount?: number;
 };
 
 type RouteDecision =
@@ -21,25 +22,29 @@ export function resolveDefaultRoute({
   role,
   clinicId,
   setupCompleted,
+  membershipsCount = 0,
 }: {
   role: string | null;
   clinicId: string | null | undefined;
   setupCompleted: boolean | null | undefined;
+  membershipsCount?: number;
 }) {
   if (role === "super_admin") {
-    if (clinicId && setupCompleted === false) return "/onboarding";
-    if (clinicId && setupCompleted) return "/dashboard";
+    // STRICT: super_admin never auto-enters a clinic
     return "/super-admin";
   }
-  if (!clinicId || setupCompleted === false) return "/onboarding";
-  return "/dashboard";
+  if (clinicId) {
+    if (setupCompleted === false) return "/onboarding";
+    return "/dashboard";
+  }
+  if (membershipsCount > 0) return "/select-clinic";
+  return "/select-clinic";
 }
 
 export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision {
-  const { path, isAuthenticated, isAuthReady, didTimeout, role, clinicId, setupCompleted, roleMissing } = input;
+  const { path, isAuthenticated, isAuthReady, didTimeout, role, clinicId, setupCompleted, roleMissing, membershipsCount = 0 } = input;
   const isSuperAdmin = role === "super_admin";
   const hasActiveClinic = !!clinicId;
-  const requiresOnboarding = (!isSuperAdmin || hasActiveClinic) && (!clinicId || setupCompleted === false);
 
   if (!isAuthReady && !didTimeout) {
     return { type: "loading", label: "Loading OptoCare…" };
@@ -54,7 +59,11 @@ export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision
   }
 
   if (path === "/") {
-    return { type: "redirect", to: resolveDefaultRoute({ role, clinicId, setupCompleted }) };
+    return { type: "redirect", to: resolveDefaultRoute({ role, clinicId, setupCompleted, membershipsCount }) };
+  }
+
+  if (path === "/select-clinic") {
+    return { type: "allow" };
   }
 
   if (path.startsWith("/super-admin")) {
@@ -62,29 +71,23 @@ export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision
   }
 
   if (path === "/onboarding") {
-    if (!clinicId) {
-      return isSuperAdmin ? { type: "redirect", to: "/super-admin" } : { type: "error", label: "No active clinic. Contact support." };
+    if (!hasActiveClinic) {
+      return isSuperAdmin
+        ? { type: "redirect", to: "/super-admin" }
+        : { type: "redirect", to: "/select-clinic" };
     }
     if (setupCompleted === false) return { type: "allow" };
     return { type: "redirect", to: isSuperAdmin ? "/super-admin" : "/dashboard" };
   }
 
-  if (path.startsWith("/dashboard")) {
-    if (isSuperAdmin) {
-      if (!hasActiveClinic) return { type: "redirect", to: "/super-admin" };
-      if (setupCompleted === false) return { type: "redirect", to: "/onboarding" };
-      return { type: "allow" };
-    }
-    return requiresOnboarding ? { type: "redirect", to: "/onboarding" } : { type: "allow" };
+  // Any other clinic-scoped route
+  if (!hasActiveClinic) {
+    return isSuperAdmin
+      ? { type: "redirect", to: "/super-admin" }
+      : { type: "redirect", to: "/select-clinic" };
   }
 
-  if (isSuperAdmin && !path.startsWith("/super-admin")) {
-    if (!hasActiveClinic) return { type: "redirect", to: "/super-admin" };
-    if (setupCompleted === false && path !== "/onboarding") return { type: "redirect", to: "/onboarding" };
-    return { type: "allow" };
-  }
-
-  if (requiresOnboarding) {
+  if (setupCompleted === false) {
     return { type: "redirect", to: "/onboarding" };
   }
 

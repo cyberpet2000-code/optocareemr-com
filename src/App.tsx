@@ -31,6 +31,7 @@ import SuperAdminSafety from "./pages/SuperAdminSafety";
 import SuperAdminSwitchAudit from "./pages/SuperAdminSwitchAudit";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
+import SelectClinic from "./pages/SelectClinic";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -63,7 +64,7 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { clinic, profile, effectiveClinicId } = useClinic();
   const { role } = useRole();
-  const { isAuthReady, roleMissing } = useAccess();
+  const { isAuthReady, roleMissing, memberships } = useAccess();
   const location = useLocation();
   const [timedOut, setTimedOut] = useState(false);
 
@@ -86,9 +87,10 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
     isAuthReady,
     didTimeout: timedOut,
     role,
-    clinicId: effectiveClinicId ?? profile?.clinic_id,
+    clinicId: effectiveClinicId,
     setupCompleted: clinic?.setup_completed,
     roleMissing,
+    membershipsCount: (memberships || []).length,
   });
 
   if (decision.type === "loading") {
@@ -123,6 +125,7 @@ export function AppRoutes() {
         <ProtectedRouteGate>
           <Routes>
             <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/select-clinic" element={<SelectClinic />} />
 
             <Route path="/super-admin" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
             <Route path="/super-admin-dashboard" element={<Navigate to="/super-admin" replace />} />
@@ -156,10 +159,10 @@ export function AppRoutes() {
 }
 
 function LandingRedirect() {
-  const { clinic, profile, effectiveClinicId } = useClinic();
+  const { clinic, effectiveClinicId } = useClinic();
   const { role } = useRole();
-
-  return <Navigate to={resolveDefaultRoute({ role, clinicId: effectiveClinicId ?? profile?.clinic_id, setupCompleted: clinic?.setup_completed })} replace />;
+  const { memberships } = useAccess();
+  return <Navigate to={resolveDefaultRoute({ role, clinicId: effectiveClinicId, setupCompleted: clinic?.setup_completed, membershipsCount: (memberships || []).length })} replace />;
 }
 
 const App = () => (
