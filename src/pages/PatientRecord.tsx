@@ -300,41 +300,47 @@ export default function PatientRecord() {
         <TabsContent value="refraction" className="space-y-4">
           <div className="form-section">
             <h2 className="section-title text-sm"><Eye size={16} /> Auto Refraction</h2>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               <div />
               <Label className="text-[10px] text-center text-muted-foreground font-semibold">Sphere</Label>
               <Label className="text-[10px] text-center text-muted-foreground font-semibold">Cyl</Label>
               <Label className="text-[10px] text-center text-muted-foreground font-semibold">Axis</Label>
+              <Label className="text-[10px] text-center text-muted-foreground font-semibold">VA</Label>
 
               <Label className="text-xs flex items-center font-semibold">OD</Label>
               <Input className="rounded-xl text-center" value={form.autoOdSphere} onChange={e => set("autoOdSphere", e.target.value)} placeholder="-1.00" />
               <Input className="rounded-xl text-center" value={form.autoOdCyl} onChange={e => set("autoOdCyl", e.target.value)} placeholder="-0.50" />
               <Input className="rounded-xl text-center" value={form.autoOdAxis} onChange={e => set("autoOdAxis", e.target.value)} placeholder="180" />
+              <Input className="rounded-xl text-center" value={form.autoVaOd} onChange={e => set("autoVaOd", e.target.value)} placeholder="6/6" />
 
               <Label className="text-xs flex items-center font-semibold">OS</Label>
               <Input className="rounded-xl text-center" value={form.autoOsSphere} onChange={e => set("autoOsSphere", e.target.value)} placeholder="-1.00" />
               <Input className="rounded-xl text-center" value={form.autoOsCyl} onChange={e => set("autoOsCyl", e.target.value)} placeholder="-0.50" />
               <Input className="rounded-xl text-center" value={form.autoOsAxis} onChange={e => set("autoOsAxis", e.target.value)} placeholder="180" />
+              <Input className="rounded-xl text-center" value={form.autoVaOs} onChange={e => set("autoVaOs", e.target.value)} placeholder="6/6" />
             </div>
           </div>
 
           <div className="form-section">
             <h2 className="section-title text-sm"><Eye size={16} /> Subjective Refraction</h2>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               <div />
               <Label className="text-[10px] text-center text-muted-foreground font-semibold">Sphere</Label>
               <Label className="text-[10px] text-center text-muted-foreground font-semibold">Cyl</Label>
               <Label className="text-[10px] text-center text-muted-foreground font-semibold">Axis</Label>
+              <Label className="text-[10px] text-center text-muted-foreground font-semibold">VA</Label>
 
               <Label className="text-xs flex items-center font-semibold">OD</Label>
               <Input className="rounded-xl text-center" value={form.subOdSphere} onChange={e => set("subOdSphere", e.target.value)} placeholder="-1.00" />
               <Input className="rounded-xl text-center" value={form.subOdCyl} onChange={e => set("subOdCyl", e.target.value)} placeholder="-0.50" />
               <Input className="rounded-xl text-center" value={form.subOdAxis} onChange={e => set("subOdAxis", e.target.value)} placeholder="180" />
+              <Input className="rounded-xl text-center" value={form.subVaOd} onChange={e => set("subVaOd", e.target.value)} placeholder="6/6" />
 
               <Label className="text-xs flex items-center font-semibold">OS</Label>
               <Input className="rounded-xl text-center" value={form.subOsSphere} onChange={e => set("subOsSphere", e.target.value)} placeholder="-1.00" />
               <Input className="rounded-xl text-center" value={form.subOsCyl} onChange={e => set("subOsCyl", e.target.value)} placeholder="-0.50" />
               <Input className="rounded-xl text-center" value={form.subOsAxis} onChange={e => set("subOsAxis", e.target.value)} placeholder="180" />
+              <Input className="rounded-xl text-center" value={form.subVaOs} onChange={e => set("subVaOs", e.target.value)} placeholder="6/6" />
             </div>
             <div className="grid grid-cols-2 gap-3 mt-3">
               <div className="space-y-1"><Label className="text-xs">Reading ADD</Label><Input className="rounded-xl" value={form.subReadingAdd} onChange={e => set("subReadingAdd", e.target.value)} placeholder="+1.50" /></div>
