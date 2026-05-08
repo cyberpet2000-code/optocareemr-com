@@ -183,21 +183,25 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     let granted = true;
     let reason: string | null = null;
 
-    // Validate membership for non-super-admins, and even for super_admin verify clinic exists
+    // SINGLE SOURCE OF TRUTH: every user (including super_admin) must have a user_roles
+    // record for the target clinic. No bypasses.
     if (clinicId && user) {
-      const isSuper = role === "super_admin" || profile?.is_super_admin === true;
-      if (!isSuper) {
-        const { data: membership } = await supabase
-          .from("user_roles")
-          .select("clinic_id")
-          .eq("user_id", user.id)
-          .eq("clinic_id", clinicId)
-          .maybeSingle();
-        if (!membership) {
-          granted = false;
-          reason = "no membership in target clinic";
-          throw new Error("You do not have access to this clinic.");
-        }
+      const grantedRole = await assertClinicAccess(supabase as any, user.id, clinicId);
+      if (!grantedRole) {
+        granted = false;
+        reason = "no membership in target clinic";
+        // Log denial then throw
+        try {
+          await supabase.from("clinic_switch_log").insert({
+            admin_id: user.id,
+            from_clinic: fromClinic,
+            to_clinic: clinicId,
+            clinic_id: clinicId,
+            access_granted: false,
+            reason,
+          } as any);
+        } catch {}
+        throw new Error("You do not have access to this clinic.");
       }
     }
 
