@@ -35,14 +35,9 @@ export default function SuperAdminCreateClinic() {
       toast.error((data as any)?.error || error?.message || "Failed to create clinic");
       return;
     }
-    const newClinicId = (data as any)?.clinic_id;
-    if (!newClinicId) {
-      toast.error("Clinic created but no id returned");
-      return;
-    }
-    await switchClinic(newClinicId);
-    toast.success("Clinic created — entering onboarding");
-    navigate("/onboarding", { replace: true });
+    // STRICT: do NOT auto-switch into the new clinic for super_admin.
+    toast.success("Clinic created. Use 'Enter' from the clinics list to switch into it.");
+    navigate("/super-admin/clinics", { replace: true });
   };
 
   return (
