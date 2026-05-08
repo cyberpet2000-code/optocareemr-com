@@ -28,7 +28,7 @@ export default function PatientList() {
     (async () => {
       const { data } = await supabase
         .from("patients")
-        .select("id, full_name, age, gender, phone, payment_type, active_hmo_id, queue_number")
+        .select("id, full_name, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number")
         .order("created_at", { ascending: false });
       if (!data) { setLoading(false); return; }
       const hmoIds = [...new Set(data.map((p: any) => p.active_hmo_id).filter(Boolean))];
