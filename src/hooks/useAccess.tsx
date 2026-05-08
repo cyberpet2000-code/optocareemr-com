@@ -81,7 +81,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     requestRef.current = requestId;
 
     if (!nextUser) {
-      setProfile(null); setClinic(null); setRoles([]); setRole(null);
+      setProfile(null); setClinic(null); setRoles([]); setRole(null); setMemberships([]);
       setProfileLoading(false); setRoleLoading(false); setClinicLoading(false);
       applyClinicTheme(null);
       return;
@@ -91,13 +91,37 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     setProfileError(null);
 
     const profileResult = await supabase.from("profiles").select("*").eq("id", nextUser.id).maybeSingle();
-    const userRolesResult = await supabase.from("user_roles").select("role").eq("user_id", nextUser.id);
+    const userRolesResult = await supabase.from("user_roles").select("role, clinic_id").eq("user_id", nextUser.id);
     if (requestRef.current !== requestId) return;
 
     const nextProfile = profileResult.data || null;
-    const fallbackRoles = (userRolesResult.data || []).map((r: any) => normalizeRole(r.role)).filter(Boolean);
+    const userRolesRows = (userRolesResult.data || []) as Array<{ role: string; clinic_id: string | null }>;
+    const fallbackRoles = userRolesRows.map(r => normalizeRole(r.role)).filter(Boolean) as string[];
     const primaryRole = resolvePrimaryRole(nextProfile, fallbackRoles);
     const nextRoles = Array.from(new Set([primaryRole, ...fallbackRoles].filter(Boolean))) as string[];
+
+    // Build memberships: clinics the user has a role in (excluding super_admin global rows w/ no clinic)
+    const membershipClinicIds = Array.from(new Set(userRolesRows.map(r => r.clinic_id).filter(Boolean) as string[]));
+    let membershipRows: typeof memberships = [];
+    if (membershipClinicIds.length) {
+      const { data: clinicsData } = await supabase
+        .from("clinics")
+        .select("id, name, setup_completed")
+        .in("id", membershipClinicIds);
+      const clinicMap = new Map((clinicsData || []).map((c: any) => [c.id, c]));
+      membershipRows = userRolesRows
+        .filter(r => r.clinic_id)
+        .map(r => {
+          const c: any = clinicMap.get(r.clinic_id as string);
+          return {
+            clinic_id: r.clinic_id as string,
+            role: r.role,
+            clinic_name: c?.name ?? null,
+            setup_completed: c?.setup_completed ?? null,
+          };
+        });
+    }
+    setMemberships(membershipRows);
 
     setProfile(nextProfile);
     setProfileError(profileResult.error || null);
@@ -106,11 +130,12 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     setProfileLoading(false);
     setRoleLoading(false);
 
-    // Effective clinic: super_admin uses active override; others use profile.clinic_id
     const isSuper = primaryRole === "super_admin";
+    // STRICT: super_admin only enters a clinic via explicit switch (activeClinicId).
+    // Non-super: prefer explicit active selection, fallback to profile.clinic_id (legacy single-clinic users).
     const effectiveClinicId = isSuper
-      ? (overrideClinicId || nextProfile?.clinic_id || null)
-      : (nextProfile?.clinic_id || null);
+      ? overrideClinicId
+      : (overrideClinicId || nextProfile?.clinic_id || null);
 
     if (!effectiveClinicId) {
       setClinic(null); setClinicLoading(false); applyClinicTheme(null); return;
