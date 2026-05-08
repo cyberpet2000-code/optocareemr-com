@@ -1,5 +1,6 @@
 // Authenticated user accepts a clinic invite by token.
-// Validates the email matches, then assigns clinic_admin (admin) role.
+// Reads from clinic_invites (preferred), falls back to legacy `invites` table.
+// Validates email match, links membership, assigns clinic-scoped role.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
@@ -33,65 +34,102 @@ Deno.serve(async (req) => {
 
     const admin = createClient(url, serviceKey);
 
-    const { data: invite, error: invErr } = await admin
-      .from("invites")
-      .select("id, clinic_id, email, role, accepted")
+    // Try clinic_invites first
+    let inviteSource: "clinic_invites" | "invites" | null = null;
+    let inviteId: string | null = null;
+    let inviteEmail = "";
+    let inviteRole = "admin";
+    let clinicId: string | null = null;
+    let alreadyAccepted = false;
+
+    const { data: ci } = await admin
+      .from("clinic_invites")
+      .select("id, clinic_id, email, role, status")
       .eq("token", token)
       .maybeSingle();
-    if (invErr || !invite) return json({ error: "Invite not found or expired" }, 404);
-    if (invite.accepted) return json({ error: "Invite already used" }, 409);
 
-    const inviteEmail = (invite.email || "").toLowerCase();
-    if (inviteEmail && inviteEmail !== userEmail) {
-      return json({ error: `This invite is for ${invite.email}. Sign in with that email to accept.` }, 403);
+    if (ci) {
+      inviteSource = "clinic_invites";
+      inviteId = ci.id;
+      inviteEmail = (ci.email || "").toLowerCase();
+      inviteRole = ci.role || "admin";
+      clinicId = ci.clinic_id;
+      alreadyAccepted = ci.status === "accepted";
+    } else {
+      const { data: legacy } = await admin
+        .from("invites")
+        .select("id, clinic_id, email, role, accepted")
+        .eq("token", token)
+        .maybeSingle();
+      if (legacy) {
+        inviteSource = "invites";
+        inviteId = legacy.id;
+        inviteEmail = (legacy.email || "").toLowerCase();
+        inviteRole = legacy.role || "admin";
+        clinicId = legacy.clinic_id;
+        alreadyAccepted = !!legacy.accepted;
+      }
     }
 
-    const role = invite.role || "admin";
-    const clinicId = invite.clinic_id;
+    if (!inviteSource || !inviteId) return json({ error: "Invite not found or expired" }, 404);
+    if (alreadyAccepted) return json({ error: "Invite already used" }, 409);
+    if (inviteEmail && inviteEmail !== userEmail) {
+      return json({ error: `This invite is for ${inviteEmail}. Sign in with that email to accept.` }, 403);
+    }
     if (!clinicId) return json({ error: "Invite has no clinic" }, 400);
 
-    // Get clinic name for response
-    const { data: clinicRow } = await admin.from("clinics").select("id, name, setup_completed").eq("id", clinicId).maybeSingle();
+    // Normalize role: "clinic_admin" → "admin" for clinic_users; keep original for user_roles
+    const membershipRole = inviteRole === "clinic_admin" ? "admin" : inviteRole;
+    const scopedRole = inviteRole === "clinic_admin" ? "admin" : inviteRole;
+
+    const { data: clinicRow } = await admin.from("clinics")
+      .select("id, name, setup_completed").eq("id", clinicId).maybeSingle();
     if (!clinicRow) return json({ error: "Clinic no longer exists" }, 404);
 
-    // Link membership (idempotent)
+    // Link membership
     const { error: linkErr } = await admin
       .from("clinic_users")
-      .upsert({ user_id: userId, clinic_id: clinicId, role } as any, { onConflict: "user_id,clinic_id" });
+      .upsert({ user_id: userId, clinic_id: clinicId, role: membershipRole } as any,
+        { onConflict: "user_id,clinic_id" });
     if (linkErr) {
       console.error("clinic_users link failed", linkErr);
       return json({ error: linkErr.message }, 400);
     }
 
-    // Assign role in user_roles (scoped to clinic)
+    // Scoped role in user_roles
     const { error: roleErr } = await admin
       .from("user_roles")
-      .insert({ user_id: userId, role, clinic_id: clinicId } as any);
+      .insert({ user_id: userId, role: scopedRole, clinic_id: clinicId } as any);
     if (roleErr && !String(roleErr.message || "").toLowerCase().includes("duplicate")) {
       console.error("user_roles insert failed", roleErr);
       return json({ error: roleErr.message }, 400);
     }
 
-    // Ensure profile exists
-    const { data: existingProfile } = await admin.from("profiles").select("id, clinic_id").eq("id", userId).maybeSingle();
+    // Ensure profile
+    const { data: existingProfile } = await admin.from("profiles")
+      .select("id").eq("id", userId).maybeSingle();
     const profilePayload: Record<string, unknown> = { id: userId };
     if (!existingProfile) {
       profilePayload.full_name = userData.user.user_metadata?.full_name || userEmail;
       profilePayload.clinic_id = clinicId;
-      profilePayload.role = role;
+      profilePayload.role = scopedRole;
     }
     await admin.from("profiles").upsert(profilePayload, { onConflict: "id" });
 
     // Mark invite accepted
-    await admin.from("invites").update({ accepted: true } as any).eq("id", invite.id);
+    if (inviteSource === "clinic_invites") {
+      await admin.from("clinic_invites").update({ status: "accepted" } as any).eq("id", inviteId);
+    } else {
+      await admin.from("invites").update({ accepted: true } as any).eq("id", inviteId);
+    }
 
-    console.log("Invite accepted", { user_id: userId, clinic_id: clinicId, role });
+    console.log("Invite accepted", { user_id: userId, clinic_id: clinicId, role: scopedRole, source: inviteSource });
     return json({
       ok: true,
       clinic_id: clinicId,
       clinic_name: clinicRow.name,
       setup_completed: !!clinicRow.setup_completed,
-      role,
+      role: scopedRole,
     });
   } catch (e) {
     console.error("accept-clinic-invite fatal", e);
