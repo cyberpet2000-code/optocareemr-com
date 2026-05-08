@@ -268,8 +268,8 @@ export default function PatientRecord() {
               <Input className="rounded-xl text-center" value={form.vaUnaidedOsPh} onChange={e => set("vaUnaidedOsPh", e.target.value)} placeholder="6/6" />
               <div />
 
-              <Label className="text-xs flex items-center font-semibold">OU Add</Label>
-              <Input className="rounded-xl text-center col-span-3" value={form.readingAddUnaidedOu} onChange={e => set("readingAddUnaidedOu", e.target.value)} placeholder="+1.00" />
+              <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
+              <Input className="rounded-xl text-center col-span-3" value={form.vaUnaidedNearOu} onChange={e => set("vaUnaidedNearOu", e.target.value)} placeholder="N6" />
             </div>
           </div>
 
@@ -291,8 +291,8 @@ export default function PatientRecord() {
               <Input className="rounded-xl text-center" value={form.vaAidedOsPh} onChange={e => set("vaAidedOsPh", e.target.value)} placeholder="6/6" />
               <div />
 
-              <Label className="text-xs flex items-center font-semibold">OU Add</Label>
-              <Input className="rounded-xl text-center col-span-3" value={form.readingAddAidedOu} onChange={e => set("readingAddAidedOu", e.target.value)} placeholder="+1.00" />
+              <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
+              <Input className="rounded-xl text-center col-span-3" value={form.vaAidedNearOu} onChange={e => set("vaAidedNearOu", e.target.value)} placeholder="N6" />
             </div>
           </div>
         </TabsContent>
