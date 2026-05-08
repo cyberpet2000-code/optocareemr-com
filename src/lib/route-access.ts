@@ -38,7 +38,28 @@ export function resolveDefaultRoute({
     return "/dashboard";
   }
   if (membershipsCount > 0) return "/select-clinic";
-  return "/select-clinic";
+  return "/no-access";
+}
+
+/**
+ * Single source of truth for clinic access.
+ * Returns the role string if the user has a user_roles record for the given clinic, otherwise null.
+ * MUST be used everywhere clinic access is required.
+ */
+export async function assertClinicAccess(
+  supabase: { from: (t: string) => any },
+  userId: string,
+  clinicId: string
+): Promise<string | null> {
+  if (!userId || !clinicId) return null;
+  const { data, error } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("clinic_id", clinicId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return (data as { role: string }).role ?? null;
 }
 
 export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision {
