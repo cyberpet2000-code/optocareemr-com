@@ -179,10 +179,29 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
   const switchClinic = useCallback(async (clinicId: string | null) => {
     const fromClinic = activeClinicId;
-    persistActive(clinicId);
-    setActiveClinicIdState(clinicId);
     let granted = true;
     let reason: string | null = null;
+
+    // Validate membership for non-super-admins, and even for super_admin verify clinic exists
+    if (clinicId && user) {
+      const isSuper = role === "super_admin" || profile?.is_super_admin === true;
+      if (!isSuper) {
+        const { data: membership } = await supabase
+          .from("user_roles")
+          .select("clinic_id")
+          .eq("user_id", user.id)
+          .eq("clinic_id", clinicId)
+          .maybeSingle();
+        if (!membership) {
+          granted = false;
+          reason = "no membership in target clinic";
+          throw new Error("You do not have access to this clinic.");
+        }
+      }
+    }
+
+    persistActive(clinicId);
+    setActiveClinicIdState(clinicId);
     try {
       await loadAccess(user, clinicId);
     } catch (e: any) {
@@ -204,25 +223,25 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       }
     }
     return granted;
-  }, [loadAccess, user, activeClinicId]);
+  }, [loadAccess, user, activeClinicId, role, profile]);
 
   const isAuthenticated = Boolean(user);
   const isAuthReady = !authLoading && (!isAuthenticated || (!profileLoading && !roleLoading && !clinicLoading));
   const roleMissing = isAuthenticated && isAuthReady && !role;
 
   const effectiveClinicId = role === "super_admin"
-    ? (activeClinicId || profile?.clinic_id || null)
-    : (profile?.clinic_id || null);
+    ? activeClinicId
+    : (activeClinicId || profile?.clinic_id || null);
 
   const value = useMemo(() => ({
-    user, authLoading, profile, profileError, clinic, roles, role,
+    user, authLoading, profile, profileError, clinic, roles, role, memberships,
     profileLoading, roleLoading, clinicLoading,
     isAuthenticated, isAuthReady, roleMissing,
     activeClinicId, effectiveClinicId,
     switchClinic,
     reload: () => loadAccess(user, activeClinicId),
     signOut: async () => { persistActive(null); setActiveClinicIdState(null); await supabase.auth.signOut(); },
-  }), [authLoading, clinic, clinicLoading, isAuthenticated, isAuthReady, loadAccess, profile, profileError, profileLoading, role, roleLoading, roleMissing, roles, user, activeClinicId, effectiveClinicId, switchClinic]);
+  }), [authLoading, clinic, clinicLoading, isAuthenticated, isAuthReady, loadAccess, profile, profileError, profileLoading, role, roleLoading, roleMissing, roles, user, activeClinicId, effectiveClinicId, switchClinic, memberships]);
 
   return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>;
 }
