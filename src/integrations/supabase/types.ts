@@ -1589,6 +1589,21 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_number_counters: {
+        Row: {
+          clinic_id: string
+          last_number: number
+        }
+        Insert: {
+          clinic_id: string
+          last_number?: number
+        }
+        Update: {
+          clinic_id?: string
+          last_number?: number
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           active_hmo_id: string | null
@@ -1605,6 +1620,7 @@ export type Database = {
           gender: string | null
           id: string
           next_of_kin: string | null
+          patient_number: string | null
           payment_type: string
           phone: string | null
           priority: string
@@ -1628,6 +1644,7 @@ export type Database = {
           gender?: string | null
           id?: string
           next_of_kin?: string | null
+          patient_number?: string | null
           payment_type?: string
           phone?: string | null
           priority?: string
@@ -1651,6 +1668,7 @@ export type Database = {
           gender?: string | null
           id?: string
           next_of_kin?: string | null
+          patient_number?: string | null
           payment_type?: string
           phone?: string | null
           priority?: string
@@ -2467,6 +2485,12 @@ export type Database = {
         Row: {
           active_hmo_id: string | null
           active_hmo_plan_id: string | null
+          auto_od_axis: string | null
+          auto_od_cyl: string | null
+          auto_od_sphere: string | null
+          auto_os_axis: string | null
+          auto_os_cyl: string | null
+          auto_os_sphere: string | null
           chief_complaint: string | null
           clinic_id: string | null
           completed_at: string | null
@@ -2482,17 +2506,39 @@ export type Database = {
           old_lens_prescription: string | null
           patient_id: string
           payment_type: string
+          reading_add_aided_ou: string | null
+          reading_add_unaided_ou: string | null
           status: string
+          sub_od_axis: string | null
+          sub_od_cyl: string | null
+          sub_od_sphere: string | null
+          sub_os_axis: string | null
+          sub_os_cyl: string | null
+          sub_os_sphere: string | null
+          sub_reading_add: string | null
+          sub_va_outcome: string | null
           treatment: string | null
           updated_at: string
           va_aided_od: string | null
+          va_aided_od_ph: string | null
           va_aided_os: string | null
+          va_aided_os_ph: string | null
+          va_aided_ou: string | null
           va_unaided_od: string | null
+          va_unaided_od_ph: string | null
           va_unaided_os: string | null
+          va_unaided_os_ph: string | null
+          va_unaided_ou: string | null
         }
         Insert: {
           active_hmo_id?: string | null
           active_hmo_plan_id?: string | null
+          auto_od_axis?: string | null
+          auto_od_cyl?: string | null
+          auto_od_sphere?: string | null
+          auto_os_axis?: string | null
+          auto_os_cyl?: string | null
+          auto_os_sphere?: string | null
           chief_complaint?: string | null
           clinic_id?: string | null
           completed_at?: string | null
@@ -2508,17 +2554,39 @@ export type Database = {
           old_lens_prescription?: string | null
           patient_id: string
           payment_type?: string
+          reading_add_aided_ou?: string | null
+          reading_add_unaided_ou?: string | null
           status?: string
+          sub_od_axis?: string | null
+          sub_od_cyl?: string | null
+          sub_od_sphere?: string | null
+          sub_os_axis?: string | null
+          sub_os_cyl?: string | null
+          sub_os_sphere?: string | null
+          sub_reading_add?: string | null
+          sub_va_outcome?: string | null
           treatment?: string | null
           updated_at?: string
           va_aided_od?: string | null
+          va_aided_od_ph?: string | null
           va_aided_os?: string | null
+          va_aided_os_ph?: string | null
+          va_aided_ou?: string | null
           va_unaided_od?: string | null
+          va_unaided_od_ph?: string | null
           va_unaided_os?: string | null
+          va_unaided_os_ph?: string | null
+          va_unaided_ou?: string | null
         }
         Update: {
           active_hmo_id?: string | null
           active_hmo_plan_id?: string | null
+          auto_od_axis?: string | null
+          auto_od_cyl?: string | null
+          auto_od_sphere?: string | null
+          auto_os_axis?: string | null
+          auto_os_cyl?: string | null
+          auto_os_sphere?: string | null
           chief_complaint?: string | null
           clinic_id?: string | null
           completed_at?: string | null
@@ -2534,13 +2602,29 @@ export type Database = {
           old_lens_prescription?: string | null
           patient_id?: string
           payment_type?: string
+          reading_add_aided_ou?: string | null
+          reading_add_unaided_ou?: string | null
           status?: string
+          sub_od_axis?: string | null
+          sub_od_cyl?: string | null
+          sub_od_sphere?: string | null
+          sub_os_axis?: string | null
+          sub_os_cyl?: string | null
+          sub_os_sphere?: string | null
+          sub_reading_add?: string | null
+          sub_va_outcome?: string | null
           treatment?: string | null
           updated_at?: string
           va_aided_od?: string | null
+          va_aided_od_ph?: string | null
           va_aided_os?: string | null
+          va_aided_os_ph?: string | null
+          va_aided_ou?: string | null
           va_unaided_od?: string | null
+          va_unaided_od_ph?: string | null
           va_unaided_os?: string | null
+          va_unaided_os_ph?: string | null
+          va_unaided_ou?: string | null
         }
         Relationships: [
           {

@@ -15,6 +15,7 @@ interface PatientRow {
   payment_type: string;
   active_hmo_id: string | null;
   queue_number: number;
+  patient_number: string | null;
   hmo_name?: string;
 }
 
@@ -27,7 +28,7 @@ export default function PatientList() {
     (async () => {
       const { data } = await supabase
         .from("patients")
-        .select("id, full_name, age, gender, phone, payment_type, active_hmo_id, queue_number")
+        .select("id, full_name, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number")
         .order("created_at", { ascending: false });
       if (!data) { setLoading(false); return; }
       const hmoIds = [...new Set(data.map((p: any) => p.active_hmo_id).filter(Boolean))];
@@ -85,6 +86,7 @@ export default function PatientList() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-semibold truncate">{p.full_name}</p>
+                      {p.patient_number && <span className="text-[10px] font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">{p.patient_number}</span>}
                       <span className="text-[10px] font-mono text-muted-foreground">#{p.queue_number}</span>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium uppercase ${
                         isHmo ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"
