@@ -16,9 +16,6 @@ export default function SuperAdminCreateClinic() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     clinic_name: "",
-    admin_full_name: "",
-    admin_email: "",
-    admin_password: "",
     phone: "",
   });
 
