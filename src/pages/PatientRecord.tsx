@@ -161,6 +161,7 @@ export default function PatientRecord() {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-lg font-bold">{patient.full_name}</h1>
+                {patient.patient_number && <span className="text-[10px] font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">{patient.patient_number}</span>}
                 <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded-md">#{patient.queue_number}</span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-md font-medium uppercase ${isHmo ? "bg-accent/10 text-accent" : "bg-primary/10 text-primary"}`}>
                   {isHmo ? (hmoName || "HMO") : "Private"}
