@@ -159,10 +159,10 @@ export function AppRoutes() {
 }
 
 function LandingRedirect() {
-  const { clinic, profile, effectiveClinicId } = useClinic();
+  const { clinic, effectiveClinicId } = useClinic();
   const { role } = useRole();
-
-  return <Navigate to={resolveDefaultRoute({ role, clinicId: effectiveClinicId ?? profile?.clinic_id, setupCompleted: clinic?.setup_completed })} replace />;
+  const { memberships } = useAccess();
+  return <Navigate to={resolveDefaultRoute({ role, clinicId: effectiveClinicId, setupCompleted: clinic?.setup_completed, membershipsCount: (memberships || []).length })} replace />;
 }
 
 const App = () => (
