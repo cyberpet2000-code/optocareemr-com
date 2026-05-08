@@ -125,6 +125,7 @@ export function AppRoutes() {
         <ProtectedRouteGate>
           <Routes>
             <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/select-clinic" element={<SelectClinic />} />
 
             <Route path="/super-admin" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
             <Route path="/super-admin-dashboard" element={<Navigate to="/super-admin" replace />} />
