@@ -118,7 +118,12 @@ export default function PatientRecord() {
     if (error) { toast.error("Failed to save visit: " + error.message); return; }
     toast.success(markCompleted ? "Visit completed — bill auto-created" : "Visit saved");
     setForm(emptyVisitForm());
-    if (data) setVisits([data, ...visits]);
+    // Re-sync visit history from DB so Past tab always reflects server state
+    const { data: fresh } = await supabase
+      .from("visits").select("*").eq("patient_id", patient.id)
+      .order("created_at", { ascending: false });
+    if (fresh) setVisits(fresh);
+    else if (data) setVisits([data, ...visits]);
   };
 
   const handleEditPatient = async () => {
