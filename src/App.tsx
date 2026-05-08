@@ -64,7 +64,7 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { clinic, profile, effectiveClinicId } = useClinic();
   const { role } = useRole();
-  const { isAuthReady, roleMissing } = useAccess();
+  const { isAuthReady, roleMissing, memberships } = useAccess();
   const location = useLocation();
   const [timedOut, setTimedOut] = useState(false);
 
@@ -87,9 +87,10 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
     isAuthReady,
     didTimeout: timedOut,
     role,
-    clinicId: effectiveClinicId ?? profile?.clinic_id,
+    clinicId: effectiveClinicId,
     setupCompleted: clinic?.setup_completed,
     roleMissing,
+    membershipsCount: (memberships || []).length,
   });
 
   if (decision.type === "loading") {
