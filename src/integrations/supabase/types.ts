@@ -2491,6 +2491,8 @@ export type Database = {
           auto_os_axis: string | null
           auto_os_cyl: string | null
           auto_os_sphere: string | null
+          auto_va_od: string | null
+          auto_va_os: string | null
           chief_complaint: string | null
           clinic_id: string | null
           completed_at: string | null
@@ -2516,14 +2518,18 @@ export type Database = {
           sub_os_cyl: string | null
           sub_os_sphere: string | null
           sub_reading_add: string | null
+          sub_va_od: string | null
+          sub_va_os: string | null
           sub_va_outcome: string | null
           treatment: string | null
           updated_at: string
+          va_aided_near_ou: string | null
           va_aided_od: string | null
           va_aided_od_ph: string | null
           va_aided_os: string | null
           va_aided_os_ph: string | null
           va_aided_ou: string | null
+          va_unaided_near_ou: string | null
           va_unaided_od: string | null
           va_unaided_od_ph: string | null
           va_unaided_os: string | null
@@ -2539,6 +2545,8 @@ export type Database = {
           auto_os_axis?: string | null
           auto_os_cyl?: string | null
           auto_os_sphere?: string | null
+          auto_va_od?: string | null
+          auto_va_os?: string | null
           chief_complaint?: string | null
           clinic_id?: string | null
           completed_at?: string | null
@@ -2564,14 +2572,18 @@ export type Database = {
           sub_os_cyl?: string | null
           sub_os_sphere?: string | null
           sub_reading_add?: string | null
+          sub_va_od?: string | null
+          sub_va_os?: string | null
           sub_va_outcome?: string | null
           treatment?: string | null
           updated_at?: string
+          va_aided_near_ou?: string | null
           va_aided_od?: string | null
           va_aided_od_ph?: string | null
           va_aided_os?: string | null
           va_aided_os_ph?: string | null
           va_aided_ou?: string | null
+          va_unaided_near_ou?: string | null
           va_unaided_od?: string | null
           va_unaided_od_ph?: string | null
           va_unaided_os?: string | null
@@ -2587,6 +2599,8 @@ export type Database = {
           auto_os_axis?: string | null
           auto_os_cyl?: string | null
           auto_os_sphere?: string | null
+          auto_va_od?: string | null
+          auto_va_os?: string | null
           chief_complaint?: string | null
           clinic_id?: string | null
           completed_at?: string | null
@@ -2612,14 +2626,18 @@ export type Database = {
           sub_os_cyl?: string | null
           sub_os_sphere?: string | null
           sub_reading_add?: string | null
+          sub_va_od?: string | null
+          sub_va_os?: string | null
           sub_va_outcome?: string | null
           treatment?: string | null
           updated_at?: string
+          va_aided_near_ou?: string | null
           va_aided_od?: string | null
           va_aided_od_ph?: string | null
           va_aided_os?: string | null
           va_aided_os_ph?: string | null
           va_aided_ou?: string | null
+          va_unaided_near_ou?: string | null
           va_unaided_od?: string | null
           va_unaided_od_ph?: string | null
           va_unaided_os?: string | null

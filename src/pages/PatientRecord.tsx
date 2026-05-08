@@ -34,17 +34,17 @@ const emptyVisitForm = () => ({
   // Unaided VA
   vaUnaidedOd: "", vaUnaidedOs: "", vaUnaidedOu: "",
   vaUnaidedOdPh: "", vaUnaidedOsPh: "",
-  readingAddUnaidedOu: "",
+  vaUnaidedNearOu: "",
   // Aided VA
   vaAidedOd: "", vaAidedOs: "", vaAidedOu: "",
   vaAidedOdPh: "", vaAidedOsPh: "",
-  readingAddAidedOu: "",
+  vaAidedNearOu: "",
   // Auto refraction
-  autoOdSphere: "", autoOdCyl: "", autoOdAxis: "",
-  autoOsSphere: "", autoOsCyl: "", autoOsAxis: "",
+  autoOdSphere: "", autoOdCyl: "", autoOdAxis: "", autoVaOd: "",
+  autoOsSphere: "", autoOsCyl: "", autoOsAxis: "", autoVaOs: "",
   // Subjective refraction
-  subOdSphere: "", subOdCyl: "", subOdAxis: "",
-  subOsSphere: "", subOsCyl: "", subOsAxis: "",
+  subOdSphere: "", subOdCyl: "", subOdAxis: "", subVaOd: "",
+  subOsSphere: "", subOsCyl: "", subOsAxis: "", subVaOs: "",
   subReadingAdd: "", subVaOutcome: "",
   examination: "",
   iopOd: "", iopOs: "",
@@ -96,14 +96,14 @@ export default function PatientRecord() {
       old_lens_prescription: form.oldLensPrescription || null,
       va_unaided_od: form.vaUnaidedOd || null, va_unaided_os: form.vaUnaidedOs || null, va_unaided_ou: form.vaUnaidedOu || null,
       va_unaided_od_ph: form.vaUnaidedOdPh || null, va_unaided_os_ph: form.vaUnaidedOsPh || null,
-      reading_add_unaided_ou: form.readingAddUnaidedOu || null,
+      va_unaided_near_ou: form.vaUnaidedNearOu || null,
       va_aided_od: form.vaAidedOd || null, va_aided_os: form.vaAidedOs || null, va_aided_ou: form.vaAidedOu || null,
       va_aided_od_ph: form.vaAidedOdPh || null, va_aided_os_ph: form.vaAidedOsPh || null,
-      reading_add_aided_ou: form.readingAddAidedOu || null,
-      auto_od_sphere: form.autoOdSphere || null, auto_od_cyl: form.autoOdCyl || null, auto_od_axis: form.autoOdAxis || null,
-      auto_os_sphere: form.autoOsSphere || null, auto_os_cyl: form.autoOsCyl || null, auto_os_axis: form.autoOsAxis || null,
-      sub_od_sphere: form.subOdSphere || null, sub_od_cyl: form.subOdCyl || null, sub_od_axis: form.subOdAxis || null,
-      sub_os_sphere: form.subOsSphere || null, sub_os_cyl: form.subOsCyl || null, sub_os_axis: form.subOsAxis || null,
+      va_aided_near_ou: form.vaAidedNearOu || null,
+      auto_od_sphere: form.autoOdSphere || null, auto_od_cyl: form.autoOdCyl || null, auto_od_axis: form.autoOdAxis || null, auto_va_od: form.autoVaOd || null,
+      auto_os_sphere: form.autoOsSphere || null, auto_os_cyl: form.autoOsCyl || null, auto_os_axis: form.autoOsAxis || null, auto_va_os: form.autoVaOs || null,
+      sub_od_sphere: form.subOdSphere || null, sub_od_cyl: form.subOdCyl || null, sub_od_axis: form.subOdAxis || null, sub_va_od: form.subVaOd || null,
+      sub_os_sphere: form.subOsSphere || null, sub_os_cyl: form.subOsCyl || null, sub_os_axis: form.subOsAxis || null, sub_va_os: form.subVaOs || null,
       sub_reading_add: form.subReadingAdd || null, sub_va_outcome: form.subVaOutcome || null,
       examination: form.examination || null,
       iop_od: form.iopOd ? Number(form.iopOd) : null,
@@ -268,8 +268,8 @@ export default function PatientRecord() {
               <Input className="rounded-xl text-center" value={form.vaUnaidedOsPh} onChange={e => set("vaUnaidedOsPh", e.target.value)} placeholder="6/6" />
               <div />
 
-              <Label className="text-xs flex items-center font-semibold">OU Add</Label>
-              <Input className="rounded-xl text-center col-span-3" value={form.readingAddUnaidedOu} onChange={e => set("readingAddUnaidedOu", e.target.value)} placeholder="+1.00" />
+              <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
+              <Input className="rounded-xl text-center col-span-3" value={form.vaUnaidedNearOu} onChange={e => set("vaUnaidedNearOu", e.target.value)} placeholder="N6" />
             </div>
           </div>
 
@@ -291,8 +291,8 @@ export default function PatientRecord() {
               <Input className="rounded-xl text-center" value={form.vaAidedOsPh} onChange={e => set("vaAidedOsPh", e.target.value)} placeholder="6/6" />
               <div />
 
-              <Label className="text-xs flex items-center font-semibold">OU Add</Label>
-              <Input className="rounded-xl text-center col-span-3" value={form.readingAddAidedOu} onChange={e => set("readingAddAidedOu", e.target.value)} placeholder="+1.00" />
+              <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
+              <Input className="rounded-xl text-center col-span-3" value={form.vaAidedNearOu} onChange={e => set("vaAidedNearOu", e.target.value)} placeholder="N6" />
             </div>
           </div>
         </TabsContent>
@@ -300,41 +300,47 @@ export default function PatientRecord() {
         <TabsContent value="refraction" className="space-y-4">
           <div className="form-section">
             <h2 className="section-title text-sm"><Eye size={16} /> Auto Refraction</h2>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               <div />
               <Label className="text-[10px] text-center text-muted-foreground font-semibold">Sphere</Label>
               <Label className="text-[10px] text-center text-muted-foreground font-semibold">Cyl</Label>
               <Label className="text-[10px] text-center text-muted-foreground font-semibold">Axis</Label>
+              <Label className="text-[10px] text-center text-muted-foreground font-semibold">VA</Label>
 
               <Label className="text-xs flex items-center font-semibold">OD</Label>
               <Input className="rounded-xl text-center" value={form.autoOdSphere} onChange={e => set("autoOdSphere", e.target.value)} placeholder="-1.00" />
               <Input className="rounded-xl text-center" value={form.autoOdCyl} onChange={e => set("autoOdCyl", e.target.value)} placeholder="-0.50" />
               <Input className="rounded-xl text-center" value={form.autoOdAxis} onChange={e => set("autoOdAxis", e.target.value)} placeholder="180" />
+              <Input className="rounded-xl text-center" value={form.autoVaOd} onChange={e => set("autoVaOd", e.target.value)} placeholder="6/6" />
 
               <Label className="text-xs flex items-center font-semibold">OS</Label>
               <Input className="rounded-xl text-center" value={form.autoOsSphere} onChange={e => set("autoOsSphere", e.target.value)} placeholder="-1.00" />
               <Input className="rounded-xl text-center" value={form.autoOsCyl} onChange={e => set("autoOsCyl", e.target.value)} placeholder="-0.50" />
               <Input className="rounded-xl text-center" value={form.autoOsAxis} onChange={e => set("autoOsAxis", e.target.value)} placeholder="180" />
+              <Input className="rounded-xl text-center" value={form.autoVaOs} onChange={e => set("autoVaOs", e.target.value)} placeholder="6/6" />
             </div>
           </div>
 
           <div className="form-section">
             <h2 className="section-title text-sm"><Eye size={16} /> Subjective Refraction</h2>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               <div />
               <Label className="text-[10px] text-center text-muted-foreground font-semibold">Sphere</Label>
               <Label className="text-[10px] text-center text-muted-foreground font-semibold">Cyl</Label>
               <Label className="text-[10px] text-center text-muted-foreground font-semibold">Axis</Label>
+              <Label className="text-[10px] text-center text-muted-foreground font-semibold">VA</Label>
 
               <Label className="text-xs flex items-center font-semibold">OD</Label>
               <Input className="rounded-xl text-center" value={form.subOdSphere} onChange={e => set("subOdSphere", e.target.value)} placeholder="-1.00" />
               <Input className="rounded-xl text-center" value={form.subOdCyl} onChange={e => set("subOdCyl", e.target.value)} placeholder="-0.50" />
               <Input className="rounded-xl text-center" value={form.subOdAxis} onChange={e => set("subOdAxis", e.target.value)} placeholder="180" />
+              <Input className="rounded-xl text-center" value={form.subVaOd} onChange={e => set("subVaOd", e.target.value)} placeholder="6/6" />
 
               <Label className="text-xs flex items-center font-semibold">OS</Label>
               <Input className="rounded-xl text-center" value={form.subOsSphere} onChange={e => set("subOsSphere", e.target.value)} placeholder="-1.00" />
               <Input className="rounded-xl text-center" value={form.subOsCyl} onChange={e => set("subOsCyl", e.target.value)} placeholder="-0.50" />
               <Input className="rounded-xl text-center" value={form.subOsAxis} onChange={e => set("subOsAxis", e.target.value)} placeholder="180" />
+              <Input className="rounded-xl text-center" value={form.subVaOs} onChange={e => set("subVaOs", e.target.value)} placeholder="6/6" />
             </div>
             <div className="grid grid-cols-2 gap-3 mt-3">
               <div className="space-y-1"><Label className="text-xs">Reading ADD</Label><Input className="rounded-xl" value={form.subReadingAdd} onChange={e => set("subReadingAdd", e.target.value)} placeholder="+1.50" /></div>
