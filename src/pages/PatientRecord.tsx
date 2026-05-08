@@ -26,12 +26,26 @@ interface PatientData {
   queue_number: number;
   queue_status: string;
   priority: string;
+  patient_number?: string | null;
 }
 
 const emptyVisitForm = () => ({
   chiefComplaint: "", history: "", oldLensPrescription: "",
-  vaUnaidedOd: "", vaUnaidedOs: "",
-  vaAidedOd: "", vaAidedOs: "",
+  // Unaided VA
+  vaUnaidedOd: "", vaUnaidedOs: "", vaUnaidedOu: "",
+  vaUnaidedOdPh: "", vaUnaidedOsPh: "",
+  readingAddUnaidedOu: "",
+  // Aided VA
+  vaAidedOd: "", vaAidedOs: "", vaAidedOu: "",
+  vaAidedOdPh: "", vaAidedOsPh: "",
+  readingAddAidedOu: "",
+  // Auto refraction
+  autoOdSphere: "", autoOdCyl: "", autoOdAxis: "",
+  autoOsSphere: "", autoOsCyl: "", autoOsAxis: "",
+  // Subjective refraction
+  subOdSphere: "", subOdCyl: "", subOdAxis: "",
+  subOsSphere: "", subOsCyl: "", subOsAxis: "",
+  subReadingAdd: "", subVaOutcome: "",
   examination: "",
   iopOd: "", iopOs: "",
   diagnosis: "", treatment: "", notes: "",
