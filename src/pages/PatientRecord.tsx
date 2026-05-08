@@ -34,11 +34,11 @@ const emptyVisitForm = () => ({
   // Unaided VA
   vaUnaidedOd: "", vaUnaidedOs: "", vaUnaidedOu: "",
   vaUnaidedOdPh: "", vaUnaidedOsPh: "",
-  readingAddUnaidedOu: "",
+  vaUnaidedNearOu: "",
   // Aided VA
   vaAidedOd: "", vaAidedOs: "", vaAidedOu: "",
   vaAidedOdPh: "", vaAidedOsPh: "",
-  readingAddAidedOu: "",
+  vaAidedNearOu: "",
   // Auto refraction
   autoOdSphere: "", autoOdCyl: "", autoOdAxis: "",
   autoOsSphere: "", autoOsCyl: "", autoOsAxis: "",
