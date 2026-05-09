@@ -207,7 +207,7 @@ export default function ClinicSidebar() {
             <button
               type="button"
               className="flex items-center gap-2 text-[11px] text-muted-foreground hover:text-foreground transition-colors w-full px-1"
-              onClick={() => window.open("mailto:support@optocare.app", "_blank")}
+              onClick={() => window.open("mailto:support@optocareemr.com", "_blank")}
             >
               <LifeBuoy size={12} /> Support
             </button>
