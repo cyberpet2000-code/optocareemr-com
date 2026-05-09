@@ -1,12 +1,13 @@
-// send-daily-summary — generates and emails the daily clinic summary.
-// Modes:
-//   POST {} or {dispatch:true}                → iterate ALL active clinics
-//   POST {clinic_id:"..."}                    → run for one clinic
-// Always logs delivery to notification_logs.
+// send-daily-summary — branded daily clinic report email via Resend.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { renderShell, htmlToText, escapeHtml as esc, BRAND_NAME, dailyLimitFor } from "../_shared/email.ts";
 
-const FROM_ADDRESS = Deno.env.get("INVITE_FROM_ADDRESS") || "OptoCare EMR <noreply@optocareemr.com>";
+const FROM_ADDRESS = Deno.env.get("INVITE_FROM_ADDRESS") || `${BRAND_NAME} <noreply@optocareemr.com>`;
+const REPLY_TO = Deno.env.get("INVITE_REPLY_TO") || "support@optocareemr.com";
+const TIMEZONE = "Africa/Lagos";
+
+function escapeHtml(s: unknown) { return esc(s); }
 const TIMEZONE = "Africa/Lagos";
 
 function escapeHtml(s: unknown) {
