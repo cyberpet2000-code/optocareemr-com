@@ -106,9 +106,26 @@ export default function Communications() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card icon={Mail} label="Total emails" value={stats.email} />
-        <Card icon={MessageCircle} label="WhatsApp" value={stats.wa} tone="bg-success/10 text-success" />
         <Card icon={CheckCircle2} label="Delivery rate" value={`${stats.rate}%`} tone="bg-success/10 text-success" />
+        <Card icon={Eye} label="Opened" value={stats.opened} />
+        <Card icon={MousePointerClick} label="Clicked" value={stats.clicked} />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card icon={AlertTriangle} label="Failed" value={stats.failed} tone="bg-destructive/10 text-destructive" />
+        <Card icon={Ban} label="Bounced" value={stats.bounced} tone="bg-warning/10 text-warning" />
+        <Card icon={ShieldCheck} label="Spam complaints" value={stats.complained} tone="bg-destructive/10 text-destructive" />
+        <Card icon={MessageCircle} label="Suppressed" value={stats.suppressed} tone="bg-muted text-muted-foreground" />
+      </div>
+
+      <div className="form-section">
+        <h2 className="font-semibold mb-2 flex items-center gap-2"><ShieldCheck size={16} className="text-primary" /> Sender reputation checklist</h2>
+        <p className="text-sm text-muted-foreground mb-3">For best Gmail deliverability, the <code>optocareemr.com</code> domain must publish SPF, DKIM, and DMARC. Verify in your Resend dashboard → Domains.</p>
+        <ul className="text-sm space-y-1 list-disc pl-5">
+          <li><b>SPF</b> — TXT record listing Resend as an approved sender.</li>
+          <li><b>DKIM</b> — CNAME records that Resend provides per domain.</li>
+          <li><b>DMARC</b> — start with <code>p=none; rua=mailto:postmaster@optocareemr.com</code>, tighten over time.</li>
+          <li>Configure the Resend webhook to point at <code>/functions/v1/resend-webhook</code> so opens, clicks, bounces, and complaints land here.</li>
+        </ul>
       </div>
 
       <div className="form-section overflow-x-auto">
@@ -131,23 +148,25 @@ export default function Communications() {
               </tr>
             </thead>
             <tbody>
-              {logs.map(l => (
+              {logs.map(l => {
+                const tone = (l.status === "sent" || l.status === "success" || l.status === "delivered") ? "bg-success/10 text-success"
+                  : l.status === "failed" ? "bg-destructive/10 text-destructive"
+                  : l.status === "bounced" || l.status === "complained" ? "bg-destructive/10 text-destructive"
+                  : l.status === "suppressed" || l.status === "rate_limited" ? "bg-warning/10 text-warning"
+                  : "bg-muted text-muted-foreground";
+                return (
                 <tr key={l.id} className="border-b border-border/50">
                   <td className="py-2 pr-3 whitespace-nowrap">{l.sent_at ? new Date(l.sent_at).toLocaleString() : "—"}</td>
                   <td className="py-2 pr-3">{l.notification_type}</td>
                   <td className="py-2 pr-3 capitalize">{l.channel}</td>
                   <td className="py-2 pr-3">{l.recipient}</td>
-                  <td className="py-2 pr-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${
-                      l.status === "sent" || l.status === "success" ? "bg-success/10 text-success" :
-                      l.status === "failed" ? "bg-destructive/10 text-destructive" :
-                      "bg-muted text-muted-foreground"
-                    }`}>{l.status}</span>
+                  <td className="py-2 pr-3"><span className={`px-2 py-0.5 rounded-full text-xs ${tone}`}>{l.status}</span></td>
+                  <td className="py-2 pr-3 text-xs text-muted-foreground">
+                    {l.opened_at ? "👁 " : ""}{l.clicked_at ? "🖱 " : ""}{l.attempts ?? "—"}
                   </td>
-                  <td className="py-2 pr-3">{l.attempts ?? "—"}</td>
                   <td className="py-2 pr-3 text-xs text-muted-foreground max-w-xs truncate" title={l.error_message || ""}>{l.error_message || "—"}</td>
                 </tr>
-              ))}
+              );})}
             </tbody>
           </table>
         )}
