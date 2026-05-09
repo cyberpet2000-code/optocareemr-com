@@ -138,25 +138,36 @@ export default function SuperAdminClinics() {
               </tr>
             </thead>
             <tbody>
-              {clinics.map(c => (
+              {clinics.map(c => {
+                const lc = lifecycleLabel(c);
+                return (
                 <tr key={c.id} className="border-b last:border-0">
                   <td className="py-2.5 pr-3 font-medium flex items-center gap-2"><Building2 size={14} className="text-muted-foreground" /> {c.name}</td>
-                  <td className="py-2.5 pr-3"><span className="text-xs px-2 py-0.5 rounded-md bg-primary/10 text-primary capitalize">{c.subscription_status || "—"}</span></td>
+                  <td className="py-2.5 pr-3"><span className={`text-xs px-2 py-0.5 rounded-md ${lc.cls}`}>{lc.label}</span></td>
                   <td className="py-2.5 pr-3 text-xs">{c.setup_completed ? "✓ Done" : "Pending"}</td>
                   <td className="py-2.5 pr-3 text-xs text-muted-foreground">{c.trial_end_date ? new Date(c.trial_end_date).toLocaleDateString() : "—"}</td>
                   <td className="py-2.5 pr-3 text-xs">{c.is_active ? "Yes" : "No"}</td>
                   <td className="py-2.5 pr-3 text-right">
-                    <div className="inline-flex gap-2">
+                    <div className="inline-flex flex-wrap gap-2 justify-end">
                       <Button size="sm" variant="outline" onClick={() => openInvite(c)}>
-                        <UserPlus size={14} className="mr-1" /> Invite admin
+                        <UserPlus size={14} className="mr-1" /> Invite
                       </Button>
+                      {c.is_active ? (
+                        <Button size="sm" variant="destructive" onClick={() => toggleActive(c)} disabled={busyId === c.id}>
+                          <Power size={14} className="mr-1" /> {busyId === c.id ? "…" : "Deactivate"}
+                        </Button>
+                      ) : (
+                        <Button size="sm" onClick={() => toggleActive(c)} disabled={busyId === c.id}>
+                          <CheckCircle2 size={14} className="mr-1" /> {busyId === c.id ? "…" : "Activate"}
+                        </Button>
+                      )}
                       <Button size="sm" variant="outline" onClick={() => enter(c)} disabled={enteringId === c.id || !!enteringId}>
                         <LogIn size={14} className="mr-1" /> {enteringId === c.id ? "Entering…" : "Enter"}
                       </Button>
                     </div>
                   </td>
                 </tr>
-              ))}
+              );})}
             </tbody>
           </table>
         )}
