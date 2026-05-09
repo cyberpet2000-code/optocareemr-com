@@ -2,7 +2,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, ShoppingBag, Pill, DollarSign, ShieldCheck, Calendar, History,
   UserPlus, ListOrdered, Building2, Activity, Sparkles, LifeBuoy, Settings, CheckCircle2,
-  CircleDashed, Clock,
+  CircleDashed, Clock, Mail,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -77,6 +77,7 @@ export default function ClinicSidebar() {
       { to: "/hmos", label: "HMOs", icon: Building2 },
       { to: "/sales-history", label: "Sales History", icon: History },
       ...(isAdmin ? [{ to: "/admin/roles", label: "Manage Roles", icon: ShieldCheck }] : []),
+      ...(isAdmin ? [{ to: "/communications", label: "Communications", icon: Mail }] : []),
     ];
   }
 
