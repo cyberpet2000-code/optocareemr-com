@@ -20,6 +20,7 @@ import Pharmacy from "./pages/Pharmacy";
 import Billing from "./pages/Billing";
 import SalesHistory from "./pages/SalesHistory";
 import AdminRoles from "./pages/AdminRoles";
+import Communications from "./pages/Communications";
 import Queue from "./pages/Queue";
 import HmoManagement from "./pages/HmoManagement";
 import Onboarding from "./pages/Onboarding";
@@ -156,6 +157,7 @@ export function AppRoutes() {
               <Route path="/billing" element={<Billing />} />
               <Route path="/sales-history" element={<SalesHistory />} />
               <Route path="/admin/roles" element={<AdminRoles />} />
+              <Route path="/communications" element={<Communications />} />
               <Route path="*" element={<NotFound />} />
             </Route>
 
