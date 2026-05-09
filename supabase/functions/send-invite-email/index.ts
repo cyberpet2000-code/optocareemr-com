@@ -1,48 +1,56 @@
-// send-invite-email — sends a clinic invite via Resend with retry + logging.
-// Callable by other edge functions (service role) or authenticated super_admin/admin users.
+// send-invite-email — branded clinic invite via Resend with retry, suppression
+// check, warmup quota, plain-text fallback, and notification_logs entry.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { renderShell, htmlToText, escapeHtml, APP_URL, BRAND_NAME, dailyLimitFor } from "../_shared/email.ts";
 
-const APP_URL = (Deno.env.get("APP_URL") || "https://optocareemr.lovable.app").replace(/\/$/, "");
-const FROM_ADDRESS = Deno.env.get("INVITE_FROM_ADDRESS") || "OptoCare EMR <noreply@optocareemr.com>";
+const FROM_ADDRESS = Deno.env.get("INVITE_FROM_ADDRESS") || `${BRAND_NAME} <noreply@optocareemr.com>`;
+const REPLY_TO = Deno.env.get("INVITE_REPLY_TO") || "support@optocareemr.com";
 
-function buildHtml(opts: { clinic_name: string; role: string; invite_link: string }) {
-  const { clinic_name, role, invite_link } = opts;
-  return `<!doctype html><html><body style="font-family:Arial,Helvetica,sans-serif;background:#f6f8fb;padding:24px;color:#0f172a">
-<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;border:1px solid #e2e8f0">
-  <h1 style="margin:0 0 8px;font-size:20px;color:#1e40af">You're invited to ${escapeHtml(clinic_name)}</h1>
-  <p style="margin:0 0 16px;color:#475569">on OptoCare EMR</p>
-  <p>Hello,</p>
-  <p>You have been invited to join <b>${escapeHtml(clinic_name)}</b> as <b>${escapeHtml(role)}</b>.</p>
-  <p>Click the button below to accept your invitation:</p>
-  <p style="text-align:center;margin:28px 0">
-    <a href="${invite_link}" style="background:#1e40af;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600">Accept invitation</a>
-  </p>
-  <p style="font-size:13px;color:#64748b">Or copy this link into your browser:<br><span style="word-break:break-all">${invite_link}</span></p>
-  <p style="font-size:13px;color:#64748b">This link will create your account, set your password, and grant clinic access.</p>
-  <p style="font-size:12px;color:#94a3b8;margin-top:24px">If you did not expect this invitation, you can safely ignore this email.</p>
-  <p style="font-size:12px;color:#94a3b8">— OptoCare EMR Team</p>
-</div></body></html>`;
+function buildBody(opts: { clinic_name: string; role: string; invite_link: string }) {
+  return `
+    <h1 style="margin:0 0 8px;font-size:20px;color:#1e40af">You're invited to ${escapeHtml(opts.clinic_name)}</h1>
+    <p style="margin:0 0 16px;color:#475569">A clinic admin has added you to their team on ${escapeHtml(BRAND_NAME)}.</p>
+    <p>Hello,</p>
+    <p>You have been invited to join <b>${escapeHtml(opts.clinic_name)}</b> as <b>${escapeHtml(opts.role)}</b>.</p>
+    <p>Use the secure link below to set up your account. The link is unique to you and connects you to the right clinic.</p>
+    <p style="text-align:center;margin:28px 0">
+      <a href="${opts.invite_link}" style="background:#1e40af;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block">Accept invitation</a>
+    </p>
+    <p style="font-size:12px;color:#64748b">If the button doesn't work, paste this address into your browser:<br/><span style="word-break:break-all">${opts.invite_link}</span></p>
+    <p style="font-size:12px;color:#64748b">Secure access notice: this link sets your password and grants you access to clinic data covered by patient confidentiality. Do not share it.</p>
+    <p style="font-size:12px;color:#94a3b8;margin-top:24px">If you did not expect this invitation, you can safely ignore this email.</p>
+  `;
 }
 
-function escapeHtml(s: string) {
-  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
-}
-
-async function sendViaResend(payload: { to: string; subject: string; html: string }, apiKey: string) {
+async function sendViaResend(payload: { to: string; subject: string; html: string; text: string; tags: { name: string; value: string }[] }, apiKey: string) {
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: FROM_ADDRESS, to: [payload.to], subject: payload.subject, html: payload.html }),
+    body: JSON.stringify({
+      from: FROM_ADDRESS,
+      to: [payload.to],
+      reply_to: REPLY_TO,
+      subject: payload.subject,
+      html: payload.html,
+      text: payload.text,
+      tags: payload.tags,
+    }),
   });
   const text = await r.text();
   let data: any = null; try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
   return { ok: r.ok, status: r.status, data };
 }
 
+// Permanent failures — do not retry
+function isPermanent(status: number, body: any): boolean {
+  if (status === 400 || status === 403 || status === 422) return true;
+  const msg = JSON.stringify(body || "").toLowerCase();
+  return /invalid.*email|recipient.*invalid|address.*reject|blocked|suppress|spam/.test(msg);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-
   const json = (b: unknown, status = 200) =>
     new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
@@ -50,11 +58,9 @@ Deno.serve(async (req) => {
   const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
   const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-
   if (!RESEND_API_KEY) return json({ error: "RESEND_API_KEY not configured" }, 500);
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
-
   try {
     const body = await req.json().catch(() => ({}));
     const email: string | undefined = body?.email?.toString().trim().toLowerCase();
@@ -63,11 +69,13 @@ Deno.serve(async (req) => {
     const token: string | undefined = body?.token;
     const clinic_id: string | undefined = body?.clinic_id;
     const invite_id: string | undefined = body?.invite_id;
+    const clinic_logo: string | null = body?.clinic_logo ?? null;
+    const primary_color: string | null = body?.primary_color ?? null;
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "Valid email required" }, 400);
     if (!token) return json({ error: "token required" }, 400);
 
-    // AuthZ: allow service-role calls (no auth header) OR authenticated super_admin / admin users
+    // AuthZ: service role OR authenticated super_admin/admin
     const authHeader = req.headers.get("Authorization");
     const isServiceCall = !authHeader || authHeader === `Bearer ${SERVICE_KEY}`;
     if (!isServiceCall) {
@@ -79,11 +87,48 @@ Deno.serve(async (req) => {
       if (!allowed) return json({ error: "Forbidden" }, 403);
     }
 
-    const invite_link = `${APP_URL}/accept-invite?token=${encodeURIComponent(token)}`;
-    const subject = `You are invited to join ${clinic_name} on OptoCare EMR`;
-    const html = buildHtml({ clinic_name, role, invite_link });
+    // Suppression check
+    const { data: sup } = await admin.from("email_suppressions").select("reason").eq("email", email).maybeSingle();
+    if (sup) {
+      await admin.from("notification_logs").insert({
+        clinic_id, recipient: email, channel: "email",
+        notification_type: "invite", category: "onboarding",
+        subject: `Invite to ${clinic_name}`,
+        status: "suppressed", error_message: `Address suppressed: ${sup.reason}`,
+        attempts: 0, plain_text_included: true,
+      });
+      return json({ ok: false, error: "Recipient is suppressed", reason: sup.reason }, 409);
+    }
 
-    // Retry: up to 3 attempts (1 initial + 2 retries), 2s between attempts
+    // Warmup quota
+    const limit = dailyLimitFor("onboarding");
+    const { data: q } = await admin.rpc("try_consume_email_quota", { _category: "onboarding", _limit: limit });
+    if (q === null || q === undefined) {
+      await admin.from("notification_logs").insert({
+        clinic_id, recipient: email, channel: "email",
+        notification_type: "invite", category: "onboarding",
+        subject: `Invite to ${clinic_name}`,
+        status: "rate_limited", error_message: `Daily warmup limit (${limit}) reached`,
+        attempts: 0, plain_text_included: true,
+      });
+      return json({ ok: false, error: "Daily email warmup limit reached" }, 429);
+    }
+
+    const invite_link = `${APP_URL}/accept-invite?token=${encodeURIComponent(token)}`;
+    const subject = `You're invited to join ${clinic_name} on ${BRAND_NAME}`;
+    const html = renderShell({
+      preheader: `Accept your invitation to ${clinic_name}`,
+      clinic_name, clinic_logo, primary_color, category: "onboarding",
+      body_html: buildBody({ clinic_name, role, invite_link }),
+    });
+    const text = htmlToText(html) + `\n\nAccept invitation: ${invite_link}\n`;
+
+    const tags = [
+      { name: "category", value: "onboarding" },
+      { name: "type", value: "invite" },
+      { name: "clinic_id", value: clinic_id || "none" },
+    ];
+
     let lastErr: string | null = null;
     let providerId: string | null = null;
     let attempts = 0;
@@ -92,31 +137,42 @@ Deno.serve(async (req) => {
     for (let i = 0; i < 3; i++) {
       attempts = i + 1;
       try {
-        const res = await sendViaResend({ to: email, subject, html }, RESEND_API_KEY);
+        const res = await sendViaResend({ to: email, subject, html, text, tags }, RESEND_API_KEY);
         if (res.ok) { success = true; providerId = res.data?.id ?? null; lastErr = null; break; }
         lastErr = `HTTP ${res.status}: ${JSON.stringify(res.data)}`;
-        console.warn(`send-invite-email attempt ${attempts} failed`, lastErr);
+        if (isPermanent(res.status, res.data)) {
+          // Suppress to prevent future attempts on permanent failures
+          await admin.from("email_suppressions")
+            .upsert({ email, reason: "permanent_failure", source: "resend_response", clinic_id: clinic_id ?? null, details: res.data }, { onConflict: "email" });
+          break;
+        }
       } catch (e) {
         lastErr = (e as Error).message;
-        console.warn(`send-invite-email attempt ${attempts} threw`, lastErr);
       }
       if (i < 2) await new Promise((r) => setTimeout(r, 2000));
     }
 
+    // Backwards-compat: keep email_logs entry
     await admin.from("email_logs").insert({
-      email,
-      clinic_id: clinic_id ?? null,
-      invite_id: invite_id ?? null,
-      clinic_name,
-      role,
+      email, clinic_id: clinic_id ?? null, invite_id: invite_id ?? null,
+      clinic_name, role,
       status: success ? "success" : "failed",
       error: success ? null : lastErr,
       error_message: success ? null : lastErr,
-      provider: "resend",
-      provider_message_id: providerId,
-      attempts,
+      provider: "resend", provider_message_id: providerId, attempts,
       sent_at: new Date().toISOString(),
     } as any);
+
+    await admin.from("notification_logs").insert({
+      clinic_id: clinic_id ?? null, recipient: email, channel: "email",
+      notification_type: "invite", category: "onboarding", subject,
+      status: success ? "sent" : "failed",
+      provider: "resend", provider_message_id: providerId,
+      error_message: success ? null : lastErr, attempts,
+      plain_text_included: true,
+      metadata: { role, clinic_name } as any,
+      sent_at: new Date().toISOString(),
+    });
 
     if (!success) return json({ ok: false, error: lastErr, attempts }, 502);
     return json({ ok: true, provider_message_id: providerId, attempts });
