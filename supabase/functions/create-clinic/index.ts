@@ -50,10 +50,9 @@ Deno.serve(async (req) => {
     const clinic_name = String(body?.clinic_name ?? "").trim();
     const admin_full_name = String(body?.admin_full_name ?? "").trim();
     const admin_email = String(body?.admin_email ?? "").trim().toLowerCase();
-    const origin: string =
-      body?.origin ||
-      req.headers.get("origin") ||
-      "https://optocareemr.lovable.app";
+    // CENTRALIZED APP URL — never use frontend origin or preview domains.
+    // Always uses APP_URL secret (production), falls back to published URL.
+    const APP_URL = (Deno.env.get("APP_URL") || "https://optocareemr.lovable.app").replace(/\/$/, "");
 
     if (!clinic_name) return json({ error: "Clinic name is required" }, 400);
     if (!admin_full_name) return json({ error: "Admin full name is required" }, 400);
@@ -140,7 +139,8 @@ Deno.serve(async (req) => {
       return json({ error: invErr?.message || "Failed to create invite" }, 400);
     }
 
-    const acceptUrl = `${origin.replace(/\/$/, "")}/accept-invite?token=${invite.token}`;
+    const acceptUrl = `${APP_URL}/accept-invite?token=${invite.token}`;
+    console.log("Generated invite link", { acceptUrl, app_url_source: Deno.env.get("APP_URL") ? "APP_URL" : "default" });
 
     // 3) Send the invite email via Supabase Auth.
     //    inviteUserByEmail provisions a passwordless auth user (if none exists)

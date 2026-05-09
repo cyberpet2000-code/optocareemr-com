@@ -38,7 +38,8 @@ Deno.serve(async (req) => {
     const clinic_id: string | undefined = body?.clinic_id;
     const emailRaw: string | undefined = body?.email;
     const role: string = (body?.role || "admin").toString();
-    const origin: string | undefined = body?.origin || req.headers.get("origin") || undefined;
+    // Centralized APP_URL — ignore frontend origin / preview domains.
+    const APP_URL = (Deno.env.get("APP_URL") || "https://optocareemr.lovable.app").replace(/\/$/, "");
 
     if (!clinic_id) return json({ error: "clinic_id is required" }, 400);
     const email = emailRaw?.trim().toLowerCase();
@@ -59,9 +60,8 @@ Deno.serve(async (req) => {
       return json({ error: invErr?.message || "Failed to create invite" }, 400);
     }
 
-    const base = origin || "";
-    const link = `${base.replace(/\/$/, "")}/accept-invite?token=${invite.token}`;
-    console.log("Invite created", { clinic_id, email, role, invite_id: invite.id });
+    const link = `${APP_URL}/accept-invite?token=${invite.token}`;
+    console.log("Invite created", { clinic_id, email, role, invite_id: invite.id, link });
     return json({ ok: true, invite_id: invite.id, token: invite.token, link, clinic_name: clinicRow.name });
   } catch (e) {
     console.error("create-clinic-invite fatal", e);
