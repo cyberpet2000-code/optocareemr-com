@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -110,7 +109,7 @@ export default function Pharmacy() {
   const filtered = drugs.filter(d => d.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <AppLayout>
+    <>
       <div className="flex items-center justify-between mb-5">
         <h1 className="page-header flex items-center gap-2"><Pill size={20} /> Pharmacy</h1>
       </div>
@@ -205,6 +204,6 @@ export default function Pharmacy() {
           </div>
         </div>
       </div>
-    </AppLayout>
+    </>
   );
 }

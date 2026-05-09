@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import AppLayout from "@/components/AppLayout";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,12 +67,10 @@ export default function AdminRoles({ embedded = false }: { embedded?: boolean })
 
   if (!isAdmin) {
     return (
-      <AppLayout>
-        <div className="text-center py-12">
-          <ShieldCheck size={48} className="mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">Admin access only.</p>
-        </div>
-      </AppLayout>
+      <div className="text-center py-12">
+        <ShieldCheck size={48} className="mx-auto text-muted-foreground mb-4" />
+        <p className="text-muted-foreground">Admin access only.</p>
+      </div>
     );
   }
 
@@ -130,5 +128,5 @@ export default function AdminRoles({ embedded = false }: { embedded?: boolean })
     </>
   );
 
-  return embedded ? content : <AppLayout>{content}</AppLayout>;
+  return content;
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import AppLayout from "@/components/AppLayout";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -145,14 +145,14 @@ export default function PatientRecord() {
     setEditing(false);
   };
 
-  if (loading) return <AppLayout><div className="flex items-center justify-center py-12"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div></AppLayout>;
-  if (!patient) return <AppLayout><p className="text-center py-12 text-muted-foreground">Patient not found.</p></AppLayout>;
+  if (loading) return <div className="flex items-center justify-center py-12"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>;
+  if (!patient) return <p className="text-center py-12 text-muted-foreground">Patient not found.</p>;
 
   const isHmo = patient.payment_type === "hmo";
   const hmoName = patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : null;
 
   return (
-    <AppLayout>
+    <>
       <Link to="/patients" className="text-xs text-primary font-medium hover:underline inline-flex items-center gap-1 mb-4">
         <ArrowLeft size={12} /> Back
       </Link>
@@ -428,6 +428,6 @@ export default function PatientRecord() {
           <CheckCircle2 size={16} className="mr-1" /> Complete Visit
         </Button>
       </div>
-    </AppLayout>
+    </>
   );
 }

@@ -59,7 +59,7 @@ function SuperAdminOnly({ children }: { children: React.ReactNode }) {
   const { isSuperAdmin, loading } = useRole();
   if (loading) return <FullScreenLoader label="Loading OptoCare…" />;
   if (!isSuperAdmin) return <FullScreenMessage label="Super Admin access required" />;
-  return <AppLayout>{children}</AppLayout>;
+  return <>{children}</>;
 }
 
 function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
@@ -128,33 +128,38 @@ export function AppRoutes() {
       ) : (
         <ProtectedRouteGate>
           <Routes>
+            {/* Routes that intentionally render WITHOUT the app shell */}
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/select-clinic" element={<SelectClinic />} />
 
-            <Route path="/super-admin" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
-            <Route path="/super-admin-dashboard" element={<Navigate to="/super-admin" replace />} />
-            <Route path="/super-admin/create-clinic" element={<SuperAdminOnly><SuperAdminCreateClinic /></SuperAdminOnly>} />
-            <Route path="/super-admin/clinics" element={<SuperAdminOnly><SuperAdminClinics /></SuperAdminOnly>} />
-            <Route path="/super-admin/users" element={<SuperAdminOnly><AdminRoles embedded /></SuperAdminOnly>} />
-            <Route path="/super-admin/performance" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
-            <Route path="/super-admin/control" element={<SuperAdminOnly><SuperAdminControlCenter /></SuperAdminOnly>} />
-            <Route path="/super-admin/safety" element={<SuperAdminOnly><SuperAdminSafety /></SuperAdminOnly>} />
-            <Route path="/super-admin/audit" element={<SuperAdminOnly><SuperAdminSwitchAudit /></SuperAdminOnly>} />
+            {/* Persistent app shell — sidebar, header, clinic context stay mounted */}
+            <Route element={<AppLayout />}>
+              <Route path="/super-admin" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
+              <Route path="/super-admin-dashboard" element={<Navigate to="/super-admin" replace />} />
+              <Route path="/super-admin/create-clinic" element={<SuperAdminOnly><SuperAdminCreateClinic /></SuperAdminOnly>} />
+              <Route path="/super-admin/clinics" element={<SuperAdminOnly><SuperAdminClinics /></SuperAdminOnly>} />
+              <Route path="/super-admin/users" element={<SuperAdminOnly><AdminRoles embedded /></SuperAdminOnly>} />
+              <Route path="/super-admin/performance" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
+              <Route path="/super-admin/control" element={<SuperAdminOnly><SuperAdminControlCenter /></SuperAdminOnly>} />
+              <Route path="/super-admin/safety" element={<SuperAdminOnly><SuperAdminSafety /></SuperAdminOnly>} />
+              <Route path="/super-admin/audit" element={<SuperAdminOnly><SuperAdminSwitchAudit /></SuperAdminOnly>} />
 
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/register" element={<PatientRegister />} />
-            <Route path="/patients" element={<PatientList />} />
-            <Route path="/patient/:id" element={<PatientRecord />} />
-            <Route path="/queue" element={<Queue />} />
-            <Route path="/hmos" element={<HmoManagement />} />
-            <Route path="/appointments" element={<Appointments />} />
-            <Route path="/inventory" element={<Inventory />} />
-            <Route path="/pharmacy" element={<Pharmacy />} />
-            <Route path="/billing" element={<Billing />} />
-            <Route path="/sales-history" element={<SalesHistory />} />
-            <Route path="/admin/roles" element={<AdminRoles />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/register" element={<PatientRegister />} />
+              <Route path="/patients" element={<PatientList />} />
+              <Route path="/patient/:id" element={<PatientRecord />} />
+              <Route path="/queue" element={<Queue />} />
+              <Route path="/hmos" element={<HmoManagement />} />
+              <Route path="/appointments" element={<Appointments />} />
+              <Route path="/inventory" element={<Inventory />} />
+              <Route path="/pharmacy" element={<Pharmacy />} />
+              <Route path="/billing" element={<Billing />} />
+              <Route path="/sales-history" element={<SalesHistory />} />
+              <Route path="/admin/roles" element={<AdminRoles />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
+
             <Route path="/" element={<LandingRedirect />} />
-            <Route path="*" element={<NotFound />} />
           </Routes>
         </ProtectedRouteGate>
       )}

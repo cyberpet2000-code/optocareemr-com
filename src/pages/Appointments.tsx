@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,7 +92,7 @@ export default function Appointments() {
   };
 
   return (
-    <AppLayout>
+    <>
       <div className="flex items-center justify-between mb-5">
         <h1 className="page-header">Appointments</h1>
         <Button onClick={() => setShowForm(!showForm)} size="sm" className="rounded-xl gap-1.5">
@@ -192,6 +191,6 @@ export default function Appointments() {
           ))}
         </div>
       )}
-    </AppLayout>
+    </>
   );
 }
