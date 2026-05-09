@@ -1,12 +1,13 @@
-// send-daily-summary — generates and emails the daily clinic summary.
-// Modes:
-//   POST {} or {dispatch:true}                → iterate ALL active clinics
-//   POST {clinic_id:"..."}                    → run for one clinic
-// Always logs delivery to notification_logs.
+// send-daily-summary — branded daily clinic report email via Resend.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+import { renderShell, htmlToText, escapeHtml as esc, BRAND_NAME, dailyLimitFor } from "../_shared/email.ts";
 
-const FROM_ADDRESS = Deno.env.get("INVITE_FROM_ADDRESS") || "OptoCare EMR <noreply@optocareemr.com>";
+const FROM_ADDRESS = Deno.env.get("INVITE_FROM_ADDRESS") || `${BRAND_NAME} <noreply@optocareemr.com>`;
+const REPLY_TO = Deno.env.get("INVITE_REPLY_TO") || "support@optocareemr.com";
+const TIMEZONE = "Africa/Lagos";
+
+function escapeHtml(s: unknown) { return esc(s); }
 const TIMEZONE = "Africa/Lagos";
 
 function escapeHtml(s: unknown) {
@@ -104,79 +105,68 @@ async function gatherStats(admin: any, clinic_id: string, startISO: string, endI
   return { patientsSeen, newPatients, revenue, outstanding, hmoClaims, pendingAppointments, inventoryAlerts, followupsDue, topDrugs, alerts };
 }
 
-function buildHtml(opts: { clinic_name: string; logo_url?: string | null; primary_color?: string | null; date_label: string; stats: Stats }) {
-  const { clinic_name, logo_url, primary_color, date_label, stats } = opts;
-  const brand = primary_color || "#1e40af";
+function buildBodyHtml(opts: { clinic_name: string; date_label: string; stats: Stats; brand: string }) {
+  const { clinic_name, date_label, stats, brand } = opts;
   const card = (label: string, value: string) =>
-    `<td style="padding:14px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;width:33%">
+    `<td style="padding:12px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;width:33%">
       <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.04em">${escapeHtml(label)}</div>
-      <div style="font-size:22px;font-weight:700;color:#0f172a;margin-top:4px">${escapeHtml(value)}</div>
+      <div style="font-size:20px;font-weight:700;color:#0f172a;margin-top:4px">${escapeHtml(value)}</div>
     </td>`;
   const drugRows = stats.topDrugs.length
     ? stats.topDrugs.map(d => `<tr><td style="padding:6px 0;border-bottom:1px solid #f1f5f9">${escapeHtml(d.name)}</td><td style="padding:6px 0;text-align:right;border-bottom:1px solid #f1f5f9">${d.qty}</td></tr>`).join("")
     : `<tr><td colspan="2" style="padding:6px 0;color:#94a3b8">No prescriptions today</td></tr>`;
-  return `<!doctype html><html><body style="margin:0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f1f5f9;color:#0f172a">
-<div style="max-width:640px;margin:0 auto;padding:24px">
-  <div style="background:#fff;border-radius:14px;overflow:hidden;border:1px solid #e2e8f0">
-    <div style="background:${brand};color:#fff;padding:20px 24px;display:flex;align-items:center;gap:12px">
-      ${logo_url ? `<img src="${escapeHtml(logo_url)}" alt="" style="width:40px;height:40px;border-radius:8px;background:#fff;object-fit:cover"/>` : ""}
-      <div>
-        <div style="font-size:18px;font-weight:700">${escapeHtml(clinic_name)}</div>
-        <div style="font-size:12px;opacity:.85">Daily Clinic Summary — ${escapeHtml(date_label)}</div>
-      </div>
-    </div>
-    <div style="padding:24px">
-      <table width="100%" cellspacing="8" cellpadding="0" style="border-collapse:separate"><tr>
-        ${card("Patients seen", String(stats.patientsSeen))}
-        ${card("New patients", String(stats.newPatients))}
-        ${card("Revenue", fmtMoney(stats.revenue))}
-      </tr><tr>
-        ${card("Outstanding", fmtMoney(stats.outstanding))}
-        ${card("Pending appts", String(stats.pendingAppointments))}
-        ${card("Follow-ups due", String(stats.followupsDue))}
-      </tr></table>
+  return `
+    <h2 style="margin:0 0 4px;font-size:18px;color:${brand}">${escapeHtml(clinic_name)}</h2>
+    <p style="margin:0 0 18px;color:#64748b;font-size:13px">Daily Clinic Summary — ${escapeHtml(date_label)}</p>
+    <table width="100%" cellspacing="6" cellpadding="0" style="border-collapse:separate"><tr>
+      ${card("Patients seen", String(stats.patientsSeen))}
+      ${card("New patients", String(stats.newPatients))}
+      ${card("Revenue", fmtMoney(stats.revenue))}
+    </tr><tr>
+      ${card("Outstanding", fmtMoney(stats.outstanding))}
+      ${card("Pending appts", String(stats.pendingAppointments))}
+      ${card("Follow-ups due", String(stats.followupsDue))}
+    </tr></table>
 
-      <h3 style="margin:24px 0 8px;font-size:14px;color:${brand}">HMO activity</h3>
-      <table width="100%" style="border-collapse:collapse;font-size:13px">
-        <tr><td style="padding:6px 0;border-bottom:1px solid #f1f5f9">Total claims today</td><td style="text-align:right;padding:6px 0;border-bottom:1px solid #f1f5f9"><b>${stats.hmoClaims.total}</b></td></tr>
-        <tr><td style="padding:6px 0;border-bottom:1px solid #f1f5f9">Pending</td><td style="text-align:right;padding:6px 0;border-bottom:1px solid #f1f5f9">${stats.hmoClaims.pending}</td></tr>
-        <tr><td style="padding:6px 0;border-bottom:1px solid #f1f5f9">Approved</td><td style="text-align:right;padding:6px 0;border-bottom:1px solid #f1f5f9">${stats.hmoClaims.approved}</td></tr>
-        <tr><td style="padding:6px 0;border-bottom:1px solid #f1f5f9">Rejected</td><td style="text-align:right;padding:6px 0;border-bottom:1px solid #f1f5f9">${stats.hmoClaims.rejected}</td></tr>
-      </table>
+    <h3 style="margin:22px 0 6px;font-size:14px;color:${brand}">HMO activity</h3>
+    <table width="100%" style="border-collapse:collapse;font-size:13px">
+      <tr><td style="padding:6px 0;border-bottom:1px solid #f1f5f9">Total claims today</td><td style="text-align:right;padding:6px 0;border-bottom:1px solid #f1f5f9"><b>${stats.hmoClaims.total}</b></td></tr>
+      <tr><td style="padding:6px 0;border-bottom:1px solid #f1f5f9">Pending</td><td style="text-align:right;padding:6px 0;border-bottom:1px solid #f1f5f9">${stats.hmoClaims.pending}</td></tr>
+      <tr><td style="padding:6px 0;border-bottom:1px solid #f1f5f9">Approved</td><td style="text-align:right;padding:6px 0;border-bottom:1px solid #f1f5f9">${stats.hmoClaims.approved}</td></tr>
+      <tr><td style="padding:6px 0;border-bottom:1px solid #f1f5f9">Rejected</td><td style="text-align:right;padding:6px 0;border-bottom:1px solid #f1f5f9">${stats.hmoClaims.rejected}</td></tr>
+    </table>
 
-      <h3 style="margin:24px 0 8px;font-size:14px;color:${brand}">Top prescribed drugs</h3>
-      <table width="100%" style="border-collapse:collapse;font-size:13px">${drugRows}</table>
+    <h3 style="margin:22px 0 6px;font-size:14px;color:${brand}">Top prescribed drugs</h3>
+    <table width="100%" style="border-collapse:collapse;font-size:13px">${drugRows}</table>
 
-      <h3 style="margin:24px 0 8px;font-size:14px;color:${brand}">System</h3>
-      <div style="font-size:13px;color:#475569">
-        Inventory low-stock items: <b>${stats.inventoryAlerts}</b><br/>
-        Active alerts: <b>${stats.alerts}</b>
-      </div>
-
-      <p style="margin-top:24px;font-size:12px;color:#94a3b8">
-        Generated automatically by OptoCare EMR for ${escapeHtml(clinic_name)}.
-        You're receiving this because you are a registered admin.
-      </p>
-    </div>
-  </div>
-</div></body></html>`;
+    <h3 style="margin:22px 0 6px;font-size:14px;color:${brand}">System</h3>
+    <p style="margin:0;font-size:13px;color:#475569">
+      Inventory low-stock items: <b>${stats.inventoryAlerts}</b><br/>
+      Active alerts: <b>${stats.alerts}</b>
+    </p>
+  `;
 }
 
-async function sendViaResend(to: string, subject: string, html: string, apiKey: string) {
+async function sendViaResend(to: string, subject: string, html: string, text: string, tags: { name: string; value: string }[], apiKey: string) {
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: FROM_ADDRESS, to: [to], subject, html }),
+    body: JSON.stringify({ from: FROM_ADDRESS, to: [to], reply_to: REPLY_TO, subject, html, text, tags }),
   });
-  const text = await r.text();
-  let data: any = null; try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+  const txt = await r.text();
+  let data: any = null; try { data = txt ? JSON.parse(txt) : null; } catch { data = { raw: txt }; }
   return { ok: r.ok, status: r.status, data };
+}
+
+function isPermanent(status: number, body: any): boolean {
+  if (status === 400 || status === 403 || status === 422) return true;
+  const msg = JSON.stringify(body || "").toLowerCase();
+  return /invalid.*email|recipient.*invalid|address.*reject|blocked|suppress|spam/.test(msg);
 }
 
 async function processClinic(admin: any, clinic: any, RESEND_API_KEY: string, bounds: ReturnType<typeof lagosDayBoundsUTC>) {
   const stats = await gatherStats(admin, clinic.id, bounds.startISO, bounds.endISO);
 
-  // Find admin recipients: user_roles role in (admin, super_admin) for this clinic
   const { data: roleRows } = await admin.from("user_roles")
     .select("user_id, role").eq("clinic_id", clinic.id).in("role", ["admin", "super_admin"]);
   const userIds = [...new Set((roleRows || []).map((r: any) => r.user_id))];
@@ -185,43 +175,82 @@ async function processClinic(admin: any, clinic: any, RESEND_API_KEY: string, bo
   for (const uid of userIds) {
     try {
       const { data } = await admin.auth.admin.getUserById(uid);
-      if (data?.user?.email) recipients.push(data.user.email);
+      if (data?.user?.email) recipients.push(data.user.email.toLowerCase());
     } catch {}
   }
-  // Fallback to clinic email
-  if (recipients.length === 0 && clinic.email) recipients.push(clinic.email);
+  if (recipients.length === 0 && clinic.email) recipients.push(clinic.email.toLowerCase());
 
   if (recipients.length === 0) {
     await admin.from("notification_logs").insert({
       clinic_id: clinic.id, recipient: "(none)", channel: "email",
-      notification_type: "daily_summary", subject: "Daily summary",
-      status: "failed", error_message: "No admin recipients", attempts: 0,
+      notification_type: "daily_summary", category: "summary",
+      subject: "Daily summary", status: "failed",
+      error_message: "No admin recipients", attempts: 0,
     });
     return { clinic_id: clinic.id, sent: 0, skipped: true };
   }
 
   const subject = `Daily Clinic Summary — ${clinic.name} — ${bounds.label}`;
-  const html = buildHtml({
-    clinic_name: clinic.name, logo_url: clinic.logo_url, primary_color: clinic.theme_color,
-    date_label: bounds.label, stats,
+  const brand = clinic.theme_color || "#1e40af";
+  const bodyHtml = buildBodyHtml({ clinic_name: clinic.name, date_label: bounds.label, stats, brand });
+  const html = renderShell({
+    preheader: `Daily summary for ${clinic.name} — ${bounds.label}`,
+    clinic_name: clinic.name, clinic_logo: clinic.logo_url, primary_color: brand,
+    category: "summary", body_html: bodyHtml,
   });
+  const text = htmlToText(html);
+  const tags = [
+    { name: "category", value: "summary" },
+    { name: "type", value: "daily_summary" },
+    { name: "clinic_id", value: clinic.id },
+  ];
 
+  const limit = dailyLimitFor("summary");
   let sent = 0;
+
   for (const to of recipients) {
+    // Suppression check
+    const { data: sup } = await admin.from("email_suppressions").select("reason").eq("email", to).maybeSingle();
+    if (sup) {
+      await admin.from("notification_logs").insert({
+        clinic_id: clinic.id, recipient: to, channel: "email",
+        notification_type: "daily_summary", category: "summary", subject,
+        status: "suppressed", error_message: `Address suppressed: ${sup.reason}`, attempts: 0,
+      });
+      continue;
+    }
+
+    // Quota
+    const { data: q } = await admin.rpc("try_consume_email_quota", { _category: "summary", _limit: limit });
+    if (q === null || q === undefined) {
+      await admin.from("notification_logs").insert({
+        clinic_id: clinic.id, recipient: to, channel: "email",
+        notification_type: "daily_summary", category: "summary", subject,
+        status: "rate_limited", error_message: `Daily warmup limit (${limit}) reached`, attempts: 0,
+      });
+      continue;
+    }
+
     let providerId: string | null = null, lastErr: string | null = null, success = false, attempts = 0;
     for (let i = 0; i < 2; i++) {
       attempts = i + 1;
-      const res = await sendViaResend(to, subject, html, RESEND_API_KEY);
+      const res = await sendViaResend(to, subject, html, text, tags, RESEND_API_KEY);
       if (res.ok) { success = true; providerId = res.data?.id ?? null; break; }
       lastErr = `HTTP ${res.status}: ${JSON.stringify(res.data)}`;
+      if (isPermanent(res.status, res.data)) {
+        await admin.from("email_suppressions")
+          .upsert({ email: to, reason: "permanent_failure", source: "resend_response", clinic_id: clinic.id, details: res.data }, { onConflict: "email" });
+        break;
+      }
       if (i < 1) await new Promise(r => setTimeout(r, 1500));
     }
     await admin.from("notification_logs").insert({
       clinic_id: clinic.id, recipient: to, channel: "email",
-      notification_type: "daily_summary", subject,
+      notification_type: "daily_summary", category: "summary", subject,
       status: success ? "sent" : "failed",
       provider: "resend", provider_message_id: providerId,
       error_message: success ? null : lastErr, attempts,
+      plain_text_included: true,
       metadata: { stats } as any,
       sent_at: new Date().toISOString(),
     });
