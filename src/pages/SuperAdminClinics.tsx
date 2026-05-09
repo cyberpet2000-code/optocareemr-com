@@ -35,15 +35,30 @@ export default function SuperAdminClinics() {
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.from("clinics")
-        .select("id, name, subscription_status, trial_end_date, setup_completed, is_active, created_at")
-        .order("created_at", { ascending: false });
-      setClinics(data || []);
-      setLoading(false);
-    })();
-  }, []);
+  const refresh = async () => {
+    const { data } = await supabase.from("clinics")
+      .select("id, name, subscription_status, trial_end_date, setup_completed, is_active, deactivated_at, deactivation_reason, created_at")
+      .order("created_at", { ascending: false });
+    setClinics(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { refresh(); }, []);
+
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const toggleActive = async (c: any) => {
+    if (c.is_active && !confirm(`Deactivate ${c.name}? Users will lose access until a subscription is activated.`)) return;
+    setBusyId(c.id);
+    const fn = c.is_active ? "deactivate_clinic" : "activate_clinic_subscription";
+    const args: any = c.is_active ? { _clinic_id: c.id, _reason: "manual" } : { _clinic_id: c.id };
+    // @ts-expect-error generic rpc
+    const { error } = await supabase.rpc(fn, args);
+    setBusyId(null);
+    if (error) { toast.error(error.message); return; }
+    toast.success(c.is_active ? "Clinic deactivated" : "Clinic activated");
+    refresh();
+  };
+
 
   const enter = async (c: any) => {
     if (enteringId) return;
