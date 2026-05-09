@@ -1134,6 +1134,63 @@ export type Database = {
         }
         Relationships: []
       }
+      email_send_quota: {
+        Row: {
+          category: string
+          daily_limit: number
+          day: string
+          id: string
+          sent_count: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          daily_limit?: number
+          day: string
+          id?: string
+          sent_count?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          daily_limit?: number
+          day?: string
+          id?: string
+          sent_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_suppressions: {
+        Row: {
+          clinic_id: string | null
+          created_at: string
+          details: Json | null
+          email: string
+          id: string
+          reason: string
+          source: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string
+          details?: Json | null
+          email: string
+          id?: string
+          reason: string
+          source?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string
+          details?: Json | null
+          email?: string
+          id?: string
+          reason?: string
+          source?: string | null
+        }
+        Relationships: []
+      }
       feature_flags: {
         Row: {
           clinic_id: string | null
@@ -1631,13 +1688,20 @@ export type Database = {
       notification_logs: {
         Row: {
           attempts: number | null
+          bounced_at: string | null
+          category: string | null
           channel: string
+          clicked_at: string | null
           clinic_id: string | null
+          complained_at: string | null
           created_at: string
+          delivered_at: string | null
           error_message: string | null
           id: string
           metadata: Json | null
           notification_type: string
+          opened_at: string | null
+          plain_text_included: boolean | null
           provider: string | null
           provider_message_id: string | null
           recipient: string
@@ -1647,13 +1711,20 @@ export type Database = {
         }
         Insert: {
           attempts?: number | null
+          bounced_at?: string | null
+          category?: string | null
           channel?: string
+          clicked_at?: string | null
           clinic_id?: string | null
+          complained_at?: string | null
           created_at?: string
+          delivered_at?: string | null
           error_message?: string | null
           id?: string
           metadata?: Json | null
           notification_type: string
+          opened_at?: string | null
+          plain_text_included?: boolean | null
           provider?: string | null
           provider_message_id?: string | null
           recipient: string
@@ -1663,13 +1734,20 @@ export type Database = {
         }
         Update: {
           attempts?: number | null
+          bounced_at?: string | null
+          category?: string | null
           channel?: string
+          clicked_at?: string | null
           clinic_id?: string | null
+          complained_at?: string | null
           created_at?: string
+          delivered_at?: string | null
           error_message?: string | null
           id?: string
           metadata?: Json | null
           notification_type?: string
+          opened_at?: string | null
+          plain_text_included?: boolean | null
           provider?: string | null
           provider_message_id?: string | null
           recipient?: string
@@ -3017,6 +3095,10 @@ export type Database = {
         Returns: Json
       }
       suggest_query_fix: { Args: { q: string }; Returns: string }
+      try_consume_email_quota: {
+        Args: { _category: string; _limit: number }
+        Returns: number
+      }
       validate_target_object: { Args: { obj: string }; Returns: undefined }
     }
     Enums: {
