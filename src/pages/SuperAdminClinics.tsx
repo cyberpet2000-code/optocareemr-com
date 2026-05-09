@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAccess } from "@/hooks/useAccess";
 import { toast } from "sonner";
+import PendingInvitesPanel from "@/components/PendingInvitesPanel";
 
 function lifecycleLabel(c: any): { label: string; cls: string } {
   if (c.is_active === false) {
