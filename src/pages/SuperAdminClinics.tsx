@@ -174,6 +174,8 @@ export default function SuperAdminClinics() {
         )}
       </div>
 
+      <PendingInvitesPanel />
+
       <Dialog open={!!inviteFor} onOpenChange={(o) => !o && setInviteFor(null)}>
         <DialogContent>
           <DialogHeader>
