@@ -9,6 +9,8 @@ export interface ClinicInfo {
   setup_completed: boolean | null;
   onboarding_step: string | null;
   is_active: boolean | null;
+  deactivated_at?: string | null;
+  deactivation_reason?: string | null;
 }
 
 export interface ProfileInfo {
@@ -19,6 +21,14 @@ export interface ProfileInfo {
   is_super_admin: boolean | null;
   title: string | null;
 }
+
+export type ClinicLifecycleStatus =
+  | "trial_active"
+  | "trial_expiring_soon"
+  | "subscription_active"
+  | "expired"
+  | "suspended"
+  | "unknown";
 
 export function useClinic() {
   const { profile, clinic, profileLoading, clinicLoading, reload, switchClinic, activeClinicId, effectiveClinicId } = useAccess();
@@ -36,7 +46,37 @@ export function useClinic() {
     ? clinic.subscription_status !== "active" && trialDaysLeft <= 0
     : false;
 
-  const canWrite = !trialExpired || profile?.is_super_admin === true || profile?.role === "super_admin";
+  const isSuperAdmin = profile?.is_super_admin === true || profile?.role === "super_admin";
 
-  return { profile: profile as ProfileInfo | null, clinic: clinic as ClinicInfo | null, loading, trialDaysLeft, trialExpired, canWrite, reload, switchClinic, activeClinicId, effectiveClinicId };
+  const isDeactivated = !!clinic && clinic.is_active === false;
+  const subscriptionRequired = isDeactivated && !isSuperAdmin;
+
+  const canWrite = (!trialExpired && !isDeactivated) || isSuperAdmin;
+
+  const lifecycleStatus: ClinicLifecycleStatus = (() => {
+    if (!clinic) return "unknown";
+    if (isDeactivated) {
+      if (clinic.deactivation_reason === "trial_expired" || clinic.subscription_status === "expired") return "expired";
+      return "suspended";
+    }
+    if (clinic.subscription_status === "active") return "subscription_active";
+    if (trialDaysLeft !== Infinity && trialDaysLeft <= 3) return "trial_expiring_soon";
+    return "trial_active";
+  })();
+
+  return {
+    profile: profile as ProfileInfo | null,
+    clinic: clinic as ClinicInfo | null,
+    loading,
+    trialDaysLeft,
+    trialExpired,
+    isDeactivated,
+    subscriptionRequired,
+    lifecycleStatus,
+    canWrite,
+    reload,
+    switchClinic,
+    activeClinicId,
+    effectiveClinicId,
+  };
 }

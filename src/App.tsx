@@ -30,6 +30,7 @@ import SuperAdminCreateClinic from "./pages/SuperAdminCreateClinic";
 import SuperAdminControlCenter from "./pages/SuperAdminControlCenter";
 import SuperAdminSafety from "./pages/SuperAdminSafety";
 import SuperAdminSwitchAudit from "./pages/SuperAdminSwitchAudit";
+import SuperAdminOperations from "./pages/SuperAdminOperations";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import SelectClinic from "./pages/SelectClinic";
@@ -144,6 +145,7 @@ export function AppRoutes() {
               <Route path="/super-admin/control" element={<SuperAdminOnly><SuperAdminControlCenter /></SuperAdminOnly>} />
               <Route path="/super-admin/safety" element={<SuperAdminOnly><SuperAdminSafety /></SuperAdminOnly>} />
               <Route path="/super-admin/audit" element={<SuperAdminOnly><SuperAdminSwitchAudit /></SuperAdminOnly>} />
+              <Route path="/super-admin/operations" element={<SuperAdminOnly><SuperAdminOperations /></SuperAdminOnly>} />
 
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/register" element={<PatientRegister />} />

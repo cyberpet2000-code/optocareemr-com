@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useClinic } from "@/hooks/useClinic";
 import TrialBanner from "@/components/TrialBanner";
+import SubscriptionGate from "@/components/SubscriptionGate";
 import ClinicSidebar, { resolveWorkspace } from "@/components/ClinicSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
@@ -170,7 +171,9 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
           <main className="flex-1 px-3 lg:px-6 py-4 lg:py-6 pb-24 lg:pb-6 animate-page">
             <div className="max-w-7xl mx-auto">
               <TrialBanner />
-              {children ?? <Outlet />}
+              <SubscriptionGate>
+                {children ?? <Outlet />}
+              </SubscriptionGate>
             </div>
           </main>
 
