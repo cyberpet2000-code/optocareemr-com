@@ -624,6 +624,54 @@ export type Database = {
         }
         Relationships: []
       }
+      clinic_notifications: {
+        Row: {
+          clinic_id: string | null
+          created_at: string | null
+          email_enabled: boolean | null
+          id: string
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string | null
+          email_enabled?: boolean | null
+          id?: string
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string | null
+          email_enabled?: boolean | null
+          id?: string
+        }
+        Relationships: []
+      }
+      clinic_onboarding: {
+        Row: {
+          clinic_id: string | null
+          completed: boolean | null
+          created_at: string | null
+          id: string
+          step: string | null
+          user_id: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          completed?: boolean | null
+          created_at?: string | null
+          id?: string
+          step?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          completed?: boolean | null
+          created_at?: string | null
+          id?: string
+          step?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       clinic_onboarding_log: {
         Row: {
           clinic_id: string | null
