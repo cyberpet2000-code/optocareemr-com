@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useClinic } from "@/hooks/useClinic";
 import { useRole } from "@/hooks/useRole";
-import { Mail, MessageCircle, AlertTriangle, CheckCircle2, RefreshCw, Send } from "lucide-react";
+import { Mail, MessageCircle, AlertTriangle, CheckCircle2, RefreshCw, Send, ShieldCheck, Eye, MousePointerClick, Ban } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 type Log = {
