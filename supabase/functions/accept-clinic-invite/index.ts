@@ -42,9 +42,11 @@ Deno.serve(async (req) => {
     let clinicId: string | null = null;
     let alreadyAccepted = false;
 
+    let inviteExpiresAt: string | null = null;
+
     const { data: ci } = await admin
       .from("clinic_invites")
-      .select("id, clinic_id, email, role, status")
+      .select("id, clinic_id, email, role, status, expires_at")
       .eq("token", token)
       .maybeSingle();
 
@@ -55,6 +57,7 @@ Deno.serve(async (req) => {
       inviteRole = ci.role || "admin";
       clinicId = ci.clinic_id;
       alreadyAccepted = ci.status === "accepted";
+      inviteExpiresAt = (ci as any).expires_at || null;
     } else {
       const { data: legacy } = await admin
         .from("invites")
@@ -73,6 +76,12 @@ Deno.serve(async (req) => {
 
     if (!inviteSource || !inviteId) return json({ error: "Invite not found or expired" }, 404);
     if (alreadyAccepted) return json({ error: "Invite already used" }, 409);
+    if (inviteExpiresAt && new Date(inviteExpiresAt).getTime() < Date.now()) {
+      if (inviteSource === "clinic_invites") {
+        await admin.from("clinic_invites").update({ status: "expired" } as any).eq("id", inviteId);
+      }
+      return json({ error: "This invite has expired. Please ask your super admin for a new one." }, 410);
+    }
     if (inviteEmail && inviteEmail !== userEmail) {
       return json({ error: `This invite is for ${inviteEmail}. Sign in with that email to accept.` }, 403);
     }

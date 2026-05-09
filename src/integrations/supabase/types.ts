@@ -572,6 +572,7 @@ export type Database = {
           clinic_id: string | null
           created_at: string | null
           email: string | null
+          expires_at: string
           id: string
           invited_by: string | null
           role: string | null
@@ -582,6 +583,7 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string | null
           email?: string | null
+          expires_at?: string
           id?: string
           invited_by?: string | null
           role?: string | null
@@ -592,6 +594,7 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string | null
           email?: string | null
+          expires_at?: string
           id?: string
           invited_by?: string | null
           role?: string | null

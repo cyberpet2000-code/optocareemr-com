@@ -23,10 +23,11 @@ Deno.serve(async (req) => {
     if (!token) return json({ valid: false, reason: "missing_token" }, 400);
 
     let email = ""; let clinicId: string | null = null; let status: string | null = null;
+    let expiresAt: string | null = null;
 
     const { data: ci } = await admin
       .from("clinic_invites")
-      .select("clinic_id, email, status")
+      .select("clinic_id, email, status, expires_at")
       .eq("token", token)
       .maybeSingle();
 
@@ -34,6 +35,7 @@ Deno.serve(async (req) => {
       email = ci.email || "";
       clinicId = ci.clinic_id;
       status = ci.status;
+      expiresAt = (ci as any).expires_at || null;
     } else {
       const { data: legacy } = await admin
         .from("invites")
@@ -49,6 +51,9 @@ Deno.serve(async (req) => {
 
     if (!clinicId) return json({ valid: false, reason: "not_found" });
     if (status === "accepted") return json({ valid: false, reason: "already_used", email });
+    if (expiresAt && new Date(expiresAt).getTime() < Date.now()) {
+      return json({ valid: false, reason: "expired", email });
+    }
 
     const { data: clinic } = await admin
       .from("clinics").select("name").eq("id", clinicId).maybeSingle();
