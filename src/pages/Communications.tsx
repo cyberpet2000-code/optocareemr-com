@@ -17,6 +17,12 @@ type Log = {
   error_message: string | null;
   attempts: number | null;
   sent_at: string | null;
+  category?: string | null;
+  delivered_at?: string | null;
+  opened_at?: string | null;
+  clicked_at?: string | null;
+  bounced_at?: string | null;
+  complained_at?: string | null;
 };
 
 export default function Communications() {
@@ -41,12 +47,17 @@ export default function Communications() {
 
   const stats = useMemo(() => {
     const total = logs.length;
-    const sent = logs.filter(l => l.status === "sent" || l.status === "success").length;
+    const sent = logs.filter(l => l.status === "sent" || l.status === "success" || l.status === "delivered").length;
     const failed = logs.filter(l => l.status === "failed").length;
     const email = logs.filter(l => l.channel === "email").length;
     const wa = logs.filter(l => l.channel === "whatsapp").length;
+    const opened = logs.filter(l => !!l.opened_at).length;
+    const clicked = logs.filter(l => !!l.clicked_at).length;
+    const bounced = logs.filter(l => !!l.bounced_at || l.status === "bounced").length;
+    const complained = logs.filter(l => !!l.complained_at || l.status === "complained").length;
+    const suppressed = logs.filter(l => l.status === "suppressed" || l.status === "rate_limited").length;
     const rate = total ? Math.round((sent / total) * 100) : 0;
-    return { total, sent, failed, email, wa, rate };
+    return { total, sent, failed, email, wa, opened, clicked, bounced, complained, suppressed, rate };
   }, [logs]);
 
   async function runNow() {
