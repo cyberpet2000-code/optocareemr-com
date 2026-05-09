@@ -1085,27 +1085,51 @@ export type Database = {
       }
       email_logs: {
         Row: {
+          attempts: number | null
+          clinic_id: string | null
           clinic_name: string | null
           created_at: string | null
           email: string | null
           error: string | null
+          error_message: string | null
           id: string
+          invite_id: string | null
+          provider: string | null
+          provider_message_id: string | null
+          role: string | null
+          sent_at: string | null
           status: string | null
         }
         Insert: {
+          attempts?: number | null
+          clinic_id?: string | null
           clinic_name?: string | null
           created_at?: string | null
           email?: string | null
           error?: string | null
+          error_message?: string | null
           id?: string
+          invite_id?: string | null
+          provider?: string | null
+          provider_message_id?: string | null
+          role?: string | null
+          sent_at?: string | null
           status?: string | null
         }
         Update: {
+          attempts?: number | null
+          clinic_id?: string | null
           clinic_name?: string | null
           created_at?: string | null
           email?: string | null
           error?: string | null
+          error_message?: string | null
           id?: string
+          invite_id?: string | null
+          provider?: string | null
+          provider_message_id?: string | null
+          role?: string | null
+          sent_at?: string | null
           status?: string | null
         }
         Relationships: []

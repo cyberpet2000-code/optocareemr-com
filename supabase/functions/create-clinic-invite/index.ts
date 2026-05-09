@@ -62,7 +62,46 @@ Deno.serve(async (req) => {
 
     const link = `${APP_URL}/accept-invite?token=${invite.token}`;
     console.log("Invite created", { clinic_id, email, role, invite_id: invite.id, link });
-    return json({ ok: true, invite_id: invite.id, token: invite.token, link, clinic_name: clinicRow.name });
+
+    // Trigger email send via dedicated edge function (handles retry + logging).
+    let email_status: "success" | "failed" = "failed";
+    let email_error: string | null = null;
+    try {
+      const sendRes = await fetch(`${url}/functions/v1/send-invite-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({
+          email,
+          clinic_name: clinicRow.name,
+          role,
+          token: invite.token,
+          clinic_id,
+          invite_id: invite.id,
+        }),
+      });
+      const sendData = await sendRes.json().catch(() => ({}));
+      if (sendRes.ok && sendData?.ok) {
+        email_status = "success";
+      } else {
+        email_error = sendData?.error || `HTTP ${sendRes.status}`;
+      }
+    } catch (e) {
+      email_error = (e as Error).message;
+      console.error("send-invite-email invocation failed", email_error);
+    }
+
+    return json({
+      ok: true,
+      invite_id: invite.id,
+      token: invite.token,
+      link,
+      clinic_name: clinicRow.name,
+      email_status,
+      email_error,
+    });
   } catch (e) {
     console.error("create-clinic-invite fatal", e);
     return json({ error: (e as Error).message }, 500);
