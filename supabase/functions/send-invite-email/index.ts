@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const APP_URL = (Deno.env.get("APP_URL") || "https://optocareemr.lovable.app").replace(/\/$/, "");
-const FROM_ADDRESS = Deno.env.get("INVITE_FROM_ADDRESS") || "OptoCare EMR <noreply@optocare-emr.com>";
+const FROM_ADDRESS = Deno.env.get("INVITE_FROM_ADDRESS") || "OptoCare EMR <noreply@optocareemr.com>";
 
 function buildHtml(opts: { clinic_name: string; role: string; invite_link: string }) {
   const { clinic_name, role, invite_link } = opts;
