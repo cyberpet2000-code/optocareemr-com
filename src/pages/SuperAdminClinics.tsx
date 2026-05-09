@@ -1,13 +1,25 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Plus, LogIn, UserPlus, Copy, Check } from "lucide-react";
+import { Building2, Plus, LogIn, UserPlus, Copy, Check, Power, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAccess } from "@/hooks/useAccess";
 import { toast } from "sonner";
+
+function lifecycleLabel(c: any): { label: string; cls: string } {
+  if (c.is_active === false) {
+    if (c.deactivation_reason === "trial_expired" || c.subscription_status === "expired")
+      return { label: "Expired", cls: "bg-destructive/10 text-destructive" };
+    return { label: "Suspended", cls: "bg-muted text-foreground" };
+  }
+  if (c.subscription_status === "active") return { label: "Active", cls: "bg-success/10 text-success" };
+  const days = c.trial_end_date ? Math.ceil((new Date(c.trial_end_date).getTime() - Date.now()) / 86400000) : null;
+  if (days !== null && days <= 3 && days >= 0) return { label: "Expiring Soon", cls: "bg-warning/10 text-warning" };
+  return { label: "Trial", cls: "bg-primary/10 text-primary" };
+}
 
 export default function SuperAdminClinics() {
   const [clinics, setClinics] = useState<any[]>([]);
