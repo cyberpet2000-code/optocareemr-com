@@ -115,7 +115,7 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
 export function AppRoutes() {
   const location = useLocation();
 
-  const isPublicRoute = location.pathname === "/login" || location.pathname === "/reset-password" || location.pathname === "/accept-invite" || location.pathname === "/no-access";
+  const isPublicRoute = location.pathname === "/login" || location.pathname === "/reset-password" || location.pathname === "/accept-invite" || location.pathname === "/signup" || location.pathname === "/no-access";
 
   return (
     <>
@@ -124,6 +124,7 @@ export function AppRoutes() {
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/accept-invite" element={<AcceptInvite />} />
+          <Route path="/signup" element={<AcceptInvite />} />
           <Route path="/no-access" element={<NoAccess />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
