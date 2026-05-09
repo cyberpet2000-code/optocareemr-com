@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,7 +59,7 @@ export default function PatientRegister() {
   };
 
   return (
-    <AppLayout>
+    <>
       <h1 className="page-header mb-5">Register Patient</h1>
       <form onSubmit={handleSubmit} className="form-section max-w-2xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -117,6 +116,6 @@ export default function PatientRegister() {
           <Button type="button" variant="outline" className="rounded-xl" onClick={() => navigate("/")}>Cancel</Button>
         </div>
       </form>
-    </AppLayout>
+    </>
   );
 }

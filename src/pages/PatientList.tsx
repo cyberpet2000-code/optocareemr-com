@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Search, ChevronRight, UserPlus, Phone, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import AppLayout from "@/components/AppLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -48,7 +47,7 @@ export default function PatientList() {
   );
 
   return (
-    <AppLayout>
+    <>
       <div className="flex items-center justify-between gap-3 mb-5">
         <h1 className="page-header">Patients</h1>
         <Link to="/register">
@@ -120,6 +119,6 @@ export default function PatientList() {
           })}
         </div>
       )}
-    </AppLayout>
+    </>
   );
 }

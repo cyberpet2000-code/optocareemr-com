@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -159,7 +158,7 @@ export default function Inventory() {
   const totalValue = items.reduce((sum, i) => sum + i.price * i.stock_quantity, 0);
 
   return (
-    <AppLayout>
+    <>
       <h1 className="page-header mb-5">Optical Shop</h1>
 
       <div className="grid grid-cols-3 gap-3 mb-5">
@@ -336,6 +335,6 @@ export default function Inventory() {
           )}
         </TabsContent>
       </Tabs>
-    </AppLayout>
+    </>
   );
 }

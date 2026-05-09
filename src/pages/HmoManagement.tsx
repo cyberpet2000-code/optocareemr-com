@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -90,7 +89,7 @@ export default function HmoManagement() {
   const openEdit = (h: Hmo) => { setEditing(h); setForm({ name: h.name, email: h.email || "", phone: h.phone || "", website: h.website || "" }); setOpen(true); };
 
   return (
-    <AppLayout>
+    <>
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="page-header">HMO Management</h1>
@@ -198,6 +197,6 @@ export default function HmoManagement() {
           </div>
         </DialogContent>
       </Dialog>
-    </AppLayout>
+    </>
   );
 }

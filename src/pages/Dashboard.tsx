@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Users, ChevronRight, AlertTriangle, DollarSign, TrendingUp, Clock, Pill } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import AppLayout from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Dashboard() {
@@ -88,7 +87,7 @@ export default function Dashboard() {
   );
 
   return (
-    <AppLayout>
+    <>
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">
           {getGreeting()}, <span className="text-primary">{displayName}</span>
@@ -195,6 +194,6 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-    </AppLayout>
+    </>
   );
 }

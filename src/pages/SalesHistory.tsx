@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import AppLayout from "@/components/AppLayout";
 import { History } from "lucide-react";
 
 interface SaleRecord {
@@ -64,7 +63,7 @@ export default function SalesHistory() {
   }, []);
 
   return (
-    <AppLayout>
+    <>
       <h1 className="page-header mb-5 flex items-center gap-2"><History size={20} /> Sales History</h1>
       {loading ? (
         <div className="flex items-center justify-center py-12"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
@@ -93,6 +92,6 @@ export default function SalesHistory() {
           ))}
         </div>
       )}
-    </AppLayout>
+    </>
   );
 }

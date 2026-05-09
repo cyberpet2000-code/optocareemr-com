@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -90,7 +89,7 @@ export default function Queue() {
   };
 
   return (
-    <AppLayout>
+    <>
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="page-header">Patient Queue</h1>
@@ -193,6 +192,6 @@ export default function Queue() {
           ))}
         </div>
       )}
-    </AppLayout>
+    </>
   );
 }
