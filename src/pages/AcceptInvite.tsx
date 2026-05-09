@@ -1,17 +1,20 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccess } from "@/hooks/useAccess";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { CheckCircle2, MailCheck, Loader2, AlertTriangle } from "lucide-react";
+import { APP_URL } from "@/lib/app-url";
 
 const PENDING_KEY = "pending_invite_token";
 
 type InviteState =
   | { kind: "checking" }
   | { kind: "invalid"; reason: string; email?: string }
-  | { kind: "valid"; clinic_name: string; email: string };
+  | { kind: "valid"; clinic_id: string; clinic_name: string; email: string };
 
 export default function AcceptInvite() {
   const [params] = useSearchParams();
@@ -19,8 +22,15 @@ export default function AcceptInvite() {
   const { user, authLoading, switchClinic, reload } = useAccess();
   const [invite, setInvite] = useState<InviteState>({ kind: "checking" });
   const [working, setWorking] = useState(false);
-  const [doneMsg, setDoneMsg] = useState<string | null>(null);
   const [errMsg, setErrMsg] = useState<string | null>(null);
+
+  // Sign-up form state
+  const [fullName, setFullName] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [mode, setMode] = useState<"signup" | "signin">("signup");
+  const [signinPassword, setSigninPassword] = useState("");
+  const [emailSentMsg, setEmailSentMsg] = useState<string | null>(null);
 
   const tokenFromUrl = params.get("token");
 
@@ -30,7 +40,10 @@ export default function AcceptInvite() {
     }
   }, [tokenFromUrl]);
 
-  const token = tokenFromUrl || (() => { try { return sessionStorage.getItem(PENDING_KEY); } catch { return null; } })();
+  const token = useMemo(
+    () => tokenFromUrl || (() => { try { return sessionStorage.getItem(PENDING_KEY); } catch { return null; } })(),
+    [tokenFromUrl],
+  );
 
   // Pre-validate token on mount (no auth required)
   useEffect(() => {
@@ -48,7 +61,7 @@ export default function AcceptInvite() {
       }
       const d = data as any;
       if (d.valid) {
-        setInvite({ kind: "valid", clinic_name: d.clinic_name, email: d.email });
+        setInvite({ kind: "valid", clinic_id: d.clinic_id, clinic_name: d.clinic_name, email: d.email });
       } else {
         setInvite({ kind: "invalid", reason: d.reason || "unknown", email: d.email });
       }
@@ -56,8 +69,15 @@ export default function AcceptInvite() {
     return () => { cancelled = true; };
   }, [token]);
 
-  const accept = async () => {
-    if (!token) return;
+  // Once authenticated AND we have a valid invite, finalize automatically.
+  useEffect(() => {
+    if (!user || invite.kind !== "valid" || working) return;
+    void finalize();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, invite.kind]);
+
+  const finalize = async () => {
+    if (!token || invite.kind !== "valid") return;
     setWorking(true);
     setErrMsg(null);
     const { data, error } = await supabase.functions.invoke("accept-clinic-invite", { body: { token } });
@@ -67,17 +87,73 @@ export default function AcceptInvite() {
       return;
     }
     try { sessionStorage.removeItem(PENDING_KEY); } catch {}
-    setDoneMsg(`You now have access to ${(data as any)?.clinic_name || "the clinic"}.`);
     await reload();
     try {
       await switchClinic((data as any).clinic_id);
-      toast.success("Invite accepted");
+      toast.success(`Welcome to ${(data as any).clinic_name}`);
       navigate((data as any).setup_completed ? "/dashboard" : "/onboarding", { replace: true });
     } catch (e: any) {
       toast.error(e?.message || "Could not enter clinic automatically");
       navigate("/select-clinic", { replace: true });
     }
   };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (invite.kind !== "valid") return;
+    setErrMsg(null);
+    if (!fullName.trim()) { setErrMsg("Please enter your full name"); return; }
+    if (password.length < 6) { setErrMsg("Password must be at least 6 characters"); return; }
+    if (password !== confirm) { setErrMsg("Passwords do not match"); return; }
+
+    setWorking(true);
+    const redirect = `${APP_URL}/accept-invite?token=${encodeURIComponent(token!)}`;
+    const { data, error } = await supabase.auth.signUp({
+      email: invite.email,
+      password,
+      options: { data: { full_name: fullName.trim() }, emailRedirectTo: redirect },
+    });
+
+    if (error) {
+      // If account already exists, switch to sign-in mode
+      if (/already registered|already exists/i.test(error.message)) {
+        setMode("signin");
+        setSigninPassword(password);
+        setErrMsg("You already have an account. Please sign in to accept the invite.");
+      } else {
+        setErrMsg(error.message);
+      }
+      setWorking(false);
+      return;
+    }
+
+    if (data.session) {
+      // Auto-logged in — finalize() will run via the user effect
+      return;
+    }
+    // Email confirmation required
+    setEmailSentMsg(`Check your email (${invite.email}) and click the confirmation link to finish joining ${invite.clinic_name}.`);
+    setWorking(false);
+  };
+
+  const handleSignin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (invite.kind !== "valid") return;
+    setErrMsg(null);
+    setWorking(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: invite.email,
+      password: signinPassword,
+    });
+    if (error) {
+      setErrMsg(error.message);
+      setWorking(false);
+      return;
+    }
+    // finalize() will run via user effect
+  };
+
+  // ---- RENDER ----
 
   if (authLoading || invite.kind === "checking") {
     return (
@@ -110,36 +186,111 @@ export default function AcceptInvite() {
     );
   }
 
-  // Valid invite
-  if (!user) {
+  // Email confirmation step
+  if (emailSentMsg) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-background">
         <div className="w-full max-w-sm form-section text-center space-y-3">
-          <MailCheck className="mx-auto text-primary" size={36} />
-          <h1 className="text-lg font-bold">Join {invite.clinic_name}</h1>
-          <p className="text-sm text-muted-foreground">
-            Sign in {invite.email ? <>as <span className="font-medium">{invite.email}</span></> : null} to accept this invite. We'll bring you back here right after.
-          </p>
-          <Button className="w-full" onClick={() => navigate("/login", { replace: true })}>Sign in / Sign up</Button>
+          <MailCheck className="mx-auto text-primary" size={40} />
+          <h1 className="text-lg font-bold">Confirm your email</h1>
+          <p className="text-sm text-muted-foreground">{emailSentMsg}</p>
         </div>
       </div>
     );
   }
 
+  // User is authenticated → finalizing
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <div className="w-full max-w-sm form-section text-center space-y-3">
+          {errMsg ? (
+            <>
+              <AlertTriangle className="mx-auto text-destructive" size={36} />
+              <h1 className="text-lg font-bold">Couldn't accept invite</h1>
+              <p className="text-sm text-destructive">{errMsg}</p>
+              <Button className="w-full" onClick={finalize} disabled={working}>
+                {working && <Loader2 size={14} className="animate-spin mr-2" />} Try again
+              </Button>
+            </>
+          ) : (
+            <>
+              <Loader2 className="mx-auto animate-spin text-primary" size={32} />
+              <h1 className="text-lg font-bold">Joining {invite.clinic_name}…</h1>
+              <p className="text-sm text-muted-foreground">Setting up your access</p>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Not authenticated → sign-up (default) or sign-in
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <div className="w-full max-w-sm form-section text-center space-y-4">
-        {doneMsg ? <CheckCircle2 className="mx-auto text-primary" size={40} /> : <MailCheck className="mx-auto text-primary" size={40} />}
-        <h1 className="text-lg font-bold">Join {invite.clinic_name}</h1>
-        <p className="text-sm text-muted-foreground">
-          {doneMsg || `Accept this invite to join ${invite.clinic_name} as a clinic admin.`}
-        </p>
-        {errMsg && <p className="text-sm text-destructive">{errMsg}</p>}
-        {!doneMsg && (
-          <Button className="w-full" onClick={accept} disabled={working}>
-            {working && <Loader2 size={14} className="animate-spin mr-2" />}
-            {working ? "Accepting…" : "Accept invite"}
-          </Button>
+      <div className="w-full max-w-sm form-section space-y-4">
+        <div className="text-center space-y-1">
+          <CheckCircle2 className="mx-auto text-primary" size={36} />
+          <h1 className="text-lg font-bold">Join {invite.clinic_name}</h1>
+          <p className="text-xs text-muted-foreground">
+            {mode === "signup"
+              ? "Create your account to accept this invite."
+              : "Sign in with your existing account to accept this invite."}
+          </p>
+        </div>
+
+        {mode === "signup" ? (
+          <form onSubmit={handleSignup} className="space-y-3">
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" value={invite.email} disabled />
+            </div>
+            <div>
+              <Label htmlFor="fullName">Full name</Label>
+              <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Dr. Jane Doe" required />
+            </div>
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" required />
+            </div>
+            <div>
+              <Label htmlFor="confirm">Confirm password</Label>
+              <Input id="confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+            </div>
+            {errMsg && <p className="text-sm text-destructive">{errMsg}</p>}
+            <Button type="submit" className="w-full" disabled={working}>
+              {working && <Loader2 size={14} className="animate-spin mr-2" />}
+              {working ? "Creating account…" : "Create account & join"}
+            </Button>
+            <p className="text-xs text-center text-muted-foreground">
+              Already have an account?{" "}
+              <button type="button" className="text-primary hover:underline" onClick={() => { setMode("signin"); setErrMsg(null); }}>
+                Sign in instead
+              </button>
+            </p>
+          </form>
+        ) : (
+          <form onSubmit={handleSignin} className="space-y-3">
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" value={invite.email} disabled />
+            </div>
+            <div>
+              <Label htmlFor="signinPassword">Password</Label>
+              <Input id="signinPassword" type="password" value={signinPassword} onChange={(e) => setSigninPassword(e.target.value)} required />
+            </div>
+            {errMsg && <p className="text-sm text-destructive">{errMsg}</p>}
+            <Button type="submit" className="w-full" disabled={working}>
+              {working && <Loader2 size={14} className="animate-spin mr-2" />}
+              {working ? "Signing in…" : "Sign in & join"}
+            </Button>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <button type="button" className="text-primary hover:underline" onClick={() => { setMode("signup"); setErrMsg(null); }}>
+                Need to create an account?
+              </button>
+              <Link to="/reset-password" className="hover:underline">Forgot password?</Link>
+            </div>
+          </form>
         )}
       </div>
     </div>
