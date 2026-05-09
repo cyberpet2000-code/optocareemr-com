@@ -51,8 +51,7 @@ export default function SuperAdminClinics() {
     setBusyId(c.id);
     const fn = c.is_active ? "deactivate_clinic" : "activate_clinic_subscription";
     const args: any = c.is_active ? { _clinic_id: c.id, _reason: "manual" } : { _clinic_id: c.id };
-    // @ts-expect-error generic rpc
-    const { error } = await supabase.rpc(fn, args);
+    const { error } = await supabase.rpc(fn as any, args);
     setBusyId(null);
     if (error) { toast.error(error.message); return; }
     toast.success(c.is_active ? "Clinic deactivated" : "Clinic activated");
