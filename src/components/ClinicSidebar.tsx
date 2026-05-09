@@ -42,6 +42,7 @@ export default function ClinicSidebar() {
     primary = [
       { to: "/super-admin", label: "Overview", icon: LayoutDashboard },
       { to: "/super-admin/clinics", label: "Clinics", icon: Building2 },
+      { to: "/super-admin/operations", label: "Operations", icon: Activity },
       { to: "/super-admin/performance", label: "Performance", icon: Activity },
     ];
     secondary = [
