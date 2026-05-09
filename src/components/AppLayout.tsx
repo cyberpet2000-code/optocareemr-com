@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useClinic } from "@/hooks/useClinic";
 import TrialBanner from "@/components/TrialBanner";
+import SubscriptionGate from "@/components/SubscriptionGate";
 import ClinicSidebar, { resolveWorkspace } from "@/components/ClinicSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
