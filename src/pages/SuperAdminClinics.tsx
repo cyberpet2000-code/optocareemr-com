@@ -60,7 +60,7 @@ export default function SuperAdminClinics() {
     if (!inviteFor) return;
     setInviting(true);
     const { data, error } = await supabase.functions.invoke("create-clinic-invite", {
-      body: { clinic_id: inviteFor.id, email: inviteEmail.trim(), role: "admin", origin: window.location.origin },
+      body: { clinic_id: inviteFor.id, email: inviteEmail.trim(), role: "admin" },
     });
     setInviting(false);
     if (error || (data as any)?.error) {

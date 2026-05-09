@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { APP_URL } from "@/lib/app-url";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function Login() {
 
     if (mode === "forgot") {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${APP_URL}/reset-password`,
       });
       setLoading(false);
       if (error) { toast.error(error.message); return; }
@@ -31,7 +32,7 @@ export default function Login() {
     if (mode === "signup") {
       const { error } = await supabase.auth.signUp({
         email, password,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: APP_URL },
       });
       setLoading(false);
       if (error) { toast.error(error.message); return; }
