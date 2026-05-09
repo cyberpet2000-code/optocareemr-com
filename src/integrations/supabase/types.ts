@@ -232,6 +232,36 @@ export type Database = {
         }
         Relationships: []
       }
+      auto_fix_logs: {
+        Row: {
+          action_taken: string
+          clinic_id: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          issue_detected: string
+          status: string
+        }
+        Insert: {
+          action_taken: string
+          clinic_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          issue_detected: string
+          status?: string
+        }
+        Update: {
+          action_taken?: string
+          clinic_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          issue_detected?: string
+          status?: string
+        }
+        Relationships: []
+      }
       billing: {
         Row: {
           amount_paid: number
@@ -780,6 +810,36 @@ export type Database = {
         }
         Relationships: []
       }
+      clinic_success_scores: {
+        Row: {
+          calculated_at: string
+          clinic_id: string
+          factors: Json | null
+          id: string
+          insights: string[] | null
+          score: number
+          status: string
+        }
+        Insert: {
+          calculated_at?: string
+          clinic_id: string
+          factors?: Json | null
+          id?: string
+          insights?: string[] | null
+          score?: number
+          status?: string
+        }
+        Update: {
+          calculated_at?: string
+          clinic_id?: string
+          factors?: Json | null
+          id?: string
+          insights?: string[] | null
+          score?: number
+          status?: string
+        }
+        Relationships: []
+      }
       clinic_switch_log: {
         Row: {
           access_granted: boolean | null
@@ -944,6 +1004,8 @@ export type Database = {
           billing_enabled: boolean | null
           created_at: string | null
           custom_footer: string | null
+          deactivated_at: string | null
+          deactivation_reason: string | null
           display_name: string | null
           email: string | null
           first_patient_created: boolean | null
@@ -979,6 +1041,8 @@ export type Database = {
           billing_enabled?: boolean | null
           created_at?: string | null
           custom_footer?: string | null
+          deactivated_at?: string | null
+          deactivation_reason?: string | null
           display_name?: string | null
           email?: string | null
           first_patient_created?: boolean | null
@@ -1014,6 +1078,8 @@ export type Database = {
           billing_enabled?: boolean | null
           created_at?: string | null
           custom_footer?: string | null
+          deactivated_at?: string | null
+          deactivation_reason?: string | null
           display_name?: string | null
           email?: string | null
           first_patient_created?: boolean | null
@@ -2958,15 +3024,24 @@ export type Database = {
       }
     }
     Functions: {
+      activate_clinic_subscription: {
+        Args: { _clinic_id: string }
+        Returns: Json
+      }
       analyze_clinic_revenue_health: { Args: never; Returns: undefined }
       approve_system_action: {
         Args: { approval_id: string }
         Returns: undefined
       }
+      calculate_clinic_success_score: {
+        Args: { _clinic_id: string }
+        Returns: Json
+      }
       calculate_health_score: { Args: { cid: string }; Returns: number }
       can_add_branch: { Args: { org_id: string }; Returns: boolean }
       check_policy_safety: { Args: { policy_text: string }; Returns: boolean }
       check_reminder: { Args: { p_clinic_id: string }; Returns: boolean }
+      check_trial_expiration: { Args: never; Returns: number }
       clinic_match: { Args: never; Returns: boolean }
       clone_clinic: { Args: { source_clinic_id: string }; Returns: string }
       clone_clinic_to_sandbox: {
@@ -2995,6 +3070,10 @@ export type Database = {
             Returns: string
           }
       current_clinic_id: { Args: never; Returns: string }
+      deactivate_clinic: {
+        Args: { _clinic_id: string; _reason?: string }
+        Returns: Json
+      }
       detect_clinic_issues: { Args: never; Returns: undefined }
       detect_issue_to_approval: { Args: never; Returns: undefined }
       enforce_branch_limits: { Args: { p_org_id: string }; Returns: undefined }
@@ -3083,6 +3162,7 @@ export type Database = {
       }
       require_clinic: { Args: never; Returns: undefined }
       reset_sandbox_clinic: { Args: { sandbox_id: string }; Returns: undefined }
+      run_auto_fix: { Args: { _clinic_id: string }; Returns: Json }
       seed_sandbox_data: { Args: { sandbox_id: string }; Returns: undefined }
       self_heal_clinic: { Args: { cid: string }; Returns: undefined }
       send_prescription_to_pharmacy: {
