@@ -30,6 +30,7 @@ import SuperAdminCreateClinic from "./pages/SuperAdminCreateClinic";
 import SuperAdminControlCenter from "./pages/SuperAdminControlCenter";
 import SuperAdminSafety from "./pages/SuperAdminSafety";
 import SuperAdminSwitchAudit from "./pages/SuperAdminSwitchAudit";
+import SuperAdminOperations from "./pages/SuperAdminOperations";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import SelectClinic from "./pages/SelectClinic";
