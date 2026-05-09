@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, ShoppingBag, Pill, DollarSign, LogOut, ListOrdered, Calendar, UserPlus,
   Bell, Search, Building2,
@@ -26,7 +26,7 @@ const ROLE_TONE: Record<string, string> = {
   super_admin: "bg-destructive/10 text-destructive",
 };
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default function AppLayout({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
@@ -170,7 +170,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <main className="flex-1 px-3 lg:px-6 py-4 lg:py-6 pb-24 lg:pb-6 animate-page">
             <div className="max-w-7xl mx-auto">
               <TrialBanner />
-              {children}
+              {children ?? <Outlet />}
             </div>
           </main>
 
