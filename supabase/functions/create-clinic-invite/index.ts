@@ -49,11 +49,12 @@ Deno.serve(async (req) => {
     const { data: clinicRow } = await admin.from("clinics").select("id, name").eq("id", clinic_id).maybeSingle();
     if (!clinicRow) return json({ error: "Clinic not found" }, 404);
 
-    // Insert invite (token defaults to gen_random_uuid). Explicit 48h expiry.
+    // Insert into clinic_invites (canonical table). 48h expiry.
     const expires_at = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    const token = crypto.randomUUID();
     const { data: invite, error: invErr } = await admin
-      .from("invites")
-      .insert({ clinic_id, email, role, accepted: false, expires_at } as any)
+      .from("clinic_invites")
+      .insert({ clinic_id, email, role, status: "pending", token, expires_at, invited_by: callerId } as any)
       .select("id, token")
       .single();
     if (invErr || !invite) {
