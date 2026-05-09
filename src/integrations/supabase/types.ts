@@ -1628,6 +1628,57 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_logs: {
+        Row: {
+          attempts: number | null
+          channel: string
+          clinic_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          notification_type: string
+          provider: string | null
+          provider_message_id: string | null
+          recipient: string
+          sent_at: string | null
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          channel?: string
+          clinic_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          notification_type: string
+          provider?: string | null
+          provider_message_id?: string | null
+          recipient: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          channel?: string
+          clinic_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          notification_type?: string
+          provider?: string | null
+          provider_message_id?: string | null
+          recipient?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Relationships: []
+      }
       onboarding_progress: {
         Row: {
           clinic_id: string | null
