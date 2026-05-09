@@ -1083,6 +1083,33 @@ export type Database = {
         }
         Relationships: []
       }
+      email_logs: {
+        Row: {
+          clinic_name: string | null
+          created_at: string | null
+          email: string | null
+          error: string | null
+          id: string
+          status: string | null
+        }
+        Insert: {
+          clinic_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          error?: string | null
+          id?: string
+          status?: string | null
+        }
+        Update: {
+          clinic_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          error?: string | null
+          id?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
       feature_flags: {
         Row: {
           clinic_id: string | null
