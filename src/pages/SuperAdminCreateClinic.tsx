@@ -36,7 +36,7 @@ export default function SuperAdminCreateClinic() {
     e.preventDefault();
     setLoading(true);
     const { data, error } = await supabase.functions.invoke("create-clinic", {
-      body: { ...form, origin: window.location.origin },
+      body: { ...form },
     });
     setLoading(false);
     if (error || (data as any)?.error) {
