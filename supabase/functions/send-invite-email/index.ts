@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 import { renderShell, htmlToText, escapeHtml, APP_URL, BRAND_NAME, dailyLimitFor } from "../_shared/email.ts";
 
-const FROM_ADDRESS = Deno.env.get("INVITE_FROM_ADDRESS") || `${BRAND_NAME} <noreply@optocareemr.com>`;
+const FROM_ADDRESS = Deno.env.get("INVITE_FROM_ADDRESS") || `${BRAND_NAME} <no-reply@optocareemr.com>`;
 const REPLY_TO = Deno.env.get("INVITE_REPLY_TO") || "support@optocareemr.com";
 
 function buildBody(opts: { clinic_name: string; role: string; invite_link: string }) {
@@ -24,29 +24,51 @@ function buildBody(opts: { clinic_name: string; role: string; invite_link: strin
 }
 
 async function sendViaResend(payload: { to: string; subject: string; html: string; text: string; tags: { name: string; value: string }[] }, apiKey: string) {
+  const reqBody = {
+    from: FROM_ADDRESS,
+    to: [payload.to],
+    reply_to: REPLY_TO,
+    subject: payload.subject,
+    html: payload.html,
+    text: payload.text,
+    tags: payload.tags,
+  };
+  console.log("[send-invite-email] → POST https://api.resend.com/emails", { from: FROM_ADDRESS, to: payload.to, subject: payload.subject });
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: FROM_ADDRESS,
-      to: [payload.to],
-      reply_to: REPLY_TO,
-      subject: payload.subject,
-      html: payload.html,
-      text: payload.text,
-      tags: payload.tags,
-    }),
+    body: JSON.stringify(reqBody),
   });
   const text = await r.text();
   let data: any = null; try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+  if (r.ok) {
+    console.log("[send-invite-email] ✓ Resend accepted", { status: r.status, id: data?.id });
+  } else {
+    console.error("[send-invite-email] ✗ Resend error", { status: r.status, body: data });
+  }
   return { ok: r.ok, status: r.status, data };
 }
 
-// Permanent failures — do not retry
-function isPermanent(status: number, body: any): boolean {
-  if (status === 400 || status === 403 || status === 422) return true;
+// Sender-side / account-level errors — these are NOT recipient failures.
+// We must NOT suppress the recipient when these occur (the previous bug).
+function isSenderConfigError(status: number, body: any): boolean {
   const msg = JSON.stringify(body || "").toLowerCase();
-  return /invalid.*email|recipient.*invalid|address.*reject|blocked|suppress|spam/.test(msg);
+  return (
+    /domain.*not.*verified/.test(msg) ||
+    /not.*verified.*domain/.test(msg) ||
+    /api.*key/.test(msg) ||
+    /unauthorized/.test(msg) ||
+    /forbidden.*sender/.test(msg) ||
+    /from.*address/.test(msg) ||
+    status === 401
+  );
+}
+
+// Permanent RECIPIENT-level failures — suppress recipient, do not retry.
+function isPermanentRecipient(status: number, body: any): boolean {
+  if (isSenderConfigError(status, body)) return false;
+  const msg = JSON.stringify(body || "").toLowerCase();
+  return /invalid.*(email|recipient|to)|recipient.*invalid|address.*reject|blocked|suppress|bounce|spam/.test(msg);
 }
 
 Deno.serve(async (req) => {
@@ -134,23 +156,32 @@ Deno.serve(async (req) => {
     let attempts = 0;
     let success = false;
 
+    console.log("[send-invite-email] start", { email, clinic_id, clinic_name, role, invite_id });
+
     for (let i = 0; i < 3; i++) {
       attempts = i + 1;
       try {
         const res = await sendViaResend({ to: email, subject, html, text, tags }, RESEND_API_KEY);
         if (res.ok) { success = true; providerId = res.data?.id ?? null; lastErr = null; break; }
         lastErr = `HTTP ${res.status}: ${JSON.stringify(res.data)}`;
-        if (isPermanent(res.status, res.data)) {
-          // Suppress to prevent future attempts on permanent failures
+        // Sender-config errors are operator problems — surface loudly, don't retry, don't suppress recipient.
+        if (isSenderConfigError(res.status, res.data)) {
+          console.error("[send-invite-email] SENDER CONFIG ERROR — fix Resend domain/api key. Recipient NOT suppressed.", res.data);
+          break;
+        }
+        if (isPermanentRecipient(res.status, res.data)) {
           await admin.from("email_suppressions")
             .upsert({ email, reason: "permanent_failure", source: "resend_response", clinic_id: clinic_id ?? null, details: res.data }, { onConflict: "email" });
           break;
         }
       } catch (e) {
         lastErr = (e as Error).message;
+        console.error("[send-invite-email] fetch threw", lastErr);
       }
       if (i < 2) await new Promise((r) => setTimeout(r, 2000));
     }
+
+    console.log("[send-invite-email] done", { success, attempts, providerId, lastErr });
 
     // Backwards-compat: keep email_logs entry
     await admin.from("email_logs").insert({
