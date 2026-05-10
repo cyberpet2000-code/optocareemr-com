@@ -1,0 +1,1 @@
+DELETE FROM public.email_suppressions WHERE reason = 'permanent_failure' AND (details->>'message') ILIKE '%domain is not verified%';
