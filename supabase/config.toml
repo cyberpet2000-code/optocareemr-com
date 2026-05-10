@@ -11,3 +11,12 @@ verify_jwt = false
 
 [functions.resend-webhook]
 verify_jwt = false
+
+[functions.send-password-reset]
+verify_jwt = false
+
+[functions.send-appointment-reminder]
+verify_jwt = false
+
+[functions.send-billing-reminder]
+verify_jwt = false
