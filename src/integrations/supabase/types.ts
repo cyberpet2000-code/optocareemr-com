@@ -1207,6 +1207,7 @@ export type Database = {
           clinic_name: string | null
           created_at: string | null
           email: string | null
+          email_type: string | null
           error: string | null
           error_message: string | null
           id: string
@@ -1216,6 +1217,7 @@ export type Database = {
           role: string | null
           sent_at: string | null
           status: string | null
+          subject: string | null
         }
         Insert: {
           attempts?: number | null
@@ -1223,6 +1225,7 @@ export type Database = {
           clinic_name?: string | null
           created_at?: string | null
           email?: string | null
+          email_type?: string | null
           error?: string | null
           error_message?: string | null
           id?: string
@@ -1232,6 +1235,7 @@ export type Database = {
           role?: string | null
           sent_at?: string | null
           status?: string | null
+          subject?: string | null
         }
         Update: {
           attempts?: number | null
@@ -1239,6 +1243,7 @@ export type Database = {
           clinic_name?: string | null
           created_at?: string | null
           email?: string | null
+          email_type?: string | null
           error?: string | null
           error_message?: string | null
           id?: string
@@ -1248,6 +1253,7 @@ export type Database = {
           role?: string | null
           sent_at?: string | null
           status?: string | null
+          subject?: string | null
         }
         Relationships: []
       }
