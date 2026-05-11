@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     const emailRaw: string | undefined = body?.email;
     const role: string = (body?.role || "admin").toString();
     // Centralized APP_URL — ignore frontend origin / preview domains.
-    const APP_URL = (Deno.env.get("APP_URL") || "https://optocareemr.lovable.app").replace(/\/$/, "");
+    const APP_URL = (Deno.env.get("APP_URL") || "https://optocareemr.com").replace(/\/$/, "");
 
     if (!clinic_id) return json({ error: "clinic_id is required" }, 400);
     const email = emailRaw?.trim().toLowerCase();

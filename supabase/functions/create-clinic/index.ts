@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
     const admin_email = String(body?.admin_email ?? "").trim().toLowerCase();
     // CENTRALIZED APP URL — never use frontend origin or preview domains.
     // Always uses APP_URL secret (production), falls back to published URL.
-    const APP_URL = (Deno.env.get("APP_URL") || "https://optocareemr.lovable.app").replace(/\/$/, "");
+    const APP_URL = (Deno.env.get("APP_URL") || "https://optocareemr.com").replace(/\/$/, "");
 
     if (!clinic_name) return json({ error: "Clinic name is required" }, 400);
     if (!admin_full_name) return json({ error: "Admin full name is required" }, 400);
