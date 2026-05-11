@@ -138,12 +138,12 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       ? membershipRows.some(m => m.clinic_id === overrideClinicId)
       : false;
     const validatedOverride = hasMembershipForOverride ? overrideClinicId : null;
-    if (overrideClinicId && !hasMembershipForOverride) {
+    if (overrideClinicId && !hasMembershipForOverride && !isSuper) {
       persistActive(null);
       setActiveClinicIdState(null);
     }
     const effectiveClinicId = isSuper
-      ? validatedOverride
+      ? overrideClinicId   // super admin can enter ANY clinic; no membership required
       : (validatedOverride || (membershipRows.some(m => m.clinic_id === nextProfile?.clinic_id) ? nextProfile?.clinic_id : null) || null);
 
     if (!effectiveClinicId) {
@@ -152,7 +152,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
     const clinicResult = await supabase
       .from("clinics")
-      .select("id, name, subscription_status, trial_start_date, trial_end_date, setup_completed, onboarding_step, is_active, theme_color, secondary_color, logo_url")
+      .select("id, name, subscription_status, trial_start_date, trial_end_date, setup_completed, onboarding_step, is_active, lifecycle_status, theme_color, secondary_color, logo_url")
       .eq("id", effectiveClinicId)
       .maybeSingle();
     if (requestRef.current !== requestId) return;
@@ -160,6 +160,14 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     setClinic(clinicResult.data || null);
     setClinicLoading(false);
     applyClinicTheme(clinicResult.data || null);
+    // eslint-disable-next-line no-console
+    console.debug("[access:load]", {
+      user_id: nextUser.id,
+      role: primaryRole,
+      clinic_id: effectiveClinicId,
+      lifecycle_status: (clinicResult.data as any)?.lifecycle_status ?? null,
+      memberships: membershipRows.length,
+    });
   }, [user, activeClinicId]);
 
   useEffect(() => {
@@ -246,7 +254,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     ? memberships.some(m => m.clinic_id === activeClinicId)
     : false;
   const effectiveClinicId = role === "super_admin"
-    ? (hasMembershipForActive ? activeClinicId : null)
+    ? activeClinicId   // super admin: any clinic, no membership needed
     : (hasMembershipForActive
         ? activeClinicId
         : (memberships.some(m => m.clinic_id === profile?.clinic_id) ? profile?.clinic_id : null) || null);

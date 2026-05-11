@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Plus, LogIn, UserPlus, Copy, Check, Power, CheckCircle2 } from "lucide-react";
+import { Building2, Plus, LogIn, UserPlus, Copy, Check, CheckCircle2, PauseCircle, PlayCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,17 +10,28 @@ import { useAccess } from "@/hooks/useAccess";
 import { toast } from "sonner";
 import PendingInvitesPanel from "@/components/PendingInvitesPanel";
 
+type Lifecycle = "trial" | "active" | "suspended" | "deactivated";
+
 function lifecycleLabel(c: any): { label: string; cls: string } {
-  if (c.is_active === false) {
-    if (c.deactivation_reason === "trial_expired" || c.subscription_status === "expired")
-      return { label: "Expired", cls: "bg-destructive/10 text-destructive" };
-    return { label: "Suspended", cls: "bg-muted text-foreground" };
+  const s: Lifecycle = (c.lifecycle_status as Lifecycle) || "trial";
+  switch (s) {
+    case "active": return { label: "Active", cls: "bg-success/10 text-success" };
+    case "suspended": return { label: "Suspended", cls: "bg-warning/10 text-warning" };
+    case "deactivated": return { label: "Deactivated", cls: "bg-destructive/10 text-destructive" };
+    default: {
+      const days = c.trial_end_date ? Math.ceil((new Date(c.trial_end_date).getTime() - Date.now()) / 86400000) : null;
+      if (days !== null && days <= 3 && days >= 0) return { label: "Trial · Expiring", cls: "bg-warning/10 text-warning" };
+      return { label: "Trial", cls: "bg-primary/10 text-primary" };
+    }
   }
-  if (c.subscription_status === "active") return { label: "Active", cls: "bg-success/10 text-success" };
-  const days = c.trial_end_date ? Math.ceil((new Date(c.trial_end_date).getTime() - Date.now()) / 86400000) : null;
-  if (days !== null && days <= 3 && days >= 0) return { label: "Expiring Soon", cls: "bg-warning/10 text-warning" };
-  return { label: "Trial", cls: "bg-primary/10 text-primary" };
 }
+
+const ALLOWED_TRANSITIONS: Record<Lifecycle, Lifecycle[]> = {
+  trial: ["active"],
+  active: ["suspended", "deactivated"],
+  suspended: ["active"],
+  deactivated: [],
+};
 
 export default function SuperAdminClinics() {
   const [clinics, setClinics] = useState<any[]>([]);
@@ -38,7 +49,7 @@ export default function SuperAdminClinics() {
 
   const refresh = async () => {
     const { data } = await supabase.from("clinics")
-      .select("id, name, subscription_status, trial_end_date, setup_completed, is_active, deactivated_at, deactivation_reason, created_at")
+      .select("id, name, subscription_status, trial_end_date, setup_completed, is_active, lifecycle_status, deactivated_at, deactivation_reason, created_at")
       .order("created_at", { ascending: false });
     setClinics(data || []);
     setLoading(false);
@@ -47,15 +58,26 @@ export default function SuperAdminClinics() {
   useEffect(() => { refresh(); }, []);
 
   const [busyId, setBusyId] = useState<string | null>(null);
-  const toggleActive = async (c: any) => {
-    if (c.is_active && !confirm(`Deactivate ${c.name}? Users will lose access until a subscription is activated.`)) return;
+  const transitionLifecycle = async (c: any, next: Lifecycle) => {
+    const current = (c.lifecycle_status as Lifecycle) || "trial";
+    if (!ALLOWED_TRANSITIONS[current].includes(next)) {
+      toast.error(`Cannot transition ${current} → ${next}`);
+      return;
+    }
+    let reason: string | null = null;
+    if (next === "suspended" || next === "deactivated") {
+      reason = prompt(`Reason for ${next}?`) || "manual";
+      if (!confirm(`${next === "deactivated" ? "Deactivate" : "Suspend"} ${c.name}?`)) return;
+    }
     setBusyId(c.id);
-    const fn = c.is_active ? "deactivate_clinic" : "activate_clinic_subscription";
-    const args: any = c.is_active ? { _clinic_id: c.id, _reason: "manual" } : { _clinic_id: c.id };
-    const { error } = await supabase.rpc(fn as any, args);
+    // eslint-disable-next-line no-console
+    console.debug("[lifecycle]", { clinic_id: c.id, from: current, to: next, reason });
+    const { error } = await supabase.rpc("set_clinic_lifecycle" as any, {
+      _clinic_id: c.id, _next: next, _reason: reason,
+    });
     setBusyId(null);
     if (error) { toast.error(error.message); return; }
-    toast.success(c.is_active ? "Clinic deactivated" : "Clinic activated");
+    toast.success(`Clinic ${next}`);
     refresh();
   };
 
@@ -153,15 +175,24 @@ export default function SuperAdminClinics() {
                       <Button size="sm" variant="outline" onClick={() => openInvite(c)}>
                         <UserPlus size={14} className="mr-1" /> Invite
                       </Button>
-                      {c.is_active ? (
-                        <Button size="sm" variant="destructive" onClick={() => toggleActive(c)} disabled={busyId === c.id}>
-                          <Power size={14} className="mr-1" /> {busyId === c.id ? "…" : "Deactivate"}
-                        </Button>
-                      ) : (
-                        <Button size="sm" onClick={() => toggleActive(c)} disabled={busyId === c.id}>
-                          <CheckCircle2 size={14} className="mr-1" /> {busyId === c.id ? "…" : "Activate"}
-                        </Button>
-                      )}
+                      {(() => {
+                        const cur = (c.lifecycle_status as Lifecycle) || "trial";
+                        const allowed = ALLOWED_TRANSITIONS[cur];
+                        const btn = (next: Lifecycle, label: string, Icon: any, variant: any = "outline") => (
+                          <Button key={next} size="sm" variant={variant}
+                            onClick={() => transitionLifecycle(c, next)}
+                            disabled={busyId === c.id || !allowed.includes(next)}>
+                            <Icon size={14} className="mr-1" /> {busyId === c.id ? "…" : label}
+                          </Button>
+                        );
+                        return (
+                          <>
+                            {allowed.includes("active") && btn("active", cur === "suspended" ? "Reactivate" : "Activate", cur === "suspended" ? PlayCircle : CheckCircle2, "default")}
+                            {allowed.includes("suspended") && btn("suspended", "Suspend", PauseCircle, "outline")}
+                            {allowed.includes("deactivated") && btn("deactivated", "Deactivate", XCircle, "destructive")}
+                          </>
+                        );
+                      })()}
                       <Button size="sm" variant="outline" onClick={() => enter(c)} disabled={enteringId === c.id || !!enteringId}>
                         <LogIn size={14} className="mr-1" /> {enteringId === c.id ? "Entering…" : "Enter"}
                       </Button>
