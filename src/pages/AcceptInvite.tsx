@@ -73,6 +73,12 @@ export default function AcceptInvite() {
   useEffect(() => {
     if (!user || invite.kind !== "valid" || working) return;
     void finalize();
+    // Safety: if finalize hangs for any reason, surface an error
+    const t = setTimeout(() => {
+      setErrMsg((prev) => prev ?? "Onboarding is taking longer than expected. Please try again.");
+      setWorking(false);
+    }, 25000);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, invite.kind]);
 
