@@ -138,7 +138,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       ? membershipRows.some(m => m.clinic_id === overrideClinicId)
       : false;
     const validatedOverride = hasMembershipForOverride ? overrideClinicId : null;
-    if (overrideClinicId && !hasMembershipForOverride) {
+    if (overrideClinicId && !hasMembershipForOverride && !isSuper) {
       persistActive(null);
       setActiveClinicIdState(null);
     }
