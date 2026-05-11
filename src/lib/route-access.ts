@@ -10,7 +10,10 @@ type ProtectedRouteInput = {
   setupCompleted: boolean | null | undefined;
   roleMissing: boolean;
   membershipsCount?: number;
+  lifecycleStatus?: string | null;
 };
+
+const BILLING_ALLOWED_PATHS = ["/billing", "/no-access", "/select-clinic"];
 
 type RouteDecision =
   | { type: "allow" }
@@ -52,6 +55,15 @@ export async function assertClinicAccess(
   clinicId: string
 ): Promise<string | null> {
   if (!userId || !clinicId) return null;
+  // Super admin bypass: any super_admin can enter any clinic.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, is_super_admin")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profile && (profile.is_super_admin || profile.role === "super_admin")) {
+    return "super_admin";
+  }
   const { data, error } = await supabase
     .from("user_roles")
     .select("role")

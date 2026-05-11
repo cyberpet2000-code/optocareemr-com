@@ -1065,6 +1065,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_upgrade_prompt: string | null
+          lifecycle_status: Database["public"]["Enums"]["clinic_lifecycle"]
           logo_url: string | null
           modules_configured: boolean | null
           modules_setup_done: boolean | null
@@ -1102,6 +1103,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_upgrade_prompt?: string | null
+          lifecycle_status?: Database["public"]["Enums"]["clinic_lifecycle"]
           logo_url?: string | null
           modules_configured?: boolean | null
           modules_setup_done?: boolean | null
@@ -1139,6 +1141,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_upgrade_prompt?: string | null
+          lifecycle_status?: Database["public"]["Enums"]["clinic_lifecycle"]
           logo_url?: string | null
           modules_configured?: boolean | null
           modules_setup_done?: boolean | null
@@ -3190,6 +3193,10 @@ export type Database = {
       is_table: { Args: { obj: string }; Returns: boolean }
       is_trial_active: { Args: { _clinic_id: string }; Returns: boolean }
       is_view: { Args: { obj: string }; Returns: boolean }
+      lifecycle_allows_access: {
+        Args: { _clinic_id: string }
+        Returns: boolean
+      }
       log_hmo_change: {
         Args: {
           p_changed_by: string
@@ -3227,6 +3234,14 @@ export type Database = {
         Returns: undefined
       }
       set_active_clinic: { Args: { target_clinic: string }; Returns: undefined }
+      set_clinic_lifecycle: {
+        Args: {
+          _clinic_id: string
+          _next: Database["public"]["Enums"]["clinic_lifecycle"]
+          _reason?: string
+        }
+        Returns: Database["public"]["Enums"]["clinic_lifecycle"]
+      }
       smart_initialize_clinic: {
         Args: { _clinic_id: string; _clinic_type: string }
         Returns: Json
@@ -3240,6 +3255,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "doctor" | "receptionist" | "super_admin"
+      clinic_lifecycle: "trial" | "active" | "suspended" | "deactivated"
       payment_type_enum: "private" | "hmo"
     }
     CompositeTypes: {
@@ -3369,6 +3385,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "doctor", "receptionist", "super_admin"],
+      clinic_lifecycle: ["trial", "active", "suspended", "deactivated"],
       payment_type_enum: ["private", "hmo"],
     },
   },
