@@ -3,9 +3,11 @@ import { Link } from "react-router-dom";
 import { Users, ChevronRight, AlertTriangle, DollarSign, TrendingUp, Clock, Pill } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useClinic } from "@/hooks/useClinic";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { effectiveClinicId } = useClinic();
   const [totalCount, setTotalCount] = useState(0);
   const [todayVisits, setTodayVisits] = useState(0);
   const [todayAppointments, setTodayAppointments] = useState(0);
@@ -28,17 +30,26 @@ export default function Dashboard() {
 
   useEffect(() => {
     (async () => {
+      // Strict tenant isolation: do not fetch anything until we know the active clinic.
+      if (!effectiveClinicId) {
+        console.debug("[dashboard] no active clinic, skipping fetch");
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      const cid = effectiveClinicId;
       const today = new Date().toISOString().split("T")[0];
 
       const [patientsRes, countRes, visitsRes, apptRes, pendingApptRes, invRes, billRes] = await Promise.all([
-        supabase.from("patients").select("id, full_name, age, gender, phone, payment_type, queue_number").order("created_at", { ascending: false }).limit(5),
-        supabase.from("patients").select("*", { count: "exact", head: true }),
-        supabase.from("visits").select("*", { count: "exact", head: true }).gte("created_at", `${today}T00:00:00`),
-        supabase.from("appointments").select("*", { count: "exact", head: true }).eq("appointment_date", today).in("status", ["pending", "confirmed"]),
-        supabase.from("appointments").select("id, appointment_time, reason, patient_id").eq("appointment_date", today).in("status", ["pending", "confirmed"]).order("appointment_time").limit(5),
-        supabase.from("inventory").select("id, stock_quantity, low_stock_threshold, expiry_date, category"),
-        supabase.from("billing").select("total_amount, amount_paid, status"),
+        supabase.from("patients").select("id, full_name, age, gender, phone, payment_type, queue_number").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(5),
+        supabase.from("patients").select("*", { count: "exact", head: true }).eq("clinic_id", cid),
+        supabase.from("visits").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", `${today}T00:00:00`),
+        supabase.from("appointments").select("*", { count: "exact", head: true }).eq("clinic_id", cid).eq("appointment_date", today).in("status", ["pending", "confirmed"]),
+        supabase.from("appointments").select("id, appointment_time, reason, patient_id").eq("clinic_id", cid).eq("appointment_date", today).in("status", ["pending", "confirmed"]).order("appointment_time").limit(5),
+        supabase.from("inventory").select("id, stock_quantity, low_stock_threshold, expiry_date, category").eq("clinic_id", cid),
+        supabase.from("billing").select("total_amount, amount_paid, status").eq("clinic_id", cid),
       ]);
+      console.debug("[dashboard]", { clinic_id: cid, patients: countRes.count, recent: patientsRes.data?.length });
 
       if (patientsRes.data) setRecentPatients(patientsRes.data);
       setTotalCount(countRes.count ?? 0);
@@ -61,7 +72,7 @@ export default function Dashboard() {
         const patIds = [...new Set(pendingApptRes.data.map((a: any) => a.patient_id).filter(Boolean))] as string[];
         let patMap = new Map<string, string>();
         if (patIds.length > 0) {
-          const { data: pats } = await supabase.from("patients").select("id, full_name").in("id", patIds);
+          const { data: pats } = await supabase.from("patients").select("id, full_name").eq("clinic_id", cid).in("id", patIds);
           patMap = new Map((pats || []).map((p: any) => [p.id, p.full_name]));
         }
         setUpcomingAppts(pendingApptRes.data.map((a: any) => ({
@@ -72,7 +83,7 @@ export default function Dashboard() {
 
       setLoading(false);
     })();
-  }, []);
+  }, [effectiveClinicId]);
 
   const Metric = ({ icon: Icon, label, value, color, to }: any) => (
     <Link to={to} className="stat-card group">
