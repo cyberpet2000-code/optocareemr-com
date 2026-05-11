@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Plus, LogIn, UserPlus, Copy, Check, Power, CheckCircle2, PauseCircle, PlayCircle, XCircle } from "lucide-react";
+import { Building2, Plus, LogIn, UserPlus, Copy, Check, CheckCircle2, PauseCircle, PlayCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
