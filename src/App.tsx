@@ -95,7 +95,22 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
     setupCompleted: clinic?.setup_completed,
     roleMissing,
     membershipsCount: (memberships || []).length,
+    lifecycleStatus: (clinic as any)?.lifecycle_status ?? null,
   });
+
+  if (decision.type !== "loading") {
+    // Debug: structured access decision log
+    // eslint-disable-next-line no-console
+    console.debug("[access]", {
+      user_id: user?.id,
+      role,
+      clinic_id: effectiveClinicId,
+      lifecycle_status: (clinic as any)?.lifecycle_status ?? null,
+      path: location.pathname,
+      decision: decision.type,
+      to: (decision as any).to,
+    });
+  }
 
   if (decision.type === "loading") {
     return <FullScreenLoader label={decision.label} />;
