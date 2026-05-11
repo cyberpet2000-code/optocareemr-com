@@ -80,7 +80,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   const isActive = (path: string) => path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
   // Header clinic identity
-  const headerClinicName = isSuperAdminWs ? "Platform Console" : (clinic?.name || "No clinic selected");
+  const headerClinicName = isSuperAdminWs ? "Platform Console" : (clinic?.name || "Clinic Dashboard");
   const showActiveBadge = !isSuperAdminWs && !!clinic;
 
   return (
