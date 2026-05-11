@@ -76,25 +76,66 @@ export default function AcceptInvite() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, invite.kind]);
 
+  const withTimeout = <T,>(p: Promise<T>, ms: number, label: string): Promise<T> =>
+    Promise.race([
+      p,
+      new Promise<T>((_, rej) => setTimeout(() => rej(new Error(`${label} timed out`)), ms)),
+    ]);
+
   const finalize = async () => {
     if (!token || invite.kind !== "valid") return;
     setWorking(true);
     setErrMsg(null);
-    const { data, error } = await supabase.functions.invoke("accept-clinic-invite", { body: { token } });
-    if (error || (data as any)?.error) {
-      setErrMsg((data as any)?.error || error?.message || "Failed to accept invite");
-      setWorking(false);
-      return;
-    }
-    try { sessionStorage.removeItem(PENDING_KEY); } catch {}
-    await reload();
     try {
-      await switchClinic((data as any).clinic_id);
-      toast.success(`Welcome to ${(data as any).clinic_name}`);
-      navigate((data as any).setup_completed ? "/dashboard" : "/onboarding", { replace: true });
+      console.log("[invite] finalize start", { user_id: user?.id, token: token.slice(0, 8) });
+
+      // Ensure session is present before invoking edge function
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        throw new Error("Your session expired. Please sign in again.");
+      }
+      console.log("[invite] session ok");
+
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke("accept-clinic-invite", { body: { token } }),
+        15000,
+        "Accept invite",
+      );
+      if (error || (data as any)?.error) {
+        throw new Error((data as any)?.error || error?.message || "Failed to accept invite");
+      }
+      console.log("[invite] accepted", data);
+
+      const targetClinicId = (data as any).clinic_id;
+      const clinicName = (data as any).clinic_name;
+      const setupCompleted = !!(data as any).setup_completed;
+
+      try { sessionStorage.removeItem(PENDING_KEY); } catch {}
+
+      // Reload access context (profile + memberships). Don't block forever.
+      try {
+        await withTimeout(reload(), 8000, "Reload access");
+        console.log("[invite] access reloaded");
+      } catch (e) {
+        console.warn("[invite] reload timed out, continuing", e);
+      }
+
+      // Switch active clinic — fall back to /select-clinic if it fails
+      try {
+        await withTimeout(switchClinic(targetClinicId), 8000, "Switch clinic");
+        console.log("[invite] clinic switched", targetClinicId);
+        toast.success(`Welcome to ${clinicName}`);
+        navigate(setupCompleted ? "/dashboard" : "/onboarding", { replace: true });
+      } catch (e: any) {
+        console.warn("[invite] switchClinic failed, going to select-clinic", e);
+        toast.error(e?.message || "Could not enter clinic automatically");
+        navigate("/select-clinic", { replace: true });
+      }
     } catch (e: any) {
-      toast.error(e?.message || "Could not enter clinic automatically");
-      navigate("/select-clinic", { replace: true });
+      console.error("[invite] finalize failed", e);
+      setErrMsg(e?.message || "Failed to accept invite");
+    } finally {
+      setWorking(false);
     }
   };
 
