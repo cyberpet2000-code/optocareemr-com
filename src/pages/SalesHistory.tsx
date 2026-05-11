@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { History } from "lucide-react";
+import { useAccess } from "@/hooks/useAccess";
 
 interface SaleRecord {
   id: string;
@@ -11,23 +12,27 @@ interface SaleRecord {
 }
 
 export default function SalesHistory() {
+  const { effectiveClinicId: cid } = useAccess();
   const [sales, setSales] = useState<SaleRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!cid) { setSales([]); setLoading(false); return; }
     (async () => {
       const { data: salesData } = await supabase
         .from("inventory_sales").select("*")
+        .eq("clinic_id", cid)
         .order("created_at", { ascending: false }).limit(100);
-      if (!salesData || salesData.length === 0) { setLoading(false); return; }
+      console.debug("[sales-history]", { clinic_id: cid, count: salesData?.length ?? 0 });
+      if (!salesData || salesData.length === 0) { setSales([]); setLoading(false); return; }
 
       const saleIds = salesData.map((s: any) => s.id);
       const patientIds = [...new Set(salesData.map((s: any) => s.patient_id).filter(Boolean))] as string[];
 
       const [itemsRes, patsRes] = await Promise.all([
-        supabase.from("inventory_sale_items").select("*").in("sale_id", saleIds),
+        supabase.from("inventory_sale_items").select("*").eq("clinic_id", cid).in("sale_id", saleIds),
         patientIds.length > 0
-          ? supabase.from("patients").select("id, full_name").in("id", patientIds)
+          ? supabase.from("patients").select("id, full_name").eq("clinic_id", cid).in("id", patientIds)
           : Promise.resolve({ data: [] as any[] }),
       ]);
       const patMap = new Map((patsRes.data || []).map((p: any) => [p.id, p.full_name]));
@@ -42,7 +47,7 @@ export default function SalesHistory() {
       const invIds = [...new Set((itemsRes.data || []).map((i: any) => i.inventory_id))] as string[];
       let invMap = new Map<string, string>();
       if (invIds.length > 0) {
-        const { data: invData } = await supabase.from("inventory").select("id, name").in("id", invIds);
+        const { data: invData } = await supabase.from("inventory").select("id, name").eq("clinic_id", cid).in("id", invIds);
         invMap = new Map((invData || []).map((i: any) => [i.id, i.name]));
       }
 
@@ -60,7 +65,7 @@ export default function SalesHistory() {
       })));
       setLoading(false);
     })();
-  }, []);
+  }, [cid]);
 
   return (
     <>

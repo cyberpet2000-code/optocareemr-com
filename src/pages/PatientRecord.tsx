@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Eye, Stethoscope, ClipboardList, History, Pencil, Gauge, Download, Phone, MessageCircle, CheckCircle2 } from "lucide-react";
 import { generateVisitPdf } from "@/lib/visitPdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAccess } from "@/hooks/useAccess";
 
 interface PatientData {
   id: string;
@@ -86,8 +87,10 @@ export default function PatientRecord() {
 
   const handleSaveVisit = async (markCompleted: boolean) => {
     if (!patient) return;
+    if (!cid) { toast.error("No active clinic"); return; }
     setSaving(true);
     const { data, error } = await supabase.from("visits").insert({
+      clinic_id: cid,
       patient_id: patient.id,
       payment_type: patient.payment_type,
       active_hmo_id: patient.active_hmo_id,
@@ -120,7 +123,7 @@ export default function PatientRecord() {
     setForm(emptyVisitForm());
     // Re-sync visit history from DB so Past tab always reflects server state
     const { data: fresh } = await supabase
-      .from("visits").select("*").eq("patient_id", patient.id)
+      .from("visits").select("*").eq("clinic_id", cid).eq("patient_id", patient.id)
       .order("created_at", { ascending: false });
     if (fresh) setVisits(fresh);
     else if (data) setVisits([data, ...visits]);
@@ -128,6 +131,7 @@ export default function PatientRecord() {
 
   const handleEditPatient = async () => {
     if (!patient) return;
+    if (!cid) { toast.error("No active clinic"); return; }
     const { error } = await supabase.from("patients").update({
       full_name: editForm.full_name,
       age: editForm.age,
@@ -138,7 +142,7 @@ export default function PatientRecord() {
       payment_type: editForm.payment_type,
       active_hmo_id: editForm.payment_type === "hmo" ? editForm.active_hmo_id : null,
       enrollee_number: editForm.enrollee_number || "",
-    } as any).eq("id", patient.id);
+    } as any).eq("clinic_id", cid).eq("id", patient.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Patient info updated");
     setPatient({ ...patient, ...editForm } as PatientData);

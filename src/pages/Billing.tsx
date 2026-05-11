@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DollarSign, FileText, Plus, X, Printer, Trash2 } from "lucide-react";
+import { useAccess } from "@/hooks/useAccess";
 
 const PAYMENT_METHODS = ["Cash", "Card", "Transfer", "HMO"];
 const ITEM_TYPES = ["Lens", "Frame", "Contact Lens", "Eye Drop", "Drugs", "Accessories", "Others"];
@@ -45,6 +46,7 @@ interface Patient {
 }
 
 export default function Billing() {
+  const { effectiveClinicId: cid } = useAccess();
   const [bills, setBills] = useState<BillingRow[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [hmoMap, setHmoMap] = useState<Map<string, string>>(new Map());
@@ -62,14 +64,16 @@ export default function Billing() {
   });
   const [items, setItems] = useState<BillItem[]>([]);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [cid]);
 
   const loadData = async () => {
+    if (!cid) { setBills([]); setPatients([]); setLoading(false); return; }
     const [billRes, patRes, hmoRes] = await Promise.all([
-      supabase.from("billing").select("*").order("created_at", { ascending: false }).limit(100),
-      supabase.from("patients").select("id, full_name, payment_type, active_hmo_id").order("full_name"),
-      supabase.from("hmos").select("id, name"),
+      supabase.from("billing").select("*").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(100),
+      supabase.from("patients").select("id, full_name, payment_type, active_hmo_id").eq("clinic_id", cid).order("full_name"),
+      supabase.from("hmos").select("id, name").eq("clinic_id", cid),
     ]);
+    console.debug("[billing]", { clinic_id: cid, bills: billRes.data?.length ?? 0 });
     const hmap = new Map((hmoRes.data || []).map((h: any) => [h.id, h.name]));
     setHmoMap(hmap);
     setPatients((patRes.data || []) as any);
@@ -77,7 +81,7 @@ export default function Billing() {
       const pIds = [...new Set(billRes.data.map((b: any) => b.patient_id).filter(Boolean))] as string[];
       let pMap = new Map<string, string>();
       if (pIds.length) {
-        const { data: pats } = await supabase.from("patients").select("id, full_name").in("id", pIds);
+        const { data: pats } = await supabase.from("patients").select("id, full_name").eq("clinic_id", cid).in("id", pIds);
         pMap = new Map((pats || []).map((p: any) => [p.id, p.full_name]));
       }
       setBills(billRes.data.map((b: any) => ({
@@ -107,11 +111,13 @@ export default function Billing() {
   const grandTotal = itemsTotal + consult;
 
   const handleCreate = async () => {
+    if (!cid) { toast.error("No active clinic"); return; }
     if (!form.patientId) { toast.error("Select a patient"); return; }
     if (grandTotal <= 0) { toast.error("Add a consultation fee or items"); return; }
     setSaving(true);
     const isHmo = selectedPatient?.payment_type === "hmo";
     const { data: bill, error } = await supabase.from("billing").insert({
+      clinic_id: cid,
       patient_id: form.patientId,
       payer_type: isHmo ? "hmo" : "private",
       hmo_id: isHmo ? selectedPatient?.active_hmo_id : null,
@@ -123,6 +129,7 @@ export default function Billing() {
 
     if (items.length > 0) {
       const payload = items.map(it => ({
+        clinic_id: cid,
         billing_id: (bill as any).id,
         item_type: it.item_type,
         item_name: it.item_name || it.item_type,
@@ -136,6 +143,7 @@ export default function Billing() {
 
     if (isHmo && selectedPatient?.active_hmo_id) {
       await supabase.from("hmo_claims").insert({
+        clinic_id: cid,
         billing_id: (bill as any).id,
         hmo_id: selectedPatient.active_hmo_id,
         hmo_name: hmoMap.get(selectedPatient.active_hmo_id) || "",
@@ -156,7 +164,8 @@ export default function Billing() {
   };
 
   const loadBillItems = async (billingId: string) => {
-    const { data } = await supabase.from("billing_items").select("*").eq("billing_id", billingId);
+    if (!cid) return;
+    const { data } = await supabase.from("billing_items").select("*").eq("clinic_id", cid).eq("billing_id", billingId);
     setBillItems(prev => ({ ...prev, [billingId]: (data || []) as any }));
   };
 
