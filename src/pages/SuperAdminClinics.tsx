@@ -49,7 +49,7 @@ export default function SuperAdminClinics() {
 
   const refresh = async () => {
     const { data } = await supabase.from("clinics")
-      .select("id, name, subscription_status, trial_end_date, setup_completed, is_active, deactivated_at, deactivation_reason, created_at")
+      .select("id, name, subscription_status, trial_end_date, setup_completed, is_active, lifecycle_status, deactivated_at, deactivation_reason, created_at")
       .order("created_at", { ascending: false });
     setClinics(data || []);
     setLoading(false);
@@ -58,15 +58,26 @@ export default function SuperAdminClinics() {
   useEffect(() => { refresh(); }, []);
 
   const [busyId, setBusyId] = useState<string | null>(null);
-  const toggleActive = async (c: any) => {
-    if (c.is_active && !confirm(`Deactivate ${c.name}? Users will lose access until a subscription is activated.`)) return;
+  const transitionLifecycle = async (c: any, next: Lifecycle) => {
+    const current = (c.lifecycle_status as Lifecycle) || "trial";
+    if (!ALLOWED_TRANSITIONS[current].includes(next)) {
+      toast.error(`Cannot transition ${current} → ${next}`);
+      return;
+    }
+    let reason: string | null = null;
+    if (next === "suspended" || next === "deactivated") {
+      reason = prompt(`Reason for ${next}?`) || "manual";
+      if (!confirm(`${next === "deactivated" ? "Deactivate" : "Suspend"} ${c.name}?`)) return;
+    }
     setBusyId(c.id);
-    const fn = c.is_active ? "deactivate_clinic" : "activate_clinic_subscription";
-    const args: any = c.is_active ? { _clinic_id: c.id, _reason: "manual" } : { _clinic_id: c.id };
-    const { error } = await supabase.rpc(fn as any, args);
+    // eslint-disable-next-line no-console
+    console.debug("[lifecycle]", { clinic_id: c.id, from: current, to: next, reason });
+    const { error } = await supabase.rpc("set_clinic_lifecycle" as any, {
+      _clinic_id: c.id, _next: next, _reason: reason,
+    });
     setBusyId(null);
     if (error) { toast.error(error.message); return; }
-    toast.success(c.is_active ? "Clinic deactivated" : "Clinic activated");
+    toast.success(`Clinic ${next}`);
     refresh();
   };
 
