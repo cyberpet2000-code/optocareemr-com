@@ -1,43 +1,67 @@
-# Clinic Operations Engine
+## Goal
+Make `super_admin` a true global bypass, formalize the clinic lifecycle (`trial | active | suspended | deactivated`), and enforce strict tenant isolation everywhere.
 
-Build an intelligent ops layer on top of existing clinics + onboarding tables.
+---
 
-## 1. Database (migration)
+## 1. Single source of truth for role + status
 
-New tables:
-- `auto_fix_logs` — clinic_id, issue_detected, action_taken, status, details(jsonb), timestamp. RLS: super_admin read all; clinic admins read their own.
-- `clinic_success_scores` — clinic_id (unique), score (0-100), status ('healthy'|'at_risk'|'critical'), factors(jsonb), insights(text[]), calculated_at. RLS same pattern.
+- **Role source**: `profiles.role` (already populated). `useAccess` + DB function `is_super_admin()` already read from `profiles`. Frontend `useRole` will keep reading from `useAccess` only — no other role lookups.
+- **Clinic lifecycle**: replace the mixed `is_active` + `subscription_status` + `deactivated_at` triplet with a single column `clinics.lifecycle_status` (enum: `trial | active | suspended | deactivated`). Keep old columns for back-compat, derive them with a trigger so existing UI keeps working.
 
-New columns on `clinics`:
-- `deactivated_at timestamptz`, `deactivation_reason text`
+## 2. Database migration
 
-New SECURITY DEFINER functions:
-- `calculate_clinic_success_score(_clinic_id uuid)` → returns jsonb {score, status, factors, insights}, upserts into `clinic_success_scores`.
-- `check_trial_expiration()` → loops clinics where trial expired & not active subscription, sets `is_active = false`, `deactivated_at = now()`, logs alert.
-- `activate_clinic_subscription(_clinic_id uuid)` → sets `subscription_status='active'`, `is_active=true`, clears deactivation. Super-admin only.
-- `deactivate_clinic(_clinic_id uuid, _reason text)` → super-admin only.
-- `run_auto_fix(_clinic_id uuid)` → checks rules, logs to `auto_fix_logs`. Returns count of fixes.
+1. Add enum `clinic_lifecycle` and column `clinics.lifecycle_status` (default `trial`); backfill from existing `is_active` / `subscription_status` / `deactivation_reason`.
+2. Trigger `sync_clinic_lifecycle_columns`: keep `is_active`, `subscription_status`, `deactivation_reason` in sync from `lifecycle_status` so the rest of the app keeps working.
+3. RPC `set_clinic_lifecycle(_clinic_id uuid, _next clinic_lifecycle, _reason text)` — `SECURITY DEFINER`:
+   - Only callable by `is_super_admin(auth.uid())` (raises otherwise).
+   - Enforces allowed transitions: `trial→active`, `active→suspended`, `active→deactivated`, `suspended→active`. Anything else raises.
+   - Writes an entry to `audit_logs` with `action`, `old`/`new` status, reason.
+4. Replace existing `activate_clinic_subscription` / `deactivate_clinic` callers in the UI with `set_clinic_lifecycle`.
+5. **RLS hardening** (idempotent re-create on every tenant table — `patients`, `visits`, `appointments`, `billing`, `billing_items`, `followups`, `hmo_*`, `inventory`, `inventory_sale_items`, `inventory_sales`, `alerts`, `clinic_settings`, `clinic_feature_flags`):
+   - SELECT/INSERT/UPDATE: `is_super_admin(auth.uid()) OR (clinic_id = current_clinic_id() AND lifecycle_allows_access(clinic_id))`.
+   - DELETE: `is_super_admin OR (admin role AND clinic match AND lifecycle_allows_access)`.
+   - New helper `lifecycle_allows_access(_clinic_id)` returns true when `lifecycle_status IN ('trial','active')`. Suspended/deactivated clinics block all tenant data writes/reads for non-super-admins. (Billing page exception handled in frontend by allowing the billing route even when blocked — see §4.)
+6. Remove the duplicate `clinic settings access` / `Users see only their clinic` / `clinic can update its branding` policies on `clinics` and `clinic_settings` that bypass `is_super_admin` and OR-combine with weaker checks.
+7. Drop the leftover `OR clinic_id IS NULL` clause from any policy that still has it (sweep).
 
-pg_cron (separate insert SQL, not migration): daily job calling `check_trial_expiration()` + score recalc.
+## 3. Super admin "enter clinic" fix
 
-## 2. Edge functions
+Today `switchClinic` calls `assertClinicAccess` which requires a `user_roles` row — super admins usually don't have one per clinic, so they get "Access denied". Fix:
+- `assertClinicAccess` returns `'super_admin'` immediately when the caller's profile has `role = 'super_admin'` (verified via a single `profiles` lookup) — no `user_roles` row required.
+- `useAccess.effectiveClinicId` for super admin: use `activeClinicId` directly (no membership check). Memberships list stays for non-super users.
+- `clinic_switch_log` insert tagged with `access_granted: true, reason: 'super_admin_bypass'` for super admin.
 
-- `clinic-ops-engine` (verify_jwt=true) — POST actions: `recalculate_score`, `run_auto_fix`, `activate`, `deactivate`. Validates super_admin via has_role. For invite-not-accepted fix, calls `send-invite-email` to resend.
+## 4. Frontend access guards
 
-## 3. Frontend
+- `route-access.ts`: super_admin → all routes allowed except `/onboarding` (which is irrelevant for them). They can enter any clinic; `/dashboard` and clinic-scoped routes load with the chosen `activeClinicId`.
+- For non-super users, when `clinic.lifecycle_status` is `suspended` or `deactivated`: redirect every protected route to `/billing` (read-only) with a banner. Only `/billing`, `/login`, `/no-access` accessible.
+- `useRole.tsx`: keep current shape; expose a `bypassAll` flag that is true for super_admin so any future component-level check is uniform.
 
-- Update `useClinic.tsx`: derive `isDeactivated`, `subscriptionRequired` (= !is_active && !super_admin).
-- Update `TrialGuard` / `AppLayout`: when deactivated, route non-admins to `/billing` only; show "Subscription required" screen.
-- New page `/super-admin/operations` (`SuperAdminOperations.tsx`): system intelligence panel — at-risk clinics, auto-fixed today, expired trials today, trial→paid conversion, list with score, status badge, **Activate / Deactivate buttons** per clinic, Run Auto-Fix button, Recalculate Score button.
-- Update `SuperAdminClinics.tsx`: add Activate/Deactivate buttons inline on each clinic row, status badges (Trial Active, Expiring Soon, Active, Expired, Suspended).
-- Add nav link in sidebar for super admins.
+## 5. Super admin UI updates
 
-## 4. Access control
-- Activate/Deactivate buttons gated by `useRole().isSuperAdmin`.
-- Deactivated clinics: dashboard locked except `/billing` for clinic admin; super_admin bypasses everything.
+- `SuperAdminClinics.tsx`: replace the single Activate/Deactivate toggle with four explicit actions (Activate, Suspend, Deactivate, Reactivate), each calling `set_clinic_lifecycle`. Buttons disabled when transition not allowed.
+- Status badge derives from `lifecycle_status` (single switch).
+- Every action shows a `console.debug('[lifecycle]', { clinic_id, from, to, by, reason })` log and a toast with the exact failure reason if RPC errors.
 
-## Tech notes
-- Score weights match spec (30/15/10/10/10/10/10/5).
-- Status thresholds: ≥80 healthy, ≥50 at_risk, else critical.
-- "Trial Expiring Soon" = ≤3 days left.
-- Auto-fix rules implemented inside `run_auto_fix` plpgsql + edge function for email-resend side-effects.
+## 6. Debug logging
+
+Add a small `logAccess()` helper called from `useAccess.loadAccess` and `switchClinic` that emits one structured `console.debug('[access]', {...})` line containing: `user_id`, `role`, `clinic_id`, `lifecycle_status`, `decision`, `reason`. No PII beyond IDs.
+
+## 7. Sandbox leakage
+
+The previous migration already strict-isolates tenant tables. This plan adds `lifecycle_allows_access` to the same policies so suspended/deactivated sandbox clinics also can't bleed even via stale sessions.
+
+---
+
+## Files touched
+- New migration: `supabase/migrations/<ts>_clinic_lifecycle.sql`
+- `src/lib/route-access.ts` — super admin bypass + lifecycle guard
+- `src/hooks/useAccess.tsx` — bypass in `switchClinic` / `effectiveClinicId`, debug logging
+- `src/hooks/useRole.tsx` — `bypassAll` flag
+- `src/pages/SuperAdminClinics.tsx` — four-action lifecycle controls
+- `src/pages/SuperAdminOperations.tsx` — read `lifecycle_status` instead of mixing fields
+
+## Open questions (please confirm before I build)
+1. **Suspended clinic UX**: should non-super users be force-redirected to `/billing` only, or should they see a full-page "Clinic suspended — contact admin" screen? Plan assumes redirect to `/billing`.
+2. **Super admin "Enter" without user_roles row**: I'll let super admins enter ANY clinic with no membership check. Confirm this matches your intent (true global bypass).
+3. **Lifecycle column**: I'll keep `is_active` / `subscription_status` as derived columns via trigger so legacy UI keeps working. OK?
