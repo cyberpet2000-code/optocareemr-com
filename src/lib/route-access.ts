@@ -75,7 +75,7 @@ export async function assertClinicAccess(
 }
 
 export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision {
-  const { path, isAuthenticated, isAuthReady, didTimeout, role, clinicId, setupCompleted, roleMissing, membershipsCount = 0 } = input;
+  const { path, isAuthenticated, isAuthReady, didTimeout, role, clinicId, setupCompleted, roleMissing, membershipsCount = 0, lifecycleStatus } = input;
   const isSuperAdmin = role === "super_admin";
   const hasActiveClinic = !!clinicId;
 
@@ -87,6 +87,17 @@ export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision
     return { type: "redirect", to: "/login" };
   }
 
+  // Super admin: bypass clinic + lifecycle restrictions globally.
+  if (isSuperAdmin) {
+    if (path === "/") return { type: "redirect", to: "/super-admin" };
+    if (path === "/onboarding") {
+      if (!hasActiveClinic) return { type: "redirect", to: "/super-admin" };
+      if (setupCompleted === false) return { type: "allow" };
+      return { type: "redirect", to: "/dashboard" };
+    }
+    return { type: "allow" };
+  }
+
   if (roleMissing) {
     return { type: "error", label: "User role not configured. Contact support." };
   }
@@ -95,29 +106,24 @@ export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision
     return { type: "redirect", to: resolveDefaultRoute({ role, clinicId, setupCompleted, membershipsCount }) };
   }
 
-  if (path === "/select-clinic") {
-    return { type: "allow" };
-  }
+  if (path === "/select-clinic") return { type: "allow" };
 
   if (path.startsWith("/super-admin")) {
-    return { type: "allow" };
+    return { type: "redirect", to: "/no-access" };
   }
 
   if (path === "/onboarding") {
-    if (!hasActiveClinic) {
-      return isSuperAdmin
-        ? { type: "redirect", to: "/super-admin" }
-        : { type: "redirect", to: "/select-clinic" };
-    }
+    if (!hasActiveClinic) return { type: "redirect", to: "/select-clinic" };
     if (setupCompleted === false) return { type: "allow" };
-    return { type: "redirect", to: isSuperAdmin ? "/super-admin" : "/dashboard" };
+    return { type: "redirect", to: "/dashboard" };
   }
 
-  // Any other clinic-scoped route
-  if (!hasActiveClinic) {
-    return isSuperAdmin
-      ? { type: "redirect", to: "/super-admin" }
-      : { type: "redirect", to: "/select-clinic" };
+  if (!hasActiveClinic) return { type: "redirect", to: "/select-clinic" };
+
+  if (lifecycleStatus === "suspended" || lifecycleStatus === "deactivated") {
+    if (!BILLING_ALLOWED_PATHS.some((p) => path === p || path.startsWith(`${p}/`))) {
+      return { type: "redirect", to: "/billing" };
+    }
   }
 
   if (setupCompleted === false) {
