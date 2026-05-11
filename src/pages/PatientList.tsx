@@ -4,6 +4,7 @@ import { Search, ChevronRight, UserPlus, Phone, MessageCircle } from "lucide-rea
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useAccess } from "@/hooks/useAccess";
 
 interface PatientRow {
   id: string;
@@ -19,27 +20,31 @@ interface PatientRow {
 }
 
 export default function PatientList() {
+  const { effectiveClinicId: cid } = useAccess();
   const [patients, setPatients] = useState<PatientRow[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!cid) { setPatients([]); setLoading(false); return; }
     (async () => {
       const { data } = await supabase
         .from("patients")
         .select("id, full_name, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number")
+        .eq("clinic_id", cid)
         .order("created_at", { ascending: false });
+      console.debug("[patients]", { clinic_id: cid, count: data?.length ?? 0 });
       if (!data) { setLoading(false); return; }
       const hmoIds = [...new Set(data.map((p: any) => p.active_hmo_id).filter(Boolean))];
       let hmoMap = new Map<string, string>();
       if (hmoIds.length > 0) {
-        const { data: hmos } = await supabase.from("hmos").select("id, name").in("id", hmoIds as string[]);
+        const { data: hmos } = await supabase.from("hmos").select("id, name").eq("clinic_id", cid).in("id", hmoIds as string[]);
         hmoMap = new Map((hmos || []).map((h: any) => [h.id, h.name]));
       }
       setPatients(data.map((p: any) => ({ ...p, hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined })));
       setLoading(false);
     })();
-  }, []);
+  }, [cid]);
 
   const filtered = patients.filter(p =>
     p.full_name.toLowerCase().includes(search.toLowerCase()) ||

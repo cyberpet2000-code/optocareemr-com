@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Plus, Building2, Trash2, Pencil, FileText } from "lucide-react";
+import { useAccess } from "@/hooks/useAccess";
 
 interface Hmo {
   id: string;
@@ -27,6 +28,7 @@ interface Plan {
 }
 
 export default function HmoManagement() {
+  const { effectiveClinicId: cid } = useAccess();
   const [hmos, setHmos] = useState<Hmo[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,25 +42,28 @@ export default function HmoManagement() {
   const [planForm, setPlanForm] = useState({ plan_name: "", coverage_limit: "" });
 
   const load = async () => {
+    if (!cid) { setHmos([]); setPlans([]); setLoading(false); return; }
     const [h, p] = await Promise.all([
-      supabase.from("hmos").select("*").order("name"),
-      supabase.from("hmo_plans").select("*").order("created_at", { ascending: false }),
+      supabase.from("hmos").select("*").eq("clinic_id", cid).order("name"),
+      supabase.from("hmo_plans").select("*").eq("clinic_id", cid).order("created_at", { ascending: false }),
     ]);
+    console.debug("[hmo]", { clinic_id: cid, hmos: h.data?.length ?? 0, plans: p.data?.length ?? 0 });
     setHmos((h.data as any) || []);
     setPlans((p.data as any) || []);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [cid]);
 
   const saveHmo = async () => {
+    if (!cid) return toast.error("No active clinic");
     if (!form.name) return toast.error("Name required");
     if (editing) {
-      const { error } = await supabase.from("hmos").update(form).eq("id", editing.id);
+      const { error } = await supabase.from("hmos").update(form).eq("clinic_id", cid).eq("id", editing.id);
       if (error) return toast.error(error.message);
       toast.success("HMO updated");
     } else {
-      const { error } = await supabase.from("hmos").insert(form as any);
+      const { error } = await supabase.from("hmos").insert({ ...form, clinic_id: cid } as any);
       if (error) return toast.error(error.message);
       toast.success("HMO added");
     }
@@ -67,15 +72,18 @@ export default function HmoManagement() {
   };
 
   const deleteHmo = async (id: string) => {
+    if (!cid) return;
     if (!confirm("Delete this HMO?")) return;
-    const { error } = await supabase.from("hmos").delete().eq("id", id);
+    const { error } = await supabase.from("hmos").delete().eq("clinic_id", cid).eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Deleted"); load();
   };
 
   const savePlan = async () => {
+    if (!cid) return toast.error("No active clinic");
     if (!planHmo || !planForm.plan_name) return toast.error("Plan name required");
     const { error } = await supabase.from("hmo_plans").insert({
+      clinic_id: cid,
       hmo_id: planHmo.id,
       plan_name: planForm.plan_name,
       coverage_limit: Number(planForm.coverage_limit) || 0,

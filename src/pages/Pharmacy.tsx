@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Pill, Search, AlertTriangle, Plus, X, Ban } from "lucide-react";
+import { useAccess } from "@/hooks/useAccess";
 
 interface Drug {
   id: string;
@@ -26,6 +27,7 @@ interface DispenseItem {
 }
 
 export default function Pharmacy() {
+  const { effectiveClinicId: cid } = useAccess();
   const [drugs, setDrugs] = useState<Drug[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -35,21 +37,25 @@ export default function Pharmacy() {
   const [dispensing, setDispensing] = useState(false);
 
   const loadDrugs = async () => {
+    if (!cid) { setDrugs([]); setLoading(false); return; }
     const { data } = await supabase
       .from("inventory")
       .select("id, name, drug_category, price, stock_quantity, expiry_date, low_stock_threshold")
+      .eq("clinic_id", cid)
       .eq("category", "Drugs")
       .order("name");
+    console.debug("[pharmacy]", { clinic_id: cid, count: data?.length ?? 0 });
     if (data) setDrugs(data as unknown as Drug[]);
     setLoading(false);
   };
 
   useEffect(() => {
     loadDrugs();
-    supabase.from("patients").select("id, full_name").order("full_name").then(({ data }) => {
+    if (!cid) { setPatients([]); return; }
+    supabase.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data }) => {
       if (data) setPatients(data as any);
     });
-  }, []);
+  }, [cid]);
 
   const thirtyDaysFromNow = new Date();
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
@@ -79,6 +85,7 @@ export default function Pharmacy() {
   const total = cart.reduce((s, c) => s + c.quantity * c.price, 0);
 
   const handleDispense = async () => {
+    if (!cid) { toast.error("No active clinic"); return; }
     if (cart.length === 0) { toast.error("Add drugs to dispense"); return; }
     setDispensing(true);
 
@@ -87,6 +94,7 @@ export default function Pharmacy() {
       if (!drug) continue;
       // Record sale
       await supabase.from("pharmacy_sales").insert({
+        clinic_id: cid,
         patient_id: selectedPatient || null,
         inventory_id: item.drug_id,
         quantity: item.quantity,
@@ -96,7 +104,7 @@ export default function Pharmacy() {
       // Decrement stock
       await supabase.from("inventory").update({
         stock_quantity: drug.stock_quantity - item.quantity,
-      }).eq("id", item.drug_id);
+      }).eq("clinic_id", cid).eq("id", item.drug_id);
     }
 
     toast.success("Drugs dispensed — stock updated");

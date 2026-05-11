@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useAccess } from "@/hooks/useAccess";
 
 export default function PatientRegister() {
   const navigate = useNavigate();
+  const { effectiveClinicId: cid } = useAccess();
   const [loading, setLoading] = useState(false);
   const [hmos, setHmos] = useState<{ id: string; name: string }[]>([]);
   const [form, setForm] = useState({
@@ -21,10 +23,11 @@ export default function PatientRegister() {
   });
 
   useEffect(() => {
-    supabase.from("hmos").select("id, name").eq("status", "active").order("name").then(({ data }) => {
+    if (!cid) return;
+    supabase.from("hmos").select("id, name").eq("clinic_id", cid).eq("status", "active").order("name").then(({ data }) => {
       if (data) setHmos(data as any);
     });
-  }, []);
+  }, [cid]);
 
   const set = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }));
 
@@ -38,8 +41,10 @@ export default function PatientRegister() {
       toast.error("Select HMO provider");
       return;
     }
+    if (!cid) { toast.error("No active clinic"); return; }
     setLoading(true);
     const { data, error } = await supabase.from("patients").insert({
+      clinic_id: cid,
       full_name: form.fullName.trim(),
       age: parseInt(form.age),
       gender: form.gender,

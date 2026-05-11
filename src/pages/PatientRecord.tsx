@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Eye, Stethoscope, ClipboardList, History, Pencil, Gauge, Download, Phone, MessageCircle, CheckCircle2 } from "lucide-react";
 import { generateVisitPdf } from "@/lib/visitPdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAccess } from "@/hooks/useAccess";
 
 interface PatientData {
   id: string;
@@ -54,6 +55,7 @@ const emptyVisitForm = () => ({
 export default function PatientRecord() {
   const { id } = useParams<{ id: string }>();
   const patientId = id || "";
+  const { effectiveClinicId: cid } = useAccess();
   const [patient, setPatient] = useState<PatientData | null>(null);
   const [hmos, setHmos] = useState<{ id: string; name: string }[]>([]);
   const [hmoMap, setHmoMap] = useState<Map<string, string>>(new Map());
@@ -65,13 +67,14 @@ export default function PatientRecord() {
   const [form, setForm] = useState(emptyVisitForm());
 
   useEffect(() => {
-    if (!patientId) { setLoading(false); return; }
+    if (!patientId || !cid) { setLoading(false); return; }
     (async () => {
       const [patRes, visRes, hmoRes] = await Promise.all([
-        supabase.from("patients").select("*").eq("id", patientId).maybeSingle(),
-        supabase.from("visits").select("*").eq("patient_id", patientId).order("created_at", { ascending: false }),
-        supabase.from("hmos").select("id, name").eq("status", "active"),
+        supabase.from("patients").select("*").eq("clinic_id", cid).eq("id", patientId).maybeSingle(),
+        supabase.from("visits").select("*").eq("clinic_id", cid).eq("patient_id", patientId).order("created_at", { ascending: false }),
+        supabase.from("hmos").select("id, name").eq("clinic_id", cid).eq("status", "active"),
       ]);
+      console.debug("[patient-record]", { clinic_id: cid, patient_id: patientId, visits: visRes.data?.length ?? 0 });
       if (patRes.data) setPatient(patRes.data as unknown as PatientData);
       if (visRes.data) setVisits(visRes.data);
       if (hmoRes.data) {
@@ -80,14 +83,16 @@ export default function PatientRecord() {
       }
       setLoading(false);
     })();
-  }, [patientId]);
+  }, [patientId, cid]);
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSaveVisit = async (markCompleted: boolean) => {
     if (!patient) return;
+    if (!cid) { toast.error("No active clinic"); return; }
     setSaving(true);
     const { data, error } = await supabase.from("visits").insert({
+      clinic_id: cid,
       patient_id: patient.id,
       payment_type: patient.payment_type,
       active_hmo_id: patient.active_hmo_id,
@@ -120,7 +125,7 @@ export default function PatientRecord() {
     setForm(emptyVisitForm());
     // Re-sync visit history from DB so Past tab always reflects server state
     const { data: fresh } = await supabase
-      .from("visits").select("*").eq("patient_id", patient.id)
+      .from("visits").select("*").eq("clinic_id", cid).eq("patient_id", patient.id)
       .order("created_at", { ascending: false });
     if (fresh) setVisits(fresh);
     else if (data) setVisits([data, ...visits]);
@@ -128,6 +133,7 @@ export default function PatientRecord() {
 
   const handleEditPatient = async () => {
     if (!patient) return;
+    if (!cid) { toast.error("No active clinic"); return; }
     const { error } = await supabase.from("patients").update({
       full_name: editForm.full_name,
       age: editForm.age,
@@ -138,7 +144,7 @@ export default function PatientRecord() {
       payment_type: editForm.payment_type,
       active_hmo_id: editForm.payment_type === "hmo" ? editForm.active_hmo_id : null,
       enrollee_number: editForm.enrollee_number || "",
-    } as any).eq("id", patient.id);
+    } as any).eq("clinic_id", cid).eq("id", patient.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Patient info updated");
     setPatient({ ...patient, ...editForm } as PatientData);

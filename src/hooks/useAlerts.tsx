@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAccess } from "@/hooks/useAccess";
 
 export interface Alert {
   id: string;
@@ -12,28 +13,33 @@ export interface Alert {
 }
 
 export function useAlerts() {
+  const { effectiveClinicId: cid } = useAccess();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
+    if (!cid) { setAlerts([]); setLoading(false); return; }
     const { data } = await supabase
       .from("alerts")
       .select("*")
+      .eq("clinic_id", cid)
       .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(50);
+    console.debug("[alerts]", { clinic_id: cid, count: data?.length ?? 0 });
     setAlerts((data as any) || []);
     setLoading(false);
   };
 
   useEffect(() => {
     load();
+    if (!cid) return;
     const ch = supabase
-      .channel("alerts-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "alerts" }, () => load())
+      .channel(`alerts-realtime-${cid}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "alerts", filter: `clinic_id=eq.${cid}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, []);
+  }, [cid]);
 
   const dismiss = async (id: string) => {
     await supabase.from("alerts").update({ status: "dismissed" } as any).eq("id", id);

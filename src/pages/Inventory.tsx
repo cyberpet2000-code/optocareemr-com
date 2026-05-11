@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, Plus, X, Search, AlertTriangle, ShoppingCart, Trash2, Edit2, BarChart3, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useAccess } from "@/hooks/useAccess";
 
 const CATEGORIES = ["Frames", "Lenses", "Contact Lenses", "Accessories", "Drugs"];
 const DRUG_CATEGORIES = ["Antibiotics", "Anti-inflammatory", "Lubricants", "Anti-glaucoma", "Mydriatics", "Others"];
@@ -25,6 +26,7 @@ const emptyProduct = { name: "", category: "Frames", price: "", stock: "", drugC
 
 export default function Inventory() {
   const { user } = useAuth();
+  const { effectiveClinicId: cid } = useAccess();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -39,17 +41,20 @@ export default function Inventory() {
   const [salePatientId, setSalePatientId] = useState("");
 
   const loadItems = async () => {
-    const { data } = await supabase.from("inventory").select("*").order("name");
+    if (!cid) { setItems([]); setLoading(false); return; }
+    const { data } = await supabase.from("inventory").select("*").eq("clinic_id", cid).order("name");
+    console.debug("[inventory]", { clinic_id: cid, count: data?.length ?? 0 });
     if (data) setItems(data as unknown as InventoryItem[]);
     setLoading(false);
   };
 
-  useEffect(() => { loadItems(); }, []);
+  useEffect(() => { loadItems(); }, [cid]);
   useEffect(() => {
-    supabase.from("patients").select("id, full_name").order("full_name").then(({ data }) => {
+    if (!cid) { setPatients([]); return; }
+    supabase.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data }) => {
       if (data) setPatients(data as any);
     });
-  }, []);
+  }, [cid]);
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
@@ -63,6 +68,7 @@ export default function Inventory() {
   };
 
   const handleSubmit = async () => {
+    if (!cid) { toast.error("No active clinic"); return; }
     if (!form.name.trim()) { toast.error("Name required"); return; }
     setSaving(true);
     let imageUrl: string | null = null;
@@ -81,9 +87,10 @@ export default function Inventory() {
     if (imageUrl) payload.image_url = imageUrl;
     let error;
     if (editId) {
-      ({ error } = await supabase.from("inventory").update(payload).eq("id", editId));
+      ({ error } = await supabase.from("inventory").update(payload).eq("clinic_id", cid).eq("id", editId));
     } else {
       payload.created_by = user?.id;
+      payload.clinic_id = cid;
       ({ error } = await supabase.from("inventory").insert(payload));
     }
     setSaving(false);
@@ -93,8 +100,9 @@ export default function Inventory() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!cid) return;
     if (!confirm("Delete?")) return;
-    await supabase.from("inventory").delete().eq("id", id);
+    await supabase.from("inventory").delete().eq("clinic_id", cid).eq("id", id);
     toast.success("Deleted"); loadItems();
   };
 
@@ -125,15 +133,18 @@ export default function Inventory() {
   const cartTotal = cart.reduce((sum, c) => sum + c.quantity * c.unit_price, 0);
 
   const completeSale = async () => {
+    if (!cid) { toast.error("No active clinic"); return; }
     if (cart.length === 0) { toast.error("Cart empty"); return; }
     setSaving(true);
     const { data: sale, error } = await supabase.from("inventory_sales").insert({
+      clinic_id: cid,
       patient_id: salePatientId || null,
       sold_by: user?.id,
       total_amount: cartTotal,
     } as any).select().single();
     if (error || !sale) { toast.error(error?.message || "Failed"); setSaving(false); return; }
     const saleItems = cart.map(c => ({
+      clinic_id: cid,
       sale_id: (sale as any).id,
       inventory_id: c.inventory_id,
       quantity: c.quantity,
@@ -146,7 +157,7 @@ export default function Inventory() {
     for (const c of cart) {
       const item = items.find(i => i.id === c.inventory_id);
       if (item) {
-        await supabase.from("inventory").update({ stock_quantity: item.stock_quantity - c.quantity }).eq("id", item.id);
+        await supabase.from("inventory").update({ stock_quantity: item.stock_quantity - c.quantity }).eq("clinic_id", cid).eq("id", item.id);
       }
     }
     setSaving(false);
