@@ -175,15 +175,24 @@ export default function SuperAdminClinics() {
                       <Button size="sm" variant="outline" onClick={() => openInvite(c)}>
                         <UserPlus size={14} className="mr-1" /> Invite
                       </Button>
-                      {c.is_active ? (
-                        <Button size="sm" variant="destructive" onClick={() => toggleActive(c)} disabled={busyId === c.id}>
-                          <Power size={14} className="mr-1" /> {busyId === c.id ? "…" : "Deactivate"}
-                        </Button>
-                      ) : (
-                        <Button size="sm" onClick={() => toggleActive(c)} disabled={busyId === c.id}>
-                          <CheckCircle2 size={14} className="mr-1" /> {busyId === c.id ? "…" : "Activate"}
-                        </Button>
-                      )}
+                      {(() => {
+                        const cur = (c.lifecycle_status as Lifecycle) || "trial";
+                        const allowed = ALLOWED_TRANSITIONS[cur];
+                        const btn = (next: Lifecycle, label: string, Icon: any, variant: any = "outline") => (
+                          <Button key={next} size="sm" variant={variant}
+                            onClick={() => transitionLifecycle(c, next)}
+                            disabled={busyId === c.id || !allowed.includes(next)}>
+                            <Icon size={14} className="mr-1" /> {busyId === c.id ? "…" : label}
+                          </Button>
+                        );
+                        return (
+                          <>
+                            {allowed.includes("active") && btn("active", cur === "suspended" ? "Reactivate" : "Activate", cur === "suspended" ? PlayCircle : CheckCircle2, "default")}
+                            {allowed.includes("suspended") && btn("suspended", "Suspend", PauseCircle, "outline")}
+                            {allowed.includes("deactivated") && btn("deactivated", "Deactivate", XCircle, "destructive")}
+                          </>
+                        );
+                      })()}
                       <Button size="sm" variant="outline" onClick={() => enter(c)} disabled={enteringId === c.id || !!enteringId}>
                         <LogIn size={14} className="mr-1" /> {enteringId === c.id ? "Entering…" : "Enter"}
                       </Button>
