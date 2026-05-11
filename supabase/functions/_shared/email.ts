@@ -1,6 +1,6 @@
 // Shared branded HTML + plain-text email scaffolding.
 // Hospital-style, minimal links, plain-text fallback.
-export const APP_URL = "https://optocareemr.lovable.app";
+export const APP_URL = (Deno.env.get("APP_URL") || "https://optocareemr.com").replace(/\/$/, "");
 export const SUPPORT_EMAIL = "support@optocareemr.com";
 export const BRAND_NAME = "OptoCare EMR";
 
