@@ -1,6 +1,33 @@
 // Shared branded HTML + plain-text email scaffolding.
 // Hospital-style, minimal links, plain-text fallback.
-export const APP_URL = (Deno.env.get("APP_URL") || "https://optocareemr.com").replace(/\/$/, "");
+const PRODUCTION_APP_URL = "https://optocareemr.com";
+
+// Resolve APP_URL with strict guard: if the env var is missing OR points at a
+// preview/lovable domain, fall back to the canonical production URL. This
+// guarantees no invite/reset/billing email link ever leaks a preview host.
+function resolveAppUrl(): string {
+  const raw = (Deno.env.get("APP_URL") || "").trim().replace(/\/$/, "");
+  if (!raw) return PRODUCTION_APP_URL;
+  try {
+    const host = new URL(raw).hostname.toLowerCase();
+    if (
+      host.endsWith(".lovable.app") ||
+      host.endsWith(".lovableproject.com") ||
+      host.endsWith(".lovable.dev") ||
+      host === "localhost" ||
+      host === "127.0.0.1"
+    ) {
+      console.warn("[email] Ignoring non-production APP_URL", { host });
+      return PRODUCTION_APP_URL;
+    }
+    return raw;
+  } catch {
+    console.warn("[email] Invalid APP_URL, using production default");
+    return PRODUCTION_APP_URL;
+  }
+}
+
+export const APP_URL = resolveAppUrl();
 export const SUPPORT_EMAIL = "support@optocareemr.com";
 export const BRAND_NAME = "OptoCare EMR";
 

@@ -50,9 +50,9 @@ Deno.serve(async (req) => {
     const clinic_name = String(body?.clinic_name ?? "").trim();
     const admin_full_name = String(body?.admin_full_name ?? "").trim();
     const admin_email = String(body?.admin_email ?? "").trim().toLowerCase();
-    // CENTRALIZED APP URL — never use frontend origin or preview domains.
-    // Always uses APP_URL secret (production), falls back to published URL.
-    const APP_URL = (Deno.env.get("APP_URL") || "https://optocareemr.com").replace(/\/$/, "");
+    // CENTRALIZED APP URL — uses the hardened shared resolver, which guards
+    // against missing/misconfigured APP_URL secrets and refuses preview hosts.
+    const { APP_URL } = await import("../_shared/email.ts");
 
     if (!clinic_name) return json({ error: "Clinic name is required" }, 400);
     if (!admin_full_name) return json({ error: "Admin full name is required" }, 400);
