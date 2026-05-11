@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Plus, LogIn, UserPlus, Copy, Check, Power, CheckCircle2 } from "lucide-react";
+import { Building2, Plus, LogIn, UserPlus, Copy, Check, Power, CheckCircle2, PauseCircle, PlayCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,17 +10,28 @@ import { useAccess } from "@/hooks/useAccess";
 import { toast } from "sonner";
 import PendingInvitesPanel from "@/components/PendingInvitesPanel";
 
+type Lifecycle = "trial" | "active" | "suspended" | "deactivated";
+
 function lifecycleLabel(c: any): { label: string; cls: string } {
-  if (c.is_active === false) {
-    if (c.deactivation_reason === "trial_expired" || c.subscription_status === "expired")
-      return { label: "Expired", cls: "bg-destructive/10 text-destructive" };
-    return { label: "Suspended", cls: "bg-muted text-foreground" };
+  const s: Lifecycle = (c.lifecycle_status as Lifecycle) || "trial";
+  switch (s) {
+    case "active": return { label: "Active", cls: "bg-success/10 text-success" };
+    case "suspended": return { label: "Suspended", cls: "bg-warning/10 text-warning" };
+    case "deactivated": return { label: "Deactivated", cls: "bg-destructive/10 text-destructive" };
+    default: {
+      const days = c.trial_end_date ? Math.ceil((new Date(c.trial_end_date).getTime() - Date.now()) / 86400000) : null;
+      if (days !== null && days <= 3 && days >= 0) return { label: "Trial · Expiring", cls: "bg-warning/10 text-warning" };
+      return { label: "Trial", cls: "bg-primary/10 text-primary" };
+    }
   }
-  if (c.subscription_status === "active") return { label: "Active", cls: "bg-success/10 text-success" };
-  const days = c.trial_end_date ? Math.ceil((new Date(c.trial_end_date).getTime() - Date.now()) / 86400000) : null;
-  if (days !== null && days <= 3 && days >= 0) return { label: "Expiring Soon", cls: "bg-warning/10 text-warning" };
-  return { label: "Trial", cls: "bg-primary/10 text-primary" };
 }
+
+const ALLOWED_TRANSITIONS: Record<Lifecycle, Lifecycle[]> = {
+  trial: ["active"],
+  active: ["suspended", "deactivated"],
+  suspended: ["active"],
+  deactivated: [],
+};
 
 export default function SuperAdminClinics() {
   const [clinics, setClinics] = useState<any[]>([]);
