@@ -55,6 +55,7 @@ const emptyVisitForm = () => ({
 export default function PatientRecord() {
   const { id } = useParams<{ id: string }>();
   const patientId = id || "";
+  const { effectiveClinicId: cid } = useAccess();
   const [patient, setPatient] = useState<PatientData | null>(null);
   const [hmos, setHmos] = useState<{ id: string; name: string }[]>([]);
   const [hmoMap, setHmoMap] = useState<Map<string, string>>(new Map());
@@ -66,13 +67,14 @@ export default function PatientRecord() {
   const [form, setForm] = useState(emptyVisitForm());
 
   useEffect(() => {
-    if (!patientId) { setLoading(false); return; }
+    if (!patientId || !cid) { setLoading(false); return; }
     (async () => {
       const [patRes, visRes, hmoRes] = await Promise.all([
-        supabase.from("patients").select("*").eq("id", patientId).maybeSingle(),
-        supabase.from("visits").select("*").eq("patient_id", patientId).order("created_at", { ascending: false }),
-        supabase.from("hmos").select("id, name").eq("status", "active"),
+        supabase.from("patients").select("*").eq("clinic_id", cid).eq("id", patientId).maybeSingle(),
+        supabase.from("visits").select("*").eq("clinic_id", cid).eq("patient_id", patientId).order("created_at", { ascending: false }),
+        supabase.from("hmos").select("id, name").eq("clinic_id", cid).eq("status", "active"),
       ]);
+      console.debug("[patient-record]", { clinic_id: cid, patient_id: patientId, visits: visRes.data?.length ?? 0 });
       if (patRes.data) setPatient(patRes.data as unknown as PatientData);
       if (visRes.data) setVisits(visRes.data);
       if (hmoRes.data) {
@@ -81,7 +83,7 @@ export default function PatientRecord() {
       }
       setLoading(false);
     })();
-  }, [patientId]);
+  }, [patientId, cid]);
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
