@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Users, ChevronRight, Clock, AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
+import { useAccess } from "@/hooks/useAccess";
 
 interface QPatient {
   id: string;
@@ -41,37 +42,44 @@ const PRIORITY_COLOR: Record<string, string> = {
 };
 
 export default function Queue() {
+  const { effectiveClinicId: cid } = useAccess();
   const [patients, setPatients] = useState<QPatient[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("active");
 
   const load = async () => {
+    if (!cid) { setPatients([]); setLoading(false); return; }
     const { data } = await supabase
       .from("patients")
       .select("id, full_name, queue_number, queue_status, priority, payment_type, phone, age, gender, created_at")
+      .eq("clinic_id", cid)
       .order("priority", { ascending: false })
       .order("queue_number", { ascending: true });
+    console.debug("[queue]", { clinic_id: cid, count: data?.length ?? 0 });
     setPatients((data as any) || []);
     setLoading(false);
   };
 
   useEffect(() => {
     load();
+    if (!cid) return;
     const channel = supabase
-      .channel("queue-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "patients" }, () => load())
+      .channel(`queue-realtime-${cid}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "patients", filter: `clinic_id=eq.${cid}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [cid]);
 
   const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from("patients").update({ queue_status: status } as any).eq("id", id);
+    if (!cid) return;
+    const { error } = await supabase.from("patients").update({ queue_status: status } as any).eq("clinic_id", cid).eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Status updated");
   };
 
   const updatePriority = async (id: string, priority: string) => {
-    const { error } = await supabase.from("patients").update({ priority } as any).eq("id", id);
+    if (!cid) return;
+    const { error } = await supabase.from("patients").update({ priority } as any).eq("clinic_id", cid).eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Priority updated");
   };

@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "sonner";
 import { CalendarIcon, Plus, X, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { format } from "date-fns";
+import { useAccess } from "@/hooks/useAccess";
 
 interface Appointment {
   id: string;
@@ -23,6 +24,7 @@ interface Appointment {
 }
 
 export default function Appointments() {
+  const { effectiveClinicId: cid } = useAccess();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<{ id: string; full_name: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,18 +34,21 @@ export default function Appointments() {
   const [saving, setSaving] = useState(false);
 
   const loadAppointments = async () => {
+    if (!cid) { setAppointments([]); setLoading(false); return; }
     setLoading(true);
     const dateStr = format(filterDate, "yyyy-MM-dd");
     const { data } = await supabase
       .from("appointments")
       .select("*")
+      .eq("clinic_id", cid)
       .eq("appointment_date", dateStr)
       .order("appointment_time");
+    console.debug("[appointments]", { clinic_id: cid, count: data?.length ?? 0 });
     if (data && data.length > 0) {
       const patientIds = [...new Set(data.filter((a: any) => a.patient_id).map((a: any) => a.patient_id))];
       let patMap = new Map<string, string>();
       if (patientIds.length > 0) {
-        const { data: pats } = await supabase.from("patients").select("id, full_name").in("id", patientIds as string[]);
+        const { data: pats } = await supabase.from("patients").select("id, full_name").eq("clinic_id", cid).in("id", patientIds as string[]);
         patMap = new Map((pats || []).map((p: any) => [p.id, p.full_name]));
       }
       setAppointments(data.map((a: any) => ({ ...a, patient_name: a.patient_id ? patMap.get(a.patient_id) || "Unknown" : "Walk-in" })));
@@ -53,17 +58,20 @@ export default function Appointments() {
     setLoading(false);
   };
 
-  useEffect(() => { loadAppointments(); }, [filterDate]);
+  useEffect(() => { loadAppointments(); }, [filterDate, cid]);
   useEffect(() => {
-    supabase.from("patients").select("id, full_name").order("full_name").then(({ data }) => {
+    if (!cid) { setPatients([]); return; }
+    supabase.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data }) => {
       if (data) setPatients(data as any);
     });
-  }, []);
+  }, [cid]);
 
   const handleSubmit = async () => {
+    if (!cid) { toast.error("No active clinic"); return; }
     if (!form.time) { toast.error("Set a time"); return; }
     setSaving(true);
     const { error } = await supabase.from("appointments").insert({
+      clinic_id: cid,
       patient_id: form.patientId || null,
       appointment_date: format(form.date, "yyyy-MM-dd"),
       appointment_time: form.time,
@@ -80,7 +88,8 @@ export default function Appointments() {
   };
 
   const updateStatus = async (id: string, status: string) => {
-    await supabase.from("appointments").update({ status } as any).eq("id", id);
+    if (!cid) return;
+    await supabase.from("appointments").update({ status } as any).eq("clinic_id", cid).eq("id", id);
     loadAppointments();
   };
 
