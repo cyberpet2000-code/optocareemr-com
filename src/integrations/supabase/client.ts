@@ -88,6 +88,7 @@ async function gatedSupabaseFetch(input: RequestInfo | URL, init?: RequestInit) 
   const method = getRequestMethod(input, init);
   const moduleName = resolveCallerModule();
   const path = getRequestPath(url);
+  const requestType = getRequestType(url);
   const currentHeaders = mergeHeaders(input, init);
   currentHeaders.set(SHARED_CLIENT_HEADER, '1');
 
@@ -99,8 +100,11 @@ async function gatedSupabaseFetch(input: RequestInfo | URL, init?: RequestInit) 
   console.debug('[supabase:request]', {
     module: moduleName,
     method,
+    requestType,
     path,
     sharedClient: true,
+    tokenPresent: currentHeaders.has('Authorization'),
+    apiKeyPresent: currentHeaders.has('apikey'),
     accessReady: initialGate.accessReady,
     hasSession: initialGate.hasSession,
     sessionBootstrapped: initialGate.sessionBootstrapped,
@@ -126,9 +130,12 @@ async function gatedSupabaseFetch(input: RequestInfo | URL, init?: RequestInit) 
   console.warn('[api:auth]', {
     module: moduleName,
     method,
+    requestType,
     path,
     status: response.status,
     sharedClient: true,
+    tokenPresent: currentHeaders.has('Authorization'),
+    apiKeyPresent: currentHeaders.has('apikey'),
     accessReady: currentGate.accessReady,
     hasSession: currentGate.hasSession,
     sessionBootstrapped: currentGate.sessionBootstrapped,
@@ -167,8 +174,11 @@ function installBypassDetection() {
       console.warn('[supabase:bypass]', {
         module: resolveCallerModule(),
         method: getRequestMethod(input, init),
+        requestType: getRequestType(getRequestUrl(input)),
         path: getRequestPath(getRequestUrl(input)),
         sharedClient: false,
+        tokenPresent: headers.has('Authorization'),
+        apiKeyPresent: headers.has('apikey'),
         accessReady: getSupabaseAccessGateState().accessReady,
       });
 
