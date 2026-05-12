@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -67,19 +67,19 @@ export default function Queue() {
       .channel(`queue-realtime-${cid}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "patients", filter: `clinic_id=eq.${cid}` }, () => load())
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { apiClient.removeChannel(channel); };
   }, [cid]);
 
   const updateStatus = async (id: string, status: string) => {
     if (!cid) return;
-    const { error } = await supabase.from("patients").update({ queue_status: status } as any).eq("clinic_id", cid).eq("id", id);
+    const { error } = await apiClient.from("patients").update({ queue_status: status } as any).eq("clinic_id", cid).eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Status updated");
   };
 
   const updatePriority = async (id: string, priority: string) => {
     if (!cid) return;
-    const { error } = await supabase.from("patients").update({ priority } as any).eq("clinic_id", cid).eq("id", id);
+    const { error } = await apiClient.from("patients").update({ priority } as any).eq("clinic_id", cid).eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Priority updated");
   };

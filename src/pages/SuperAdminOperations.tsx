@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Activity, AlertTriangle, CheckCircle2, Wrench, Power, RefreshCw, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
@@ -62,7 +62,7 @@ export default function SuperAdminOperations() {
         .from("clinics")
         .select("id,name,subscription_status,trial_end_date,is_active,deactivated_at,deactivation_reason,created_at")
         .order("created_at", { ascending: false }),
-      supabase.from("clinic_success_scores").select("clinic_id,score,status,factors,insights,calculated_at"),
+      apiClient.from("clinic_success_scores").select("clinic_id,score,status,factors,insights,calculated_at"),
       supabase
         .from("auto_fix_logs")
         .select("clinic_id,issue_detected,action_taken,status,created_at")
@@ -85,7 +85,7 @@ export default function SuperAdminOperations() {
     setBusyId(clinic_id + ":" + fn);
     const args: Record<string, unknown> = { _clinic_id: clinic_id, ...(extra || {}) };
     // @ts-expect-error generic rpc
-    const { data, error } = await supabase.rpc(fn, args);
+    const { data, error } = await apiClient.rpc(fn, args);
     setBusyId(null);
     if (error) {
       toast.error(error.message);

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useAccess } from "@/hooks/useAccess";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -23,7 +23,7 @@ export default function ClinicSwitcher({ variant = "header", className = "" }: C
   // Super admin sees ALL clinics (so they can be added/granted access). Others only see memberships.
   useEffect(() => {
     if (role !== "super_admin") return;
-    supabase.from("clinics")
+    apiClient.from("clinics")
       .select("id, name, setup_completed")
       .order("name", { ascending: true })
       .then(({ data }) => setAllClinics((data as any) || []));

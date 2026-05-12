@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useClinic } from "@/hooks/useClinic";
 import { useRole } from "@/hooks/useRole";
 import { Button } from "@/components/ui/button";
@@ -59,7 +59,7 @@ export default function Onboarding() {
 
   const initType = async () => {
     setBusy(true);
-    const { error } = await supabase.rpc("smart_initialize_clinic", { _clinic_id: clinic.id, _clinic_type: clinicType });
+    const { error } = await apiClient.rpc("smart_initialize_clinic", { _clinic_id: clinic.id, _clinic_type: clinicType });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Clinic initialized");
@@ -68,7 +68,7 @@ export default function Onboarding() {
 
   const saveModules = async () => {
     setBusy(true);
-    const { error } = await supabase.from("clinic_feature_flags").upsert({
+    const { error } = await apiClient.from("clinic_feature_flags").upsert({
       clinic_id: clinic.id,
       billing_enabled: modules.billing,
       hmo_enabled: modules.hmo,
@@ -88,10 +88,10 @@ export default function Onboarding() {
     if (staff.doctor_email) rows.push({ clinic_id: clinic.id, email: staff.doctor_email, role: "doctor" });
     if (staff.reception_email) rows.push({ clinic_id: clinic.id, email: staff.reception_email, role: "receptionist" });
     if (rows.length) {
-      const { error } = await supabase.from("invites").insert(rows);
+      const { error } = await apiClient.from("invites").insert(rows);
       if (error) { setBusy(false); toast.error(error.message); return; }
     }
-    await supabase.from("clinics").update({ staff_setup_done: true, staff_added: true }).eq("id", clinic.id);
+    await apiClient.from("clinics").update({ staff_setup_done: true, staff_added: true }).eq("id", clinic.id);
     setBusy(false);
     next();
   };
@@ -99,14 +99,14 @@ export default function Onboarding() {
   const savePatient = async () => {
     setBusy(true);
     if (patient.full_name.trim()) {
-      const { error } = await supabase.from("patients").insert({
+      const { error } = await apiClient.from("patients").insert({
         clinic_id: clinic.id,
         full_name: patient.full_name.trim(),
         phone: patient.phone || "",
         age: patient.age ? parseInt(patient.age) : null,
       } as any);
       if (error) { setBusy(false); toast.error(error.message); return; }
-      await supabase.from("clinics").update({ first_patient_done: true, first_patient_created: true }).eq("id", clinic.id);
+      await apiClient.from("clinics").update({ first_patient_done: true, first_patient_created: true }).eq("id", clinic.id);
     }
     setBusy(false);
     next();
@@ -114,9 +114,9 @@ export default function Onboarding() {
 
   const finish = async () => {
     setBusy(true);
-    const { error } = await supabase.rpc("complete_onboarding", { _clinic_id: clinic.id });
+    const { error } = await apiClient.rpc("complete_onboarding", { _clinic_id: clinic.id });
     if (error) {
-      const { error: upErr } = await supabase.from("clinics")
+      const { error: upErr } = await apiClient.from("clinics")
         .update({ setup_completed: true, modules_configured: true, modules_setup_done: true } as any)
         .eq("id", clinic.id);
       if (upErr) { setBusy(false); toast.error(upErr.message); return; }

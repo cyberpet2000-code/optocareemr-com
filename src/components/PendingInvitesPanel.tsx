@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Mail, RefreshCw, X, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
@@ -34,7 +34,7 @@ export default function PendingInvitesPanel() {
     setInvites(rows);
     const ids = Array.from(new Set(rows.map((r) => r.clinic_id).filter(Boolean) as string[]));
     if (ids.length) {
-      const { data: cs } = await supabase.from("clinics").select("id, name").in("id", ids);
+      const { data: cs } = await apiClient.from("clinics").select("id, name").in("id", ids);
       const map: ClinicMap = {};
       (cs || []).forEach((c: any) => (map[c.id] = c.name));
       setClinics(map);
@@ -59,7 +59,7 @@ export default function PendingInvitesPanel() {
     if (!inv.clinic_id || !inv.email) return;
     setBusyId(inv.id);
     // Issue a fresh invite (new token + fresh 48h window)
-    const { data, error } = await supabase.functions.invoke("create-clinic-invite", {
+    const { data, error } = await apiClient.functions.invoke("create-clinic-invite", {
       body: { clinic_id: inv.clinic_id, email: inv.email, role: inv.role || "admin" },
     });
     setBusyId(null);
@@ -68,7 +68,7 @@ export default function PendingInvitesPanel() {
       return;
     }
     // Mark the old one cancelled so we don't keep stale rows around
-    await supabase.from("clinic_invites").update({ status: "expired" } as any).eq("id", inv.id);
+    await apiClient.from("clinic_invites").update({ status: "expired" } as any).eq("id", inv.id);
     toast.success(`Invite resent to ${inv.email}`);
     refresh();
   };
@@ -76,7 +76,7 @@ export default function PendingInvitesPanel() {
   const cancel = async (inv: Invite) => {
     if (!confirm(`Cancel invite for ${inv.email}?`)) return;
     setBusyId(inv.id);
-    const { error } = await supabase.from("clinic_invites").delete().eq("id", inv.id);
+    const { error } = await apiClient.from("clinic_invites").delete().eq("id", inv.id);
     setBusyId(null);
     if (error) {
       toast.error(error.message);

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +19,7 @@ export default function Login() {
     setLoading(true);
 
     if (mode === "forgot") {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await apiClient.auth.resetPasswordForEmail(email, {
         redirectTo: `${APP_URL}/reset-password`,
       });
       setLoading(false);
@@ -30,7 +30,7 @@ export default function Login() {
     }
 
     if (mode === "signup") {
-      const { error } = await supabase.auth.signUp({
+      const { error } = await apiClient.auth.signUp({
         email, password,
         options: { emailRedirectTo: APP_URL },
       });
@@ -38,7 +38,7 @@ export default function Login() {
       if (error) { toast.error(error.message); return; }
       toast.success("Account created! Check your email to confirm.");
     } else {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await apiClient.auth.signInWithPassword({ email, password });
       setLoading(false);
       if (error) { toast.error(error.message); return; }
       let dest = "/";

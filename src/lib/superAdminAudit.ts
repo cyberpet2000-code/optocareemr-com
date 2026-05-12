@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 
 type AuditPayload = {
   action: string;
@@ -12,7 +12,7 @@ type AuditPayload = {
 export async function logSuperAdminAction(userId: string | undefined, payload: AuditPayload) {
   if (!userId) return;
 
-  await supabase.from("audit_logs").insert({
+  await apiClient.from("audit_logs").insert({
     user_id: userId,
     action: payload.action,
     table_name: payload.table_name,

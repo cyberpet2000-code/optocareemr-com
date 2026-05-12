@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useNavigate } from "react-router-dom";
 
 export default function NoAccess() {
@@ -13,7 +13,7 @@ export default function NoAccess() {
           or check your email for a pending invitation link.
         </p>
         <div className="flex gap-2 justify-center">
-          <Button variant="outline" onClick={async () => { await supabase.auth.signOut(); navigate("/login", { replace: true }); }}>
+          <Button variant="outline" onClick={async () => { await apiClient.auth.signOut(); navigate("/login", { replace: true }); }}>
             Sign out
           </Button>
         </div>

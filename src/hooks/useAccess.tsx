@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { assertClinicAccess } from "@/lib/route-access";
 import { updateSupabaseAccessGate } from "@/lib/supabase-access-gate";
 
@@ -113,8 +113,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     try {
       const [profileResult, userRolesResult] = await withTimeout(
         Promise.all([
-          supabase.from("profiles").select("*").eq("id", nextUser.id).maybeSingle(),
-          supabase.from("user_roles").select("role, clinic_id").eq("user_id", nextUser.id),
+          apiClient.from("profiles").select("*").eq("id", nextUser.id).maybeSingle(),
+          apiClient.from("user_roles").select("role, clinic_id").eq("user_id", nextUser.id),
         ]),
         10000,
         "Access bootstrap",
@@ -246,12 +246,12 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       let session = null as any;
       updateSupabaseAccessGate({ sessionBootstrapped: false, hasSession: false, accessReady: false, userId: null });
       try {
-        const r1 = await supabase.auth.getSession();
+        const r1 = await apiClient.auth.getSession();
         session = r1.data.session;
         if (!session) {
           // Retry once — desktop browsers occasionally race storage hydration
           await new Promise((res) => setTimeout(res, 150));
-          const r2 = await supabase.auth.getSession();
+          const r2 = await apiClient.auth.getSession();
           session = r2.data.session;
         }
       } catch (e) {
@@ -275,7 +275,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       });
     };
     void init();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = apiClient.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
       // eslint-disable-next-line no-console
       console.debug("[auth:event]", event, {
@@ -319,7 +319,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         reason = "no membership in target clinic";
         // Log denial then throw
         try {
-          await supabase.from("clinic_switch_log").insert({
+          await apiClient.from("clinic_switch_log").insert({
             admin_id: user.id,
             from_clinic: fromClinic,
             to_clinic: clinicId,
@@ -343,7 +343,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     } finally {
       if (user && clinicId) {
         try {
-          await supabase.from("clinic_switch_log").insert({
+          await apiClient.from("clinic_switch_log").insert({
             admin_id: user.id,
             from_clinic: fromClinic,
             to_clinic: clinicId,
@@ -378,7 +378,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     activeClinicId, effectiveClinicId,
     switchClinic,
     reload: () => loadAccess(user, activeClinicId),
-    signOut: async () => { persistActive(null); setActiveClinicIdState(null); await supabase.auth.signOut(); },
+    signOut: async () => { persistActive(null); setActiveClinicIdState(null); await apiClient.auth.signOut(); },
   }), [accessReady, authLoading, clinic, clinicLoading, isAuthenticated, isAuthReady, loadAccess, profile, profileError, profileLoading, role, roleLoading, roleMissing, roles, user, activeClinicId, effectiveClinicId, switchClinic, memberships, accessLoadedForUser]);
 
   return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>;

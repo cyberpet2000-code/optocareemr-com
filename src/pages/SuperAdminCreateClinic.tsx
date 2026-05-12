@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useRole } from "@/hooks/useRole";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,7 +35,7 @@ export default function SuperAdminCreateClinic() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { data, error } = await supabase.functions.invoke("create-clinic", {
+    const { data, error } = await apiClient.functions.invoke("create-clinic", {
       body: { ...form },
     });
     setLoading(false);

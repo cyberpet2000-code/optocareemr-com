@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { Building2, Users, Activity, Sparkles, ShieldCheck, Plus } from "lucide-react";
 
 export default function SuperAdminDashboard() {
@@ -9,9 +9,9 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     (async () => {
       const [c, p, u] = await Promise.all([
-        supabase.from("clinics").select("id", { count: "exact", head: true }),
-        supabase.from("patients").select("id", { count: "exact", head: true }),
-        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        apiClient.from("clinics").select("id", { count: "exact", head: true }),
+        apiClient.from("patients").select("id", { count: "exact", head: true }),
+        apiClient.from("profiles").select("id", { count: "exact", head: true }),
       ]);
       setStats({ clinics: c.count || 0, patients: p.count || 0, users: u.count || 0 });
     })();

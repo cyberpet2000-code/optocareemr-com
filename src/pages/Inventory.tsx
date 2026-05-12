@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +42,7 @@ export default function Inventory() {
 
   const loadItems = async () => {
     if (!cid) { setItems([]); setLoading(false); return; }
-    const { data } = await supabase.from("inventory").select("*").eq("clinic_id", cid).order("name");
+    const { data } = await apiClient.from("inventory").select("*").eq("clinic_id", cid).order("name");
     console.debug("[inventory]", { clinic_id: cid, count: data?.length ?? 0 });
     if (data) setItems(data as unknown as InventoryItem[]);
     setLoading(false);
@@ -51,7 +51,7 @@ export default function Inventory() {
   useEffect(() => { loadItems(); }, [cid]);
   useEffect(() => {
     if (!cid) { setPatients([]); return; }
-    supabase.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data }) => {
+    apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data }) => {
       if (data) setPatients(data as any);
     });
   }, [cid]);
@@ -61,9 +61,9 @@ export default function Inventory() {
   const uploadImage = async (file: File): Promise<string | null> => {
     const ext = file.name.split(".").pop();
     const path = `${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from("product-images").upload(path, file);
+    const { error } = await apiClient.storage.from("product-images").upload(path, file);
     if (error) { toast.error("Upload failed"); return null; }
-    const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+    const { data } = apiClient.storage.from("product-images").getPublicUrl(path);
     return data.publicUrl;
   };
 
@@ -87,11 +87,11 @@ export default function Inventory() {
     if (imageUrl) payload.image_url = imageUrl;
     let error;
     if (editId) {
-      ({ error } = await supabase.from("inventory").update(payload).eq("clinic_id", cid).eq("id", editId));
+      ({ error } = await apiClient.from("inventory").update(payload).eq("clinic_id", cid).eq("id", editId));
     } else {
       payload.created_by = user?.id;
       payload.clinic_id = cid;
-      ({ error } = await supabase.from("inventory").insert(payload));
+      ({ error } = await apiClient.from("inventory").insert(payload));
     }
     setSaving(false);
     if (error) { toast.error(error.message); return; }
@@ -102,7 +102,7 @@ export default function Inventory() {
   const handleDelete = async (id: string) => {
     if (!cid) return;
     if (!confirm("Delete?")) return;
-    await supabase.from("inventory").delete().eq("clinic_id", cid).eq("id", id);
+    await apiClient.from("inventory").delete().eq("clinic_id", cid).eq("id", id);
     toast.success("Deleted"); loadItems();
   };
 
@@ -136,7 +136,7 @@ export default function Inventory() {
     if (!cid) { toast.error("No active clinic"); return; }
     if (cart.length === 0) { toast.error("Cart empty"); return; }
     setSaving(true);
-    const { data: sale, error } = await supabase.from("inventory_sales").insert({
+    const { data: sale, error } = await apiClient.from("inventory_sales").insert({
       clinic_id: cid,
       patient_id: salePatientId || null,
       sold_by: user?.id,
@@ -151,13 +151,13 @@ export default function Inventory() {
       unit_price: c.unit_price,
       total_price: c.quantity * c.unit_price,
     }));
-    const { error: itemsErr } = await supabase.from("inventory_sale_items").insert(saleItems as any);
+    const { error: itemsErr } = await apiClient.from("inventory_sale_items").insert(saleItems as any);
     if (itemsErr) { toast.error(itemsErr.message); setSaving(false); return; }
     // Decrement stock
     for (const c of cart) {
       const item = items.find(i => i.id === c.inventory_id);
       if (item) {
-        await supabase.from("inventory").update({ stock_quantity: item.stock_quantity - c.quantity }).eq("clinic_id", cid).eq("id", item.id);
+        await apiClient.from("inventory").update({ stock_quantity: item.stock_quantity - c.quantity }).eq("clinic_id", cid).eq("id", item.id);
       }
     }
     setSaving(false);

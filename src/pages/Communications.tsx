@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useClinic } from "@/hooks/useClinic";
 import { useRole } from "@/hooks/useRole";
 import { Mail, MessageCircle, AlertTriangle, CheckCircle2, RefreshCw, Send, ShieldCheck, Eye, MousePointerClick, Ban } from "lucide-react";
@@ -34,7 +34,7 @@ export default function Communications() {
 
   async function load() {
     setLoading(true);
-    let q = supabase.from("notification_logs" as any)
+    let q = apiClient.from("notification_logs" as any)
       .select("*").order("sent_at", { ascending: false }).limit(200);
     if (!isSuperAdmin && effectiveClinicId) q = q.eq("clinic_id", effectiveClinicId);
     const { data, error } = await q;
@@ -64,7 +64,7 @@ export default function Communications() {
     setRunning(true);
     try {
       const body: any = isSuperAdmin ? {} : { clinic_id: effectiveClinicId };
-      const { data, error } = await supabase.functions.invoke("send-daily-summary", { body });
+      const { data, error } = await apiClient.functions.invoke("send-daily-summary", { body });
       if (error) throw error;
       toast({ title: "Daily summary triggered", description: `Processed ${data?.processed ?? 0} clinic(s).` });
       await load();

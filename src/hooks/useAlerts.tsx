@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useAccess } from "@/hooks/useAccess";
 
 export interface Alert {
@@ -38,11 +38,11 @@ export function useAlerts() {
       .channel(`alerts-realtime-${cid}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "alerts", filter: `clinic_id=eq.${cid}` }, () => load())
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => { apiClient.removeChannel(ch); };
   }, [cid]);
 
   const dismiss = async (id: string) => {
-    await supabase.from("alerts").update({ status: "dismissed" } as any).eq("id", id);
+    await apiClient.from("alerts").update({ status: "dismissed" } as any).eq("id", id);
   };
 
   return { alerts, loading, dismiss, reload: load };

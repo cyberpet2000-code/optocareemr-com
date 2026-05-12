@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { AlertCircle } from "lucide-react";
 
 export default function TrialBanner() {
@@ -7,11 +7,11 @@ export default function TrialBanner() {
 
   useEffect(() => {
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await apiClient.auth.getUser();
       if (!user) return;
-      const { data: prof } = await supabase.from("profiles").select("clinic_id").eq("id", user.id).maybeSingle();
+      const { data: prof } = await apiClient.from("profiles").select("clinic_id").eq("id", user.id).maybeSingle();
       if (!prof?.clinic_id) return;
-      const { data: clinic } = await supabase.from("clinics")
+      const { data: clinic } = await apiClient.from("clinics")
         .select("subscription_status, trial_start_date, trial_end_date")
         .eq("id", prof.clinic_id).maybeSingle();
       if (!clinic) return;

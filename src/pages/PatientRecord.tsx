@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,9 +70,9 @@ export default function PatientRecord() {
     if (!patientId || !cid) { setLoading(false); return; }
     (async () => {
       const [patRes, visRes, hmoRes] = await Promise.all([
-        supabase.from("patients").select("*").eq("clinic_id", cid).eq("id", patientId).maybeSingle(),
-        supabase.from("visits").select("*").eq("clinic_id", cid).eq("patient_id", patientId).order("created_at", { ascending: false }),
-        supabase.from("hmos").select("id, name").eq("clinic_id", cid).eq("status", "active"),
+        apiClient.from("patients").select("*").eq("clinic_id", cid).eq("id", patientId).maybeSingle(),
+        apiClient.from("visits").select("*").eq("clinic_id", cid).eq("patient_id", patientId).order("created_at", { ascending: false }),
+        apiClient.from("hmos").select("id, name").eq("clinic_id", cid).eq("status", "active"),
       ]);
       console.debug("[patient-record]", { clinic_id: cid, patient_id: patientId, visits: visRes.data?.length ?? 0 });
       if (patRes.data) setPatient(patRes.data as unknown as PatientData);
@@ -91,7 +91,7 @@ export default function PatientRecord() {
     if (!patient) return;
     if (!cid) { toast.error("No active clinic"); return; }
     setSaving(true);
-    const { data, error } = await supabase.from("visits").insert({
+    const { data, error } = await apiClient.from("visits").insert({
       clinic_id: cid,
       patient_id: patient.id,
       payment_type: patient.payment_type,
@@ -134,7 +134,7 @@ export default function PatientRecord() {
   const handleEditPatient = async () => {
     if (!patient) return;
     if (!cid) { toast.error("No active clinic"); return; }
-    const { error } = await supabase.from("patients").update({
+    const { error } = await apiClient.from("patients").update({
       full_name: editForm.full_name,
       age: editForm.age,
       gender: editForm.gender,
