@@ -165,6 +165,8 @@ function installBypassDetection() {
         sharedClient: false,
         accessReady: getSupabaseAccessGateState().accessReady,
       });
+
+      return gatedSupabaseFetch(input, init);
     }
 
     return originalFetch(input, init);
