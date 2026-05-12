@@ -272,7 +272,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   }, [loadAccess, user, activeClinicId, role, profile]);
 
   const isAuthenticated = Boolean(user);
-  const isAuthReady = !authLoading && (!isAuthenticated || (!profileLoading && !roleLoading && !clinicLoading));
+  const accessReadyForCurrentUser = !isAuthenticated || (accessLoadedForUser === user?.id);
+  const isAuthReady = !authLoading && (!isAuthenticated || (accessReadyForCurrentUser && !profileLoading && !roleLoading && !clinicLoading));
   const roleMissing = isAuthenticated && isAuthReady && !role;
 
   const hasMembershipForActive = activeClinicId
