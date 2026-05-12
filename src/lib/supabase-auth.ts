@@ -152,7 +152,7 @@ export async function supabaseAuthLock<R>(name: string, acquireTimeout: number, 
     if (!activeLock) break;
 
     if (acquireTimeout === 0) {
-      const error = new Error(`Acquiring auth lock \"${name}\" immediately failed`) as Error & { isAcquireTimeout?: boolean };
+      const error = new Error(`Acquiring auth lock "${name}" immediately failed`) as Error & { isAcquireTimeout?: boolean };
       error.isAcquireTimeout = true;
       throw error;
     }
