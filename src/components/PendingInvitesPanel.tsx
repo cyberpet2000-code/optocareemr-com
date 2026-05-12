@@ -25,7 +25,7 @@ export default function PendingInvitesPanel() {
 
   const refresh = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("clinic_invites")
       .select("id, email, role, status, token, clinic_id, created_at, expires_at")
       .order("created_at", { ascending: false })

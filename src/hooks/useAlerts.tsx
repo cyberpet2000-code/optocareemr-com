@@ -19,7 +19,7 @@ export function useAlerts() {
 
   const load = async () => {
     if (!cid) { setAlerts([]); setLoading(false); return; }
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("alerts")
       .select("*")
       .eq("clinic_id", cid)
@@ -34,7 +34,7 @@ export function useAlerts() {
   useEffect(() => {
     load();
     if (!cid) return;
-    const ch = supabase
+    const ch = apiClient
       .channel(`alerts-realtime-${cid}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "alerts", filter: `clinic_id=eq.${cid}` }, () => load())
       .subscribe();

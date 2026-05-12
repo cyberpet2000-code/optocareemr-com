@@ -37,7 +37,7 @@ export default function Appointments() {
     if (!cid) { setAppointments([]); setLoading(false); return; }
     setLoading(true);
     const dateStr = format(filterDate, "yyyy-MM-dd");
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("appointments")
       .select("*")
       .eq("clinic_id", cid)
