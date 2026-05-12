@@ -201,6 +201,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
     const init = async () => {
       let session = null as any;
+      updateSupabaseAccessGate({ sessionBootstrapped: false, hasSession: false, accessReady: false, userId: null });
       try {
         const r1 = await supabase.auth.getSession();
         session = r1.data.session;
@@ -216,17 +217,37 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       }
       if (!mounted) return;
       // eslint-disable-next-line no-console
-      console.debug("[auth:init]", { hasSession: !!session, user_id: session?.user?.id ?? null });
+      console.debug("[auth:init]", {
+        hasSession: !!session,
+        user_id: session?.user?.id ?? null,
+        tokenPresent: !!session?.access_token,
+      });
       setUser(session?.user ?? null);
       setAuthLoading(false);
+      updateSupabaseAccessGate({
+        sessionBootstrapped: true,
+        hasSession: !!session,
+        accessReady: !session,
+        userId: session?.user?.id ?? null,
+      });
     };
     void init();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
       // eslint-disable-next-line no-console
-      console.debug("[auth:event]", event, { user_id: session?.user?.id ?? null });
+      console.debug("[auth:event]", event, {
+        user_id: session?.user?.id ?? null,
+        tokenPresent: !!session?.access_token,
+      });
       setUser(session?.user ?? null);
       setAuthLoading(false);
+      setAccessReady(!session?.user);
+      updateSupabaseAccessGate({
+        sessionBootstrapped: true,
+        hasSession: !!session?.user,
+        accessReady: !session?.user,
+        userId: session?.user?.id ?? null,
+      });
       if (!session?.user) {
         persistActive(null);
         setActiveClinicIdState(null);
@@ -295,7 +316,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
   const isAuthenticated = Boolean(user);
   const accessReadyForCurrentUser = !isAuthenticated || (accessLoadedForUser === user?.id);
-  const isAuthReady = !authLoading && (!isAuthenticated || (accessReadyForCurrentUser && !profileLoading && !roleLoading && !clinicLoading));
+  const isAuthReady = !authLoading && accessReady && (!isAuthenticated || (accessReadyForCurrentUser && !profileLoading && !roleLoading && !clinicLoading));
   const roleMissing = isAuthenticated && isAuthReady && !role;
 
   const hasMembershipForActive = activeClinicId
@@ -310,12 +331,12 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(() => ({
     user, authLoading, profile, profileError, clinic, roles, role, memberships,
     profileLoading, roleLoading, clinicLoading,
-    isAuthenticated, isAuthReady, roleMissing,
+    isAuthenticated, isAuthReady, accessReady, roleMissing,
     activeClinicId, effectiveClinicId,
     switchClinic,
     reload: () => loadAccess(user, activeClinicId),
     signOut: async () => { persistActive(null); setActiveClinicIdState(null); await supabase.auth.signOut(); },
-  }), [authLoading, clinic, clinicLoading, isAuthenticated, isAuthReady, loadAccess, profile, profileError, profileLoading, role, roleLoading, roleMissing, roles, user, activeClinicId, effectiveClinicId, switchClinic, memberships, accessLoadedForUser]);
+  }), [accessReady, authLoading, clinic, clinicLoading, isAuthenticated, isAuthReady, loadAccess, profile, profileError, profileLoading, role, roleLoading, roleMissing, roles, user, activeClinicId, effectiveClinicId, switchClinic, memberships, accessLoadedForUser]);
 
   return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>;
 }
