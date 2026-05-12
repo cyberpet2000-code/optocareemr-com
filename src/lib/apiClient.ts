@@ -1,16 +1,6 @@
 import { supabase, SHARED_CLIENT_HEADER, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
 
-type SupabaseModule = {
-  from: typeof supabase.from;
-  rpc: typeof supabase.rpc;
-  auth: typeof supabase.auth;
-  channel: typeof supabase.channel;
-  removeChannel: typeof supabase.removeChannel;
-  removeAllChannels: typeof supabase.removeAllChannels;
-  functions: {
-    invoke: typeof supabase.functions.invoke;
-  };
-};
+type EdgeInvokeOptions = Parameters<typeof supabase.functions.invoke>[1];
 
 function resolveSourceModule() {
   const stack = new Error().stack?.split("\n") ?? [];
@@ -34,7 +24,7 @@ async function getAccessToken() {
 
 async function invokeWithHeaders(
   functionName: string,
-  options?: Parameters<typeof supabase.functions.invoke>[1],
+  options?: EdgeInvokeOptions,
 ) {
   const accessToken = await getAccessToken();
   const headers = new Headers(options?.headers);
@@ -57,17 +47,17 @@ async function invokeWithHeaders(
 
   return supabase.functions.invoke(functionName, {
     ...options,
-    headers,
+    headers: Object.fromEntries(headers.entries()),
   });
 }
 
-export const apiClient: SupabaseModule = {
-  from: (...args) => supabase.from(...args),
-  rpc: (...args) => supabase.rpc(...args),
+export const apiClient = {
+  from: supabase.from.bind(supabase) as typeof supabase.from,
+  rpc: supabase.rpc.bind(supabase) as typeof supabase.rpc,
   auth: supabase.auth,
-  channel: (...args) => supabase.channel(...args),
-  removeChannel: (...args) => supabase.removeChannel(...args),
-  removeAllChannels: (...args) => supabase.removeAllChannels(...args),
+  channel: supabase.channel.bind(supabase) as typeof supabase.channel,
+  removeChannel: supabase.removeChannel.bind(supabase) as typeof supabase.removeChannel,
+  removeAllChannels: supabase.removeAllChannels.bind(supabase) as typeof supabase.removeAllChannels,
   functions: {
     invoke: invokeWithHeaders,
   },
