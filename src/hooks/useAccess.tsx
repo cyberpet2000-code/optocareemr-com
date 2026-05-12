@@ -490,24 +490,21 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const isAuthReady = !authLoading && accessReady && (!isAuthenticated || (accessReadyForCurrentUser && !profileLoading && !roleLoading && !clinicLoading));
   const roleMissing = isAuthenticated && isAuthReady && !role;
 
-  const hasMembershipForActive = activeClinicId
-    ? memberships.some(m => m.clinic_id === activeClinicId)
-    : false;
+  // Deterministic: backend-resolved clinic id only. Super admin may override
+  // via switchClinic; nobody else gets fallback guessing.
   const effectiveClinicId = role === "super_admin"
-    ? activeClinicId   // super admin: any clinic, no membership needed
-    : (hasMembershipForActive
-        ? activeClinicId
-        : (memberships.some(m => m.clinic_id === profile?.clinic_id) ? profile?.clinic_id : null) || null);
+    ? (activeClinicId || resolvedClinicId || null)
+    : resolvedClinicId;
 
   const value = useMemo(() => ({
     user, authLoading, profile, profileError, clinic, roles, role, memberships,
     profileLoading, roleLoading, clinicLoading,
     isAuthenticated, isAuthReady, accessReady, roleMissing,
-    activeClinicId, effectiveClinicId,
+    activeClinicId, effectiveClinicId, resolvedClinicId, clinicResolutionFailed,
     switchClinic,
     reload: () => loadAccess(user, activeClinicId),
     signOut: async () => { persistActive(null); setActiveClinicIdState(null); await apiClient.auth.signOut(); },
-  }), [accessReady, authLoading, clinic, clinicLoading, isAuthenticated, isAuthReady, loadAccess, profile, profileError, profileLoading, role, roleLoading, roleMissing, roles, user, activeClinicId, effectiveClinicId, switchClinic, memberships, accessLoadedForUser]);
+  }), [accessReady, authLoading, clinic, clinicLoading, isAuthenticated, isAuthReady, loadAccess, profile, profileError, profileLoading, role, roleLoading, roleMissing, roles, user, activeClinicId, effectiveClinicId, resolvedClinicId, clinicResolutionFailed, switchClinic, memberships, accessLoadedForUser]);
 
   return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>;
 }
