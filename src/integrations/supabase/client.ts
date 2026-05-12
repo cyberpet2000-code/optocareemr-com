@@ -59,7 +59,7 @@ function isAuthRequest(url: string) {
 }
 
 function isBootstrapAccessRequest(url: string) {
-  return url.includes('/rest/v1/profiles') || url.includes('/rest/v1/user_roles') || url.includes('/rest/v1/clinics');
+  return url.includes('/rest/v1/profiles') || url.includes('/rest/v1/user_roles') || url.includes('/rest/v1/clinics') || url.includes('/rest/v1/user_active_clinic');
 }
 
 function isBootstrapSafeRequest(url: string) {
