@@ -149,7 +149,9 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       : (validatedOverride || (membershipRows.some(m => m.clinic_id === nextProfile?.clinic_id) ? nextProfile?.clinic_id : null) || null);
 
     if (!effectiveClinicId) {
-      setClinic(null); setClinicLoading(false); applyClinicTheme(null); return;
+      setClinic(null); setClinicLoading(false); applyClinicTheme(null);
+      setAccessLoadedForUser(nextUser.id);
+      return;
     }
 
     const clinicResult = await supabase
@@ -162,6 +164,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     setClinic(clinicResult.data || null);
     setClinicLoading(false);
     applyClinicTheme(clinicResult.data || null);
+    setAccessLoadedForUser(nextUser.id);
     // eslint-disable-next-line no-console
     console.debug("[access:load]", {
       user_id: nextUser.id,
