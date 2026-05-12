@@ -131,7 +131,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       let membershipRows: typeof memberships = [];
       if (membershipClinicIds.length) {
         const { data: clinicsData, error: clinicsError } = await withTimeout(
-          supabase
+          apiClient
             .from("clinics")
             .select("id, name, setup_completed")
             .in("id", membershipClinicIds),
