@@ -2,6 +2,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { getSupabaseAccessGateState, waitForSupabaseAccessGate } from '@/lib/supabase-access-gate';
+import { safeSupabaseStorage, setKnownSupabaseSession, supabaseAuthLock } from '@/lib/supabase-auth';
 
 export const SUPABASE_URL = "https://avogfzqizuusqzjivhqj.supabase.co";
 export const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2b2dmenFpenV1c3F6aml2aHFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5OTQ0MTgsImV4cCI6MjA5MDU3MDQxOH0._mQQxxm-raT1p_fqowfQu65Tww_8nLduDuYJBKyzo2U";
@@ -199,9 +200,10 @@ function installBypassDetection() {
 if (!sharedClient) {
   sharedClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
-      storage: localStorage,
+      storage: safeSupabaseStorage,
       persistSession: true,
       autoRefreshToken: true,
+      lock: supabaseAuthLock,
     },
     global: {
       fetch: gatedSupabaseFetch,
@@ -215,6 +217,10 @@ if (!sharedClient) {
 }
 
 installBypassDetection();
+
+sharedClient.auth.onAuthStateChange((_event, session) => {
+  setKnownSupabaseSession(session);
+});
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
