@@ -192,7 +192,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       }
 
       const clinicResult = await withTimeout(
-        supabase
+        apiClient
           .from("clinics")
           .select("id, name, subscription_status, trial_start_date, trial_end_date, setup_completed, onboarding_step, is_active, lifecycle_status, theme_color, secondary_color, logo_url")
           .eq("id", effectiveClinicId)
@@ -313,7 +313,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     // SINGLE SOURCE OF TRUTH: every user (including super_admin) must have a user_roles
     // record for the target clinic. No bypasses.
     if (clinicId && user) {
-      const grantedRole = await assertClinicAccess(supabase as any, user.id, clinicId);
+      const grantedRole = await assertClinicAccess(apiClient as any, user.id, clinicId);
       if (!grantedRole) {
         granted = false;
         reason = "no membership in target clinic";
