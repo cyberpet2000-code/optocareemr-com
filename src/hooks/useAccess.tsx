@@ -73,7 +73,12 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const [accessLoadedForUser, setAccessLoadedForUser] = useState<string | null>(null);
   const requestRef = useRef(0);
   const bootstrapRef = useRef(0);
+  const userRef = useRef(user);
   const activeClinicIdRef = useRef(activeClinicId);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     activeClinicIdRef.current = activeClinicId;
@@ -95,7 +100,9 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     ]);
   }, []);
 
-  const loadAccess = useCallback(async (nextUser = user, overrideClinicId: string | null = activeClinicId) => {
+  const loadAccess = useCallback(async (nextUserArg?: any, overrideClinicIdArg?: string | null) => {
+    const nextUser = nextUserArg ?? userRef.current;
+    const overrideClinicId = overrideClinicIdArg ?? activeClinicIdRef.current;
     const requestId = requestRef.current + 1;
     requestRef.current = requestId;
 
@@ -244,7 +251,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         message: error?.message || "Unknown access error",
       });
     }
-  }, [user, activeClinicId, withTimeout]);
+  }, [withTimeout]);
 
   useEffect(() => {
     let mounted = true;
