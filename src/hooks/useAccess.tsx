@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { assertClinicAccess } from "@/lib/route-access";
+import { updateSupabaseAccessGate } from "@/lib/supabase-access-gate";
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
 const ACTIVE_CLINIC_KEY = "active_clinic_id";
@@ -56,6 +57,7 @@ const AccessContext = createContext<any>(null);
 export function AccessProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [accessReady, setAccessReady] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [clinic, setClinic] = useState<any>(null);
   const [roles, setRoles] = useState<string[]>([]);
@@ -86,12 +88,18 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       setProfile(null); setClinic(null); setRoles([]); setRole(null); setMemberships([]);
       setProfileLoading(false); setRoleLoading(false); setClinicLoading(false);
       setAccessLoadedForUser(null);
+      setAccessReady(true);
+      updateSupabaseAccessGate({ hasSession: false, accessReady: true, userId: null });
       applyClinicTheme(null);
       return;
     }
 
+    setAccessReady(false);
     setProfileLoading(true); setRoleLoading(true); setClinicLoading(true);
     setProfileError(null);
+    updateSupabaseAccessGate({ hasSession: true, accessReady: false, userId: nextUser.id });
+    // eslint-disable-next-line no-console
+    console.debug("[access:init]", { user_id: nextUser.id, override_clinic_id: overrideClinicId });
 
     const profileResult = await supabase.from("profiles").select("*").eq("id", nextUser.id).maybeSingle();
     const userRolesResult = await supabase.from("user_roles").select("role, clinic_id").eq("user_id", nextUser.id);
@@ -132,6 +140,13 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     setRole(primaryRole);
     setProfileLoading(false);
     setRoleLoading(false);
+    // eslint-disable-next-line no-console
+    console.debug("[access:profile]", {
+      user_id: nextUser.id,
+      profile_loaded: !!nextProfile,
+      primary_role: primaryRole,
+      memberships: membershipRows.length,
+    });
 
     const isSuper = primaryRole === "super_admin";
     // STRICT: every user (including super_admin) needs a user_roles row to enter a clinic.
@@ -151,6 +166,10 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     if (!effectiveClinicId) {
       setClinic(null); setClinicLoading(false); applyClinicTheme(null);
       setAccessLoadedForUser(nextUser.id);
+      setAccessReady(true);
+      updateSupabaseAccessGate({ hasSession: true, accessReady: true, userId: nextUser.id });
+      // eslint-disable-next-line no-console
+      console.debug("[access:ready]", { user_id: nextUser.id, clinic_id: null, clinic_loaded: false });
       return;
     }
 
@@ -165,11 +184,14 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     setClinicLoading(false);
     applyClinicTheme(clinicResult.data || null);
     setAccessLoadedForUser(nextUser.id);
+    setAccessReady(true);
+    updateSupabaseAccessGate({ hasSession: true, accessReady: true, userId: nextUser.id });
     // eslint-disable-next-line no-console
-    console.debug("[access:load]", {
+    console.debug("[access:clinic]", {
       user_id: nextUser.id,
       role: primaryRole,
       clinic_id: effectiveClinicId,
+      clinic_loaded: !!clinicResult.data,
       lifecycle_status: (clinicResult.data as any)?.lifecycle_status ?? null,
       memberships: membershipRows.length,
     });
