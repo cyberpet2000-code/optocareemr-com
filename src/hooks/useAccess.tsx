@@ -73,6 +73,11 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const [accessLoadedForUser, setAccessLoadedForUser] = useState<string | null>(null);
   const requestRef = useRef(0);
   const bootstrapRef = useRef(0);
+  const activeClinicIdRef = useRef(activeClinicId);
+
+  useEffect(() => {
+    activeClinicIdRef.current = activeClinicId;
+  }, [activeClinicId]);
 
   const persistActive = (id: string | null) => {
     try {
@@ -297,7 +302,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      await loadAccess(session.user, activeClinicId);
+      await loadAccess(session.user, activeClinicIdRef.current);
 
       if (!mounted || bootstrapRef.current !== bootstrapId) return;
       setAuthLoading(false);
@@ -321,7 +326,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       void runBootstrap(session);
     });
     return () => { mounted = false; subscription.unsubscribe(); };
-  }, [activeClinicId, loadAccess]);
+  }, [loadAccess]);
 
   const switchClinic = useCallback(async (clinicId: string | null) => {
     const fromClinic = activeClinicId;
