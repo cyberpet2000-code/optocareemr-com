@@ -1012,6 +1012,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "clinic_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_active_clinic"
+            referencedColumns: ["id"]
+          },
         ]
       }
       clinical_rules: {
@@ -2179,6 +2186,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active_clinic_id: string | null
           avatar_url: string | null
           branch_id: string | null
           clinic_id: string | null
@@ -2186,12 +2194,14 @@ export type Database = {
           full_name: string | null
           id: string
           is_super_admin: boolean | null
+          last_active_clinic_id: string | null
           phone: string | null
           role: string | null
           status: string | null
           title: string | null
         }
         Insert: {
+          active_clinic_id?: string | null
           avatar_url?: string | null
           branch_id?: string | null
           clinic_id?: string | null
@@ -2199,12 +2209,14 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_super_admin?: boolean | null
+          last_active_clinic_id?: string | null
           phone?: string | null
           role?: string | null
           status?: string | null
           title?: string | null
         }
         Update: {
+          active_clinic_id?: string | null
           avatar_url?: string | null
           branch_id?: string | null
           clinic_id?: string | null
@@ -2212,12 +2224,21 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_super_admin?: boolean | null
+          last_active_clinic_id?: string | null
           phone?: string | null
           role?: string | null
           status?: string | null
           title?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_active_clinic"
+            columns: ["active_clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       query_performance_logs: {
         Row: {
@@ -3079,6 +3100,24 @@ export type Database = {
           role?: string | null
           status?: string | null
           title?: string | null
+        }
+        Relationships: []
+      }
+      user_active_clinic: {
+        Row: {
+          id: string | null
+          is_super_admin: boolean | null
+          resolved_clinic_id: string | null
+        }
+        Insert: {
+          id?: string | null
+          is_super_admin?: boolean | null
+          resolved_clinic_id?: never
+        }
+        Update: {
+          id?: string | null
+          is_super_admin?: boolean | null
+          resolved_clinic_id?: never
         }
         Relationships: []
       }
