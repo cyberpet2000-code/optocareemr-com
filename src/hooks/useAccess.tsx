@@ -177,18 +177,38 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const init = async () => {
+      let session = null as any;
+      try {
+        const r1 = await supabase.auth.getSession();
+        session = r1.data.session;
+        if (!session) {
+          // Retry once — desktop browsers occasionally race storage hydration
+          await new Promise((res) => setTimeout(res, 150));
+          const r2 = await supabase.auth.getSession();
+          session = r2.data.session;
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error("[auth:getSession] failed", e);
+      }
       if (!mounted) return;
+      // eslint-disable-next-line no-console
+      console.debug("[auth:init]", { hasSession: !!session, user_id: session?.user?.id ?? null });
       setUser(session?.user ?? null);
       setAuthLoading(false);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+    };
+    void init();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
+      // eslint-disable-next-line no-console
+      console.debug("[auth:event]", event, { user_id: session?.user?.id ?? null });
       setUser(session?.user ?? null);
       setAuthLoading(false);
       if (!session?.user) {
         persistActive(null);
         setActiveClinicIdState(null);
+        setAccessLoadedForUser(null);
       }
     });
     return () => { mounted = false; subscription.unsubscribe(); };
