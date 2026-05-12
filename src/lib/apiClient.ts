@@ -55,6 +55,7 @@ export const apiClient = {
   from: supabase.from.bind(supabase) as typeof supabase.from,
   rpc: supabase.rpc.bind(supabase) as typeof supabase.rpc,
   auth: supabase.auth,
+  storage: supabase.storage,
   channel: supabase.channel.bind(supabase) as typeof supabase.channel,
   removeChannel: supabase.removeChannel.bind(supabase) as typeof supabase.removeChannel,
   removeAllChannels: supabase.removeAllChannels.bind(supabase) as typeof supabase.removeAllChannels,
