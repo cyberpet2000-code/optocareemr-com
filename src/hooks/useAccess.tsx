@@ -190,19 +190,57 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       });
 
       const isSuper = primaryRole === "super_admin";
-      const hasMembershipForOverride = overrideClinicId
-        ? membershipRows.some(m => m.clinic_id === overrideClinicId)
-        : false;
-      const validatedOverride = hasMembershipForOverride ? overrideClinicId : null;
-      if (overrideClinicId && !hasMembershipForOverride && !isSuper) {
+
+      // SINGLE SOURCE OF TRUTH: backend-resolved clinic id only.
+      // No "first clinic", "last clinic", or guesses. Super admins may override
+      // via explicit switchClinic; everyone else uses resolved_clinic_id.
+      const { data: resolvedRow, error: resolvedError } = await withTimeout(
+        apiClient
+          .from("user_active_clinic")
+          .select("resolved_clinic_id, is_super_admin")
+          .eq("id", nextUser.id)
+          .maybeSingle(),
+        10000,
+        "Resolved clinic lookup",
+      );
+      if (requestRef.current !== requestId) return;
+      if (resolvedError) throw resolvedError;
+
+      const backendResolvedClinicId = (resolvedRow as any)?.resolved_clinic_id ?? null;
+      setResolvedClinicId(backendResolvedClinicId);
+
+      // For super admins: optional explicit override; otherwise use resolved.
+      // For all other users: resolved_clinic_id is the ONLY allowed value.
+      const validatedSuperOverride = isSuper && overrideClinicId ? overrideClinicId : null;
+      const effectiveClinicId = isSuper
+        ? (validatedSuperOverride || backendResolvedClinicId || null)
+        : backendResolvedClinicId;
+
+      // Drop any stale persisted override that isn't valid for this user.
+      if (!isSuper && overrideClinicId && overrideClinicId !== backendResolvedClinicId) {
         persistActive(null);
         setActiveClinicIdState(null);
       }
-      const effectiveClinicId = isSuper
-        ? overrideClinicId
-        : (validatedOverride || (membershipRows.some(m => m.clinic_id === nextProfile?.clinic_id) ? nextProfile?.clinic_id : null) || null);
+
+      // eslint-disable-next-line no-console
+      console.debug("[access:resolved_clinic]", {
+        user_id: nextUser.id,
+        resolved_clinic_id: backendResolvedClinicId,
+        is_super_admin: isSuper,
+        override_clinic_id: validatedSuperOverride,
+        effective_clinic_id: effectiveClinicId,
+      });
 
       if (!effectiveClinicId) {
+        // Hard stop. No fallback guessing. Consumers route to /select-clinic.
+        setClinicResolutionFailed(true);
+        // eslint-disable-next-line no-console
+        console.warn("[access:clinic_fallback_screen]", {
+          user_id: nextUser.id,
+          reason: "resolved_clinic_id missing",
+          memberships: membershipRows.length,
+          is_super_admin: isSuper,
+        });
         setClinic(null); setClinicLoading(false); applyClinicTheme(null);
         setAccessLoadedForUser(nextUser.id);
         setAccessReady(true);
@@ -211,6 +249,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         console.debug("[access:ready]", { user_id: nextUser.id, clinic_id: null, clinic_loaded: false });
         return;
       }
+
+      setClinicResolutionFailed(false);
 
       const clinicResult = await withTimeout(
         apiClient
