@@ -28,6 +28,10 @@ function isUnauthorizedResponse(response: Response) {
   return response.status === 401 || response.status === 403;
 }
 
+function isBootstrapAccessRequest(url: string) {
+  return url.includes('/rest/v1/profiles') || url.includes('/rest/v1/user_roles') || url.includes('/rest/v1/clinics');
+}
+
 async function refreshSessionOnce() {
   const { data, error } = await supabase.auth.refreshSession();
   // eslint-disable-next-line no-console
@@ -43,10 +47,15 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
   const isAuthUserRequest = url.includes('/auth/v1/user');
   const gateState = getSupabaseAccessGateState();
+  const bootstrapAccessRequest = isBootstrapAccessRequest(url);
 
   if (!isAuthUserRequest && !gateState.sessionBootstrapped) {
     // eslint-disable-next-line no-console
     console.debug('[auth:gate:wait]', { url, reason: 'session_bootstrap_pending' });
+    await waitForSupabaseAccessGate();
+  } else if (!isAuthUserRequest && !bootstrapAccessRequest && gateState.hasSession && !gateState.accessReady) {
+    // eslint-disable-next-line no-console
+    console.debug('[auth:gate:wait]', { url, reason: 'access_hydration_pending' });
     await waitForSupabaseAccessGate();
   }
 
