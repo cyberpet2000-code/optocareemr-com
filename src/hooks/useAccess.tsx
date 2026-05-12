@@ -286,6 +286,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       setRoles([]);
       setRole(null);
       setMemberships([]);
+      setResolvedClinicId(null);
+      setClinicResolutionFailed(true);
       setProfileError(error);
       setProfileLoading(false);
       setRoleLoading(false);
