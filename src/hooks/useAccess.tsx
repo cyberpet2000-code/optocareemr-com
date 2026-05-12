@@ -85,6 +85,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     if (!nextUser) {
       setProfile(null); setClinic(null); setRoles([]); setRole(null); setMemberships([]);
       setProfileLoading(false); setRoleLoading(false); setClinicLoading(false);
+      setAccessLoadedForUser(null);
       applyClinicTheme(null);
       return;
     }
