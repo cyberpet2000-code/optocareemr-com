@@ -80,9 +80,9 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   };
 
-  const withTimeout = useCallback(async <T,>(promise: Promise<T>, ms: number, label: string) => {
+  const withTimeout = useCallback(async <T,>(promise: PromiseLike<T>, ms: number, label: string) => {
     return Promise.race<T>([
-      promise,
+      Promise.resolve(promise),
       new Promise<T>((_, reject) => {
         window.setTimeout(() => reject(new Error(`${label} timed out`)), ms);
       }),
