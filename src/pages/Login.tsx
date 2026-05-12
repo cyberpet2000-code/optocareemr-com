@@ -43,11 +43,6 @@ export default function Login() {
       if (error) { toast.error(error.message); return; }
       let dest = "/";
       if (data.user) {
-        const { data: prof } = await supabase.from("profiles").select("role, is_super_admin").eq("id", data.user.id).maybeSingle();
-        const { data: rolesData } = await supabase.from("user_roles").select("role, clinic_id").eq("user_id", data.user.id);
-        const rows = (rolesData || []) as Array<{ role: string; clinic_id: string | null }>;
-        const isSuper = (prof as any)?.is_super_admin === true || (prof as any)?.role === "super_admin" || rows.some(r => r.role === "super_admin");
-        const clinicMemberships = Array.from(new Set(rows.map(r => r.clinic_id).filter(Boolean) as string[]));
         // Clear any stale active clinic on a fresh login
         try { localStorage.removeItem("active_clinic_id"); } catch {}
         // Honor pending invite token (set by /accept-invite when unauthenticated)
@@ -55,12 +50,8 @@ export default function Login() {
         try { pendingInvite = sessionStorage.getItem("pending_invite_token"); } catch {}
         if (pendingInvite) {
           dest = `/accept-invite?token=${encodeURIComponent(pendingInvite)}`;
-        } else if (isSuper) {
-          dest = "/super-admin";
-        } else if (clinicMemberships.length === 0) {
-          dest = "/no-access";
         } else {
-          dest = "/select-clinic";
+          dest = "/";
         }
       }
       navigate(dest, { replace: true });
