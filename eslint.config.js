@@ -21,6 +21,12 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      "no-restricted-imports": ["error", {
+        paths: [{
+          name: "@/integrations/supabase/client",
+          message: "Import apiClient from '@/lib/apiClient' instead of the low-level Supabase client.",
+        }],
+      }],
     },
   },
 );
