@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -69,9 +69,9 @@ export default function Billing() {
   const loadData = async () => {
     if (!cid) { setBills([]); setPatients([]); setLoading(false); return; }
     const [billRes, patRes, hmoRes] = await Promise.all([
-      supabase.from("billing").select("*").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(100),
-      supabase.from("patients").select("id, full_name, payment_type, active_hmo_id").eq("clinic_id", cid).order("full_name"),
-      supabase.from("hmos").select("id, name").eq("clinic_id", cid),
+      apiClient.from("billing").select("*").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(100),
+      apiClient.from("patients").select("id, full_name, payment_type, active_hmo_id").eq("clinic_id", cid).order("full_name"),
+      apiClient.from("hmos").select("id, name").eq("clinic_id", cid),
     ]);
     console.debug("[billing]", { clinic_id: cid, bills: billRes.data?.length ?? 0 });
     const hmap = new Map((hmoRes.data || []).map((h: any) => [h.id, h.name]));
@@ -81,7 +81,7 @@ export default function Billing() {
       const pIds = [...new Set(billRes.data.map((b: any) => b.patient_id).filter(Boolean))] as string[];
       let pMap = new Map<string, string>();
       if (pIds.length) {
-        const { data: pats } = await supabase.from("patients").select("id, full_name").eq("clinic_id", cid).in("id", pIds);
+        const { data: pats } = await apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).in("id", pIds);
         pMap = new Map((pats || []).map((p: any) => [p.id, p.full_name]));
       }
       setBills(billRes.data.map((b: any) => ({
@@ -116,7 +116,7 @@ export default function Billing() {
     if (grandTotal <= 0) { toast.error("Add a consultation fee or items"); return; }
     setSaving(true);
     const isHmo = selectedPatient?.payment_type === "hmo";
-    const { data: bill, error } = await supabase.from("billing").insert({
+    const { data: bill, error } = await apiClient.from("billing").insert({
       clinic_id: cid,
       patient_id: form.patientId,
       payer_type: isHmo ? "hmo" : "private",
@@ -137,12 +137,12 @@ export default function Billing() {
         unit_price: it.unit_price,
         total_price: it.total_price,
       }));
-      const { error: itemErr } = await supabase.from("billing_items").insert(payload as any);
+      const { error: itemErr } = await apiClient.from("billing_items").insert(payload as any);
       if (itemErr) toast.error("Items: " + itemErr.message);
     }
 
     if (isHmo && selectedPatient?.active_hmo_id) {
-      await supabase.from("hmo_claims").insert({
+      await apiClient.from("hmo_claims").insert({
         clinic_id: cid,
         billing_id: (bill as any).id,
         hmo_id: selectedPatient.active_hmo_id,
@@ -165,7 +165,7 @@ export default function Billing() {
 
   const loadBillItems = async (billingId: string) => {
     if (!cid) return;
-    const { data } = await supabase.from("billing_items").select("*").eq("clinic_id", cid).eq("billing_id", billingId);
+    const { data } = await apiClient.from("billing_items").select("*").eq("clinic_id", cid).eq("billing_id", billingId);
     setBillItems(prev => ({ ...prev, [billingId]: (data || []) as any }));
   };
 
@@ -173,7 +173,7 @@ export default function Billing() {
     if (!paymentBillingId || !paymentAmount) return;
     const amt = parseFloat(paymentAmount);
     if (amt <= 0) { toast.error("Enter valid amount"); return; }
-    const { error } = await supabase.from("payments").insert({
+    const { error } = await apiClient.from("payments").insert({
       billing_id: paymentBillingId,
       amount: amt,
       method: paymentMethod,

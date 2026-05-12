@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,7 +37,7 @@ export default function Appointments() {
     if (!cid) { setAppointments([]); setLoading(false); return; }
     setLoading(true);
     const dateStr = format(filterDate, "yyyy-MM-dd");
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("appointments")
       .select("*")
       .eq("clinic_id", cid)
@@ -48,7 +48,7 @@ export default function Appointments() {
       const patientIds = [...new Set(data.filter((a: any) => a.patient_id).map((a: any) => a.patient_id))];
       let patMap = new Map<string, string>();
       if (patientIds.length > 0) {
-        const { data: pats } = await supabase.from("patients").select("id, full_name").eq("clinic_id", cid).in("id", patientIds as string[]);
+        const { data: pats } = await apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).in("id", patientIds as string[]);
         patMap = new Map((pats || []).map((p: any) => [p.id, p.full_name]));
       }
       setAppointments(data.map((a: any) => ({ ...a, patient_name: a.patient_id ? patMap.get(a.patient_id) || "Unknown" : "Walk-in" })));
@@ -61,7 +61,7 @@ export default function Appointments() {
   useEffect(() => { loadAppointments(); }, [filterDate, cid]);
   useEffect(() => {
     if (!cid) { setPatients([]); return; }
-    supabase.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data }) => {
+    apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data }) => {
       if (data) setPatients(data as any);
     });
   }, [cid]);
@@ -70,7 +70,7 @@ export default function Appointments() {
     if (!cid) { toast.error("No active clinic"); return; }
     if (!form.time) { toast.error("Set a time"); return; }
     setSaving(true);
-    const { error } = await supabase.from("appointments").insert({
+    const { error } = await apiClient.from("appointments").insert({
       clinic_id: cid,
       patient_id: form.patientId || null,
       appointment_date: format(form.date, "yyyy-MM-dd"),
@@ -89,7 +89,7 @@ export default function Appointments() {
 
   const updateStatus = async (id: string, status: string) => {
     if (!cid) return;
-    await supabase.from("appointments").update({ status } as any).eq("clinic_id", cid).eq("id", id);
+    await apiClient.from("appointments").update({ status } as any).eq("clinic_id", cid).eq("id", id);
     loadAppointments();
   };
 

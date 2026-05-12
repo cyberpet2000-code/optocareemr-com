@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { Building2, Plus, LogIn, UserPlus, Copy, Check, CheckCircle2, PauseCircle, PlayCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +48,7 @@ export default function SuperAdminClinics() {
   const [copied, setCopied] = useState(false);
 
   const refresh = async () => {
-    const { data } = await supabase.from("clinics")
+    const { data } = await apiClient.from("clinics")
       .select("id, name, subscription_status, trial_end_date, setup_completed, is_active, lifecycle_status, deactivated_at, deactivation_reason, created_at")
       .order("created_at", { ascending: false });
     setClinics(data || []);
@@ -72,7 +72,7 @@ export default function SuperAdminClinics() {
     setBusyId(c.id);
     // eslint-disable-next-line no-console
     console.debug("[lifecycle]", { clinic_id: c.id, from: current, to: next, reason });
-    const { error } = await supabase.rpc("set_clinic_lifecycle" as any, {
+    const { error } = await apiClient.rpc("set_clinic_lifecycle" as any, {
       _clinic_id: c.id, _next: next, _reason: reason,
     });
     setBusyId(null);
@@ -108,7 +108,7 @@ export default function SuperAdminClinics() {
     e.preventDefault();
     if (!inviteFor) return;
     setInviting(true);
-    const { data, error } = await supabase.functions.invoke("create-clinic-invite", {
+    const { data, error } = await apiClient.functions.invoke("create-clinic-invite", {
       body: { clinic_id: inviteFor.id, email: inviteEmail.trim(), role: "admin" },
     });
     setInviting(false);

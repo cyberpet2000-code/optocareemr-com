@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,7 +38,7 @@ export default function Pharmacy() {
 
   const loadDrugs = async () => {
     if (!cid) { setDrugs([]); setLoading(false); return; }
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("inventory")
       .select("id, name, drug_category, price, stock_quantity, expiry_date, low_stock_threshold")
       .eq("clinic_id", cid)
@@ -52,7 +52,7 @@ export default function Pharmacy() {
   useEffect(() => {
     loadDrugs();
     if (!cid) { setPatients([]); return; }
-    supabase.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data }) => {
+    apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data }) => {
       if (data) setPatients(data as any);
     });
   }, [cid]);
@@ -93,7 +93,7 @@ export default function Pharmacy() {
       const drug = drugs.find(d => d.id === item.drug_id);
       if (!drug) continue;
       // Record sale
-      await supabase.from("pharmacy_sales").insert({
+      await apiClient.from("pharmacy_sales").insert({
         clinic_id: cid,
         patient_id: selectedPatient || null,
         inventory_id: item.drug_id,
@@ -102,7 +102,7 @@ export default function Pharmacy() {
         total: item.price * item.quantity,
       } as any);
       // Decrement stock
-      await supabase.from("inventory").update({
+      await apiClient.from("inventory").update({
         stock_quantity: drug.stock_quantity - item.quantity,
       }).eq("clinic_id", cid).eq("id", item.drug_id);
     }

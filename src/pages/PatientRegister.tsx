@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +24,7 @@ export default function PatientRegister() {
 
   useEffect(() => {
     if (!cid) return;
-    supabase.from("hmos").select("id, name").eq("clinic_id", cid).eq("status", "active").order("name").then(({ data }) => {
+    apiClient.from("hmos").select("id, name").eq("clinic_id", cid).eq("status", "active").order("name").then(({ data }) => {
       if (data) setHmos(data as any);
     });
   }, [cid]);
@@ -43,7 +43,7 @@ export default function PatientRegister() {
     }
     if (!cid) { toast.error("No active clinic"); return; }
     setLoading(true);
-    const { data, error } = await supabase.from("patients").insert({
+    const { data, error } = await apiClient.from("patients").insert({
       clinic_id: cid,
       full_name: form.fullName.trim(),
       age: parseInt(form.age),

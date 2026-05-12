@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,8 +26,8 @@ export default function AdminRoles({ embedded = false }: { embedded?: boolean })
 
   const loadUsers = async () => {
     const [{ data: profiles }, { data: roleData }] = await Promise.all([
-      supabase.from("profiles").select("id, full_name"),
-      supabase.from("user_roles").select("user_id, role"),
+      apiClient.from("profiles").select("id, full_name"),
+      apiClient.from("user_roles").select("user_id, role"),
     ]);
     const roleMap = new Map<string, AppRole[]>();
     (roleData || []).forEach((r: any) => {
@@ -43,7 +43,7 @@ export default function AdminRoles({ embedded = false }: { embedded?: boolean })
     if (!selectedUserId) { toast.error("Select a user"); return; }
     const u = users.find(x => x.id === selectedUserId);
     if (u?.roles.includes(selectedRole)) { toast.error("Already assigned"); return; }
-    const { error } = await supabase.from("user_roles").insert({ user_id: selectedUserId, role: selectedRole } as any);
+    const { error } = await apiClient.from("user_roles").insert({ user_id: selectedUserId, role: selectedRole } as any);
     if (error) { toast.error(error.message); return; }
     await logSuperAdminAction(user?.id, {
       action: "super_admin_role_assigned",
@@ -55,7 +55,7 @@ export default function AdminRoles({ embedded = false }: { embedded?: boolean })
   };
 
   const removeRole = async (userId: string, role: AppRole) => {
-    await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
+    await apiClient.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
     await logSuperAdminAction(user?.id, {
       action: "super_admin_role_removed",
       table_name: "user_roles",

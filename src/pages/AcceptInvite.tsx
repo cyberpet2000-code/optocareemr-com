@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useAccess } from "@/hooks/useAccess";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,7 +53,7 @@ export default function AcceptInvite() {
         setInvite({ kind: "invalid", reason: "missing_token" });
         return;
       }
-      const { data, error } = await supabase.functions.invoke("validate-invite", { body: { token } });
+      const { data, error } = await apiClient.functions.invoke("validate-invite", { body: { token } });
       if (cancelled) return;
       if (error || !data) {
         setInvite({ kind: "invalid", reason: "error" });
@@ -96,14 +96,14 @@ export default function AcceptInvite() {
       console.log("[invite] finalize start", { user_id: user?.id, token: token.slice(0, 8) });
 
       // Ensure session is present before invoking edge function
-      const { data: sessionData } = await supabase.auth.getSession();
+      const { data: sessionData } = await apiClient.auth.getSession();
       if (!sessionData?.session) {
         throw new Error("Your session expired. Please sign in again.");
       }
       console.log("[invite] session ok");
 
       const { data, error } = await withTimeout(
-        supabase.functions.invoke("accept-clinic-invite", { body: { token } }),
+        apiClient.functions.invoke("accept-clinic-invite", { body: { token } }),
         15000,
         "Accept invite",
       );
@@ -155,7 +155,7 @@ export default function AcceptInvite() {
 
     setWorking(true);
     const redirect = `${APP_URL}/accept-invite?token=${encodeURIComponent(token!)}`;
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await apiClient.auth.signUp({
       email: invite.email,
       password,
       options: { data: { full_name: fullName.trim() }, emailRedirectTo: redirect },
@@ -188,7 +188,7 @@ export default function AcceptInvite() {
     if (invite.kind !== "valid") return;
     setErrMsg(null);
     setWorking(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await apiClient.auth.signInWithPassword({
       email: invite.email,
       password: signinPassword,
     });

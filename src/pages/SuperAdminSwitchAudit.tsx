@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -35,9 +35,9 @@ export default function SuperAdminSwitchAudit() {
     (async () => {
       setLoading(true);
       const [logs, cs, ps] = await Promise.all([
-        supabase.from("clinic_switch_log").select("*").order("created_at", { ascending: false }).limit(1000),
-        supabase.from("clinics").select("id, name"),
-        supabase.from("profiles").select("*"),
+        apiClient.from("clinic_switch_log").select("*").order("created_at", { ascending: false }).limit(1000),
+        apiClient.from("clinics").select("id, name"),
+        apiClient.from("profiles").select("*"),
       ]);
       setRows((logs.data as any) || []);
       const cmap: Record<string, string> = {};

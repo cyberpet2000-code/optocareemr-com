@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,8 +44,8 @@ export default function HmoManagement() {
   const load = async () => {
     if (!cid) { setHmos([]); setPlans([]); setLoading(false); return; }
     const [h, p] = await Promise.all([
-      supabase.from("hmos").select("*").eq("clinic_id", cid).order("name"),
-      supabase.from("hmo_plans").select("*").eq("clinic_id", cid).order("created_at", { ascending: false }),
+      apiClient.from("hmos").select("*").eq("clinic_id", cid).order("name"),
+      apiClient.from("hmo_plans").select("*").eq("clinic_id", cid).order("created_at", { ascending: false }),
     ]);
     console.debug("[hmo]", { clinic_id: cid, hmos: h.data?.length ?? 0, plans: p.data?.length ?? 0 });
     setHmos((h.data as any) || []);
@@ -59,11 +59,11 @@ export default function HmoManagement() {
     if (!cid) return toast.error("No active clinic");
     if (!form.name) return toast.error("Name required");
     if (editing) {
-      const { error } = await supabase.from("hmos").update(form).eq("clinic_id", cid).eq("id", editing.id);
+      const { error } = await apiClient.from("hmos").update(form).eq("clinic_id", cid).eq("id", editing.id);
       if (error) return toast.error(error.message);
       toast.success("HMO updated");
     } else {
-      const { error } = await supabase.from("hmos").insert({ ...form, clinic_id: cid } as any);
+      const { error } = await apiClient.from("hmos").insert({ ...form, clinic_id: cid } as any);
       if (error) return toast.error(error.message);
       toast.success("HMO added");
     }
@@ -74,7 +74,7 @@ export default function HmoManagement() {
   const deleteHmo = async (id: string) => {
     if (!cid) return;
     if (!confirm("Delete this HMO?")) return;
-    const { error } = await supabase.from("hmos").delete().eq("clinic_id", cid).eq("id", id);
+    const { error } = await apiClient.from("hmos").delete().eq("clinic_id", cid).eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Deleted"); load();
   };
@@ -82,7 +82,7 @@ export default function HmoManagement() {
   const savePlan = async () => {
     if (!cid) return toast.error("No active clinic");
     if (!planHmo || !planForm.plan_name) return toast.error("Plan name required");
-    const { error } = await supabase.from("hmo_plans").insert({
+    const { error } = await apiClient.from("hmo_plans").insert({
       clinic_id: cid,
       hmo_id: planHmo.id,
       plan_name: planForm.plan_name,

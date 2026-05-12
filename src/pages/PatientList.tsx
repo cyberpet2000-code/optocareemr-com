@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Search, ChevronRight, UserPlus, Phone, MessageCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAccess } from "@/hooks/useAccess";
@@ -28,7 +28,7 @@ export default function PatientList() {
   useEffect(() => {
     if (!cid) { setPatients([]); setLoading(false); return; }
     (async () => {
-      const { data } = await supabase
+      const { data } = await apiClient
         .from("patients")
         .select("id, full_name, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number")
         .eq("clinic_id", cid)
@@ -38,7 +38,7 @@ export default function PatientList() {
       const hmoIds = [...new Set(data.map((p: any) => p.active_hmo_id).filter(Boolean))];
       let hmoMap = new Map<string, string>();
       if (hmoIds.length > 0) {
-        const { data: hmos } = await supabase.from("hmos").select("id, name").eq("clinic_id", cid).in("id", hmoIds as string[]);
+        const { data: hmos } = await apiClient.from("hmos").select("id, name").eq("clinic_id", cid).in("id", hmoIds as string[]);
         hmoMap = new Map((hmos || []).map((h: any) => [h.id, h.name]));
       }
       setPatients(data.map((p: any) => ({ ...p, hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined })));

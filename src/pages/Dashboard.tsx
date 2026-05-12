@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Users, ChevronRight, AlertTriangle, DollarSign, TrendingUp, Clock, Pill } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
 
@@ -41,13 +41,13 @@ export default function Dashboard() {
       const today = new Date().toISOString().split("T")[0];
 
       const [patientsRes, countRes, visitsRes, apptRes, pendingApptRes, invRes, billRes] = await Promise.all([
-        supabase.from("patients").select("id, full_name, age, gender, phone, payment_type, queue_number").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(5),
-        supabase.from("patients").select("*", { count: "exact", head: true }).eq("clinic_id", cid),
-        supabase.from("visits").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", `${today}T00:00:00`),
-        supabase.from("appointments").select("*", { count: "exact", head: true }).eq("clinic_id", cid).eq("appointment_date", today).in("status", ["pending", "confirmed"]),
-        supabase.from("appointments").select("id, appointment_time, reason, patient_id").eq("clinic_id", cid).eq("appointment_date", today).in("status", ["pending", "confirmed"]).order("appointment_time").limit(5),
-        supabase.from("inventory").select("id, stock_quantity, low_stock_threshold, expiry_date, category").eq("clinic_id", cid),
-        supabase.from("billing").select("total_amount, amount_paid, status").eq("clinic_id", cid),
+        apiClient.from("patients").select("id, full_name, age, gender, phone, payment_type, queue_number").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(5),
+        apiClient.from("patients").select("*", { count: "exact", head: true }).eq("clinic_id", cid),
+        apiClient.from("visits").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", `${today}T00:00:00`),
+        apiClient.from("appointments").select("*", { count: "exact", head: true }).eq("clinic_id", cid).eq("appointment_date", today).in("status", ["pending", "confirmed"]),
+        apiClient.from("appointments").select("id, appointment_time, reason, patient_id").eq("clinic_id", cid).eq("appointment_date", today).in("status", ["pending", "confirmed"]).order("appointment_time").limit(5),
+        apiClient.from("inventory").select("id, stock_quantity, low_stock_threshold, expiry_date, category").eq("clinic_id", cid),
+        apiClient.from("billing").select("total_amount, amount_paid, status").eq("clinic_id", cid),
       ]);
       console.debug("[dashboard]", { clinic_id: cid, patients: countRes.count, recent: patientsRes.data?.length });
 
@@ -72,7 +72,7 @@ export default function Dashboard() {
         const patIds = [...new Set(pendingApptRes.data.map((a: any) => a.patient_id).filter(Boolean))] as string[];
         let patMap = new Map<string, string>();
         if (patIds.length > 0) {
-          const { data: pats } = await supabase.from("patients").select("id, full_name").eq("clinic_id", cid).in("id", patIds);
+          const { data: pats } = await apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).in("id", patIds);
           patMap = new Map((pats || []).map((p: any) => [p.id, p.full_name]));
         }
         setUpcomingAppts(pendingApptRes.data.map((a: any) => ({

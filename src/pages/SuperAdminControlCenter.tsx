@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -31,7 +31,7 @@ export default function SuperAdminControlCenter() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("clinic_feature_flags")
       .select("id, clinic_id, billing_enabled, hmo_enabled, pharmacy_enabled, inventory_enabled, appointments_enabled")
       .order("created_at", { ascending: false });
@@ -42,7 +42,7 @@ export default function SuperAdminControlCenter() {
   useEffect(() => { void load(); }, []);
 
   const toggleFlag = async (row: FlagRow, field: (typeof FLAG_FIELDS)[number], value: boolean) => {
-    const { error } = await supabase.from("clinic_feature_flags").update({ [field]: value } as never).eq("id", row.id);
+    const { error } = await apiClient.from("clinic_feature_flags").update({ [field]: value } as never).eq("id", row.id);
     if (error) {
       toast.error(error.message);
       return;
