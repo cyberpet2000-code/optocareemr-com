@@ -76,6 +76,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     return safeSupabaseStorage.getItem(ACTIVE_CLINIC_KEY);
   });
   const [memberships, setMemberships] = useState<Array<{ clinic_id: string; role: string; clinic_name: string | null; setup_completed: boolean | null }>>([]);
+  const [resolvedClinicId, setResolvedClinicId] = useState<string | null>(null);
+  const [clinicResolutionFailed, setClinicResolutionFailed] = useState(false);
   const [accessLoadedForUser, setAccessLoadedForUser] = useState<string | null>(null);
   const requestRef = useRef(0);
   const bootstrapRef = useRef(0);
