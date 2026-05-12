@@ -80,6 +80,15 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   };
 
+  const withTimeout = useCallback(async <T,>(promise: Promise<T>, ms: number, label: string) => {
+    return Promise.race<T>([
+      promise,
+      new Promise<T>((_, reject) => {
+        window.setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+      }),
+    ]);
+  }, []);
+
   const loadAccess = useCallback(async (nextUser = user, overrideClinicId: string | null = activeClinicId) => {
     const requestId = requestRef.current + 1;
     requestRef.current = requestId;
@@ -101,100 +110,134 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line no-console
     console.debug("[access:init]", { user_id: nextUser.id, override_clinic_id: overrideClinicId });
 
-    const profileResult = await supabase.from("profiles").select("*").eq("id", nextUser.id).maybeSingle();
-    const userRolesResult = await supabase.from("user_roles").select("role, clinic_id").eq("user_id", nextUser.id);
-    if (requestRef.current !== requestId) return;
+    try {
+      const [profileResult, userRolesResult] = await withTimeout(
+        Promise.all([
+          supabase.from("profiles").select("*").eq("id", nextUser.id).maybeSingle(),
+          supabase.from("user_roles").select("role, clinic_id").eq("user_id", nextUser.id),
+        ]),
+        10000,
+        "Access bootstrap",
+      );
+      if (requestRef.current !== requestId) return;
 
-    const nextProfile = profileResult.data || null;
-    const userRolesRows = (userRolesResult.data || []) as Array<{ role: string; clinic_id: string | null }>;
-    const fallbackRoles = userRolesRows.map(r => normalizeRole(r.role)).filter(Boolean) as string[];
-    const primaryRole = resolvePrimaryRole(nextProfile, fallbackRoles);
-    const nextRoles = Array.from(new Set([primaryRole, ...fallbackRoles].filter(Boolean))) as string[];
+      const nextProfile = profileResult.data || null;
+      const userRolesRows = (userRolesResult.data || []) as Array<{ role: string; clinic_id: string | null }>;
+      const fallbackRoles = userRolesRows.map(r => normalizeRole(r.role)).filter(Boolean) as string[];
+      const primaryRole = resolvePrimaryRole(nextProfile, fallbackRoles);
+      const nextRoles = Array.from(new Set([primaryRole, ...fallbackRoles].filter(Boolean))) as string[];
 
-    // Build memberships: clinics the user has a role in (excluding super_admin global rows w/ no clinic)
-    const membershipClinicIds = Array.from(new Set(userRolesRows.map(r => r.clinic_id).filter(Boolean) as string[]));
-    let membershipRows: typeof memberships = [];
-    if (membershipClinicIds.length) {
-      const { data: clinicsData } = await supabase
-        .from("clinics")
-        .select("id, name, setup_completed")
-        .in("id", membershipClinicIds);
-      const clinicMap = new Map((clinicsData || []).map((c: any) => [c.id, c]));
-      membershipRows = userRolesRows
-        .filter(r => r.clinic_id)
-        .map(r => {
-          const c: any = clinicMap.get(r.clinic_id as string);
-          return {
-            clinic_id: r.clinic_id as string,
-            role: r.role,
-            clinic_name: c?.name ?? null,
-            setup_completed: c?.setup_completed ?? null,
-          };
-        });
-    }
-    setMemberships(membershipRows);
+      const membershipClinicIds = Array.from(new Set(userRolesRows.map(r => r.clinic_id).filter(Boolean) as string[]));
+      let membershipRows: typeof memberships = [];
+      if (membershipClinicIds.length) {
+        const { data: clinicsData, error: clinicsError } = await withTimeout(
+          supabase
+            .from("clinics")
+            .select("id, name, setup_completed")
+            .in("id", membershipClinicIds),
+          10000,
+          "Clinic membership lookup",
+        );
+        if (clinicsError) throw clinicsError;
+        const clinicMap = new Map((clinicsData || []).map((c: any) => [c.id, c]));
+        membershipRows = userRolesRows
+          .filter(r => r.clinic_id)
+          .map(r => {
+            const c: any = clinicMap.get(r.clinic_id as string);
+            return {
+              clinic_id: r.clinic_id as string,
+              role: r.role,
+              clinic_name: c?.name ?? null,
+              setup_completed: c?.setup_completed ?? null,
+            };
+          });
+      }
+      setMemberships(membershipRows);
 
-    setProfile(nextProfile);
-    setProfileError(profileResult.error || null);
-    setRoles(nextRoles);
-    setRole(primaryRole);
-    setProfileLoading(false);
-    setRoleLoading(false);
-    // eslint-disable-next-line no-console
-    console.debug("[access:profile]", {
-      user_id: nextUser.id,
-      profile_loaded: !!nextProfile,
-      primary_role: primaryRole,
-      memberships: membershipRows.length,
-    });
+      setProfile(nextProfile);
+      setProfileError(profileResult.error || null);
+      setRoles(nextRoles);
+      setRole(primaryRole);
+      setProfileLoading(false);
+      setRoleLoading(false);
+      // eslint-disable-next-line no-console
+      console.debug("[access:profile]", {
+        user_id: nextUser.id,
+        profile_loaded: !!nextProfile,
+        primary_role: primaryRole,
+        memberships: membershipRows.length,
+      });
 
-    const isSuper = primaryRole === "super_admin";
-    // STRICT: every user (including super_admin) needs a user_roles row to enter a clinic.
-    // Drop stale localStorage active clinic if no membership exists.
-    const hasMembershipForOverride = overrideClinicId
-      ? membershipRows.some(m => m.clinic_id === overrideClinicId)
-      : false;
-    const validatedOverride = hasMembershipForOverride ? overrideClinicId : null;
-    if (overrideClinicId && !hasMembershipForOverride && !isSuper) {
-      persistActive(null);
-      setActiveClinicIdState(null);
-    }
-    const effectiveClinicId = isSuper
-      ? overrideClinicId   // super admin can enter ANY clinic; no membership required
-      : (validatedOverride || (membershipRows.some(m => m.clinic_id === nextProfile?.clinic_id) ? nextProfile?.clinic_id : null) || null);
+      const isSuper = primaryRole === "super_admin";
+      const hasMembershipForOverride = overrideClinicId
+        ? membershipRows.some(m => m.clinic_id === overrideClinicId)
+        : false;
+      const validatedOverride = hasMembershipForOverride ? overrideClinicId : null;
+      if (overrideClinicId && !hasMembershipForOverride && !isSuper) {
+        persistActive(null);
+        setActiveClinicIdState(null);
+      }
+      const effectiveClinicId = isSuper
+        ? overrideClinicId
+        : (validatedOverride || (membershipRows.some(m => m.clinic_id === nextProfile?.clinic_id) ? nextProfile?.clinic_id : null) || null);
 
-    if (!effectiveClinicId) {
-      setClinic(null); setClinicLoading(false); applyClinicTheme(null);
+      if (!effectiveClinicId) {
+        setClinic(null); setClinicLoading(false); applyClinicTheme(null);
+        setAccessLoadedForUser(nextUser.id);
+        setAccessReady(true);
+        updateSupabaseAccessGate({ hasSession: true, accessReady: true, userId: nextUser.id });
+        // eslint-disable-next-line no-console
+        console.debug("[access:ready]", { user_id: nextUser.id, clinic_id: null, clinic_loaded: false });
+        return;
+      }
+
+      const clinicResult = await withTimeout(
+        supabase
+          .from("clinics")
+          .select("id, name, subscription_status, trial_start_date, trial_end_date, setup_completed, onboarding_step, is_active, lifecycle_status, theme_color, secondary_color, logo_url")
+          .eq("id", effectiveClinicId)
+          .maybeSingle(),
+        10000,
+        "Clinic load",
+      );
+      if (requestRef.current !== requestId) return;
+
+      setClinic(clinicResult.data || null);
+      setClinicLoading(false);
+      applyClinicTheme(clinicResult.data || null);
       setAccessLoadedForUser(nextUser.id);
       setAccessReady(true);
       updateSupabaseAccessGate({ hasSession: true, accessReady: true, userId: nextUser.id });
       // eslint-disable-next-line no-console
-      console.debug("[access:ready]", { user_id: nextUser.id, clinic_id: null, clinic_loaded: false });
-      return;
+      console.debug("[access:clinic]", {
+        user_id: nextUser.id,
+        role: primaryRole,
+        clinic_id: effectiveClinicId,
+        clinic_loaded: !!clinicResult.data,
+        lifecycle_status: (clinicResult.data as any)?.lifecycle_status ?? null,
+        memberships: membershipRows.length,
+      });
+    } catch (error: any) {
+      if (requestRef.current !== requestId) return;
+      setProfile(null);
+      setClinic(null);
+      setRoles([]);
+      setRole(null);
+      setMemberships([]);
+      setProfileError(error);
+      setProfileLoading(false);
+      setRoleLoading(false);
+      setClinicLoading(false);
+      setAccessLoadedForUser(nextUser.id);
+      setAccessReady(true);
+      updateSupabaseAccessGate({ hasSession: true, accessReady: true, userId: nextUser.id });
+      applyClinicTheme(null);
+      // eslint-disable-next-line no-console
+      console.error("[access:error]", {
+        user_id: nextUser.id,
+        message: error?.message || "Unknown access error",
+      });
     }
-
-    const clinicResult = await supabase
-      .from("clinics")
-      .select("id, name, subscription_status, trial_start_date, trial_end_date, setup_completed, onboarding_step, is_active, lifecycle_status, theme_color, secondary_color, logo_url")
-      .eq("id", effectiveClinicId)
-      .maybeSingle();
-    if (requestRef.current !== requestId) return;
-
-    setClinic(clinicResult.data || null);
-    setClinicLoading(false);
-    applyClinicTheme(clinicResult.data || null);
-    setAccessLoadedForUser(nextUser.id);
-    setAccessReady(true);
-    updateSupabaseAccessGate({ hasSession: true, accessReady: true, userId: nextUser.id });
-    // eslint-disable-next-line no-console
-    console.debug("[access:clinic]", {
-      user_id: nextUser.id,
-      role: primaryRole,
-      clinic_id: effectiveClinicId,
-      clinic_loaded: !!clinicResult.data,
-      lifecycle_status: (clinicResult.data as any)?.lifecycle_status ?? null,
-      memberships: membershipRows.length,
-    });
   }, [user, activeClinicId]);
 
   useEffect(() => {
