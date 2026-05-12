@@ -28,7 +28,7 @@ export default function PatientList() {
   useEffect(() => {
     if (!cid) { setPatients([]); setLoading(false); return; }
     (async () => {
-      const { data } = await supabase
+      const { data } = await apiClient
         .from("patients")
         .select("id, full_name, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number")
         .eq("clinic_id", cid)

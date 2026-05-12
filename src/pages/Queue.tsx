@@ -49,7 +49,7 @@ export default function Queue() {
 
   const load = async () => {
     if (!cid) { setPatients([]); setLoading(false); return; }
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("patients")
       .select("id, full_name, queue_number, queue_status, priority, payment_type, phone, age, gender, created_at")
       .eq("clinic_id", cid)
@@ -63,7 +63,7 @@ export default function Queue() {
   useEffect(() => {
     load();
     if (!cid) return;
-    const channel = supabase
+    const channel = apiClient
       .channel(`queue-realtime-${cid}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "patients", filter: `clinic_id=eq.${cid}` }, () => load())
       .subscribe();

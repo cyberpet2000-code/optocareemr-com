@@ -19,7 +19,7 @@ export default function SalesHistory() {
   useEffect(() => {
     if (!cid) { setSales([]); setLoading(false); return; }
     (async () => {
-      const { data: salesData } = await supabase
+      const { data: salesData } = await apiClient
         .from("inventory_sales").select("*")
         .eq("clinic_id", cid)
         .order("created_at", { ascending: false }).limit(100);

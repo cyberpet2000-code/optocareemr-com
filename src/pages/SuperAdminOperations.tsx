@@ -58,12 +58,12 @@ export default function SuperAdminOperations() {
   const load = async () => {
     setLoading(true);
     const [{ data: cList }, { data: sList }, { data: lList }] = await Promise.all([
-      supabase
+      apiClient
         .from("clinics")
         .select("id,name,subscription_status,trial_end_date,is_active,deactivated_at,deactivation_reason,created_at")
         .order("created_at", { ascending: false }),
       apiClient.from("clinic_success_scores").select("clinic_id,score,status,factors,insights,calculated_at"),
-      supabase
+      apiClient
         .from("auto_fix_logs")
         .select("clinic_id,issue_detected,action_taken,status,created_at")
         .order("created_at", { ascending: false })

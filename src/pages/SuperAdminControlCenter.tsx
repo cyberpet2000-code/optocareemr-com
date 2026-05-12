@@ -31,7 +31,7 @@ export default function SuperAdminControlCenter() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("clinic_feature_flags")
       .select("id, clinic_id, billing_enabled, hmo_enabled, pharmacy_enabled, inventory_enabled, appointments_enabled")
       .order("created_at", { ascending: false });

@@ -38,7 +38,7 @@ export default function Pharmacy() {
 
   const loadDrugs = async () => {
     if (!cid) { setDrugs([]); setLoading(false); return; }
-    const { data } = await supabase
+    const { data } = await apiClient
       .from("inventory")
       .select("id, name, drug_category, price, stock_quantity, expiry_date, low_stock_threshold")
       .eq("clinic_id", cid)

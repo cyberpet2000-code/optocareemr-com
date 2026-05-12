@@ -124,7 +124,7 @@ export default function PatientRecord() {
     toast.success(markCompleted ? "Visit completed — bill auto-created" : "Visit saved");
     setForm(emptyVisitForm());
     // Re-sync visit history from DB so Past tab always reflects server state
-    const { data: fresh } = await supabase
+    const { data: fresh } = await apiClient
       .from("visits").select("*").eq("clinic_id", cid).eq("patient_id", patient.id)
       .order("created_at", { ascending: false });
     if (fresh) setVisits(fresh);
