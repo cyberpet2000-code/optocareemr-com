@@ -61,6 +61,10 @@ function isBootstrapAccessRequest(url: string) {
   return url.includes('/rest/v1/profiles') || url.includes('/rest/v1/user_roles') || url.includes('/rest/v1/clinics');
 }
 
+function isBootstrapSafeRequest(url: string) {
+  return isAuthRequest(url) || isBootstrapAccessRequest(url);
+}
+
 function resolveCallerModule() {
   const stack = new Error().stack?.split('\n') ?? [];
 
@@ -110,13 +114,14 @@ async function gatedSupabaseFetch(input: RequestInfo | URL, init?: RequestInit) 
     sessionBootstrapped: initialGate.sessionBootstrapped,
   });
 
-  if (!authRequest && !initialGate.sessionBootstrapped) {
+  if (!isBootstrapSafeRequest(url)) {
     // eslint-disable-next-line no-console
-    console.debug('[auth:gate:wait]', { module: moduleName, method, path, reason: 'session_bootstrap_pending' });
-    await waitForSupabaseAccessGate();
-  } else if (!authRequest && !bootstrapAccessRequest && initialGate.hasSession && !initialGate.accessReady) {
-    // eslint-disable-next-line no-console
-    console.debug('[auth:gate:wait]', { module: moduleName, method, path, reason: 'access_hydration_pending' });
+    console.debug('[auth:gate:wait]', {
+      module: moduleName,
+      method,
+      path,
+      reason: initialGate.sessionBootstrapped ? 'auth_bootstrap_pending' : 'session_bootstrap_pending',
+    });
     await waitForSupabaseAccessGate();
   }
 

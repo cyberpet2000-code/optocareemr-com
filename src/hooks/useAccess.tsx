@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
 import { assertClinicAccess } from "@/lib/route-access";
-import { updateSupabaseAccessGate } from "@/lib/supabase-access-gate";
+import { resetSupabaseAccessGate, updateSupabaseAccessGate } from "@/lib/supabase-access-gate";
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
 const ACTIVE_CLINIC_KEY = "active_clinic_id";
@@ -72,6 +72,17 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const [memberships, setMemberships] = useState<Array<{ clinic_id: string; role: string; clinic_name: string | null; setup_completed: boolean | null }>>([]);
   const [accessLoadedForUser, setAccessLoadedForUser] = useState<string | null>(null);
   const requestRef = useRef(0);
+  const bootstrapRef = useRef(0);
+  const userRef = useRef(user);
+  const activeClinicIdRef = useRef(activeClinicId);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  useEffect(() => {
+    activeClinicIdRef.current = activeClinicId;
+  }, [activeClinicId]);
 
   const persistActive = (id: string | null) => {
     try {
@@ -89,7 +100,9 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     ]);
   }, []);
 
-  const loadAccess = useCallback(async (nextUser = user, overrideClinicId: string | null = activeClinicId) => {
+  const loadAccess = useCallback(async (nextUserArg?: any, overrideClinicIdArg?: string | null) => {
+    const nextUser = nextUserArg ?? userRef.current;
+    const overrideClinicId = overrideClinicIdArg ?? activeClinicIdRef.current;
     const requestId = requestRef.current + 1;
     requestRef.current = requestId;
 
@@ -238,27 +251,35 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         message: error?.message || "Unknown access error",
       });
     }
-  }, [user, activeClinicId]);
+  }, [withTimeout]);
 
   useEffect(() => {
     let mounted = true;
-    const init = async () => {
+    const runBootstrap = async (sessionOverride?: any) => {
+      const bootstrapId = bootstrapRef.current + 1;
+      bootstrapRef.current = bootstrapId;
+
+      resetSupabaseAccessGate();
+      setAuthLoading(true);
+
       let session = null as any;
-      updateSupabaseAccessGate({ sessionBootstrapped: false, hasSession: false, accessReady: false, userId: null });
       try {
-        const r1 = await apiClient.auth.getSession();
-        session = r1.data.session;
-        if (!session) {
-          // Retry once — desktop browsers occasionally race storage hydration
-          await new Promise((res) => setTimeout(res, 150));
-          const r2 = await apiClient.auth.getSession();
-          session = r2.data.session;
+        if (sessionOverride !== undefined) {
+          session = sessionOverride;
+        } else {
+          const r1 = await apiClient.auth.getSession();
+          session = r1.data.session;
+          if (!session?.access_token) {
+            await new Promise((res) => setTimeout(res, 150));
+            const r2 = await apiClient.auth.getSession();
+            session = r2.data.session;
+          }
         }
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error("[auth:getSession] failed", e);
       }
-      if (!mounted) return;
+      if (!mounted || bootstrapRef.current !== bootstrapId) return;
       // eslint-disable-next-line no-console
       console.debug("[auth:init]", {
         hasSession: !!session,
@@ -266,15 +287,36 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         tokenPresent: !!session?.access_token,
       });
       setUser(session?.user ?? null);
-      setAuthLoading(false);
       updateSupabaseAccessGate({
         sessionBootstrapped: true,
         hasSession: !!session,
-        accessReady: !session,
+        accessReady: !session?.user,
         userId: session?.user?.id ?? null,
       });
+
+      if (!session?.user) {
+        setProfile(null);
+        setClinic(null);
+        setRoles([]);
+        setRole(null);
+        setMemberships([]);
+        setProfileLoading(false);
+        setRoleLoading(false);
+        setClinicLoading(false);
+        setAccessLoadedForUser(null);
+        setAccessReady(true);
+        setAuthLoading(false);
+        return;
+      }
+
+      await loadAccess(session.user, activeClinicIdRef.current);
+
+      if (!mounted || bootstrapRef.current !== bootstrapId) return;
+      setAuthLoading(false);
     };
-    void init();
+
+    void runBootstrap();
+
     const { data: { subscription } } = apiClient.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
       // eslint-disable-next-line no-console
@@ -282,28 +324,16 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         user_id: session?.user?.id ?? null,
         tokenPresent: !!session?.access_token,
       });
-      setUser(session?.user ?? null);
-      setAuthLoading(false);
-      setAccessReady(!session?.user);
-      updateSupabaseAccessGate({
-        sessionBootstrapped: true,
-        hasSession: !!session?.user,
-        accessReady: !session?.user,
-        userId: session?.user?.id ?? null,
-      });
       if (!session?.user) {
         persistActive(null);
         setActiveClinicIdState(null);
         setAccessLoadedForUser(null);
       }
+      if (event === "INITIAL_SESSION") return;
+      void runBootstrap(session);
     });
     return () => { mounted = false; subscription.unsubscribe(); };
-  }, []);
-
-  useEffect(() => {
-    if (authLoading) return;
-    void loadAccess(user, activeClinicId);
-  }, [authLoading, user, activeClinicId, loadAccess]);
+  }, [loadAccess]);
 
   const switchClinic = useCallback(async (clinicId: string | null) => {
     const fromClinic = activeClinicId;
