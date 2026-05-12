@@ -1,10 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
 import { assertClinicAccess } from "@/lib/route-access";
+import { resolveSupabaseSessionWithRecovery, safeSupabaseStorage } from "@/lib/supabase-auth";
 import { resetSupabaseAccessGate, updateSupabaseAccessGate } from "@/lib/supabase-access-gate";
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
 const ACTIVE_CLINIC_KEY = "active_clinic_id";
+
+type BootstrapRequest = {
+  hasOverride: boolean;
+  session: any;
+};
 
 function normalizeRole(value?: string | null) {
   return value && VALID_ROLES.includes(value) ? value : null;
@@ -67,12 +73,14 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const [clinicLoading, setClinicLoading] = useState(false);
   const [profileError, setProfileError] = useState<any>(null);
   const [activeClinicId, setActiveClinicIdState] = useState<string | null>(() => {
-    try { return localStorage.getItem(ACTIVE_CLINIC_KEY); } catch { return null; }
+    return safeSupabaseStorage.getItem(ACTIVE_CLINIC_KEY);
   });
   const [memberships, setMemberships] = useState<Array<{ clinic_id: string; role: string; clinic_name: string | null; setup_completed: boolean | null }>>([]);
   const [accessLoadedForUser, setAccessLoadedForUser] = useState<string | null>(null);
   const requestRef = useRef(0);
   const bootstrapRef = useRef(0);
+  const bootstrapPromiseRef = useRef<Promise<void> | null>(null);
+  const pendingBootstrapRef = useRef<BootstrapRequest | null>(null);
   const userRef = useRef(user);
   const activeClinicIdRef = useRef(activeClinicId);
 
@@ -85,10 +93,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   }, [activeClinicId]);
 
   const persistActive = (id: string | null) => {
-    try {
-      if (id) localStorage.setItem(ACTIVE_CLINIC_KEY, id);
-      else localStorage.removeItem(ACTIVE_CLINIC_KEY);
-    } catch {}
+    if (id) safeSupabaseStorage.setItem(ACTIVE_CLINIC_KEY, id);
+    else safeSupabaseStorage.removeItem(ACTIVE_CLINIC_KEY);
   };
 
   const withTimeout = useCallback(async <T,>(promise: PromiseLike<T>, ms: number, label: string) => {
@@ -255,67 +261,107 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
-    const runBootstrap = async (sessionOverride?: any) => {
+    const clearResolvedAccessState = (nextUserId: string | null) => {
+      setProfile(null);
+      setClinic(null);
+      setRoles([]);
+      setRole(null);
+      setMemberships([]);
+      setProfileLoading(false);
+      setRoleLoading(false);
+      setClinicLoading(false);
+      setAccessLoadedForUser(nextUserId);
+      setAccessReady(true);
+    };
+
+    const runBootstrap = async (request: BootstrapRequest) => {
       const bootstrapId = bootstrapRef.current + 1;
       bootstrapRef.current = bootstrapId;
 
       resetSupabaseAccessGate();
       setAuthLoading(true);
 
-      let session = null as any;
       try {
-        if (sessionOverride !== undefined) {
-          session = sessionOverride;
-        } else {
-          const r1 = await apiClient.auth.getSession();
-          session = r1.data.session;
-          if (!session?.access_token) {
-            await new Promise((res) => setTimeout(res, 150));
-            const r2 = await apiClient.auth.getSession();
-            session = r2.data.session;
-          }
-        }
-      } catch (e) {
+        const resolved = await resolveSupabaseSessionWithRecovery(
+          apiClient.auth,
+          request.hasOverride ? { sessionOverride: request.session } : undefined,
+        );
+        const session = resolved.session;
+
+        if (!mounted || bootstrapRef.current !== bootstrapId) return;
         // eslint-disable-next-line no-console
-        console.error("[auth:getSession] failed", e);
-      }
-      if (!mounted || bootstrapRef.current !== bootstrapId) return;
-      // eslint-disable-next-line no-console
-      console.debug("[auth:init]", {
-        hasSession: !!session,
-        user_id: session?.user?.id ?? null,
-        tokenPresent: !!session?.access_token,
-      });
-      setUser(session?.user ?? null);
-      updateSupabaseAccessGate({
-        sessionBootstrapped: true,
-        hasSession: !!session,
-        accessReady: !session?.user,
-        userId: session?.user?.id ?? null,
-      });
+        console.debug("[auth:init]", {
+          hasSession: !!session,
+          user_id: session?.user?.id ?? null,
+          tokenPresent: !!session?.access_token,
+          recovered: resolved.recovered,
+          source: resolved.source,
+          storageAvailable: resolved.storageAvailable,
+          error: resolved.error?.message ?? null,
+        });
 
-      if (!session?.user) {
-        setProfile(null);
-        setClinic(null);
-        setRoles([]);
-        setRole(null);
-        setMemberships([]);
-        setProfileLoading(false);
-        setRoleLoading(false);
-        setClinicLoading(false);
-        setAccessLoadedForUser(null);
-        setAccessReady(true);
+        setUser(session?.user ?? null);
+        updateSupabaseAccessGate({
+          sessionBootstrapped: true,
+          hasSession: !!session,
+          accessReady: !session?.user,
+          userId: session?.user?.id ?? null,
+        });
+
+        if (!session?.user) {
+          clearResolvedAccessState(null);
+          setAuthLoading(false);
+          return;
+        }
+
+        await loadAccess(session.user, activeClinicIdRef.current);
+
+        if (!mounted || bootstrapRef.current !== bootstrapId) return;
         setAuthLoading(false);
-        return;
+      } catch (error: any) {
+        if (!mounted || bootstrapRef.current !== bootstrapId) return;
+        // eslint-disable-next-line no-console
+        console.error("[auth:init:error]", { message: error?.message || "Unknown auth bootstrap error" });
+        setUser(null);
+        clearResolvedAccessState(null);
+        updateSupabaseAccessGate({ sessionBootstrapped: true, hasSession: false, accessReady: true, userId: null });
+        setAuthLoading(false);
       }
-
-      await loadAccess(session.user, activeClinicIdRef.current);
-
-      if (!mounted || bootstrapRef.current !== bootstrapId) return;
-      setAuthLoading(false);
     };
 
-    void runBootstrap();
+    const scheduleBootstrap = (...args: [any?]) => {
+      const request: BootstrapRequest = {
+        hasOverride: args.length > 0,
+        session: args.length > 0 ? args[0] : null,
+      };
+
+      pendingBootstrapRef.current = request;
+      if (bootstrapPromiseRef.current) {
+        // eslint-disable-next-line no-console
+        console.debug("[auth:bootstrap:queued]", {
+          hasOverride: request.hasOverride,
+          user_id: request.session?.user?.id ?? null,
+        });
+        return bootstrapPromiseRef.current;
+      }
+
+      const promise = (async () => {
+        while (mounted && pendingBootstrapRef.current) {
+          const nextRequest = pendingBootstrapRef.current;
+          pendingBootstrapRef.current = null;
+          await runBootstrap(nextRequest);
+        }
+      })().finally(() => {
+        if (bootstrapPromiseRef.current === promise) {
+          bootstrapPromiseRef.current = null;
+        }
+      });
+
+      bootstrapPromiseRef.current = promise;
+      return promise;
+    };
+
+    void scheduleBootstrap();
 
     const { data: { subscription } } = apiClient.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
@@ -330,9 +376,14 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         setAccessLoadedForUser(null);
       }
       if (event === "INITIAL_SESSION") return;
-      void runBootstrap(session);
+      void scheduleBootstrap(session);
     });
-    return () => { mounted = false; subscription.unsubscribe(); };
+
+    return () => {
+      mounted = false;
+      pendingBootstrapRef.current = null;
+      subscription.unsubscribe();
+    };
   }, [loadAccess]);
 
   const switchClinic = useCallback(async (clinicId: string | null) => {
