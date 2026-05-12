@@ -293,7 +293,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     switchClinic,
     reload: () => loadAccess(user, activeClinicId),
     signOut: async () => { persistActive(null); setActiveClinicIdState(null); await supabase.auth.signOut(); },
-  }), [authLoading, clinic, clinicLoading, isAuthenticated, isAuthReady, loadAccess, profile, profileError, profileLoading, role, roleLoading, roleMissing, roles, user, activeClinicId, effectiveClinicId, switchClinic, memberships]);
+  }), [authLoading, clinic, clinicLoading, isAuthenticated, isAuthReady, loadAccess, profile, profileError, profileLoading, role, roleLoading, roleMissing, roles, user, activeClinicId, effectiveClinicId, switchClinic, memberships, accessLoadedForUser]);
 
   return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>;
 }
