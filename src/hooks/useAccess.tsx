@@ -249,15 +249,11 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       const backendResolvedClinicId = (resolvedRow as any)?.resolved_clinic_id ?? null;
       setResolvedClinicId(backendResolvedClinicId);
 
-      // For super admins: optional explicit override; otherwise use resolved.
-      // For all other users: resolved_clinic_id is the ONLY allowed value.
-      const validatedSuperOverride = isSuper && overrideClinicId ? overrideClinicId : null;
-      const effectiveClinicId = isSuper
-        ? (validatedSuperOverride || backendResolvedClinicId || null)
-        : backendResolvedClinicId;
+      // Non-super-admin: resolved_clinic_id is the ONLY allowed value.
+      const effectiveClinicId = backendResolvedClinicId;
 
       // Drop any stale persisted override that isn't valid for this user.
-      if (!isSuper && overrideClinicId && overrideClinicId !== backendResolvedClinicId) {
+      if (overrideClinicId && overrideClinicId !== backendResolvedClinicId) {
         persistActive(null);
         setActiveClinicIdState(null);
       }
@@ -266,8 +262,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       console.debug("[access:resolved_clinic]", {
         user_id: nextUser.id,
         resolved_clinic_id: backendResolvedClinicId,
-        is_super_admin: isSuper,
-        override_clinic_id: validatedSuperOverride,
+        is_super_admin: false,
         effective_clinic_id: effectiveClinicId,
       });
 
@@ -279,7 +274,6 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           user_id: nextUser.id,
           reason: "resolved_clinic_id missing",
           memberships: membershipRows.length,
-          is_super_admin: isSuper,
         });
         setClinic(null); setClinicLoading(false); applyClinicTheme(null);
         setAccessLoadedForUser(nextUser.id);
