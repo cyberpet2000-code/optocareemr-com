@@ -520,11 +520,13 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = Boolean(user);
   const accessReadyForCurrentUser = !isAuthenticated || (accessLoadedForUser === user?.id);
   const isAuthReady = !authLoading && accessReady && (!isAuthenticated || (accessReadyForCurrentUser && !profileLoading && !roleLoading && !clinicLoading));
-  const roleMissing = isAuthenticated && isAuthReady && !role;
+  const isSuperAdminUser = role === "super_admin" || profile?.is_super_admin === true;
+  // Super admins are NEVER blocked by missing role/clinic state.
+  const roleMissing = isAuthenticated && isAuthReady && !role && !isSuperAdminUser;
 
   // Deterministic: backend-resolved clinic id only. Super admin may override
   // via switchClinic; nobody else gets fallback guessing.
-  const effectiveClinicId = role === "super_admin"
+  const effectiveClinicId = isSuperAdminUser
     ? (activeClinicId || resolvedClinicId || null)
     : resolvedClinicId;
 
