@@ -314,11 +314,10 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       });
     } catch (error: any) {
       if (requestRef.current !== requestId) return;
-      setProfile(null);
+      // Do NOT nuke profile/role here — if we got far enough to know the role
+      // (esp. super_admin), keep it so the user is not falsely shown as
+      // "User role not configured". Only mark clinic resolution failed.
       setClinic(null);
-      setRoles([]);
-      setRole(null);
-      setMemberships([]);
       setResolvedClinicId(null);
       setClinicResolutionFailed(true);
       setProfileError(error);
