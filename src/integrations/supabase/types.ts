@@ -2186,10 +2186,10 @@ export type Database = {
       }
       profiles: {
         Row: {
-          active_clinic_id: string | null
+          active_clinic_id: string
           avatar_url: string | null
           branch_id: string | null
-          clinic_id: string | null
+          clinic_id: string
           created_at: string | null
           full_name: string | null
           id: string
@@ -2201,10 +2201,10 @@ export type Database = {
           title: string | null
         }
         Insert: {
-          active_clinic_id?: string | null
+          active_clinic_id: string
           avatar_url?: string | null
           branch_id?: string | null
-          clinic_id?: string | null
+          clinic_id: string
           created_at?: string | null
           full_name?: string | null
           id?: string
@@ -2216,10 +2216,10 @@ export type Database = {
           title?: string | null
         }
         Update: {
-          active_clinic_id?: string | null
+          active_clinic_id?: string
           avatar_url?: string | null
           branch_id?: string | null
-          clinic_id?: string | null
+          clinic_id?: string
           created_at?: string | null
           full_name?: string | null
           id?: string
@@ -2761,6 +2761,27 @@ export type Database = {
           auto_allowed?: boolean | null
           id?: string
           requires_approval?: boolean | null
+        }
+        Relationships: []
+      }
+      user_clinic_memberships: {
+        Row: {
+          clinic_id: string | null
+          id: string | null
+          is_active: boolean | null
+          user_id: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          user_id?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          user_id?: string | null
         }
         Relationships: []
       }
