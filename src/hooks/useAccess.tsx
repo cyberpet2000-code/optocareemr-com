@@ -190,11 +190,50 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         memberships: membershipRows.length,
       });
 
-      const isSuper = primaryRole === "super_admin";
+      const isSuper =
+        primaryRole === "super_admin" || nextProfile?.is_super_admin === true;
 
-      // SINGLE SOURCE OF TRUTH: backend-resolved clinic id only.
-      // No "first clinic", "last clinic", or guesses. Super admins may override
-      // via explicit switchClinic; everyone else uses resolved_clinic_id.
+      // SUPER ADMIN SHORT-CIRCUIT: platform-level role.
+      // Never require clinic_id, user_active_clinic, subscription, or trial.
+      // Optional explicit override (via switchClinic) loads that clinic only.
+      if (isSuper) {
+        setResolvedClinicId(null);
+        setClinicResolutionFailed(false);
+        const overrideId = overrideClinicId || null;
+        let clinicData: any = null;
+        if (overrideId) {
+          try {
+            const { data } = await withTimeout(
+              apiClient
+                .from("clinics")
+                .select("id, name, subscription_status, trial_start_date, trial_end_date, setup_completed, onboarding_step, is_active, lifecycle_status, theme_color, secondary_color, logo_url")
+                .eq("id", overrideId)
+                .maybeSingle(),
+              10000,
+              "Super admin clinic override load",
+            );
+            clinicData = data || null;
+          } catch (e: any) {
+            // eslint-disable-next-line no-console
+            console.warn("[access:super_admin_clinic_override_failed]", { message: e?.message });
+          }
+        }
+        setClinic(clinicData);
+        setClinicLoading(false);
+        applyClinicTheme(clinicData);
+        setAccessLoadedForUser(nextUser.id);
+        setAccessReady(true);
+        updateSupabaseAccessGate({ hasSession: true, accessReady: true, userId: nextUser.id });
+        // eslint-disable-next-line no-console
+        console.debug("[access:super_admin_ready]", {
+          user_id: nextUser.id,
+          override_clinic_id: overrideId,
+          clinic_loaded: !!clinicData,
+        });
+        return;
+      }
+
+      // Non-super-admin: SINGLE SOURCE OF TRUTH = backend-resolved clinic id.
       const { data: resolvedRow, error: resolvedError } = await withTimeout(
         apiClient
           .from("user_active_clinic")
@@ -210,15 +249,11 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       const backendResolvedClinicId = (resolvedRow as any)?.resolved_clinic_id ?? null;
       setResolvedClinicId(backendResolvedClinicId);
 
-      // For super admins: optional explicit override; otherwise use resolved.
-      // For all other users: resolved_clinic_id is the ONLY allowed value.
-      const validatedSuperOverride = isSuper && overrideClinicId ? overrideClinicId : null;
-      const effectiveClinicId = isSuper
-        ? (validatedSuperOverride || backendResolvedClinicId || null)
-        : backendResolvedClinicId;
+      // Non-super-admin: resolved_clinic_id is the ONLY allowed value.
+      const effectiveClinicId = backendResolvedClinicId;
 
       // Drop any stale persisted override that isn't valid for this user.
-      if (!isSuper && overrideClinicId && overrideClinicId !== backendResolvedClinicId) {
+      if (overrideClinicId && overrideClinicId !== backendResolvedClinicId) {
         persistActive(null);
         setActiveClinicIdState(null);
       }
@@ -227,8 +262,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       console.debug("[access:resolved_clinic]", {
         user_id: nextUser.id,
         resolved_clinic_id: backendResolvedClinicId,
-        is_super_admin: isSuper,
-        override_clinic_id: validatedSuperOverride,
+        is_super_admin: false,
         effective_clinic_id: effectiveClinicId,
       });
 
@@ -240,7 +274,6 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           user_id: nextUser.id,
           reason: "resolved_clinic_id missing",
           memberships: membershipRows.length,
-          is_super_admin: isSuper,
         });
         setClinic(null); setClinicLoading(false); applyClinicTheme(null);
         setAccessLoadedForUser(nextUser.id);
@@ -281,11 +314,10 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       });
     } catch (error: any) {
       if (requestRef.current !== requestId) return;
-      setProfile(null);
+      // Do NOT nuke profile/role here — if we got far enough to know the role
+      // (esp. super_admin), keep it so the user is not falsely shown as
+      // "User role not configured". Only mark clinic resolution failed.
       setClinic(null);
-      setRoles([]);
-      setRole(null);
-      setMemberships([]);
       setResolvedClinicId(null);
       setClinicResolutionFailed(true);
       setProfileError(error);
@@ -488,11 +520,13 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = Boolean(user);
   const accessReadyForCurrentUser = !isAuthenticated || (accessLoadedForUser === user?.id);
   const isAuthReady = !authLoading && accessReady && (!isAuthenticated || (accessReadyForCurrentUser && !profileLoading && !roleLoading && !clinicLoading));
-  const roleMissing = isAuthenticated && isAuthReady && !role;
+  const isSuperAdminUser = role === "super_admin" || profile?.is_super_admin === true;
+  // Super admins are NEVER blocked by missing role/clinic state.
+  const roleMissing = isAuthenticated && isAuthReady && !role && !isSuperAdminUser;
 
   // Deterministic: backend-resolved clinic id only. Super admin may override
   // via switchClinic; nobody else gets fallback guessing.
-  const effectiveClinicId = role === "super_admin"
+  const effectiveClinicId = isSuperAdminUser
     ? (activeClinicId || resolvedClinicId || null)
     : resolvedClinicId;
 
