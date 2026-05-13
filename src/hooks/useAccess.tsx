@@ -190,11 +190,50 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         memberships: membershipRows.length,
       });
 
-      const isSuper = primaryRole === "super_admin";
+      const isSuper =
+        primaryRole === "super_admin" || nextProfile?.is_super_admin === true;
 
-      // SINGLE SOURCE OF TRUTH: backend-resolved clinic id only.
-      // No "first clinic", "last clinic", or guesses. Super admins may override
-      // via explicit switchClinic; everyone else uses resolved_clinic_id.
+      // SUPER ADMIN SHORT-CIRCUIT: platform-level role.
+      // Never require clinic_id, user_active_clinic, subscription, or trial.
+      // Optional explicit override (via switchClinic) loads that clinic only.
+      if (isSuper) {
+        setResolvedClinicId(null);
+        setClinicResolutionFailed(false);
+        const overrideId = overrideClinicId || null;
+        let clinicData: any = null;
+        if (overrideId) {
+          try {
+            const { data } = await withTimeout(
+              apiClient
+                .from("clinics")
+                .select("id, name, subscription_status, trial_start_date, trial_end_date, setup_completed, onboarding_step, is_active, lifecycle_status, theme_color, secondary_color, logo_url")
+                .eq("id", overrideId)
+                .maybeSingle(),
+              10000,
+              "Super admin clinic override load",
+            );
+            clinicData = data || null;
+          } catch (e: any) {
+            // eslint-disable-next-line no-console
+            console.warn("[access:super_admin_clinic_override_failed]", { message: e?.message });
+          }
+        }
+        setClinic(clinicData);
+        setClinicLoading(false);
+        applyClinicTheme(clinicData);
+        setAccessLoadedForUser(nextUser.id);
+        setAccessReady(true);
+        updateSupabaseAccessGate({ hasSession: true, accessReady: true, userId: nextUser.id });
+        // eslint-disable-next-line no-console
+        console.debug("[access:super_admin_ready]", {
+          user_id: nextUser.id,
+          override_clinic_id: overrideId,
+          clinic_loaded: !!clinicData,
+        });
+        return;
+      }
+
+      // Non-super-admin: SINGLE SOURCE OF TRUTH = backend-resolved clinic id.
       const { data: resolvedRow, error: resolvedError } = await withTimeout(
         apiClient
           .from("user_active_clinic")
