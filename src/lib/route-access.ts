@@ -75,19 +75,33 @@ export async function assertClinicAccess(
 }
 
 export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision {
-  const { path, isAuthenticated, isAuthReady, didTimeout, role, clinicId, setupCompleted, roleMissing, membershipsCount = 0, lifecycleStatus } = input;
+  const {
+    path,
+    isAuthenticated,
+    isAuthReady,
+    didTimeout,
+    role,
+    clinicId,
+    setupCompleted,
+    roleMissing,
+    membershipsCount = 0,
+    lifecycleStatus,
+  } = input;
+
   const isSuperAdmin = role === "super_admin";
   const hasActiveClinic = !!clinicId;
 
+  // a. Loading state
   if (!isAuthReady && !didTimeout) {
     return { type: "loading", label: "Loading OptoCare…" };
   }
 
+  // b. Auth failure
   if (!isAuthenticated || didTimeout) {
     return { type: "redirect", to: "/login" };
   }
 
-  // Super admin: bypass clinic + lifecycle restrictions globally.
+  // d. Super admin short-circuit — bypasses clinic, onboarding, billing, lifecycle.
   if (isSuperAdmin) {
     if (path === "/") return { type: "redirect", to: "/super-admin" };
     if (path === "/onboarding") {
@@ -98,37 +112,53 @@ export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision
     return { type: "allow" };
   }
 
+  // c. Role error (non-super admin only)
   if (roleMissing) {
     return { type: "error", label: "User role not configured. Contact support." };
   }
 
+  // e. Root redirect
   if (path === "/") {
-    return { type: "redirect", to: resolveDefaultRoute({ role, clinicId, setupCompleted, membershipsCount }) };
+    return {
+      type: "redirect",
+      to: resolveDefaultRoute({ role, clinicId, setupCompleted, membershipsCount }),
+    };
   }
 
+  // f. Public/always-allowed routes for authenticated non-super admins
   if (path === "/select-clinic") return { type: "allow" };
 
+  // Block super-admin routes for non-super admins
   if (path.startsWith("/super-admin")) {
     return { type: "redirect", to: "/no-access" };
   }
 
+  // g. Clinic required gate
+  if (!hasActiveClinic) {
+    return { type: "redirect", to: "/select-clinic" };
+  }
+
+  // h. Onboarding flow
   if (path === "/onboarding") {
-    if (!hasActiveClinic) return { type: "redirect", to: "/select-clinic" };
     if (setupCompleted === false) return { type: "allow" };
     return { type: "redirect", to: "/dashboard" };
   }
 
-  if (!hasActiveClinic) return { type: "redirect", to: "/select-clinic" };
-
+  // i. Lifecycle billing restrictions (only block non-billing routes)
   if (lifecycleStatus === "suspended" || lifecycleStatus === "deactivated") {
-    if (!BILLING_ALLOWED_PATHS.some((p) => path === p || path.startsWith(`${p}/`))) {
+    const inBillingAllowed = BILLING_ALLOWED_PATHS.some(
+      (p) => path === p || path.startsWith(`${p}/`),
+    );
+    if (!inBillingAllowed) {
       return { type: "redirect", to: "/billing" };
     }
   }
 
+  // j. Setup enforcement
   if (setupCompleted === false) {
     return { type: "redirect", to: "/onboarding" };
   }
 
+  // k. Default allow
   return { type: "allow" };
 }
