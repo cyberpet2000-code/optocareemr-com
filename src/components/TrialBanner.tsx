@@ -9,8 +9,14 @@ export default function TrialBanner() {
     (async () => {
       const { data: { user } } = await apiClient.auth.getUser();
       if (!user) return;
-      const { data: prof } = await apiClient.from("profiles").select("clinic_id").eq("id", user.id).maybeSingle();
-      if (!prof?.clinic_id) return;
+      const { data: prof } = await apiClient
+        .from("profiles")
+        .select("clinic_id, is_super_admin, role")
+        .eq("id", user.id)
+        .maybeSingle();
+      // Super admin is platform-level — never subject to trial/subscription UI.
+      if (!prof || prof.is_super_admin === true || prof.role === "super_admin") return;
+      if (!prof.clinic_id) return;
       const { data: clinic } = await apiClient.from("clinics")
         .select("subscription_status, trial_start_date, trial_end_date")
         .eq("id", prof.clinic_id).maybeSingle();
