@@ -129,8 +129,21 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
 
 export function AppRoutes() {
   const location = useLocation();
+  const { user, isAuthReady } = useAuth();
 
   const isPublicRoute = location.pathname === "/login" || location.pathname === "/reset-password" || location.pathname === "/accept-invite" || location.pathname === "/signup" || location.pathname === "/no-access";
+
+  // STRICT ORDER: never render anything (public or protected) until auth is hydrated.
+  if (!isAuthReady) {
+    return <FullScreenLoader label="Loading OptoCare…" />;
+  }
+
+  // If an authenticated user lands on /login (or /signup), bounce to root so the
+  // protected gate can resolve their actual destination. Prevents the "stuck on
+  // login page" loop after token refresh or browser back.
+  if (user && (location.pathname === "/login" || location.pathname === "/signup")) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <>
