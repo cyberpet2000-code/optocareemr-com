@@ -85,6 +85,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const pendingBootstrapRef = useRef<BootstrapRequest | null>(null);
   const userRef = useRef(user);
   const activeClinicIdRef = useRef(activeClinicId);
+  const initializedRef = useRef(false);
+  const authSubscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
 
   useEffect(() => {
     userRef.current = user;
@@ -182,12 +184,14 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       setRole(primaryRole);
       setProfileLoading(false);
       setRoleLoading(false);
+      const membershipsReady = true;
       // eslint-disable-next-line no-console
       console.debug("[access:profile]", {
         user_id: nextUser.id,
         profile_loaded: !!nextProfile,
         primary_role: primaryRole,
         memberships: membershipRows.length,
+        memberships_ready: membershipsReady,
       });
 
       const isSuper =
@@ -264,6 +268,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         resolved_clinic_id: backendResolvedClinicId,
         is_super_admin: false,
         effective_clinic_id: effectiveClinicId,
+        memberships: membershipRows.length,
       });
 
       if (!effectiveClinicId) {
@@ -338,6 +343,13 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    if (initializedRef.current) {
+      return () => {
+        mounted = false;
+      };
+    }
+    initializedRef.current = true;
+
     const clearResolvedAccessState = (nextUserId: string | null) => {
       setProfile(null);
       setClinic(null);
@@ -359,6 +371,12 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
       resetSupabaseAccessGate();
       setAuthLoading(true);
+      // eslint-disable-next-line no-console
+      console.debug("[auth:init:start]", {
+        bootstrapId,
+        hasOverride: request.hasOverride,
+        user_id: request.session?.user?.id ?? null,
+      });
 
       try {
         const resolved = await resolveSupabaseSessionWithRecovery(
@@ -380,6 +398,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         });
 
         setUser(session?.user ?? null);
+        setKnownSupabaseSession(session ?? null);
         updateSupabaseAccessGate({
           sessionBootstrapped: true,
           hasSession: !!session,
@@ -390,6 +409,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         if (!session?.user) {
           clearResolvedAccessState(null);
           setAuthLoading(false);
+          // eslint-disable-next-line no-console
+          console.debug("[auth:init:end]", { bootstrapId, hasSession: false, user_id: null });
           return;
         }
 
@@ -397,14 +418,19 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
         if (!mounted || bootstrapRef.current !== bootstrapId) return;
         setAuthLoading(false);
+        // eslint-disable-next-line no-console
+        console.debug("[auth:init:end]", { bootstrapId, hasSession: true, user_id: session.user.id });
       } catch (error: any) {
         if (!mounted || bootstrapRef.current !== bootstrapId) return;
         // eslint-disable-next-line no-console
         console.error("[auth:init:error]", { message: error?.message || "Unknown auth bootstrap error" });
         setUser(null);
+        setKnownSupabaseSession(null);
         clearResolvedAccessState(null);
         updateSupabaseAccessGate({ sessionBootstrapped: true, hasSession: false, accessReady: true, userId: null });
         setAuthLoading(false);
+        // eslint-disable-next-line no-console
+        console.debug("[auth:init:end]", { bootstrapId, hasSession: false, user_id: null, errored: true });
       }
     };
 
@@ -461,6 +487,13 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           setUser((prev: any) => (prev?.id === session.user.id ? prev : session.user));
         }
+        // eslint-disable-next-line no-console
+        console.debug("[auth:session:change]", {
+          event,
+          hasSession: !!session,
+          user_id: session?.user?.id ?? null,
+          tokenPresent: !!session?.access_token,
+        });
         updateSupabaseAccessGate({
           sessionBootstrapped: true,
           hasSession: !!session,
@@ -475,6 +508,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         setActiveClinicIdState(null);
         setAccessLoadedForUser(null);
         setUser(null);
+        setKnownSupabaseSession(null);
         updateSupabaseAccessGate({ sessionBootstrapped: true, hasSession: false, accessReady: true, userId: null });
         return;
       }
@@ -483,10 +517,14 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       void scheduleBootstrap(session);
     });
 
+    authSubscriptionRef.current = subscription;
+
     return () => {
       mounted = false;
       pendingBootstrapRef.current = null;
-      subscription.unsubscribe();
+      authSubscriptionRef.current?.unsubscribe();
+      authSubscriptionRef.current = null;
+      initializedRef.current = false;
     };
   }, [loadAccess]);
 
