@@ -1,35 +1,25 @@
-import { useEffect, useState } from "react";
-import { apiClient } from "@/lib/apiClient";
+import { useMemo } from "react";
+import { useClinic } from "@/hooks/useClinic";
 import { AlertCircle } from "lucide-react";
 
 export default function TrialBanner() {
-  const [info, setInfo] = useState<{ daysLeft: number; expired: boolean; status: string } | null>(null);
+  const { clinic, profile } = useClinic();
 
-  useEffect(() => {
-    (async () => {
-      const { data: { user } } = await apiClient.auth.getUser();
-      if (!user) return;
-      const { data: prof } = await apiClient
-        .from("profiles")
-        .select("clinic_id, is_super_admin, role")
-        .eq("id", user.id)
-        .maybeSingle();
-      // Super admin is platform-level — never subject to trial/subscription UI.
-      if (!prof || prof.is_super_admin === true || prof.role === "super_admin") return;
-      if (!prof.clinic_id) return;
-      const { data: clinic } = await apiClient.from("clinics")
-        .select("subscription_status, trial_start_date, trial_end_date")
-        .eq("id", prof.clinic_id).maybeSingle();
-      if (!clinic) return;
-      const status = clinic.subscription_status || "trial";
-      if (status !== "trial") { setInfo({ daysLeft: 0, expired: false, status }); return; }
-      const end = clinic.trial_end_date
-        ? new Date(clinic.trial_end_date)
-        : new Date(new Date(clinic.trial_start_date || Date.now()).getTime() + 14 * 86400000);
-      const daysLeft = Math.max(0, Math.ceil((end.getTime() - Date.now()) / 86400000));
-      setInfo({ daysLeft, expired: daysLeft <= 0, status });
-    })();
-  }, []);
+  const info = useMemo(() => {
+    if (!clinic) return null;
+    if (profile?.is_super_admin === true || profile?.role === "super_admin") return null;
+
+    const status = clinic.subscription_status || "trial";
+    if (status !== "trial") {
+      return { daysLeft: 0, expired: false, status };
+    }
+
+    const end = clinic.trial_end_date
+      ? new Date(clinic.trial_end_date)
+      : new Date(new Date(clinic.trial_start_date || Date.now()).getTime() + 14 * 86400000);
+    const daysLeft = Math.max(0, Math.ceil((end.getTime() - Date.now()) / 86400000));
+    return { daysLeft, expired: daysLeft <= 0, status };
+  }, [clinic, profile]);
 
   if (!info || info.status !== "trial") return null;
 
