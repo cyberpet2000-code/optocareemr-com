@@ -2,11 +2,12 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { getSupabaseAccessGateState, waitForSupabaseAccessGate } from '@/lib/supabase-access-gate';
-import { safeSupabaseStorage, setKnownSupabaseSession, supabaseAuthLock } from '@/lib/supabase-auth';
+import { safeSupabaseStorage, supabaseAuthLock, syncSupabaseAuthStorage } from '@/lib/supabase-auth';
 
 export const SUPABASE_URL = "https://avogfzqizuusqzjivhqj.supabase.co";
 export const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2b2dmenFpenV1c3F6aml2aHFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5OTQ0MTgsImV4cCI6MjA5MDU3MDQxOH0._mQQxxm-raT1p_fqowfQu65Tww_8nLduDuYJBKyzo2U";
 export const SHARED_CLIENT_HEADER = 'x-optocare-shared-client';
+export const SUPABASE_AUTH_STORAGE_KEY = `sb-${new URL(SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
 const RETRY_HEADER = 'x-auth-retried';
 
 type GlobalWithSupabaseSingleton = typeof globalThis & {
@@ -82,7 +83,7 @@ function resolveCallerModule() {
 }
 
 async function refreshSessionOnce() {
-  const { data, error } = await sharedClient!.auth.refreshSession();
+  const { data, error } = await supabaseAuthLock('optocare:refresh-session', 5000, () => sharedClient!.auth.refreshSession());
   // eslint-disable-next-line no-console
   console.debug('[auth:refresh]', { ok: !error, user_id: data.session?.user?.id ?? null, error: error?.message ?? null });
   return { data, error };
@@ -198,6 +199,7 @@ function installBypassDetection() {
 }
 
 if (!sharedClient) {
+  syncSupabaseAuthStorage(SUPABASE_AUTH_STORAGE_KEY);
   sharedClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
       storage: safeSupabaseStorage,
@@ -217,10 +219,6 @@ if (!sharedClient) {
 }
 
 installBypassDetection();
-
-sharedClient.auth.onAuthStateChange((_event, session) => {
-  setKnownSupabaseSession(session);
-});
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";

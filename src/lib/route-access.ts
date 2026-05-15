@@ -70,8 +70,18 @@ export async function assertClinicAccess(
     .eq("user_id", userId)
     .eq("clinic_id", clinicId)
     .maybeSingle();
-  if (error || !data) return null;
-  return (data as { role: string }).role ?? null;
+  if (!error && data) {
+    return (data as { role: string }).role ?? null;
+  }
+
+  const { data: clinicMembership, error: clinicMembershipError } = await supabase
+    .from("clinic_users")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("clinic_id", clinicId)
+    .maybeSingle();
+  if (clinicMembershipError || !clinicMembership) return null;
+  return (clinicMembership as { role: string }).role ?? null;
 }
 
 export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision {

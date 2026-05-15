@@ -12,6 +12,13 @@ type BootstrapRequest = {
   session: any;
 };
 
+type MembershipRow = {
+  clinic_id: string;
+  role: string;
+  clinic_name: string | null;
+  setup_completed: boolean | null;
+};
+
 function normalizeRole(value?: string | null) {
   return value && VALID_ROLES.includes(value) ? value : null;
 }
@@ -21,6 +28,40 @@ function resolvePrimaryRole(profile: any, userRoles: string[]) {
   const profileRole = normalizeRole(profile?.role);
   if (profileRole) return profileRole;
   return userRoles.find((r) => normalizeRole(r)) || null;
+}
+
+function mergeMemberships({
+  userRolesRows,
+  clinicUsersRows,
+  clinicMap,
+}: {
+  userRolesRows: Array<{ role: string; clinic_id: string | null }>;
+  clinicUsersRows: Array<{ role: string | null; clinic_id: string | null }>;
+  clinicMap: Map<string, any>;
+}): MembershipRow[] {
+  const membershipMap = new Map<string, MembershipRow>();
+
+  const upsertMembership = (clinicId: string | null, role: string | null | undefined, source: "user_roles" | "clinic_users") => {
+    if (!clinicId) return;
+    const normalizedRole = normalizeRole(role);
+    const clinic = clinicMap.get(clinicId);
+    const existing = membershipMap.get(clinicId);
+    const preferredRole = source === "user_roles"
+      ? (normalizedRole ?? existing?.role ?? "admin")
+      : (existing?.role ?? normalizedRole ?? "admin");
+
+    membershipMap.set(clinicId, {
+      clinic_id: clinicId,
+      role: preferredRole,
+      clinic_name: clinic?.name ?? existing?.clinic_name ?? null,
+      setup_completed: clinic?.setup_completed ?? existing?.setup_completed ?? null,
+    });
+  };
+
+  userRolesRows.forEach((row) => upsertMembership(row.clinic_id, row.role, "user_roles"));
+  clinicUsersRows.forEach((row) => upsertMembership(row.clinic_id, row.role, "clinic_users"));
+
+  return Array.from(membershipMap.values());
 }
 
 function hexToHsl(hex?: string | null): string | null {
@@ -71,6 +112,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [roleLoading, setRoleLoading] = useState(false);
   const [clinicLoading, setClinicLoading] = useState(false);
+  const [membershipLoading, setMembershipLoading] = useState(false);
   const [profileError, setProfileError] = useState<any>(null);
   const [activeClinicId, setActiveClinicIdState] = useState<string | null>(() => {
     return safeSupabaseStorage.getItem(ACTIVE_CLINIC_KEY);
@@ -85,6 +127,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const pendingBootstrapRef = useRef<BootstrapRequest | null>(null);
   const userRef = useRef(user);
   const activeClinicIdRef = useRef(activeClinicId);
+  const initializedRef = useRef(false);
+  const authSubscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
 
   useEffect(() => {
     userRef.current = user;
@@ -117,7 +161,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     if (!nextUser) {
       setProfile(null); setClinic(null); setRoles([]); setRole(null); setMemberships([]);
       setResolvedClinicId(null); setClinicResolutionFailed(false);
-      setProfileLoading(false); setRoleLoading(false); setClinicLoading(false);
+      setProfileLoading(false); setRoleLoading(false); setClinicLoading(false); setMembershipLoading(false);
       setAccessLoadedForUser(null);
       setAccessReady(true);
       updateSupabaseAccessGate({ hasSession: false, accessReady: true, userId: null });
@@ -126,17 +170,18 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     }
 
     setAccessReady(false);
-    setProfileLoading(true); setRoleLoading(true); setClinicLoading(true);
+    setProfileLoading(true); setRoleLoading(true); setClinicLoading(true); setMembershipLoading(true);
     setProfileError(null);
     updateSupabaseAccessGate({ hasSession: true, accessReady: false, userId: nextUser.id });
     // eslint-disable-next-line no-console
     console.debug("[access:init]", { user_id: nextUser.id, override_clinic_id: overrideClinicId });
 
     try {
-      const [profileResult, userRolesResult] = await withTimeout(
+      const [profileResult, userRolesResult, clinicUsersResult] = await withTimeout(
         Promise.all([
           apiClient.from("profiles").select("*").eq("id", nextUser.id).maybeSingle(),
           apiClient.from("user_roles").select("role, clinic_id").eq("user_id", nextUser.id),
+          apiClient.from("clinic_users").select("role, clinic_id").eq("user_id", nextUser.id),
         ]),
         10000,
         "Access bootstrap",
@@ -145,12 +190,19 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
       const nextProfile = profileResult.data || null;
       const userRolesRows = (userRolesResult.data || []) as Array<{ role: string; clinic_id: string | null }>;
-      const fallbackRoles = userRolesRows.map(r => normalizeRole(r.role)).filter(Boolean) as string[];
+      const clinicUsersRows = (clinicUsersResult.data || []) as Array<{ role: string | null; clinic_id: string | null }>;
+      const fallbackRoles = Array.from(new Set([
+        ...userRolesRows.map((r) => normalizeRole(r.role)),
+        ...clinicUsersRows.map((r) => normalizeRole(r.role)),
+      ].filter(Boolean))) as string[];
       const primaryRole = resolvePrimaryRole(nextProfile, fallbackRoles);
       const nextRoles = Array.from(new Set([primaryRole, ...fallbackRoles].filter(Boolean))) as string[];
 
-      const membershipClinicIds = Array.from(new Set(userRolesRows.map(r => r.clinic_id).filter(Boolean) as string[]));
-      let membershipRows: typeof memberships = [];
+      const membershipClinicIds = Array.from(new Set([
+        ...userRolesRows.map((r) => r.clinic_id),
+        ...clinicUsersRows.map((r) => r.clinic_id),
+      ].filter(Boolean) as string[]));
+      let membershipRows: MembershipRow[] = [];
       if (membershipClinicIds.length) {
         const { data: clinicsData, error: clinicsError } = await withTimeout(
           apiClient
@@ -162,19 +214,10 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         );
         if (clinicsError) throw clinicsError;
         const clinicMap = new Map((clinicsData || []).map((c: any) => [c.id, c]));
-        membershipRows = userRolesRows
-          .filter(r => r.clinic_id)
-          .map(r => {
-            const c: any = clinicMap.get(r.clinic_id as string);
-            return {
-              clinic_id: r.clinic_id as string,
-              role: r.role,
-              clinic_name: c?.name ?? null,
-              setup_completed: c?.setup_completed ?? null,
-            };
-          });
+        membershipRows = mergeMemberships({ userRolesRows, clinicUsersRows, clinicMap });
       }
       setMemberships(membershipRows);
+      setMembershipLoading(false);
 
       setProfile(nextProfile);
       setProfileError(profileResult.error || null);
@@ -182,12 +225,15 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       setRole(primaryRole);
       setProfileLoading(false);
       setRoleLoading(false);
+      const membershipsReady = true;
       // eslint-disable-next-line no-console
       console.debug("[access:profile]", {
         user_id: nextUser.id,
         profile_loaded: !!nextProfile,
         primary_role: primaryRole,
         memberships: membershipRows.length,
+        memberships_ready: membershipsReady,
+        clinic_user_memberships: clinicUsersRows.length,
       });
 
       const isSuper =
@@ -220,6 +266,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         }
         setClinic(clinicData);
         setClinicLoading(false);
+        setMembershipLoading(false);
         applyClinicTheme(clinicData);
         setAccessLoadedForUser(nextUser.id);
         setAccessReady(true);
@@ -264,6 +311,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         resolved_clinic_id: backendResolvedClinicId,
         is_super_admin: false,
         effective_clinic_id: effectiveClinicId,
+        memberships: membershipRows.length,
       });
 
       if (!effectiveClinicId) {
@@ -276,6 +324,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           memberships: membershipRows.length,
         });
         setClinic(null); setClinicLoading(false); applyClinicTheme(null);
+        setMembershipLoading(false);
         setAccessLoadedForUser(nextUser.id);
         setAccessReady(true);
         updateSupabaseAccessGate({ hasSession: true, accessReady: true, userId: nextUser.id });
@@ -299,6 +348,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
       setClinic(clinicResult.data || null);
       setClinicLoading(false);
+      setMembershipLoading(false);
       applyClinicTheme(clinicResult.data || null);
       setAccessLoadedForUser(nextUser.id);
       setAccessReady(true);
@@ -324,6 +374,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       setProfileLoading(false);
       setRoleLoading(false);
       setClinicLoading(false);
+      setMembershipLoading(false);
       setAccessLoadedForUser(nextUser.id);
       setAccessReady(true);
       updateSupabaseAccessGate({ hasSession: true, accessReady: true, userId: nextUser.id });
@@ -338,6 +389,13 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    if (initializedRef.current) {
+      return () => {
+        mounted = false;
+      };
+    }
+    initializedRef.current = true;
+
     const clearResolvedAccessState = (nextUserId: string | null) => {
       setProfile(null);
       setClinic(null);
@@ -349,6 +407,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       setProfileLoading(false);
       setRoleLoading(false);
       setClinicLoading(false);
+      setMembershipLoading(false);
       setAccessLoadedForUser(nextUserId);
       setAccessReady(true);
     };
@@ -359,6 +418,12 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
       resetSupabaseAccessGate();
       setAuthLoading(true);
+      // eslint-disable-next-line no-console
+      console.debug("[auth:init:start]", {
+        bootstrapId,
+        hasOverride: request.hasOverride,
+        user_id: request.session?.user?.id ?? null,
+      });
 
       try {
         const resolved = await resolveSupabaseSessionWithRecovery(
@@ -380,6 +445,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         });
 
         setUser(session?.user ?? null);
+        setKnownSupabaseSession(session ?? null);
         updateSupabaseAccessGate({
           sessionBootstrapped: true,
           hasSession: !!session,
@@ -390,6 +456,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         if (!session?.user) {
           clearResolvedAccessState(null);
           setAuthLoading(false);
+          // eslint-disable-next-line no-console
+          console.debug("[auth:init:end]", { bootstrapId, hasSession: false, user_id: null });
           return;
         }
 
@@ -397,14 +465,19 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
         if (!mounted || bootstrapRef.current !== bootstrapId) return;
         setAuthLoading(false);
+        // eslint-disable-next-line no-console
+        console.debug("[auth:init:end]", { bootstrapId, hasSession: true, user_id: session.user.id });
       } catch (error: any) {
         if (!mounted || bootstrapRef.current !== bootstrapId) return;
         // eslint-disable-next-line no-console
         console.error("[auth:init:error]", { message: error?.message || "Unknown auth bootstrap error" });
         setUser(null);
+        setKnownSupabaseSession(null);
         clearResolvedAccessState(null);
         updateSupabaseAccessGate({ sessionBootstrapped: true, hasSession: false, accessReady: true, userId: null });
         setAuthLoading(false);
+        // eslint-disable-next-line no-console
+        console.debug("[auth:init:end]", { bootstrapId, hasSession: false, user_id: null, errored: true });
       }
     };
 
@@ -461,6 +534,13 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           setUser((prev: any) => (prev?.id === session.user.id ? prev : session.user));
         }
+        // eslint-disable-next-line no-console
+        console.debug("[auth:session:change]", {
+          event,
+          hasSession: !!session,
+          user_id: session?.user?.id ?? null,
+          tokenPresent: !!session?.access_token,
+        });
         updateSupabaseAccessGate({
           sessionBootstrapped: true,
           hasSession: !!session,
@@ -475,6 +555,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         setActiveClinicIdState(null);
         setAccessLoadedForUser(null);
         setUser(null);
+        setKnownSupabaseSession(null);
         updateSupabaseAccessGate({ sessionBootstrapped: true, hasSession: false, accessReady: true, userId: null });
         return;
       }
@@ -483,10 +564,14 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       void scheduleBootstrap(session);
     });
 
+    authSubscriptionRef.current = subscription;
+
     return () => {
       mounted = false;
       pendingBootstrapRef.current = null;
-      subscription.unsubscribe();
+      authSubscriptionRef.current?.unsubscribe();
+      authSubscriptionRef.current = null;
+      initializedRef.current = false;
     };
   }, [loadAccess]);
 
@@ -544,7 +629,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
   const isAuthenticated = Boolean(user);
   const accessReadyForCurrentUser = !isAuthenticated || (accessLoadedForUser === user?.id);
-  const isAuthReady = !authLoading && accessReady && (!isAuthenticated || (accessReadyForCurrentUser && !profileLoading && !roleLoading && !clinicLoading));
+  const isAuthReady = !authLoading && accessReady && (!isAuthenticated || (accessReadyForCurrentUser && !profileLoading && !roleLoading && !clinicLoading && !membershipLoading));
   const isSuperAdminUser = role === "super_admin" || profile?.is_super_admin === true;
   // Super admins are NEVER blocked by missing role/clinic state.
   const roleMissing = isAuthenticated && isAuthReady && !role && !isSuperAdminUser;
@@ -557,13 +642,13 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(() => ({
     user, authLoading, profile, profileError, clinic, roles, role, memberships,
-    profileLoading, roleLoading, clinicLoading,
+    profileLoading, roleLoading, clinicLoading, membershipLoading,
     isAuthenticated, isAuthReady, accessReady, roleMissing,
     activeClinicId, effectiveClinicId, resolvedClinicId, clinicResolutionFailed,
     switchClinic,
     reload: () => loadAccess(user, activeClinicId),
     signOut: async () => { persistActive(null); setActiveClinicIdState(null); await apiClient.auth.signOut(); },
-  }), [accessReady, authLoading, clinic, clinicLoading, isAuthenticated, isAuthReady, loadAccess, profile, profileError, profileLoading, role, roleLoading, roleMissing, roles, user, activeClinicId, effectiveClinicId, resolvedClinicId, clinicResolutionFailed, switchClinic, memberships, accessLoadedForUser]);
+  }), [accessReady, authLoading, clinic, clinicLoading, isAuthenticated, isAuthReady, loadAccess, profile, profileError, profileLoading, role, roleLoading, roleMissing, roles, user, activeClinicId, effectiveClinicId, resolvedClinicId, clinicResolutionFailed, switchClinic, memberships, membershipLoading, accessLoadedForUser]);
 
   return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>;
 }

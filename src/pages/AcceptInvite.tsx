@@ -94,13 +94,10 @@ export default function AcceptInvite() {
     setErrMsg(null);
     try {
       console.log("[invite] finalize start", { user_id: user?.id, token: token.slice(0, 8) });
-
-      // Ensure session is present before invoking edge function
-      const { data: sessionData } = await apiClient.auth.getSession();
-      if (!sessionData?.session) {
+      if (!user?.id) {
         throw new Error("Your session expired. Please sign in again.");
       }
-      console.log("[invite] session ok");
+      console.log("[invite] session ok", { user_id: user.id });
 
       const { data, error } = await withTimeout(
         apiClient.functions.invoke("accept-clinic-invite", { body: { token } }),

@@ -23,6 +23,13 @@ type SessionResolution = {
   error: Error | null;
 };
 
+type AuthStorageInspection = {
+  available: boolean;
+  keys: string[];
+  removedKeys: string[];
+  expectedKey: string;
+};
+
 type SafeStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
 type GlobalWithSupabaseAuth = typeof globalThis & {
@@ -64,6 +71,19 @@ function getBrowserLocalStorage() {
   } catch {
     return null;
   }
+}
+
+function listSupabaseAuthStorageKeys(storage: Storage) {
+  const keys: string[] = [];
+
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index);
+    if (key && /^sb-.*-auth-token$/.test(key)) {
+      keys.push(key);
+    }
+  }
+
+  return keys.sort();
 }
 
 export function isSupabaseStorageAvailable(forceCheck = false) {
@@ -138,6 +158,46 @@ export const safeSupabaseStorage: SafeStorage = {
     getFallbackStorage().delete(key);
   },
 };
+
+export function syncSupabaseAuthStorage(expectedKey: string): AuthStorageInspection {
+  const storage = getBrowserLocalStorage();
+  if (!storage || !isSupabaseStorageAvailable()) {
+    const fallbackKeys = Array.from(getFallbackStorage().keys()).filter((key) => /^sb-.*-auth-token$/.test(key)).sort();
+    // eslint-disable-next-line no-console
+    console.debug("[auth:storage:keys]", { expectedKey, available: false, keys: fallbackKeys, removedKeys: [] });
+    return {
+      available: false,
+      keys: fallbackKeys,
+      removedKeys: [],
+      expectedKey,
+    };
+  }
+
+  const keys = listSupabaseAuthStorageKeys(storage);
+  const removedKeys = keys.filter((key) => key !== expectedKey);
+
+  for (const key of removedKeys) {
+    try {
+      storage.removeItem(key);
+    } catch (error) {
+      const nextError = toError(error);
+      // eslint-disable-next-line no-console
+      console.warn("[auth:storage:cleanup:error]", { key, message: nextError.message });
+    }
+    getFallbackStorage().delete(key);
+  }
+
+  const activeKeys = listSupabaseAuthStorageKeys(storage);
+  // eslint-disable-next-line no-console
+  console.debug("[auth:storage:keys]", { expectedKey, available: true, keys: activeKeys, removedKeys });
+
+  return {
+    available: true,
+    keys: activeKeys,
+    removedKeys,
+    expectedKey,
+  };
+}
 
 export async function supabaseAuthLock<R>(name: string, acquireTimeout: number, fn: () => Promise<R>) {
   if (!sharedGlobal.__optocareAuthLocks) {

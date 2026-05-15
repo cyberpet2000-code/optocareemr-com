@@ -13,17 +13,13 @@ export default function ResetPassword() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Check for recovery event
-    const { data: { subscription } } = apiClient.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setReady(true);
-      }
-    });
-    // Also check hash for type=recovery
-    if (window.location.hash.includes("type=recovery")) {
-      setReady(true);
-    }
-    return () => subscription.unsubscribe();
+    const syncReady = () => {
+      setReady(window.location.hash.includes("type=recovery") || window.location.hash.includes("access_token="));
+    };
+
+    syncReady();
+    window.addEventListener("hashchange", syncReady);
+    return () => window.removeEventListener("hashchange", syncReady);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
