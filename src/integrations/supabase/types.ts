@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -3202,6 +3202,7 @@ export type Database = {
         Returns: undefined
       }
       freeze_extra_branches: { Args: { p_org_id: string }; Returns: undefined }
+      get_active_clinic_id: { Args: never; Returns: string }
       get_due_reminders: {
         Args: never
         Returns: {
@@ -3249,7 +3250,9 @@ export type Database = {
         Args: { clinic_id: string; feature: string }
         Returns: boolean
       }
-      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin:
+        | { Args: never; Returns: boolean }
+        | { Args: { _user_id: string }; Returns: boolean }
       is_table: { Args: { obj: string }; Returns: boolean }
       is_trial_active: { Args: { _clinic_id: string }; Returns: boolean }
       is_view: { Args: { obj: string }; Returns: boolean }

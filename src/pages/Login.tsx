@@ -41,7 +41,6 @@ export default function Login() {
       const { data, error } = await apiClient.auth.signInWithPassword({ email, password });
       setLoading(false);
       if (error) { toast.error(error.message); return; }
-      let dest = "/";
       if (data.user) {
         // Clear any stale active clinic on a fresh login
         try { localStorage.removeItem("active_clinic_id"); } catch {}
@@ -49,12 +48,14 @@ export default function Login() {
         let pendingInvite: string | null = null;
         try { pendingInvite = sessionStorage.getItem("pending_invite_token"); } catch {}
         if (pendingInvite) {
-          dest = `/accept-invite?token=${encodeURIComponent(pendingInvite)}`;
-        } else {
-          dest = "/";
+          navigate(`/accept-invite?token=${encodeURIComponent(pendingInvite)}`, { replace: true });
+          return;
         }
+        // Do NOT navigate manually here — AppRoutes will redirect /login → /
+        // as soon as the auth listener hydrates the user into context. This
+        // avoids a race where we land on "/" before isAuthReady flips true
+        // and ProtectedRouteGate bounces us back to /login.
       }
-      navigate(dest, { replace: true });
     }
   };
 

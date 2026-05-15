@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
 import { assertClinicAccess } from "@/lib/route-access";
-import { resolveSupabaseSessionWithRecovery, safeSupabaseStorage } from "@/lib/supabase-auth";
+import { resolveSupabaseSessionWithRecovery, safeSupabaseStorage, setKnownSupabaseSession } from "@/lib/supabase-auth";
 import { resetSupabaseAccessGate, updateSupabaseAccessGate } from "@/lib/supabase-access-gate";
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
@@ -449,12 +449,37 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         user_id: session?.user?.id ?? null,
         tokenPresent: !!session?.access_token,
       });
-      if (!session?.user) {
+
+      // Ignore initial replay — the explicit bootstrap above handles it.
+      if (event === "INITIAL_SESSION") return;
+
+      // Token refresh / user update: keep current access state, just refresh
+      // the cached session + user. Do NOT re-run the full bootstrap, which
+      // would flip accessReady=false and cause transient redirects to /login.
+      if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+        setKnownSupabaseSession(session ?? null);
+        if (session?.user) {
+          setUser((prev: any) => (prev?.id === session.user.id ? prev : session.user));
+        }
+        updateSupabaseAccessGate({
+          sessionBootstrapped: true,
+          hasSession: !!session,
+          accessReady: true,
+          userId: session?.user?.id ?? null,
+        });
+        return;
+      }
+
+      if (event === "SIGNED_OUT" || !session?.user) {
         persistActive(null);
         setActiveClinicIdState(null);
         setAccessLoadedForUser(null);
+        setUser(null);
+        updateSupabaseAccessGate({ sessionBootstrapped: true, hasSession: false, accessReady: true, userId: null });
+        return;
       }
-      if (event === "INITIAL_SESSION") return;
+
+      // SIGNED_IN (or other auth-changing event with a user): re-bootstrap.
       void scheduleBootstrap(session);
     });
 
