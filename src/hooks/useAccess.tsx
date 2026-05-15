@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
 import { assertClinicAccess } from "@/lib/route-access";
-import { resolveSupabaseSessionWithRecovery, safeSupabaseStorage } from "@/lib/supabase-auth";
+import { resolveSupabaseSessionWithRecovery, safeSupabaseStorage, setKnownSupabaseSession } from "@/lib/supabase-auth";
 import { resetSupabaseAccessGate, updateSupabaseAccessGate } from "@/lib/supabase-access-gate";
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
