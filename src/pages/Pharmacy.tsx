@@ -93,7 +93,7 @@ export default function Pharmacy() {
       const drug = drugs.find(d => d.id === item.drug_id);
       if (!drug) continue;
       // Record sale
-      await apiClient.from("pharmacy_sales").insert({
+      await (apiClient.from as any)("pharmacy_sales").insert({
         clinic_id: cid,
         patient_id: selectedPatient || null,
         inventory_id: item.drug_id,
