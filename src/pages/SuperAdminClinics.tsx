@@ -150,7 +150,6 @@ export default function SuperAdminClinics() {
                 <th className="py-2 pr-3">Name</th>
                 <th className="py-2 pr-3">Status</th>
                 <th className="py-2 pr-3">Setup</th>
-                <th className="py-2 pr-3">Trial Ends</th>
                 <th className="py-2 pr-3">Active</th>
                 <th className="py-2 pr-3"></th>
               </tr>
