@@ -169,7 +169,7 @@ export default function SuperAdminClinics() {
                         <UserPlus size={14} className="mr-1" /> Invite
                       </Button>
                       {(() => {
-                        const cur = (c.lifecycle_status as Lifecycle) || "trial";
+                        const cur = (c.lifecycle_status as Lifecycle) || "active";
                         const allowed = ALLOWED_TRANSITIONS[cur];
                         const btn = (next: Lifecycle, label: string, Icon: any, variant: any = "outline") => (
                           <Button key={next} size="sm" variant={variant}
