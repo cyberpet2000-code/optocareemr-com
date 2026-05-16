@@ -44,7 +44,7 @@ export default function SuperAdminClinics() {
 
   const refresh = async () => {
     const { data } = await apiClient.from("clinics")
-      .select("id, name, subscription_status, trial_end_date, setup_completed, is_active, lifecycle_status, deactivated_at, deactivation_reason, created_at")
+      .select("id, name, subscription_status, setup_completed, is_active, lifecycle_status, deactivated_at, deactivation_reason, created_at")
       .order("created_at", { ascending: false });
     setClinics(data || []);
     setLoading(false);
