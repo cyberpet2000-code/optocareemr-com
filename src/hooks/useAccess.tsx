@@ -14,6 +14,32 @@ type MembershipRow = {
   setup_completed: boolean | null;
 };
 
+type AccessState = {
+  accessReady: boolean;
+  profile: any | null;
+  clinic: any | null;
+  roles: string[];
+  role: string | null;
+  profileError: any;
+  memberships: MembershipRow[];
+  resolvedClinicId: string | null;
+  clinicResolutionFailed: boolean;
+};
+
+function createEmptyAccessState(accessReady = false): AccessState {
+  return {
+    accessReady,
+    profile: null,
+    clinic: null,
+    roles: [],
+    role: null,
+    profileError: null,
+    memberships: [],
+    resolvedClinicId: null,
+    clinicResolutionFailed: false,
+  };
+}
+
 function normalizeRole(value?: string | null) {
   return value && VALID_ROLES.includes(value) ? value : null;
 }
@@ -22,7 +48,7 @@ function resolvePrimaryRole(profile: any, userRoles: string[]) {
   if (profile?.is_super_admin || profile?.role === "super_admin") return "super_admin";
   const profileRole = normalizeRole(profile?.role);
   if (profileRole) return profileRole;
-  return userRoles.find((r) => normalizeRole(r)) || null;
+  return userRoles.find((nextRole) => normalizeRole(nextRole)) || null;
 }
 
 function mergeMemberships({
@@ -35,14 +61,17 @@ function mergeMemberships({
   clinicMap: Map<string, any>;
 }): MembershipRow[] {
   const membershipMap = new Map<string, MembershipRow>();
+
   const upsert = (clinicId: string | null, role: string | null | undefined, source: "user_roles" | "clinic_users") => {
     if (!clinicId) return;
+
     const normalizedRole = normalizeRole(role);
     const clinic = clinicMap.get(clinicId);
     const existing = membershipMap.get(clinicId);
     const preferredRole = source === "user_roles"
       ? (normalizedRole ?? existing?.role ?? "admin")
       : (existing?.role ?? normalizedRole ?? "admin");
+
     membershipMap.set(clinicId, {
       clinic_id: clinicId,
       role: preferredRole,
@@ -50,216 +79,339 @@ function mergeMemberships({
       setup_completed: clinic?.setup_completed ?? existing?.setup_completed ?? null,
     });
   };
-  userRolesRows.forEach((r) => upsert(r.clinic_id, r.role, "user_roles"));
-  clinicUsersRows.forEach((r) => upsert(r.clinic_id, r.role, "clinic_users"));
+
+  userRolesRows.forEach((row) => upsert(row.clinic_id, row.role, "user_roles"));
+  clinicUsersRows.forEach((row) => upsert(row.clinic_id, row.role, "clinic_users"));
+
   return Array.from(membershipMap.values());
 }
-
-// Theme is now a single static global theme — no runtime clinic theme hydration.
 
 const AccessContext = createContext<any>(null);
 
 export function AccessProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [accessReady, setAccessReady] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
-  const [clinic, setClinic] = useState<any>(null);
-  const [roles, setRoles] = useState<string[]>([]);
-  const [role, setRole] = useState<string | null>(null);
-  const [profileError, setProfileError] = useState<any>(null);
   const [activeClinicId, setActiveClinicIdState] = useState<string | null>(() =>
     safeSupabaseStorage.getItem(ACTIVE_CLINIC_KEY),
   );
-  const [memberships, setMemberships] = useState<MembershipRow[]>([]);
-  const [resolvedClinicId, setResolvedClinicId] = useState<string | null>(null);
-  const [clinicResolutionFailed, setClinicResolutionFailed] = useState(false);
+  const [accessState, setAccessState] = useState<AccessState>(() => createEmptyAccessState(false));
+
   const requestRef = useRef(0);
   const activeClinicIdRef = useRef(activeClinicId);
   const userRef = useRef(user);
+  const accessStateRef = useRef(accessState);
+  const accessReadyRef = useRef(accessState.accessReady);
+  const completedLoadKeyRef = useRef<string | null>(null);
+  const inFlightLoadRef = useRef<{ key: string; promise: Promise<void> } | null>(null);
 
-  useEffect(() => { userRef.current = user; }, [user]);
-  useEffect(() => { activeClinicIdRef.current = activeClinicId; }, [activeClinicId]);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
-  const persistActive = (id: string | null) => {
-    if (id) safeSupabaseStorage.setItem(ACTIVE_CLINIC_KEY, id);
+  useEffect(() => {
+    activeClinicIdRef.current = activeClinicId;
+  }, [activeClinicId]);
+
+  useEffect(() => {
+    accessStateRef.current = accessState;
+    accessReadyRef.current = accessState.accessReady;
+  }, [accessState]);
+
+  const persistActive = useCallback((clinicId: string | null) => {
+    if (clinicId) safeSupabaseStorage.setItem(ACTIVE_CLINIC_KEY, clinicId);
     else safeSupabaseStorage.removeItem(ACTIVE_CLINIC_KEY);
-  };
-
-  const clearAccessState = useCallback(() => {
-    setProfile(null); setClinic(null); setRoles([]); setRole(null);
-    setMemberships([]); setResolvedClinicId(null); setClinicResolutionFailed(false);
-    setProfileError(null);
-    
   }, []);
 
-  // Single profile + role + clinic loader. Called after auth resolves.
-  const loadAccess = useCallback(async (nextUser: User | null, overrideClinicId: string | null) => {
-    const requestId = ++requestRef.current;
+  const invalidatePendingLoads = useCallback(() => {
+    requestRef.current += 1;
+    completedLoadKeyRef.current = null;
+    inFlightLoadRef.current = null;
+  }, []);
+
+  const clearAccessState = useCallback((ready = true) => {
+    invalidatePendingLoads();
+    setAccessState(createEmptyAccessState(ready));
+  }, [invalidatePendingLoads]);
+
+  const loadAccess = useCallback(async (
+    nextUser: User | null,
+    overrideClinicId: string | null,
+    options?: { force?: boolean; blocking?: boolean; reason?: string },
+  ) => {
+    const force = options?.force ?? false;
+    const blocking = options?.blocking ?? true;
+    const reason = options?.reason ?? "manual";
+    const loadKey = nextUser ? `${nextUser.id}:${overrideClinicId ?? ""}` : "anonymous";
 
     if (!nextUser) {
-      clearAccessState();
-      setAccessReady(true);
+      invalidatePendingLoads();
+      completedLoadKeyRef.current = loadKey;
+      setAccessState(createEmptyAccessState(true));
       return;
     }
 
-    setAccessReady(false);
-    setProfileError(null);
-    // eslint-disable-next-line no-console
-    console.debug("[access:load:start]", { user_id: nextUser.id, override_clinic_id: overrideClinicId });
+    if (!force) {
+      if (completedLoadKeyRef.current === loadKey) {
+        console.debug("[access:load:skip]", { reason, loadKey });
+        return;
+      }
+      if (inFlightLoadRef.current?.key === loadKey) {
+        console.debug("[access:load:join]", { reason, loadKey });
+        return inFlightLoadRef.current.promise;
+      }
+    }
+
+    const promise = (async () => {
+      const requestId = ++requestRef.current;
+      completedLoadKeyRef.current = null;
+
+      if (blocking) {
+        setAccessState((prev) => (
+          prev.accessReady || prev.profileError || prev.clinicResolutionFailed
+            ? {
+                ...prev,
+                accessReady: false,
+                profileError: null,
+                clinicResolutionFailed: false,
+              }
+            : prev
+        ));
+      } else {
+        setAccessState((prev) => (
+          prev.profileError
+            ? { ...prev, profileError: null }
+            : prev
+        ));
+      }
+
+      console.debug("[access:load:start]", {
+        reason,
+        user_id: nextUser.id,
+        override_clinic_id: overrideClinicId,
+        blocking,
+        force,
+      });
+
+      try {
+        const [profileResult, userRolesResult, clinicUsersResult] = await Promise.all([
+          apiClient.from("profiles").select("*").eq("id", nextUser.id).maybeSingle(),
+          apiClient.from("user_roles").select("role, clinic_id").eq("user_id", nextUser.id),
+          apiClient.from("clinic_users").select("role, clinic_id").eq("user_id", nextUser.id),
+        ]);
+
+        if (requestRef.current !== requestId) return;
+
+        const nextProfile = profileResult.data || null;
+        const userRolesRows = (userRolesResult.data || []) as Array<{ role: string; clinic_id: string | null }>;
+        const clinicUsersRows = (clinicUsersResult.data || []) as Array<{ role: string | null; clinic_id: string | null }>;
+        const fallbackRoles = Array.from(new Set([
+          ...userRolesRows.map((row) => normalizeRole(row.role)),
+          ...clinicUsersRows.map((row) => normalizeRole(row.role)),
+        ].filter(Boolean))) as string[];
+        const primaryRole = resolvePrimaryRole(nextProfile, fallbackRoles);
+        const nextRoles = Array.from(new Set([primaryRole, ...fallbackRoles].filter(Boolean))) as string[];
+
+        const membershipClinicIds = Array.from(new Set([
+          ...userRolesRows.map((row) => row.clinic_id),
+          ...clinicUsersRows.map((row) => row.clinic_id),
+        ].filter(Boolean) as string[]));
+
+        let membershipRows: MembershipRow[] = [];
+        if (membershipClinicIds.length > 0) {
+          const { data: clinicsData } = await apiClient
+            .from("clinics")
+            .select("id, name, setup_completed")
+            .in("id", membershipClinicIds);
+
+          if (requestRef.current !== requestId) return;
+
+          const clinicMap = new Map((clinicsData || []).map((clinicRow: any) => [clinicRow.id, clinicRow]));
+          membershipRows = mergeMemberships({ userRolesRows, clinicUsersRows, clinicMap });
+        }
+
+        const nextAccessState: AccessState = {
+          accessReady: true,
+          profile: nextProfile,
+          clinic: null,
+          roles: nextRoles,
+          role: primaryRole,
+          profileError: profileResult.error || null,
+          memberships: membershipRows,
+          resolvedClinicId: null,
+          clinicResolutionFailed: false,
+        };
+
+        const isSuperAdminUser = primaryRole === "super_admin" || nextProfile?.is_super_admin === true;
+
+        if (isSuperAdminUser) {
+          if (overrideClinicId) {
+            try {
+              const { data } = await apiClient
+                .from("clinics")
+                .select("id, name, subscription_status, setup_completed, onboarding_step, is_active, lifecycle_status, logo_url")
+                .eq("id", overrideClinicId)
+                .maybeSingle();
+              nextAccessState.clinic = data || null;
+            } catch (error: any) {
+              console.warn("[access:super_admin_clinic_override_failed]", { message: error?.message });
+            }
+          }
+
+          if (requestRef.current !== requestId) return;
+
+          setAccessState(nextAccessState);
+          completedLoadKeyRef.current = loadKey;
+          console.debug("[access:super_admin_ready]", {
+            reason,
+            user_id: nextUser.id,
+            override_clinic_id: overrideClinicId,
+          });
+          return;
+        }
+
+        const { data: resolvedRow, error: resolvedError } = await apiClient
+          .from("user_active_clinic")
+          .select("resolved_clinic_id, is_super_admin")
+          .eq("id", nextUser.id)
+          .maybeSingle();
+
+        if (requestRef.current !== requestId) return;
+        if (resolvedError) throw resolvedError;
+
+        const backendResolvedClinicId = (resolvedRow as any)?.resolved_clinic_id ?? null;
+        nextAccessState.resolvedClinicId = backendResolvedClinicId;
+
+        if (overrideClinicId && overrideClinicId !== backendResolvedClinicId) {
+          persistActive(null);
+          setActiveClinicIdState(null);
+        }
+
+        if (!backendResolvedClinicId) {
+          nextAccessState.clinicResolutionFailed = true;
+          setAccessState(nextAccessState);
+          completedLoadKeyRef.current = loadKey;
+          console.debug("[access:no_clinic]", { reason, user_id: nextUser.id });
+          return;
+        }
+
+        const clinicResult = await apiClient
+          .from("clinics")
+          .select("id, name, subscription_status, setup_completed, onboarding_step, is_active, lifecycle_status, logo_url")
+          .eq("id", backendResolvedClinicId)
+          .maybeSingle();
+
+        if (requestRef.current !== requestId) return;
+
+        nextAccessState.clinic = clinicResult.data || null;
+        setAccessState(nextAccessState);
+        completedLoadKeyRef.current = loadKey;
+
+        console.debug("[access:ready]", {
+          reason,
+          user_id: nextUser.id,
+          role: primaryRole,
+          clinic_id: backendResolvedClinicId,
+        });
+      } catch (error: any) {
+        if (requestRef.current !== requestId) return;
+
+        setAccessState((prev) => ({
+          ...prev,
+          accessReady: true,
+          profileError: error,
+          clinicResolutionFailed: true,
+        }));
+
+        console.error("[access:error]", {
+          reason,
+          user_id: nextUser.id,
+          message: error?.message,
+        });
+      }
+    })();
+
+    inFlightLoadRef.current = { key: loadKey, promise };
 
     try {
-      const [profileResult, userRolesResult, clinicUsersResult] = await Promise.all([
-        apiClient.from("profiles").select("*").eq("id", nextUser.id).maybeSingle(),
-        apiClient.from("user_roles").select("role, clinic_id").eq("user_id", nextUser.id),
-        apiClient.from("clinic_users").select("role, clinic_id").eq("user_id", nextUser.id),
-      ]);
-      if (requestRef.current !== requestId) return;
-
-      const nextProfile = profileResult.data || null;
-      const userRolesRows = (userRolesResult.data || []) as Array<{ role: string; clinic_id: string | null }>;
-      const clinicUsersRows = (clinicUsersResult.data || []) as Array<{ role: string | null; clinic_id: string | null }>;
-      const fallbackRoles = Array.from(new Set([
-        ...userRolesRows.map((r) => normalizeRole(r.role)),
-        ...clinicUsersRows.map((r) => normalizeRole(r.role)),
-      ].filter(Boolean))) as string[];
-      const primaryRole = resolvePrimaryRole(nextProfile, fallbackRoles);
-      const nextRoles = Array.from(new Set([primaryRole, ...fallbackRoles].filter(Boolean))) as string[];
-
-      const membershipClinicIds = Array.from(new Set([
-        ...userRolesRows.map((r) => r.clinic_id),
-        ...clinicUsersRows.map((r) => r.clinic_id),
-      ].filter(Boolean) as string[]));
-      let membershipRows: MembershipRow[] = [];
-      if (membershipClinicIds.length) {
-        const { data: clinicsData } = await apiClient
-          .from("clinics")
-          .select("id, name, setup_completed")
-          .in("id", membershipClinicIds);
-        if (requestRef.current !== requestId) return;
-        const clinicMap = new Map((clinicsData || []).map((c: any) => [c.id, c]));
-        membershipRows = mergeMemberships({ userRolesRows, clinicUsersRows, clinicMap });
+      await promise;
+    } finally {
+      if (inFlightLoadRef.current?.key === loadKey) {
+        inFlightLoadRef.current = null;
       }
-
-      setMemberships(membershipRows);
-      setProfile(nextProfile);
-      setProfileError(profileResult.error || null);
-      setRoles(nextRoles);
-      setRole(primaryRole);
-
-      const isSuper = primaryRole === "super_admin" || nextProfile?.is_super_admin === true;
-
-      // SUPER ADMIN: bypass clinic / lifecycle / membership enforcement.
-      if (isSuper) {
-        setResolvedClinicId(null);
-        setClinicResolutionFailed(false);
-        let clinicData: any = null;
-        if (overrideClinicId) {
-          try {
-            const { data } = await apiClient
-              .from("clinics")
-              .select("id, name, subscription_status, setup_completed, onboarding_step, is_active, lifecycle_status, logo_url")
-              .eq("id", overrideClinicId)
-              .maybeSingle();
-            clinicData = data || null;
-          } catch (e: any) {
-            // eslint-disable-next-line no-console
-            console.warn("[access:super_admin_clinic_override_failed]", { message: e?.message });
-          }
-        }
-        if (requestRef.current !== requestId) return;
-        setClinic(clinicData);
-        
-        setAccessReady(true);
-        // eslint-disable-next-line no-console
-        console.debug("[access:super_admin_ready]", { user_id: nextUser.id, override_clinic_id: overrideClinicId });
-        return;
-      }
-
-      // Non-super: resolved_clinic_id is the only allowed clinic.
-      const { data: resolvedRow, error: resolvedError } = await apiClient
-        .from("user_active_clinic")
-        .select("resolved_clinic_id, is_super_admin")
-        .eq("id", nextUser.id)
-        .maybeSingle();
-      if (requestRef.current !== requestId) return;
-      if (resolvedError) throw resolvedError;
-
-      const backendResolvedClinicId = (resolvedRow as any)?.resolved_clinic_id ?? null;
-      setResolvedClinicId(backendResolvedClinicId);
-
-      if (overrideClinicId && overrideClinicId !== backendResolvedClinicId) {
-        persistActive(null);
-        setActiveClinicIdState(null);
-      }
-
-      if (!backendResolvedClinicId) {
-        setClinic(null);
-        setClinicResolutionFailed(true);
-        
-        setAccessReady(true);
-        // eslint-disable-next-line no-console
-        console.debug("[access:no_clinic]", { user_id: nextUser.id });
-        return;
-      }
-
-      setClinicResolutionFailed(false);
-      const clinicResult = await apiClient
-        .from("clinics")
-        .select("id, name, subscription_status, setup_completed, onboarding_step, is_active, lifecycle_status, logo_url")
-        .eq("id", backendResolvedClinicId)
-        .maybeSingle();
-      if (requestRef.current !== requestId) return;
-
-      setClinic(clinicResult.data || null);
-      
-      setAccessReady(true);
-      // eslint-disable-next-line no-console
-      console.debug("[access:ready]", {
-        user_id: nextUser.id,
-        role: primaryRole,
-        clinic_id: backendResolvedClinicId,
-      });
-    } catch (error: any) {
-      if (requestRef.current !== requestId) return;
-      // Keep any role we may have resolved; only mark clinic resolution failed.
-      setClinic(null);
-      setResolvedClinicId(null);
-      setClinicResolutionFailed(true);
-      setProfileError(error);
-      
-      setAccessReady(true);
-      // eslint-disable-next-line no-console
-      console.error("[access:error]", { user_id: nextUser.id, message: error?.message });
     }
-  }, [clearAccessState]);
+  }, [invalidatePendingLoads, persistActive]);
 
-  // ===== Single bootstrap + single auth listener =====
   useEffect(() => {
     let mounted = true;
 
     const applySession = async (session: Session | null, reason: string) => {
       if (!mounted) return;
-      setKnownSupabaseSession(session);
+
       const nextUser = session?.user ?? null;
-      setUser(nextUser);
-      // eslint-disable-next-line no-console
-      console.debug("[auth:apply]", { reason, hasSession: !!session, user_id: nextUser?.id ?? null });
-      await loadAccess(nextUser, activeClinicIdRef.current);
+      const previousUserId = userRef.current?.id ?? null;
+      const nextUserId = nextUser?.id ?? null;
+      const userChanged = previousUserId !== nextUserId;
+
+      setKnownSupabaseSession(session);
+      setUser((prev) => {
+        if (!nextUser) return null;
+        return prev?.id === nextUser.id ? prev : nextUser;
+      });
+
+      console.debug("[auth:session]", {
+        reason,
+        previous_user_id: previousUserId,
+        next_user_id: nextUserId,
+        has_session: !!session,
+      });
+
+      if (!nextUser) {
+        clearAccessState(true);
+        setAuthLoading(false);
+        console.debug("[auth:init:end]", { reason, has_session: false, user_id: null });
+        return;
+      }
+
+      const shouldHydrateAccess = userChanged || !accessReadyRef.current;
+      if (shouldHydrateAccess) {
+        await loadAccess(nextUser, activeClinicIdRef.current, {
+          force: true,
+          blocking: userChanged || !accessReadyRef.current,
+          reason,
+        });
+      } else {
+        console.debug("[access:load:skip:auth_event]", {
+          reason,
+          user_id: nextUser.id,
+          loadKey: `${nextUser.id}:${activeClinicIdRef.current ?? ""}`,
+        });
+      }
+
       if (!mounted) return;
       setAuthLoading(false);
+      console.debug("[auth:init:end]", { reason, has_session: true, user_id: nextUserId });
     };
 
-    // 1) Subscribe FIRST so we never miss an event.
-    const { data: { subscription } } = apiClient.auth.onAuthStateChange((event, session) => {
-      // eslint-disable-next-line no-console
-      console.debug("[auth:event]", event, { user_id: session?.user?.id ?? null });
+    console.debug("[auth:init:start]");
 
-      // INITIAL_SESSION is handled by the explicit getSession() below.
+    const { data: { subscription } } = apiClient.auth.onAuthStateChange((event, session) => {
+      console.debug("[auth:event]", event, {
+        user_id: session?.user?.id ?? null,
+        has_session: !!session,
+      });
+
       if (event === "INITIAL_SESSION") return;
 
-      // Keep cached session fresh; do NOT clear it during refreshes/updates.
-      if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+      if (event === "TOKEN_REFRESHED") {
+        setKnownSupabaseSession(session ?? null);
+        console.debug("[auth:refresh]", {
+          user_id: session?.user?.id ?? null,
+          refreshed: !!session?.access_token,
+        });
+        return;
+      }
+
+      if (event === "USER_UPDATED") {
         setKnownSupabaseSession(session ?? null);
         if (session?.user) {
           setUser((prev) => (prev?.id === session.user.id ? prev : session.user));
@@ -268,34 +420,44 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (event === "SIGNED_OUT") {
+        invalidatePendingLoads();
         persistActive(null);
         setActiveClinicIdState(null);
         setKnownSupabaseSession(null);
         setUser(null);
-        clearAccessState();
-        setAccessReady(true);
+        setAccessState(createEmptyAccessState(true));
         setAuthLoading(false);
         return;
       }
 
       if (event === "SIGNED_IN" || event === "PASSWORD_RECOVERY") {
+        if (session?.user?.id && userRef.current?.id === session.user.id && accessReadyRef.current) {
+          setKnownSupabaseSession(session);
+          setAuthLoading(false);
+          console.debug("[auth:event:skip_duplicate]", {
+            event,
+            user_id: session.user.id,
+          });
+          return;
+        }
         void applySession(session, event);
       }
     });
 
-    // 2) Then restore the existing session from storage (single call).
     (async () => {
       try {
         const { data } = await apiClient.auth.getSession();
+        console.debug("[auth:getSession]", {
+          has_session: !!data.session,
+          user_id: data.session?.user?.id ?? null,
+        });
         await applySession(data.session ?? null, "bootstrap");
       } catch (error: any) {
-        // eslint-disable-next-line no-console
         console.error("[auth:bootstrap:error]", { message: error?.message });
         if (!mounted) return;
         setKnownSupabaseSession(null);
         setUser(null);
-        clearAccessState();
-        setAccessReady(true);
+        clearAccessState(true);
         setAuthLoading(false);
       }
     })();
@@ -304,47 +466,98 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [clearAccessState, invalidatePendingLoads, loadAccess, persistActive]);
+
+  const reload = useCallback(() => {
+    return loadAccess(userRef.current, activeClinicIdRef.current, {
+      force: true,
+      blocking: false,
+      reason: "reload",
+    });
+  }, [loadAccess]);
 
   const switchClinic = useCallback(async (clinicId: string | null) => {
-    if (clinicId && user) {
-      const grantedRole = await assertClinicAccess(apiClient as any, user.id, clinicId);
+    const currentState = accessStateRef.current;
+    const isSuperAdminUser = currentState.role === "super_admin" || currentState.profile?.is_super_admin === true;
+    const currentEffectiveClinicId = isSuperAdminUser
+      ? (activeClinicIdRef.current || currentState.resolvedClinicId || null)
+      : currentState.resolvedClinicId;
+
+    if (clinicId === currentEffectiveClinicId) {
+      console.debug("[access:switch:skip]", { clinic_id: clinicId });
+      return true;
+    }
+
+    if (clinicId && userRef.current) {
+      const grantedRole = await assertClinicAccess(apiClient as any, userRef.current.id, clinicId);
       if (!grantedRole) {
         throw new Error("You do not have access to this clinic.");
       }
     }
+
     persistActive(clinicId);
     setActiveClinicIdState(clinicId);
-    await loadAccess(user, clinicId);
+
+    await loadAccess(userRef.current, clinicId, {
+      force: true,
+      blocking: true,
+      reason: "switchClinic",
+    });
+
     return true;
-  }, [loadAccess, user]);
+  }, [loadAccess, persistActive]);
+
+  const signOut = useCallback(async () => {
+    persistActive(null);
+    setActiveClinicIdState(null);
+    await apiClient.auth.signOut();
+  }, [persistActive]);
 
   const isAuthenticated = !!user;
-  const isAuthReady = !authLoading && (!isAuthenticated || accessReady);
-  const isSuperAdminUser = role === "super_admin" || profile?.is_super_admin === true;
-  const roleMissing = isAuthenticated && isAuthReady && !role && !isSuperAdminUser;
-
+  const isAuthReady = !authLoading && (!isAuthenticated || accessState.accessReady);
+  const isSuperAdminUser = accessState.role === "super_admin" || accessState.profile?.is_super_admin === true;
+  const roleMissing = isAuthenticated && isAuthReady && !accessState.role && !isSuperAdminUser;
   const effectiveClinicId = isSuperAdminUser
-    ? (activeClinicId || resolvedClinicId || null)
-    : resolvedClinicId;
+    ? (activeClinicId || accessState.resolvedClinicId || null)
+    : accessState.resolvedClinicId;
 
   const value = useMemo(() => ({
-    user, authLoading, profile, profileError, clinic, roles, role, memberships,
-    profileLoading: !accessReady && isAuthenticated,
-    roleLoading: !accessReady && isAuthenticated,
-    clinicLoading: !accessReady && isAuthenticated,
-    membershipLoading: !accessReady && isAuthenticated,
-    isAuthenticated, isAuthReady, accessReady, roleMissing,
-    activeClinicId, effectiveClinicId, resolvedClinicId, clinicResolutionFailed,
+    user,
+    authLoading,
+    profile: accessState.profile,
+    profileError: accessState.profileError,
+    clinic: accessState.clinic,
+    roles: accessState.roles,
+    role: accessState.role,
+    memberships: accessState.memberships,
+    profileLoading: !accessState.accessReady && isAuthenticated,
+    roleLoading: !accessState.accessReady && isAuthenticated,
+    clinicLoading: !accessState.accessReady && isAuthenticated,
+    membershipLoading: !accessState.accessReady && isAuthenticated,
+    isAuthenticated,
+    isAuthReady,
+    accessReady: accessState.accessReady,
+    roleMissing,
+    activeClinicId,
+    effectiveClinicId,
+    resolvedClinicId: accessState.resolvedClinicId,
+    clinicResolutionFailed: accessState.clinicResolutionFailed,
     switchClinic,
-    reload: () => loadAccess(user, activeClinicId),
-    signOut: async () => {
-      persistActive(null);
-      setActiveClinicIdState(null);
-      await apiClient.auth.signOut();
-    },
-  }), [accessReady, authLoading, clinic, isAuthenticated, isAuthReady, loadAccess, profile, profileError, role, roleMissing, roles, user, activeClinicId, effectiveClinicId, resolvedClinicId, clinicResolutionFailed, switchClinic, memberships]);
+    reload,
+    signOut,
+  }), [
+    accessState,
+    activeClinicId,
+    authLoading,
+    effectiveClinicId,
+    isAuthenticated,
+    isAuthReady,
+    reload,
+    roleMissing,
+    signOut,
+    switchClinic,
+    user,
+  ]);
 
   return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>;
 }
