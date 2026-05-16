@@ -11,6 +11,7 @@ type ProtectedRouteInput = {
   roleMissing: boolean;
   membershipsCount?: number;
   lifecycleStatus?: string | null;
+  isActive?: boolean;
 };
 
 const BILLING_ALLOWED_PATHS = ["/billing", "/no-access", "/select-clinic"];
