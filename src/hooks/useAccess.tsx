@@ -351,7 +351,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
         if (overrideClinicId && overrideClinicId !== backendResolvedClinicId) {
           persistActive(null);
-          setActiveClinicIdState(null);
+          setActiveClinicIdState((prev) => (prev === null ? prev : null));
         }
 
         if (!backendResolvedClinicId) {
