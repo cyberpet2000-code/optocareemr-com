@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -104,6 +104,21 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+const LandingRedirect = memo(function LandingRedirect() {
+  const { clinic, effectiveClinicId } = useClinic();
+  const { role } = useRole();
+  const { memberships } = useAccess();
+
+  const target = useMemo(() => resolveDefaultRoute({
+    role,
+    clinicId: effectiveClinicId,
+    setupCompleted: clinic?.setup_completed,
+    membershipsCount: memberships.length,
+  }), [clinic?.setup_completed, effectiveClinicId, memberships.length, role]);
+
+  return <Navigate to={target} replace />;
+});
+
 export function AppRoutes() {
   const location = useLocation();
   const { user, isAuthReady } = useAuth();
@@ -113,7 +128,7 @@ export function AppRoutes() {
   if (!isAuthReady) return <FullScreenLoader label="Loading OptoCare…" />;
 
   if (user && (location.pathname === "/login" || location.pathname === "/signup")) {
-    return <Navigate to="/" replace />;
+    return <LandingRedirect />;
   }
 
   return isPublicRoute ? (
@@ -154,13 +169,6 @@ export function AppRoutes() {
       </Routes>
     </ProtectedRouteGate>
   );
-}
-
-function LandingRedirect() {
-  const { clinic, effectiveClinicId } = useClinic();
-  const { role } = useRole();
-  const { memberships } = useAccess();
-  return <Navigate to={resolveDefaultRoute({ role, clinicId: effectiveClinicId, setupCompleted: clinic?.setup_completed, membershipsCount: memberships.length })} replace />;
 }
 
 const App = () => (
