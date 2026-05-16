@@ -77,7 +77,10 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
 
   const isActive = useCallback((path: string) => path === "/" ? location.pathname === "/" : location.pathname.startsWith(path), [location.pathname]);
 
-  const headerClinicName = isSuperAdminWs ? "Platform Console" : (clinic?.name || "Clinic Dashboard");
+  const headerClinicName = isSuperAdminWs
+    ? "Platform Console"
+    : (clinic?.name?.trim() || "OptoCare Clinic");
+  const headerRoleLabel = ROLE_LABEL[userRole] || "Staff";
   const showActiveBadge = !isSuperAdminWs && !!clinic;
 
   return (
