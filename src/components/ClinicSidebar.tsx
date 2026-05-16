@@ -30,10 +30,10 @@ const ROLE_LABEL: Record<string, string> = {
 
 export default function ClinicSidebar() {
   const location = useLocation();
-  const { state, isMobile, setOpenMobile } = useSidebar();
+  const { state, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const { isAdmin, isSuperAdmin, isDoctor, isReceptionist, roles } = useRole();
-  const { clinic: clinicBase, profile, loading: clinicLoading } = useClinic();
+  const { clinic: clinicBase, profile } = useClinic();
   const clinic = clinicBase as (typeof clinicBase & { logo_url?: string | null }) | null;
   const workspace = resolveWorkspace(location.pathname);
   const [cachedIdentity] = useState(readIdentity);
