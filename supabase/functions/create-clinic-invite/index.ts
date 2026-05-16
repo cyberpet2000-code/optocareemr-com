@@ -74,8 +74,17 @@ Deno.serve(async (req) => {
       return json({ error: invErr?.message || "Failed to create invite" }, 400);
     }
 
+    // Lightweight audit log
+    await admin.from("activity_logs").insert({
+      user_id: callerId,
+      clinic_id,
+      action: "invite_sent",
+      table_name: "clinic_invites",
+      record_id: invite.id,
+    } as any);
+
     const link = `${APP_URL}/accept-invite?token=${invite.token}`;
-    console.log("Invite created", { clinic_id, email, role, invite_id: invite.id, link });
+    console.log("Invite created", { clinic_id, email, role, full_name, invite_id: invite.id, link });
 
     // Trigger email send via dedicated edge function (handles retry + logging).
     let email_status: "success" | "failed" = "failed";
