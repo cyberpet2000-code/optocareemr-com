@@ -173,7 +173,7 @@ export default function ClinicSidebar() {
                 return (
                   <SidebarMenuItem key={item.to}>
                     <SidebarMenuButton asChild isActive={isActive(item.to)} tooltip={item.label}>
-                      <NavLink to={item.to} className="flex items-center gap-2.5">
+                      <NavLink to={item.to} onClick={handleNavClick} className="flex items-center gap-2.5">
                         <Icon className="h-4 w-4 shrink-0" />
                         {!collapsed && <span className="text-sm">{item.label}</span>}
                       </NavLink>
