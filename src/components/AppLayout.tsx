@@ -33,7 +33,8 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const { isAdmin, isSuperAdmin, isDoctor, isReceptionist, roles } = useRole();
-  const { profile, clinic } = useClinic();
+  const { profile, clinic, loading: clinicLoading } = useClinic();
+  const [cachedIdentity] = useState(readIdentity);
 
   const workspace = resolveWorkspace(location.pathname);
   const isSuperAdminWs = workspace === "super-admin";
