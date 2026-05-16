@@ -57,12 +57,13 @@ function SuperAdminOnly({ children }: { children: React.ReactNode }) {
 
 function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
   const { user, isAuthReady } = useAccessAuth();
-  const { clinic, effectiveClinicId, memberships } = useAccessClinic();
+  const { clinic, effectiveClinicId, memberships, profile } = useAccessClinic();
   const { role, roleMissing } = useAccessRole();
   const location = useLocation();
   const [timedOut, setTimedOut] = useState(false);
   const setupCompleted = clinic?.setup_completed ?? null;
   const lifecycleStatus = (clinic as any)?.lifecycle_status ?? null;
+  const isActive = profile?.is_active !== false;
 
   useEffect(() => {
     if (isAuthReady || !user) {
@@ -84,7 +85,8 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
     roleMissing,
     membershipsCount: memberships.length,
     lifecycleStatus,
-  }), [effectiveClinicId, isAuthReady, lifecycleStatus, location.pathname, memberships.length, role, roleMissing, setupCompleted, timedOut, user]);
+    isActive,
+  }), [effectiveClinicId, isActive, isAuthReady, lifecycleStatus, location.pathname, memberships.length, role, roleMissing, setupCompleted, timedOut, user]);
 
   useEffect(() => {
     console.debug("[route:guard]", {
@@ -95,8 +97,9 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
       isAuthReady,
       role,
       clinicId: effectiveClinicId,
+      isActive,
     });
-  }, [decision, effectiveClinicId, isAuthReady, location.pathname, role, user]);
+  }, [decision, effectiveClinicId, isActive, isAuthReady, location.pathname, role, user]);
 
   if (decision.type === "loading") return <FullScreenLoader label={decision.label} />;
   if (decision.type === "error") return <FullScreenMessage label={decision.label} />;
