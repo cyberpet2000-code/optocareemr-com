@@ -1,4 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useCallback, useMemo } from "react";
 import {
   LayoutDashboard, Users, ShoppingBag, DollarSign, LogOut, Calendar, UserPlus,
   Bell, Search, Building2,
@@ -35,44 +36,46 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   const workspace = resolveWorkspace(location.pathname);
   const isSuperAdminWs = workspace === "super-admin";
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await signOut();
     navigate("/login");
-  };
+  }, [navigate, signOut]);
 
   const userRole = isSuperAdminWs ? "super_admin" : (roles.find(r => r !== "super_admin") || roles[0] || "admin");
   const userName = profile?.full_name || "User";
   const userInitials = userName.split(/\s+/).slice(0, 2).map(s => s[0]).join("").toUpperCase();
 
-  let mobilePrimary: { to: string; label: string; icon: any }[] = [];
-  if (isSuperAdminWs) {
-    mobilePrimary = [
-      { to: "/super-admin", label: "Overview", icon: LayoutDashboard },
-      { to: "/super-admin/clinics", label: "Clinics", icon: Building2 },
-      { to: "/super-admin/users", label: "Users", icon: Users },
-    ];
-  } else if (isDoctor && !isAdmin && !isSuperAdmin) {
-    mobilePrimary = [
-      { to: "/patients", label: "Patients", icon: Users },
-      { to: "/appointments", label: "Visits", icon: Calendar },
-    ];
-  } else if (isReceptionist && !isAdmin && !isDoctor) {
-    mobilePrimary = [
-      { to: "/register", label: "Register", icon: UserPlus },
-      { to: "/appointments", label: "Appts", icon: Calendar },
-      { to: "/billing", label: "Billing", icon: DollarSign },
-    ];
-  } else {
-    mobilePrimary = [
+  const mobilePrimary = useMemo(() => {
+    if (isSuperAdminWs) {
+      return [
+        { to: "/super-admin", label: "Overview", icon: LayoutDashboard },
+        { to: "/super-admin/clinics", label: "Clinics", icon: Building2 },
+        { to: "/super-admin/users", label: "Users", icon: Users },
+      ];
+    }
+    if (isDoctor && !isAdmin && !isSuperAdmin) {
+      return [
+        { to: "/patients", label: "Patients", icon: Users },
+        { to: "/appointments", label: "Visits", icon: Calendar },
+      ];
+    }
+    if (isReceptionist && !isAdmin && !isDoctor) {
+      return [
+        { to: "/register", label: "Register", icon: UserPlus },
+        { to: "/appointments", label: "Appts", icon: Calendar },
+        { to: "/billing", label: "Billing", icon: DollarSign },
+      ];
+    }
+    return [
       { to: "/dashboard", label: "Home", icon: LayoutDashboard },
       { to: "/patients", label: "Patients", icon: Users },
       { to: "/appointments", label: "Visits", icon: Calendar },
       { to: "/billing", label: "Billing", icon: DollarSign },
       { to: "/inventory", label: "Optical", icon: ShoppingBag },
     ];
-  }
+  }, [isAdmin, isDoctor, isReceptionist, isSuperAdmin, isSuperAdminWs]);
 
-  const isActive = (path: string) => path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
+  const isActive = useCallback((path: string) => path === "/" ? location.pathname === "/" : location.pathname.startsWith(path), [location.pathname]);
 
   const headerClinicName = isSuperAdminWs ? "Platform Console" : (clinic?.name || "Clinic Dashboard");
   const showActiveBadge = !isSuperAdminWs && !!clinic;

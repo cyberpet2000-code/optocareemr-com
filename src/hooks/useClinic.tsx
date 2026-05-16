@@ -1,4 +1,4 @@
-import { useAccess } from "./useAccess";
+import { useAccessActions, useAccessClinic } from "./useAccess";
 
 export interface ClinicInfo {
   id: string;
@@ -24,7 +24,8 @@ export interface ProfileInfo {
 export type ClinicLifecycleStatus = "active" | "suspended" | "unknown";
 
 export function useClinic() {
-  const { profile, clinic, profileLoading, clinicLoading, reload, switchClinic, activeClinicId, effectiveClinicId } = useAccess();
+  const { profile, clinic, profileLoading, clinicLoading, activeClinicId, effectiveClinicId } = useAccessClinic();
+  const { reload, switchClinic } = useAccessActions();
   const loading = profileLoading || clinicLoading;
 
   const isSuperAdmin = profile?.is_super_admin === true || profile?.role === "super_admin";

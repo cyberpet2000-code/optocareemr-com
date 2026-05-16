@@ -6,6 +6,7 @@ import { safeSupabaseStorage, setKnownSupabaseSession } from "@/lib/supabase-aut
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
 const ACTIVE_CLINIC_KEY = "active_clinic_id";
+const ROLE_ORDER = new Map(VALID_ROLES.map((role, index) => [role, index]));
 
 type MembershipRow = {
   clinic_id: string;
@@ -38,6 +39,68 @@ function createEmptyAccessState(accessReady = false): AccessState {
     resolvedClinicId: null,
     clinicResolutionFailed: false,
   };
+}
+
+function sortRoles(roles: string[]) {
+  return [...roles].sort((left, right) => {
+    const leftOrder = ROLE_ORDER.get(left) ?? Number.MAX_SAFE_INTEGER;
+    const rightOrder = ROLE_ORDER.get(right) ?? Number.MAX_SAFE_INTEGER;
+    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+    return left.localeCompare(right);
+  });
+}
+
+function sortMemberships(rows: MembershipRow[]) {
+  return [...rows].sort((left, right) => {
+    const leftName = left.clinic_name ?? "";
+    const rightName = right.clinic_name ?? "";
+    const byName = leftName.localeCompare(rightName);
+    if (byName !== 0) return byName;
+    return left.clinic_id.localeCompare(right.clinic_id);
+  });
+}
+
+function shallowEqualObjects(left: Record<string, any> | null, right: Record<string, any> | null) {
+  if (left === right) return true;
+  if (!left || !right) return false;
+
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) return false;
+
+  return leftKeys.every((key) => left[key] === right[key]);
+}
+
+function sameMemberships(left: MembershipRow[], right: MembershipRow[]) {
+  if (left === right) return true;
+  if (left.length !== right.length) return false;
+
+  return left.every((item, index) => {
+    const next = right[index];
+    return !!next
+      && item.clinic_id === next.clinic_id
+      && item.role === next.role
+      && item.clinic_name === next.clinic_name
+      && item.setup_completed === next.setup_completed;
+  });
+}
+
+function sameRoles(left: string[], right: string[]) {
+  if (left === right) return true;
+  if (left.length !== right.length) return false;
+  return left.every((role, index) => role === right[index]);
+}
+
+function sameAccessState(left: AccessState, right: AccessState) {
+  return left.accessReady === right.accessReady
+    && left.role === right.role
+    && left.profileError === right.profileError
+    && left.resolvedClinicId === right.resolvedClinicId
+    && left.clinicResolutionFailed === right.clinicResolutionFailed
+    && sameRoles(left.roles, right.roles)
+    && sameMemberships(left.memberships, right.memberships)
+    && shallowEqualObjects(left.profile, right.profile)
+    && shallowEqualObjects(left.clinic, right.clinic);
 }
 
 function normalizeRole(value?: string | null) {
@@ -87,6 +150,10 @@ function mergeMemberships({
 }
 
 const AccessContext = createContext<any>(null);
+const AccessAuthContext = createContext<any>(null);
+const AccessClinicContext = createContext<any>(null);
+const AccessRoleContext = createContext<any>(null);
+const AccessActionsContext = createContext<any>(null);
 
 export function AccessProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -128,10 +195,15 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     inFlightLoadRef.current = null;
   }, []);
 
+  const commitAccessState = useCallback((nextState: AccessState) => {
+    setAccessState((prev) => (sameAccessState(prev, nextState) ? prev : nextState));
+  }, []);
+
   const clearAccessState = useCallback((ready = true) => {
     invalidatePendingLoads();
-    setAccessState(createEmptyAccessState(ready));
-  }, [invalidatePendingLoads]);
+    const nextState = createEmptyAccessState(ready);
+    commitAccessState(nextState);
+  }, [commitAccessState, invalidatePendingLoads]);
 
   const loadAccess = useCallback(async (
     nextUser: User | null,
@@ -146,7 +218,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     if (!nextUser) {
       invalidatePendingLoads();
       completedLoadKeyRef.current = loadKey;
-      setAccessState(createEmptyAccessState(true));
+      commitAccessState(createEmptyAccessState(true));
       return;
     }
 
@@ -209,7 +281,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           ...clinicUsersRows.map((row) => normalizeRole(row.role)),
         ].filter(Boolean))) as string[];
         const primaryRole = resolvePrimaryRole(nextProfile, fallbackRoles);
-        const nextRoles = Array.from(new Set([primaryRole, ...fallbackRoles].filter(Boolean))) as string[];
+        const nextRoles = sortRoles(Array.from(new Set([primaryRole, ...fallbackRoles].filter(Boolean))) as string[]);
 
         const membershipClinicIds = Array.from(new Set([
           ...userRolesRows.map((row) => row.clinic_id),
@@ -226,7 +298,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           if (requestRef.current !== requestId) return;
 
           const clinicMap = new Map((clinicsData || []).map((clinicRow: any) => [clinicRow.id, clinicRow]));
-          membershipRows = mergeMemberships({ userRolesRows, clinicUsersRows, clinicMap });
+          membershipRows = sortMemberships(mergeMemberships({ userRolesRows, clinicUsersRows, clinicMap }));
         }
 
         const nextAccessState: AccessState = {
@@ -259,7 +331,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
           if (requestRef.current !== requestId) return;
 
-          setAccessState(nextAccessState);
+          commitAccessState(nextAccessState);
           completedLoadKeyRef.current = loadKey;
           console.debug("[access:super_admin_ready]", {
             reason,
@@ -283,12 +355,12 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
         if (overrideClinicId && overrideClinicId !== backendResolvedClinicId) {
           persistActive(null);
-          setActiveClinicIdState(null);
+          setActiveClinicIdState((prev) => (prev === null ? prev : null));
         }
 
         if (!backendResolvedClinicId) {
           nextAccessState.clinicResolutionFailed = true;
-          setAccessState(nextAccessState);
+          commitAccessState(nextAccessState);
           completedLoadKeyRef.current = loadKey;
           console.debug("[access:no_clinic]", { reason, user_id: nextUser.id });
           return;
@@ -303,7 +375,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         if (requestRef.current !== requestId) return;
 
         nextAccessState.clinic = clinicResult.data || null;
-        setAccessState(nextAccessState);
+        commitAccessState(nextAccessState);
         completedLoadKeyRef.current = loadKey;
 
         console.debug("[access:ready]", {
@@ -315,12 +387,15 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       } catch (error: any) {
         if (requestRef.current !== requestId) return;
 
-        setAccessState((prev) => ({
-          ...prev,
-          accessReady: true,
-          profileError: error,
-          clinicResolutionFailed: true,
-        }));
+        setAccessState((prev) => {
+          const nextState = {
+            ...prev,
+            accessReady: true,
+            profileError: error,
+            clinicResolutionFailed: true,
+          };
+          return sameAccessState(prev, nextState) ? prev : nextState;
+        });
 
         console.error("[access:error]", {
           reason,
@@ -339,7 +414,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         inFlightLoadRef.current = null;
       }
     }
-  }, [invalidatePendingLoads, persistActive]);
+  }, [commitAccessState, invalidatePendingLoads, persistActive]);
 
   useEffect(() => {
     let mounted = true;
@@ -355,8 +430,9 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       setKnownSupabaseSession(session);
       userRef.current = nextUser;
       setUser((prev) => {
-        if (!nextUser) return null;
-        return prev?.id === nextUser.id ? prev : nextUser;
+        if (!nextUser) return prev ? null : prev;
+        if (!prev) return nextUser;
+        return prev.id === nextUser.id ? prev : nextUser;
       });
 
       console.debug("[auth:session]", {
@@ -423,10 +499,10 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       if (event === "SIGNED_OUT") {
         invalidatePendingLoads();
         persistActive(null);
-        setActiveClinicIdState(null);
+        setActiveClinicIdState((prev) => (prev === null ? prev : null));
         setKnownSupabaseSession(null);
-        setUser(null);
-        setAccessState(createEmptyAccessState(true));
+        setUser((prev) => (prev === null ? prev : null));
+        commitAccessState(createEmptyAccessState(true));
         setAuthLoading(false);
         return;
       }
@@ -457,7 +533,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         console.error("[auth:bootstrap:error]", { message: error?.message });
         if (!mounted) return;
         setKnownSupabaseSession(null);
-        setUser(null);
+        setUser((prev) => (prev === null ? prev : null));
         clearAccessState(true);
         setAuthLoading(false);
       }
@@ -467,7 +543,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [clearAccessState, invalidatePendingLoads, loadAccess, persistActive]);
+  }, [clearAccessState, commitAccessState, invalidatePendingLoads, loadAccess, persistActive]);
 
   const reload = useCallback(() => {
     return loadAccess(userRef.current, activeClinicIdRef.current, {
@@ -497,7 +573,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     }
 
     persistActive(clinicId);
-    setActiveClinicIdState(clinicId);
+    setActiveClinicIdState((prev) => (prev === clinicId ? prev : clinicId));
 
     await loadAccess(userRef.current, clinicId, {
       force: true,
@@ -510,7 +586,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     persistActive(null);
-    setActiveClinicIdState(null);
+    setActiveClinicIdState((prev) => (prev === null ? prev : null));
     await apiClient.auth.signOut();
   }, [persistActive]);
 
@@ -522,49 +598,87 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     ? (activeClinicId || accessState.resolvedClinicId || null)
     : accessState.resolvedClinicId;
 
-  const value = useMemo(() => ({
+  const authValue = useMemo(() => ({
     user,
     authLoading,
+    isAuthenticated,
+    isAuthReady,
+  }), [authLoading, isAuthenticated, isAuthReady, user]);
+
+  const clinicValue = useMemo(() => ({
     profile: accessState.profile,
     profileError: accessState.profileError,
     clinic: accessState.clinic,
-    roles: accessState.roles,
-    role: accessState.role,
     memberships: accessState.memberships,
     profileLoading: !accessState.accessReady && isAuthenticated,
-    roleLoading: !accessState.accessReady && isAuthenticated,
     clinicLoading: !accessState.accessReady && isAuthenticated,
     membershipLoading: !accessState.accessReady && isAuthenticated,
-    isAuthenticated,
-    isAuthReady,
     accessReady: accessState.accessReady,
-    roleMissing,
     activeClinicId,
     effectiveClinicId,
     resolvedClinicId: accessState.resolvedClinicId,
     clinicResolutionFailed: accessState.clinicResolutionFailed,
-    switchClinic,
-    reload,
-    signOut,
-  }), [
-    accessState,
-    activeClinicId,
-    authLoading,
-    effectiveClinicId,
-    isAuthenticated,
-    isAuthReady,
-    reload,
-    roleMissing,
-    signOut,
-    switchClinic,
-    user,
-  ]);
+  }), [accessState.accessReady, accessState.clinic, accessState.clinicResolutionFailed, accessState.memberships, accessState.profile, accessState.profileError, accessState.resolvedClinicId, activeClinicId, effectiveClinicId, isAuthenticated]);
 
-  return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>;
+  const roleValue = useMemo(() => ({
+    roles: accessState.roles,
+    role: accessState.role,
+    roleLoading: !accessState.accessReady && isAuthenticated,
+    roleMissing,
+  }), [accessState.accessReady, accessState.role, accessState.roles, isAuthenticated, roleMissing]);
+
+  const actionsValue = useMemo(() => ({
+    switchClinic,
+    reload,
+    signOut,
+  }), [reload, signOut, switchClinic]);
+
+  const value = useMemo(() => ({
+    ...authValue,
+    ...clinicValue,
+    ...roleValue,
+    ...actionsValue,
+  }), [actionsValue, authValue, clinicValue, roleValue]);
+
+  return (
+    <AccessAuthContext.Provider value={authValue}>
+      <AccessClinicContext.Provider value={clinicValue}>
+        <AccessRoleContext.Provider value={roleValue}>
+          <AccessActionsContext.Provider value={actionsValue}>
+            <AccessContext.Provider value={value}>{children}</AccessContext.Provider>
+          </AccessActionsContext.Provider>
+        </AccessRoleContext.Provider>
+      </AccessClinicContext.Provider>
+    </AccessAuthContext.Provider>
+  );
 }
 
 export function useAccess() {
   const ctx = useContext(AccessContext);
   if (!ctx) throw new Error("useAccess must be used within AccessProvider");
+  return ctx;
+}
+
+export function useAccessAuth() {
+  const ctx = useContext(AccessAuthContext);
+  if (!ctx) throw new Error("useAccessAuth must be used within AccessProvider");
+  return ctx;
+}
+
+export function useAccessClinic() {
+  const ctx = useContext(AccessClinicContext);
+  if (!ctx) throw new Error("useAccessClinic must be used within AccessProvider");
+  return ctx;
+}
+
+export function useAccessRole() {
+  const ctx = useContext(AccessRoleContext);
+  if (!ctx) throw new Error("useAccessRole must be used within AccessProvider");
+  return ctx;
+}
+
+export function useAccessActions() {
+  const ctx = useContext(AccessActionsContext);
+  if (!ctx) throw new Error("useAccessActions must be used within AccessProvider");
   return ctx;
 }

@@ -1,7 +1,8 @@
-import { useAccess } from "./useAccess";
+import { useAccessActions, useAccessAuth } from "./useAccess";
 
 export function useAuth() {
-  const { user, authLoading, signOut, isAuthReady } = useAccess();
+  const { user, authLoading, isAuthReady } = useAccessAuth();
+  const { signOut } = useAccessActions();
 
   return {
     user,

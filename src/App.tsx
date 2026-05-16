@@ -1,13 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
-import { useClinic } from "@/hooks/useClinic";
 import { useRole } from "@/hooks/useRole";
-import { useAccess, AccessProvider } from "@/hooks/useAccess";
+import { useAccessAuth, useAccessClinic, useAccessRole, AccessProvider } from "@/hooks/useAccess";
 import AppLayout from "@/components/AppLayout";
 import { ACCESS_TIMEOUT_MS, resolveDefaultRoute, resolveProtectedRoute } from "@/lib/route-access";
 import Dashboard from "./pages/Dashboard";
@@ -57,12 +56,13 @@ function SuperAdminOnly({ children }: { children: React.ReactNode }) {
 }
 
 function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  const { clinic, effectiveClinicId } = useClinic();
-  const { role } = useRole();
-  const { isAuthReady, roleMissing, memberships } = useAccess();
+  const { user, isAuthReady } = useAccessAuth();
+  const { clinic, effectiveClinicId, memberships } = useAccessClinic();
+  const { role, roleMissing } = useAccessRole();
   const location = useLocation();
   const [timedOut, setTimedOut] = useState(false);
+  const setupCompleted = clinic?.setup_completed ?? null;
+  const lifecycleStatus = (clinic as any)?.lifecycle_status ?? null;
 
   useEffect(() => {
     if (isAuthReady || !user) {
@@ -80,11 +80,11 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
     didTimeout: timedOut,
     role,
     clinicId: effectiveClinicId,
-    setupCompleted: clinic?.setup_completed,
+    setupCompleted,
     roleMissing,
     membershipsCount: memberships.length,
-    lifecycleStatus: (clinic as any)?.lifecycle_status ?? null,
-  }), [clinic, effectiveClinicId, isAuthReady, location.pathname, memberships.length, role, roleMissing, timedOut, user]);
+    lifecycleStatus,
+  }), [effectiveClinicId, isAuthReady, lifecycleStatus, location.pathname, memberships.length, role, roleMissing, setupCompleted, timedOut, user]);
 
   useEffect(() => {
     console.debug("[route:guard]", {
@@ -104,6 +104,20 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+const LandingRedirect = memo(function LandingRedirect() {
+  const { clinic, effectiveClinicId, memberships } = useAccessClinic();
+  const { role } = useAccessRole();
+
+  const target = useMemo(() => resolveDefaultRoute({
+    role,
+    clinicId: effectiveClinicId,
+    setupCompleted: clinic?.setup_completed,
+    membershipsCount: memberships.length,
+  }), [clinic?.setup_completed, effectiveClinicId, memberships.length, role]);
+
+  return <Navigate to={target} replace />;
+});
+
 export function AppRoutes() {
   const location = useLocation();
   const { user, isAuthReady } = useAuth();
@@ -113,7 +127,7 @@ export function AppRoutes() {
   if (!isAuthReady) return <FullScreenLoader label="Loading OptoCare…" />;
 
   if (user && (location.pathname === "/login" || location.pathname === "/signup")) {
-    return <Navigate to="/" replace />;
+    return <LandingRedirect />;
   }
 
   return isPublicRoute ? (
@@ -154,13 +168,6 @@ export function AppRoutes() {
       </Routes>
     </ProtectedRouteGate>
   );
-}
-
-function LandingRedirect() {
-  const { clinic, effectiveClinicId } = useClinic();
-  const { role } = useRole();
-  const { memberships } = useAccess();
-  return <Navigate to={resolveDefaultRoute({ role, clinicId: effectiveClinicId, setupCompleted: clinic?.setup_completed, membershipsCount: memberships.length })} replace />;
 }
 
 const App = () => (

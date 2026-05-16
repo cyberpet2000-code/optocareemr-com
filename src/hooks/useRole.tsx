@@ -1,9 +1,10 @@
-import { useAccess } from "./useAccess";
+import { useAccessAuth, useAccessRole } from "./useAccess";
 
 export type AppRole = "super_admin" | "admin" | "doctor" | "nurse" | "receptionist";
 
 export function useRole() {
-  const { role, roles, roleLoading, isAuthReady } = useAccess();
+  const { role, roles, roleLoading } = useAccessRole();
+  const { isAuthReady } = useAccessAuth();
   const typedRoles = roles as AppRole[];
 
   const hasRole = (nextRole: AppRole) => typedRoles.includes(nextRole);
