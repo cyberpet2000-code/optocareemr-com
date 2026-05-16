@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, ShoppingBag, DollarSign, ShieldCheck, Calendar,
@@ -34,43 +35,56 @@ export default function ClinicSidebar() {
   const clinic = clinicBase as (typeof clinicBase & { logo_url?: string | null }) | null;
   const workspace = resolveWorkspace(location.pathname);
 
-  let primary: { to: string; label: string; icon: any }[] = [];
-  let secondary: { to: string; label: string; icon: any }[] = [];
+  const { primary, secondary } = useMemo(() => {
+    if (workspace === "super-admin") {
+      return {
+        primary: [
+          { to: "/super-admin", label: "Overview", icon: LayoutDashboard },
+          { to: "/super-admin/clinics", label: "Clinics", icon: Building2 },
+        ],
+        secondary: [
+          { to: "/super-admin/create-clinic", label: "Create Clinic", icon: Sparkles },
+          { to: "/super-admin/users", label: "Users", icon: ShieldCheck },
+        ],
+      };
+    }
 
-  if (workspace === "super-admin") {
-    primary = [
-      { to: "/super-admin", label: "Overview", icon: LayoutDashboard },
-      { to: "/super-admin/clinics", label: "Clinics", icon: Building2 },
-    ];
-    secondary = [
-      { to: "/super-admin/create-clinic", label: "Create Clinic", icon: Sparkles },
-      { to: "/super-admin/users", label: "Users", icon: ShieldCheck },
-    ];
-  } else if (isDoctor && !isAdmin && !isSuperAdmin) {
-    primary = [
-      { to: "/patients", label: "Patients", icon: Users },
-      { to: "/appointments", label: "Visits", icon: Calendar },
-    ];
-  } else if (isReceptionist && !isAdmin && !isDoctor) {
-    primary = [
-      { to: "/register", label: "Register", icon: UserPlus },
-      { to: "/appointments", label: "Appointments", icon: Calendar },
-      { to: "/billing", label: "Billing", icon: DollarSign },
-    ];
-  } else {
-    primary = [
-      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { to: "/patients", label: "Patients", icon: Users },
-      { to: "/billing", label: "Billing", icon: DollarSign },
-      { to: "/inventory", label: "Optical", icon: ShoppingBag },
-    ];
-    secondary = [
-      { to: "/register", label: "Add Patient", icon: UserPlus },
-      { to: "/appointments", label: "Appointments", icon: Calendar },
-      { to: "/hmos", label: "HMOs", icon: Building2 },
-      ...(isAdmin ? [{ to: "/admin/roles", label: "Manage Roles", icon: ShieldCheck }] : []),
-    ];
-  }
+    if (isDoctor && !isAdmin && !isSuperAdmin) {
+      return {
+        primary: [
+          { to: "/patients", label: "Patients", icon: Users },
+          { to: "/appointments", label: "Visits", icon: Calendar },
+        ],
+        secondary: [],
+      };
+    }
+
+    if (isReceptionist && !isAdmin && !isDoctor) {
+      return {
+        primary: [
+          { to: "/register", label: "Register", icon: UserPlus },
+          { to: "/appointments", label: "Appointments", icon: Calendar },
+          { to: "/billing", label: "Billing", icon: DollarSign },
+        ],
+        secondary: [],
+      };
+    }
+
+    return {
+      primary: [
+        { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { to: "/patients", label: "Patients", icon: Users },
+        { to: "/billing", label: "Billing", icon: DollarSign },
+        { to: "/inventory", label: "Optical", icon: ShoppingBag },
+      ],
+      secondary: [
+        { to: "/register", label: "Add Patient", icon: UserPlus },
+        { to: "/appointments", label: "Appointments", icon: Calendar },
+        { to: "/hmos", label: "HMOs", icon: Building2 },
+        ...(isAdmin ? [{ to: "/admin/roles", label: "Manage Roles", icon: ShieldCheck }] : []),
+      ],
+    };
+  }, [isAdmin, isDoctor, isReceptionist, isSuperAdmin, workspace]);
 
   const isActive = (path: string) => path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
