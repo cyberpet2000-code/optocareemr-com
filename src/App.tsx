@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -73,7 +73,7 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [isAuthReady, user]);
 
-  const decision = resolveProtectedRoute({
+  const decision = useMemo(() => resolveProtectedRoute({
     path: location.pathname,
     isAuthenticated: !!user,
     isAuthReady,
@@ -82,9 +82,21 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
     clinicId: effectiveClinicId,
     setupCompleted: clinic?.setup_completed,
     roleMissing,
-    membershipsCount: (memberships || []).length,
+    membershipsCount: memberships.length,
     lifecycleStatus: (clinic as any)?.lifecycle_status ?? null,
-  });
+  }), [clinic, effectiveClinicId, isAuthReady, location.pathname, memberships.length, role, roleMissing, timedOut, user]);
+
+  useEffect(() => {
+    console.debug("[route:guard]", {
+      path: location.pathname,
+      decision: decision.type,
+      target: decision.type === "redirect" ? decision.to : null,
+      isAuthenticated: !!user,
+      isAuthReady,
+      role,
+      clinicId: effectiveClinicId,
+    });
+  }, [decision, effectiveClinicId, isAuthReady, location.pathname, role, user]);
 
   if (decision.type === "loading") return <FullScreenLoader label={decision.label} />;
   if (decision.type === "error") return <FullScreenMessage label={decision.label} />;
@@ -148,7 +160,7 @@ function LandingRedirect() {
   const { clinic, effectiveClinicId } = useClinic();
   const { role } = useRole();
   const { memberships } = useAccess();
-  return <Navigate to={resolveDefaultRoute({ role, clinicId: effectiveClinicId, setupCompleted: clinic?.setup_completed, membershipsCount: (memberships || []).length })} replace />;
+  return <Navigate to={resolveDefaultRoute({ role, clinicId: effectiveClinicId, setupCompleted: clinic?.setup_completed, membershipsCount: memberships.length })} replace />;
 }
 
 const App = () => (

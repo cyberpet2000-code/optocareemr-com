@@ -14,7 +14,7 @@ interface ClinicSwitcherProps {
 }
 
 export default function ClinicSwitcher({ variant = "header", className = "" }: ClinicSwitcherProps) {
-  const { role, activeClinicId, switchClinic, memberships } = useAccess();
+  const { role, activeClinicId, effectiveClinicId, switchClinic, memberships } = useAccess();
   const navigate = useNavigate();
   const location = useLocation();
   const [allClinics, setAllClinics] = useState<ClinicRow[]>([]);
@@ -47,14 +47,17 @@ export default function ClinicSwitcher({ variant = "header", className = "" }: C
   if (clinics.length === 1 && variant === "header" && !location.pathname.startsWith("/super-admin")) return null;
 
   const onChange = async (clinicId: string) => {
-    if (clinicId === activeClinicId || switching) return;
+    if (clinicId === effectiveClinicId || clinicId === activeClinicId || switching) return;
     setSwitching(true);
     const target = clinics.find(c => c.id === clinicId);
     try {
       const granted = await switchClinic(clinicId);
       if (granted) toast.success(`Switched to ${target?.name || "clinic"}`);
       else toast.warning(`Switched to ${target?.name || "clinic"} (access flagged)`);
-      navigate(target?.setup_completed ? "/dashboard" : "/onboarding", { replace: true });
+      const nextPath = target?.setup_completed ? "/dashboard" : "/onboarding";
+      if (location.pathname !== nextPath) {
+        navigate(nextPath, { replace: true });
+      }
     } catch (e: any) {
       toast.error(`Access denied: ${e?.message || "unknown error"}`);
     } finally {
@@ -69,7 +72,7 @@ export default function ClinicSwitcher({ variant = "header", className = "" }: C
           <Building2 size={11} /> Switch clinic
           {switching && <Loader2 size={11} className="animate-spin" />}
         </div>
-        <Select value={activeClinicId || ""} onValueChange={onChange} disabled={switching}>
+        <Select value={effectiveClinicId || activeClinicId || ""} onValueChange={onChange} disabled={switching}>
           <SelectTrigger className="h-9 text-sm w-full rounded-lg bg-background">
             <SelectValue placeholder="Select clinic" />
           </SelectTrigger>
@@ -91,7 +94,7 @@ export default function ClinicSwitcher({ variant = "header", className = "" }: C
   return (
     <div className={`flex items-center gap-1.5 ${className}`}>
       {switching && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
-      <Select value={activeClinicId || ""} onValueChange={onChange} disabled={switching}>
+      <Select value={effectiveClinicId || activeClinicId || ""} onValueChange={onChange} disabled={switching}>
         <SelectTrigger className="h-8 text-xs w-[170px] rounded-lg">
           <SelectValue placeholder="Select clinic" />
         </SelectTrigger>
