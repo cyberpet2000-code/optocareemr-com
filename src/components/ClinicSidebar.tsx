@@ -101,9 +101,13 @@ export default function ClinicSidebar() {
   const isActive = (path: string) => path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
   const isSuperAdminWs = workspace === "super-admin";
-  const clinicName = isSuperAdminWs ? "Platform Console" : (clinic?.name?.trim() || "OptoCare Clinic");
+  const resolvedName = clinic?.name?.trim() || null;
+  const clinicName = isSuperAdminWs
+    ? "Platform Console"
+    : (resolvedName || cachedIdentity.name || "OptoCare Clinic");
   const userRole = isSuperAdminWs ? "super_admin" : (roles.find(r => r !== "super_admin") || roles[0] || "admin");
   const initials = (clinicName || "?").split(/\s+/).slice(0, 2).map(s => s[0]).join("").toUpperCase();
+  const identityLoading = !isSuperAdminWs && clinicLoading && !resolvedName && !cachedIdentity.name;
 
   const setupComplete = !isSuperAdminWs && clinic?.setup_completed === true;
   const setupPending = !isSuperAdminWs && clinic?.setup_completed === false;
