@@ -7,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
 import { useRole } from "@/hooks/useRole";
-import { useAccess, AccessProvider } from "@/hooks/useAccess";
+import { useAccess, useAccessAuth, useAccessClinic, useAccessRole, AccessProvider } from "@/hooks/useAccess";
 import AppLayout from "@/components/AppLayout";
 import { ACCESS_TIMEOUT_MS, resolveDefaultRoute, resolveProtectedRoute } from "@/lib/route-access";
 import Dashboard from "./pages/Dashboard";
@@ -57,10 +57,9 @@ function SuperAdminOnly({ children }: { children: React.ReactNode }) {
 }
 
 function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  const { clinic, effectiveClinicId } = useClinic();
-  const { role } = useRole();
-  const { isAuthReady, roleMissing, memberships } = useAccess();
+  const { user, isAuthReady } = useAccessAuth();
+  const { clinic, effectiveClinicId, memberships } = useAccessClinic();
+  const { role, roleMissing } = useAccessRole();
   const location = useLocation();
   const [timedOut, setTimedOut] = useState(false);
   const setupCompleted = clinic?.setup_completed ?? null;
@@ -107,9 +106,8 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
 }
 
 const LandingRedirect = memo(function LandingRedirect() {
-  const { clinic, effectiveClinicId } = useClinic();
-  const { role } = useRole();
-  const { memberships } = useAccess();
+  const { clinic, effectiveClinicId, memberships } = useAccessClinic();
+  const { role } = useAccessRole();
 
   const target = useMemo(() => resolveDefaultRoute({
     role,
