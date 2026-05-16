@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, ShoppingBag, DollarSign, ShieldCheck, Calendar,
@@ -8,9 +8,11 @@ import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useRole } from "@/hooks/useRole";
 import { useClinic } from "@/hooks/useClinic";
 import ClinicSwitcher from "@/components/ClinicSwitcher";
+import { readIdentity } from "@/lib/clinic-identity";
 
 export type Workspace = "super-admin" | "clinic";
 
@@ -28,12 +30,22 @@ const ROLE_LABEL: Record<string, string> = {
 
 export default function ClinicSidebar() {
   const location = useLocation();
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const { isAdmin, isSuperAdmin, isDoctor, isReceptionist, roles } = useRole();
-  const { clinic: clinicBase, profile } = useClinic();
+  const { clinic: clinicBase, profile, loading: clinicLoading } = useClinic();
   const clinic = clinicBase as (typeof clinicBase & { logo_url?: string | null }) | null;
   const workspace = resolveWorkspace(location.pathname);
+  const [cachedIdentity] = useState(readIdentity);
+
+  // Auto-close mobile drawer on route change
+  useEffect(() => {
+    if (isMobile) setOpenMobile(false);
+  }, [location.pathname, isMobile, setOpenMobile]);
+
+  const handleNavClick = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   const { primary, secondary } = useMemo(() => {
     if (workspace === "super-admin") {
@@ -89,9 +101,13 @@ export default function ClinicSidebar() {
   const isActive = (path: string) => path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
   const isSuperAdminWs = workspace === "super-admin";
-  const clinicName = isSuperAdminWs ? "Platform Console" : (clinic?.name?.trim() || "OptoCare Clinic");
+  const resolvedName = clinic?.name?.trim() || null;
+  const clinicName = isSuperAdminWs
+    ? "Platform Console"
+    : (resolvedName || cachedIdentity.name || "OptoCare Clinic");
   const userRole = isSuperAdminWs ? "super_admin" : (roles.find(r => r !== "super_admin") || roles[0] || "admin");
   const initials = (clinicName || "?").split(/\s+/).slice(0, 2).map(s => s[0]).join("").toUpperCase();
+  const identityLoading = !isSuperAdminWs && clinicLoading && !resolvedName && !cachedIdentity.name;
 
   const setupComplete = !isSuperAdminWs && clinic?.setup_completed === true;
   const setupPending = !isSuperAdminWs && clinic?.setup_completed === false;
@@ -121,12 +137,21 @@ export default function ClinicSidebar() {
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <div className="font-bold text-sm text-foreground leading-tight truncate" title={clinicName}>
-                {clinicName}
-              </div>
-              <div className="text-[10px] text-muted-foreground capitalize leading-tight mt-0.5">
-                {ROLE_LABEL[userRole] || userRole}
-              </div>
+              {identityLoading ? (
+                <div className="space-y-1.5">
+                  <Skeleton className="h-3.5 w-28" />
+                  <Skeleton className="h-2.5 w-16" />
+                </div>
+              ) : (
+                <>
+                  <div className="font-bold text-sm text-foreground leading-tight truncate" title={clinicName}>
+                    {clinicName}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground capitalize leading-tight mt-0.5">
+                    {ROLE_LABEL[userRole] || userRole}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </Link>
@@ -148,7 +173,7 @@ export default function ClinicSidebar() {
                 return (
                   <SidebarMenuItem key={item.to}>
                     <SidebarMenuButton asChild isActive={isActive(item.to)} tooltip={item.label}>
-                      <NavLink to={item.to} className="flex items-center gap-2.5">
+                      <NavLink to={item.to} onClick={handleNavClick} className="flex items-center gap-2.5">
                         <Icon className="h-4 w-4 shrink-0" />
                         {!collapsed && <span className="text-sm">{item.label}</span>}
                       </NavLink>
@@ -170,7 +195,7 @@ export default function ClinicSidebar() {
                   return (
                     <SidebarMenuItem key={item.to}>
                       <SidebarMenuButton asChild isActive={isActive(item.to)} tooltip={item.label}>
-                        <NavLink to={item.to} className="flex items-center gap-2.5">
+                        <NavLink to={item.to} onClick={handleNavClick} className="flex items-center gap-2.5">
                           <Icon className="h-4 w-4 shrink-0" />
                           {!collapsed && <span className="text-sm">{item.label}</span>}
                         </NavLink>
