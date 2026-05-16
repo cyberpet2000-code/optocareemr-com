@@ -586,7 +586,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     persistActive(null);
-    setActiveClinicIdState(null);
+    setActiveClinicIdState((prev) => (prev === null ? prev : null));
     await apiClient.auth.signOut();
   }, [persistActive]);
 
@@ -598,49 +598,87 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     ? (activeClinicId || accessState.resolvedClinicId || null)
     : accessState.resolvedClinicId;
 
-  const value = useMemo(() => ({
+  const authValue = useMemo(() => ({
     user,
     authLoading,
+    isAuthenticated,
+    isAuthReady,
+  }), [authLoading, isAuthenticated, isAuthReady, user]);
+
+  const clinicValue = useMemo(() => ({
     profile: accessState.profile,
     profileError: accessState.profileError,
     clinic: accessState.clinic,
-    roles: accessState.roles,
-    role: accessState.role,
     memberships: accessState.memberships,
     profileLoading: !accessState.accessReady && isAuthenticated,
-    roleLoading: !accessState.accessReady && isAuthenticated,
     clinicLoading: !accessState.accessReady && isAuthenticated,
     membershipLoading: !accessState.accessReady && isAuthenticated,
-    isAuthenticated,
-    isAuthReady,
     accessReady: accessState.accessReady,
-    roleMissing,
     activeClinicId,
     effectiveClinicId,
     resolvedClinicId: accessState.resolvedClinicId,
     clinicResolutionFailed: accessState.clinicResolutionFailed,
-    switchClinic,
-    reload,
-    signOut,
-  }), [
-    accessState,
-    activeClinicId,
-    authLoading,
-    effectiveClinicId,
-    isAuthenticated,
-    isAuthReady,
-    reload,
-    roleMissing,
-    signOut,
-    switchClinic,
-    user,
-  ]);
+  }), [accessState.accessReady, accessState.clinic, accessState.clinicResolutionFailed, accessState.memberships, accessState.profile, accessState.profileError, accessState.resolvedClinicId, activeClinicId, effectiveClinicId, isAuthenticated]);
 
-  return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>;
+  const roleValue = useMemo(() => ({
+    roles: accessState.roles,
+    role: accessState.role,
+    roleLoading: !accessState.accessReady && isAuthenticated,
+    roleMissing,
+  }), [accessState.accessReady, accessState.role, accessState.roles, isAuthenticated, roleMissing]);
+
+  const actionsValue = useMemo(() => ({
+    switchClinic,
+    reload,
+    signOut,
+  }), [reload, signOut, switchClinic]);
+
+  const value = useMemo(() => ({
+    ...authValue,
+    ...clinicValue,
+    ...roleValue,
+    ...actionsValue,
+  }), [actionsValue, authValue, clinicValue, roleValue]);
+
+  return (
+    <AccessAuthContext.Provider value={authValue}>
+      <AccessClinicContext.Provider value={clinicValue}>
+        <AccessRoleContext.Provider value={roleValue}>
+          <AccessActionsContext.Provider value={actionsValue}>
+            <AccessContext.Provider value={value}>{children}</AccessContext.Provider>
+          </AccessActionsContext.Provider>
+        </AccessRoleContext.Provider>
+      </AccessClinicContext.Provider>
+    </AccessAuthContext.Provider>
+  );
 }
 
 export function useAccess() {
   const ctx = useContext(AccessContext);
   if (!ctx) throw new Error("useAccess must be used within AccessProvider");
+  return ctx;
+}
+
+export function useAccessAuth() {
+  const ctx = useContext(AccessAuthContext);
+  if (!ctx) throw new Error("useAccessAuth must be used within AccessProvider");
+  return ctx;
+}
+
+export function useAccessClinic() {
+  const ctx = useContext(AccessClinicContext);
+  if (!ctx) throw new Error("useAccessClinic must be used within AccessProvider");
+  return ctx;
+}
+
+export function useAccessRole() {
+  const ctx = useContext(AccessRoleContext);
+  if (!ctx) throw new Error("useAccessRole must be used within AccessProvider");
+  return ctx;
+}
+
+export function useAccessActions() {
+  const ctx = useContext(AccessActionsContext);
+  if (!ctx) throw new Error("useAccessActions must be used within AccessProvider");
   return ctx;
 }
