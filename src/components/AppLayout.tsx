@@ -1,5 +1,7 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { readIdentity, writeIdentity } from "@/lib/clinic-identity";
 import {
   LayoutDashboard, Users, ShoppingBag, DollarSign, LogOut, Calendar, UserPlus,
   Bell, Search, Building2,
