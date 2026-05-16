@@ -308,53 +308,17 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const switchClinic = useCallback(async (clinicId: string | null) => {
-    const fromClinic = activeClinicId;
-    let granted = true;
-    let reason: string | null = null;
-
     if (clinicId && user) {
       const grantedRole = await assertClinicAccess(apiClient as any, user.id, clinicId);
       if (!grantedRole) {
-        granted = false;
-        reason = "no membership in target clinic";
-        try {
-          await (apiClient.from as any)("clinic_switch_log").insert({
-            admin_id: user.id,
-            from_clinic: fromClinic,
-            to_clinic: clinicId,
-            clinic_id: clinicId,
-            access_granted: false,
-            reason,
-          });
-        } catch { /* swallow audit failures */ }
         throw new Error("You do not have access to this clinic.");
       }
     }
-
     persistActive(clinicId);
     setActiveClinicIdState(clinicId);
-    try {
-      await loadAccess(user, clinicId);
-    } catch (e: any) {
-      granted = false;
-      reason = e?.message || "load failed";
-      throw e;
-    } finally {
-      if (user && clinicId) {
-        try {
-          await (apiClient.from as any)("clinic_switch_log").insert({
-            admin_id: user.id,
-            from_clinic: fromClinic,
-            to_clinic: clinicId,
-            clinic_id: clinicId,
-            access_granted: granted,
-            reason,
-          });
-        } catch { /* swallow audit failures */ }
-      }
-    }
-    return granted;
-  }, [loadAccess, user, activeClinicId]);
+    await loadAccess(user, clinicId);
+    return true;
+  }, [loadAccess, user]);
 
   const isAuthenticated = !!user;
   const isAuthReady = !authLoading && (!isAuthenticated || accessReady);
