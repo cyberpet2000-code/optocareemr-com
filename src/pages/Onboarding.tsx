@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
 import { useClinic } from "@/hooks/useClinic";
@@ -29,13 +29,16 @@ export default function Onboarding() {
   const [staff, setStaff] = useState({ doctor_name: "", doctor_email: "", reception_name: "", reception_email: "" });
   const [patient, setPatient] = useState({ full_name: "", phone: "", age: "" });
   const [busy, setBusy] = useState(false);
+  const isSetupCompleted = clinic?.setup_completed === true;
+  const clinicName = clinic?.name ?? "";
+  const welcomeName = useMemo(() => profile?.full_name ? `, ${profile.full_name}` : "", [profile?.full_name]);
 
   useEffect(() => {
     if (roleLoading || loading) return;
-    if (clinic?.setup_completed) {
+    if (isSetupCompleted) {
       navigate("/dashboard", { replace: true });
     }
-  }, [loading, clinic, navigate, role, roleLoading]);
+  }, [isSetupCompleted, loading, navigate, roleLoading]);
 
   if (loading || roleLoading) {
     return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading OptoCare...</div>;
@@ -150,8 +153,8 @@ export default function Onboarding() {
           {step === 0 && (
             <div className="text-center space-y-3 py-6">
               <Sparkles className="mx-auto text-primary" size={40} />
-              <h1 className="text-2xl font-bold">Welcome{profile?.full_name ? `, ${profile.full_name}` : ""}!</h1>
-              <p className="text-muted-foreground">Let's get <strong>{clinic.name}</strong> set up in a few quick steps.</p>
+               <h1 className="text-2xl font-bold">Welcome{welcomeName}!</h1>
+               <p className="text-muted-foreground">Let's get <strong>{clinicName}</strong> set up in a few quick steps.</p>
               <Button onClick={next} className="mt-4">Get Started <ArrowRight size={16} className="ml-1" /></Button>
             </div>
           )}
@@ -161,7 +164,7 @@ export default function Onboarding() {
               <h2 className="text-xl font-bold">Your Clinic</h2>
               <div className="rounded-xl border p-4 bg-muted/30">
                 <div className="text-xs uppercase text-muted-foreground">Clinic name</div>
-                <div className="text-lg font-semibold">{clinic.name}</div>
+                 <div className="text-lg font-semibold">{clinicName}</div>
               </div>
               <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm text-primary">
                 Welcome aboard — let's get your clinic set up.
