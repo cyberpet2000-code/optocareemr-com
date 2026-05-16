@@ -137,12 +137,21 @@ export default function ClinicSidebar() {
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <div className="font-bold text-sm text-foreground leading-tight truncate" title={clinicName}>
-                {clinicName}
-              </div>
-              <div className="text-[10px] text-muted-foreground capitalize leading-tight mt-0.5">
-                {ROLE_LABEL[userRole] || userRole}
-              </div>
+              {identityLoading ? (
+                <div className="space-y-1.5">
+                  <Skeleton className="h-3.5 w-28" />
+                  <Skeleton className="h-2.5 w-16" />
+                </div>
+              ) : (
+                <>
+                  <div className="font-bold text-sm text-foreground leading-tight truncate" title={clinicName}>
+                    {clinicName}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground capitalize leading-tight mt-0.5">
+                    {ROLE_LABEL[userRole] || userRole}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </Link>
