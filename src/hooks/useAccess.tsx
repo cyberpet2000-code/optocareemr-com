@@ -353,6 +353,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       const userChanged = previousUserId !== nextUserId;
 
       setKnownSupabaseSession(session);
+      userRef.current = nextUser;
       setUser((prev) => {
         if (!nextUser) return null;
         return prev?.id === nextUser.id ? prev : nextUser;
@@ -375,7 +376,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       const shouldHydrateAccess = userChanged || !accessReadyRef.current;
       if (shouldHydrateAccess) {
         await loadAccess(nextUser, activeClinicIdRef.current, {
-          force: true,
+          force: userChanged,
           blocking: userChanged || !accessReadyRef.current,
           reason,
         });
