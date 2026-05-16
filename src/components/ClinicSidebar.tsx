@@ -41,31 +41,25 @@ export default function ClinicSidebar() {
     primary = [
       { to: "/super-admin", label: "Overview", icon: LayoutDashboard },
       { to: "/super-admin/clinics", label: "Clinics", icon: Building2 },
-      { to: "/super-admin/operations", label: "Operations", icon: Activity },
-      { to: "/super-admin/performance", label: "Performance", icon: Activity },
     ];
     secondary = [
       { to: "/super-admin/create-clinic", label: "Create Clinic", icon: Sparkles },
       { to: "/super-admin/users", label: "Users", icon: ShieldCheck },
-      { to: "/super-admin/audit", label: "Switch Audit", icon: History },
     ];
   } else if (isDoctor && !isAdmin && !isSuperAdmin) {
     primary = [
-      { to: "/queue", label: "Queue", icon: ListOrdered },
       { to: "/patients", label: "Patients", icon: Users },
       { to: "/appointments", label: "Visits", icon: Calendar },
     ];
   } else if (isReceptionist && !isAdmin && !isDoctor) {
     primary = [
       { to: "/register", label: "Register", icon: UserPlus },
-      { to: "/queue", label: "Queue", icon: ListOrdered },
       { to: "/appointments", label: "Appointments", icon: Calendar },
       { to: "/billing", label: "Billing", icon: DollarSign },
     ];
   } else {
     primary = [
       { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { to: "/queue", label: "Queue", icon: ListOrdered },
       { to: "/patients", label: "Patients", icon: Users },
       { to: "/billing", label: "Billing", icon: DollarSign },
       { to: "/inventory", label: "Optical", icon: ShoppingBag },
@@ -73,11 +67,8 @@ export default function ClinicSidebar() {
     secondary = [
       { to: "/register", label: "Add Patient", icon: UserPlus },
       { to: "/appointments", label: "Appointments", icon: Calendar },
-      { to: "/pharmacy", label: "Pharmacy", icon: Pill },
       { to: "/hmos", label: "HMOs", icon: Building2 },
-      { to: "/sales-history", label: "Sales History", icon: History },
       ...(isAdmin ? [{ to: "/admin/roles", label: "Manage Roles", icon: ShieldCheck }] : []),
-      ...(isAdmin ? [{ to: "/communications", label: "Communications", icon: Mail }] : []),
     ];
   }
 
