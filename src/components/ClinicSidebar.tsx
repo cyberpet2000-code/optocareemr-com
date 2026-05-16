@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, ShoppingBag, DollarSign, ShieldCheck, Calendar,
@@ -8,9 +8,11 @@ import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useRole } from "@/hooks/useRole";
 import { useClinic } from "@/hooks/useClinic";
 import ClinicSwitcher from "@/components/ClinicSwitcher";
+import { readIdentity } from "@/lib/clinic-identity";
 
 export type Workspace = "super-admin" | "clinic";
 
