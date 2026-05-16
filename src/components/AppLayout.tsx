@@ -80,11 +80,25 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
 
   const isActive = useCallback((path: string) => path === "/" ? location.pathname === "/" : location.pathname.startsWith(path), [location.pathname]);
 
+  const resolvedClinicName = clinic?.name?.trim() || null;
+  const resolvedRoleLabel = roles.length > 0 ? (ROLE_LABEL[userRole] || null) : null;
+
   const headerClinicName = isSuperAdminWs
     ? "Platform Console"
-    : (clinic?.name?.trim() || "OptoCare Clinic");
-  const headerRoleLabel = ROLE_LABEL[userRole] || "Staff";
+    : (resolvedClinicName || cachedIdentity.name || "OptoCare Clinic");
+  const headerRoleLabel = resolvedRoleLabel || cachedIdentity.role || "Staff";
   const showActiveBadge = !isSuperAdminWs && !!clinic;
+  const identityLoading = !isSuperAdminWs && clinicLoading && !resolvedClinicName && !cachedIdentity.name;
+
+  useEffect(() => {
+    if (isSuperAdminWs) return;
+    if (resolvedClinicName || resolvedRoleLabel) {
+      writeIdentity({
+        name: resolvedClinicName ?? cachedIdentity.name,
+        role: resolvedRoleLabel ?? cachedIdentity.role,
+      });
+    }
+  }, [resolvedClinicName, resolvedRoleLabel, isSuperAdminWs, cachedIdentity.name, cachedIdentity.role]);
 
   return (
     <SidebarProvider defaultOpen={true}>
