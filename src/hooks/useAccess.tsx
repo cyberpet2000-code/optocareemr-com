@@ -158,7 +158,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           try {
             const { data } = await apiClient
               .from("clinics")
-              .select("id, name, subscription_status, trial_start_date, trial_end_date, setup_completed, onboarding_step, is_active, lifecycle_status, theme_color, secondary_color, logo_url")
+              .select("id, name, subscription_status, setup_completed, onboarding_step, is_active, lifecycle_status, logo_url")
               .eq("id", overrideClinicId)
               .maybeSingle();
             clinicData = data || null;
@@ -206,7 +206,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       setClinicResolutionFailed(false);
       const clinicResult = await apiClient
         .from("clinics")
-        .select("id, name, subscription_status, trial_start_date, trial_end_date, setup_completed, onboarding_step, is_active, lifecycle_status, theme_color, secondary_color, logo_url")
+        .select("id, name, subscription_status, setup_completed, onboarding_step, is_active, lifecycle_status, logo_url")
         .eq("id", backendResolvedClinicId)
         .maybeSingle();
       if (requestRef.current !== requestId) return;
