@@ -90,7 +90,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     setProfile(null); setClinic(null); setRoles([]); setRole(null);
     setMemberships([]); setResolvedClinicId(null); setClinicResolutionFailed(false);
     setProfileError(null);
-    applyClinicTheme(null);
+    
   }, []);
 
   // Single profile + role + clinic loader. Called after auth resolves.
@@ -169,7 +169,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         }
         if (requestRef.current !== requestId) return;
         setClinic(clinicData);
-        applyClinicTheme(clinicData);
+        
         setAccessReady(true);
         // eslint-disable-next-line no-console
         console.debug("[access:super_admin_ready]", { user_id: nextUser.id, override_clinic_id: overrideClinicId });
@@ -196,7 +196,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       if (!backendResolvedClinicId) {
         setClinic(null);
         setClinicResolutionFailed(true);
-        applyClinicTheme(null);
+        
         setAccessReady(true);
         // eslint-disable-next-line no-console
         console.debug("[access:no_clinic]", { user_id: nextUser.id });
@@ -212,7 +212,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       if (requestRef.current !== requestId) return;
 
       setClinic(clinicResult.data || null);
-      applyClinicTheme(clinicResult.data || null);
+      
       setAccessReady(true);
       // eslint-disable-next-line no-console
       console.debug("[access:ready]", {
@@ -227,7 +227,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       setResolvedClinicId(null);
       setClinicResolutionFailed(true);
       setProfileError(error);
-      applyClinicTheme(null);
+      
       setAccessReady(true);
       // eslint-disable-next-line no-console
       console.error("[access:error]", { user_id: nextUser.id, message: error?.message });
