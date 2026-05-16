@@ -183,13 +183,12 @@ export default function ClinicSidebar() {
                 <><Clock size={13} className="text-muted-foreground" /><span className="text-muted-foreground">Setup status unknown</span></>
               )}
             </div>
-            {trialLabel && (
+            {lifecycleLabel && (
               <div className={`text-[11px] px-2 py-1.5 rounded-md flex items-center gap-1.5 ${
-                trialLabel.tone === "success" ? "bg-success/10 text-success" :
-                trialLabel.tone === "warning" ? "bg-warning/10 text-warning" :
+                lifecycleLabel.tone === "success" ? "bg-success/10 text-success" :
                 "bg-destructive/10 text-destructive"
               }`}>
-                <Clock size={12} /> {trialLabel.text}
+                <Clock size={12} /> {lifecycleLabel.text}
               </div>
             )}
           </>
