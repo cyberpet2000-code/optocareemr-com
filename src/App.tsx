@@ -63,6 +63,8 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
   const { isAuthReady, roleMissing, memberships } = useAccess();
   const location = useLocation();
   const [timedOut, setTimedOut] = useState(false);
+  const setupCompleted = clinic?.setup_completed ?? null;
+  const lifecycleStatus = (clinic as any)?.lifecycle_status ?? null;
 
   useEffect(() => {
     if (isAuthReady || !user) {
@@ -80,11 +82,11 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
     didTimeout: timedOut,
     role,
     clinicId: effectiveClinicId,
-    setupCompleted: clinic?.setup_completed,
+    setupCompleted,
     roleMissing,
     membershipsCount: memberships.length,
-    lifecycleStatus: (clinic as any)?.lifecycle_status ?? null,
-  }), [clinic, effectiveClinicId, isAuthReady, location.pathname, memberships.length, role, roleMissing, timedOut, user]);
+    lifecycleStatus,
+  }), [effectiveClinicId, isAuthReady, lifecycleStatus, location.pathname, memberships.length, role, roleMissing, setupCompleted, timedOut, user]);
 
   useEffect(() => {
     console.debug("[route:guard]", {
