@@ -30,7 +30,7 @@ export default function ClinicSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { isAdmin, isSuperAdmin, isDoctor, isReceptionist, roles } = useRole();
-  const { clinic: clinicBase, profile, trialDaysLeft, trialExpired } = useClinic();
+  const { clinic: clinicBase, profile } = useClinic();
   const clinic = clinicBase as (typeof clinicBase & { logo_url?: string | null }) | null;
   const workspace = resolveWorkspace(location.pathname);
 
