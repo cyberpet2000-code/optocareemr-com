@@ -54,7 +54,7 @@ export default function SuperAdminClinics() {
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const transitionLifecycle = async (c: any, next: Lifecycle) => {
-    const current = (c.lifecycle_status as Lifecycle) || "trial";
+    const current = (c.lifecycle_status as Lifecycle) || "active";
     if (!ALLOWED_TRANSITIONS[current].includes(next)) {
       toast.error(`Cannot transition ${current} → ${next}`);
       return;
