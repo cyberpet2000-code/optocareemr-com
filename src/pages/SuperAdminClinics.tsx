@@ -10,24 +10,19 @@ import { useAccess } from "@/hooks/useAccess";
 import { toast } from "sonner";
 import PendingInvitesPanel from "@/components/PendingInvitesPanel";
 
-type Lifecycle = "trial" | "active" | "suspended" | "deactivated";
+type Lifecycle = "active" | "suspended" | "deactivated";
 
 function lifecycleLabel(c: any): { label: string; cls: string } {
-  const s: Lifecycle = (c.lifecycle_status as Lifecycle) || "trial";
+  const s: Lifecycle = (c.lifecycle_status as Lifecycle) || "active";
   switch (s) {
     case "active": return { label: "Active", cls: "bg-success/10 text-success" };
     case "suspended": return { label: "Suspended", cls: "bg-warning/10 text-warning" };
     case "deactivated": return { label: "Deactivated", cls: "bg-destructive/10 text-destructive" };
-    default: {
-      const days = c.trial_end_date ? Math.ceil((new Date(c.trial_end_date).getTime() - Date.now()) / 86400000) : null;
-      if (days !== null && days <= 3 && days >= 0) return { label: "Trial · Expiring", cls: "bg-warning/10 text-warning" };
-      return { label: "Trial", cls: "bg-primary/10 text-primary" };
-    }
+    default: return { label: "Active", cls: "bg-success/10 text-success" };
   }
 }
 
 const ALLOWED_TRANSITIONS: Record<Lifecycle, Lifecycle[]> = {
-  trial: ["active"],
   active: ["suspended", "deactivated"],
   suspended: ["active"],
   deactivated: [],
