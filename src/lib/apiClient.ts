@@ -52,9 +52,7 @@ async function invokeWithHeaders(
 }
 
 export const apiClient = {
-  // Loose typing on `from` to accept all tables/views without bloating
-  // call-sites with explicit casts. Runtime behavior is identical.
-  from: supabase.from.bind(supabase) as (relation: string) => ReturnType<typeof supabase.from>,
+  from: supabase.from.bind(supabase) as typeof supabase.from,
   rpc: supabase.rpc.bind(supabase) as typeof supabase.rpc,
   auth: supabase.auth,
   storage: supabase.storage,
