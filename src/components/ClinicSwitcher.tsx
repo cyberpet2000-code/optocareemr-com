@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
-import { useAccess } from "@/hooks/useAccess";
+import { useAccessActions, useAccessClinic, useAccessRole } from "@/hooks/useAccess";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Building2 } from "lucide-react";
@@ -14,7 +14,9 @@ interface ClinicSwitcherProps {
 }
 
 export default function ClinicSwitcher({ variant = "header", className = "" }: ClinicSwitcherProps) {
-  const { role, activeClinicId, effectiveClinicId, switchClinic, memberships } = useAccess();
+  const { role } = useAccessRole();
+  const { activeClinicId, effectiveClinicId, memberships } = useAccessClinic();
+  const { switchClinic } = useAccessActions();
   const navigate = useNavigate();
   const location = useLocation();
   const [allClinics, setAllClinics] = useState<ClinicRow[]>([]);
