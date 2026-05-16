@@ -21,7 +21,7 @@ const STEP_LABELS = ["Welcome", "Confirm", "Type", "Modules", "Staff", "First pa
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { clinic, profile, trialDaysLeft, loading, reload, switchClinic } = useClinic();
+  const { clinic, profile, loading, reload, switchClinic } = useClinic();
   const { role, loading: roleLoading } = useRole();
   const [step, setStep] = useState(0);
   const [clinicType, setClinicType] = useState("eye_clinic");
