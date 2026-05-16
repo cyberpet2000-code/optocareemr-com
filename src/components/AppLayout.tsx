@@ -107,7 +107,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
                     )}
                   </div>
                   <div className="hidden sm:block text-[10px] text-muted-foreground/70 leading-tight">
-                    OptoCare EMR
+                    {isSuperAdminWs ? "OptoCare EMR" : `OptoCare EMR · ${headerRoleLabel}`}
                   </div>
                 </div>
               </div>
