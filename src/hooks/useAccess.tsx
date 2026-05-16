@@ -587,6 +587,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     persistActive(null);
     setActiveClinicIdState((prev) => (prev === null ? prev : null));
+    try { sessionStorage.removeItem("optocare:clinic-identity"); } catch { /* ignore */ }
     await apiClient.auth.signOut();
   }, [persistActive]);
 
