@@ -35,7 +35,7 @@ export default function SuperAdminSwitchAudit() {
     (async () => {
       setLoading(true);
       const [logs, cs, ps] = await Promise.all([
-        apiClient.from("clinic_switch_log").select("*").order("created_at", { ascending: false }).limit(1000),
+        (apiClient.from as any)("clinic_switch_log").select("*").order("created_at", { ascending: false }).limit(1000),
         apiClient.from("clinics").select("id, name"),
         apiClient.from("profiles").select("*"),
       ]);
