@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
 import { useAccess } from "@/hooks/useAccess";
@@ -46,7 +46,7 @@ export default function ClinicSwitcher({ variant = "header", className = "" }: C
   if (clinics.length === 0) return null;
   if (clinics.length === 1 && variant === "header" && !location.pathname.startsWith("/super-admin")) return null;
 
-  const onChange = async (clinicId: string) => {
+  const onChange = useCallback(async (clinicId: string) => {
     if (clinicId === effectiveClinicId || clinicId === activeClinicId || switching) return;
     setSwitching(true);
     const target = clinics.find(c => c.id === clinicId);
@@ -63,7 +63,7 @@ export default function ClinicSwitcher({ variant = "header", className = "" }: C
     } finally {
       setSwitching(false);
     }
-  };
+  }, [activeClinicId, clinics, effectiveClinicId, location.pathname, navigate, switchClinic, switching]);
 
   if (variant === "sidebar") {
     return (
