@@ -150,6 +150,10 @@ function mergeMemberships({
 }
 
 const AccessContext = createContext<any>(null);
+const AccessAuthContext = createContext<any>(null);
+const AccessClinicContext = createContext<any>(null);
+const AccessRoleContext = createContext<any>(null);
+const AccessActionsContext = createContext<any>(null);
 
 export function AccessProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -194,7 +198,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const clearAccessState = useCallback((ready = true) => {
     invalidatePendingLoads();
     const nextState = createEmptyAccessState(ready);
-    setAccessState((prev) => (sameAccessState(prev, nextState) ? prev : nextState));
+    commitAccessState(nextState);
   }, [invalidatePendingLoads]);
 
   const commitAccessState = useCallback((nextState: AccessState) => {
@@ -214,7 +218,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     if (!nextUser) {
       invalidatePendingLoads();
       completedLoadKeyRef.current = loadKey;
-      setAccessState(createEmptyAccessState(true));
+      commitAccessState(createEmptyAccessState(true));
       return;
     }
 
