@@ -195,15 +195,15 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     inFlightLoadRef.current = null;
   }, []);
 
+  const commitAccessState = useCallback((nextState: AccessState) => {
+    setAccessState((prev) => (sameAccessState(prev, nextState) ? prev : nextState));
+  }, []);
+
   const clearAccessState = useCallback((ready = true) => {
     invalidatePendingLoads();
     const nextState = createEmptyAccessState(ready);
     commitAccessState(nextState);
-  }, [invalidatePendingLoads]);
-
-  const commitAccessState = useCallback((nextState: AccessState) => {
-    setAccessState((prev) => (sameAccessState(prev, nextState) ? prev : nextState));
-  }, []);
+  }, [commitAccessState, invalidatePendingLoads]);
 
   const loadAccess = useCallback(async (
     nextUser: User | null,
