@@ -6,6 +6,7 @@ import { safeSupabaseStorage, setKnownSupabaseSession } from "@/lib/supabase-aut
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
 const ACTIVE_CLINIC_KEY = "active_clinic_id";
+const ROLE_ORDER = new Map(VALID_ROLES.map((role, index) => [role, index]));
 
 type MembershipRow = {
   clinic_id: string;
@@ -38,6 +39,68 @@ function createEmptyAccessState(accessReady = false): AccessState {
     resolvedClinicId: null,
     clinicResolutionFailed: false,
   };
+}
+
+function sortRoles(roles: string[]) {
+  return [...roles].sort((left, right) => {
+    const leftOrder = ROLE_ORDER.get(left) ?? Number.MAX_SAFE_INTEGER;
+    const rightOrder = ROLE_ORDER.get(right) ?? Number.MAX_SAFE_INTEGER;
+    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+    return left.localeCompare(right);
+  });
+}
+
+function sortMemberships(rows: MembershipRow[]) {
+  return [...rows].sort((left, right) => {
+    const leftName = left.clinic_name ?? "";
+    const rightName = right.clinic_name ?? "";
+    const byName = leftName.localeCompare(rightName);
+    if (byName !== 0) return byName;
+    return left.clinic_id.localeCompare(right.clinic_id);
+  });
+}
+
+function shallowEqualObjects(left: Record<string, any> | null, right: Record<string, any> | null) {
+  if (left === right) return true;
+  if (!left || !right) return false;
+
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) return false;
+
+  return leftKeys.every((key) => left[key] === right[key]);
+}
+
+function sameMemberships(left: MembershipRow[], right: MembershipRow[]) {
+  if (left === right) return true;
+  if (left.length !== right.length) return false;
+
+  return left.every((item, index) => {
+    const next = right[index];
+    return !!next
+      && item.clinic_id === next.clinic_id
+      && item.role === next.role
+      && item.clinic_name === next.clinic_name
+      && item.setup_completed === next.setup_completed;
+  });
+}
+
+function sameRoles(left: string[], right: string[]) {
+  if (left === right) return true;
+  if (left.length !== right.length) return false;
+  return left.every((role, index) => role === right[index]);
+}
+
+function sameAccessState(left: AccessState, right: AccessState) {
+  return left.accessReady === right.accessReady
+    && left.role === right.role
+    && left.profileError === right.profileError
+    && left.resolvedClinicId === right.resolvedClinicId
+    && left.clinicResolutionFailed === right.clinicResolutionFailed
+    && sameRoles(left.roles, right.roles)
+    && sameMemberships(left.memberships, right.memberships)
+    && shallowEqualObjects(left.profile, right.profile)
+    && shallowEqualObjects(left.clinic, right.clinic);
 }
 
 function normalizeRole(value?: string | null) {
@@ -130,8 +193,13 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
   const clearAccessState = useCallback((ready = true) => {
     invalidatePendingLoads();
-    setAccessState(createEmptyAccessState(ready));
+    const nextState = createEmptyAccessState(ready);
+    setAccessState((prev) => (sameAccessState(prev, nextState) ? prev : nextState));
   }, [invalidatePendingLoads]);
+
+  const commitAccessState = useCallback((nextState: AccessState) => {
+    setAccessState((prev) => (sameAccessState(prev, nextState) ? prev : nextState));
+  }, []);
 
   const loadAccess = useCallback(async (
     nextUser: User | null,
@@ -209,7 +277,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           ...clinicUsersRows.map((row) => normalizeRole(row.role)),
         ].filter(Boolean))) as string[];
         const primaryRole = resolvePrimaryRole(nextProfile, fallbackRoles);
-        const nextRoles = Array.from(new Set([primaryRole, ...fallbackRoles].filter(Boolean))) as string[];
+        const nextRoles = sortRoles(Array.from(new Set([primaryRole, ...fallbackRoles].filter(Boolean))) as string[]);
 
         const membershipClinicIds = Array.from(new Set([
           ...userRolesRows.map((row) => row.clinic_id),
@@ -226,7 +294,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           if (requestRef.current !== requestId) return;
 
           const clinicMap = new Map((clinicsData || []).map((clinicRow: any) => [clinicRow.id, clinicRow]));
-          membershipRows = mergeMemberships({ userRolesRows, clinicUsersRows, clinicMap });
+          membershipRows = sortMemberships(mergeMemberships({ userRolesRows, clinicUsersRows, clinicMap }));
         }
 
         const nextAccessState: AccessState = {
@@ -259,7 +327,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
           if (requestRef.current !== requestId) return;
 
-          setAccessState(nextAccessState);
+          commitAccessState(nextAccessState);
           completedLoadKeyRef.current = loadKey;
           console.debug("[access:super_admin_ready]", {
             reason,
@@ -288,7 +356,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
         if (!backendResolvedClinicId) {
           nextAccessState.clinicResolutionFailed = true;
-          setAccessState(nextAccessState);
+          commitAccessState(nextAccessState);
           completedLoadKeyRef.current = loadKey;
           console.debug("[access:no_clinic]", { reason, user_id: nextUser.id });
           return;
@@ -303,7 +371,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         if (requestRef.current !== requestId) return;
 
         nextAccessState.clinic = clinicResult.data || null;
-        setAccessState(nextAccessState);
+        commitAccessState(nextAccessState);
         completedLoadKeyRef.current = loadKey;
 
         console.debug("[access:ready]", {
@@ -315,12 +383,15 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       } catch (error: any) {
         if (requestRef.current !== requestId) return;
 
-        setAccessState((prev) => ({
-          ...prev,
-          accessReady: true,
-          profileError: error,
-          clinicResolutionFailed: true,
-        }));
+        setAccessState((prev) => {
+          const nextState = {
+            ...prev,
+            accessReady: true,
+            profileError: error,
+            clinicResolutionFailed: true,
+          };
+          return sameAccessState(prev, nextState) ? prev : nextState;
+        });
 
         console.error("[access:error]", {
           reason,
@@ -339,7 +410,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         inFlightLoadRef.current = null;
       }
     }
-  }, [invalidatePendingLoads, persistActive]);
+  }, [commitAccessState, invalidatePendingLoads, persistActive]);
 
   useEffect(() => {
     let mounted = true;
