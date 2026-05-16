@@ -82,12 +82,12 @@ export default function ClinicSidebar() {
   const setupComplete = !isSuperAdminWs && clinic?.setup_completed === true;
   const setupPending = !isSuperAdminWs && clinic?.setup_completed === false;
 
-  const trialLabel = (() => {
+  const lifecycleLabel = (() => {
     if (isSuperAdminWs || !clinic) return null;
-    if (clinic.subscription_status === "active") return { text: "Subscription active", tone: "success" as const };
-    if (trialExpired) return { text: "Trial expired", tone: "destructive" as const };
-    if (Number.isFinite(trialDaysLeft)) return { text: `Trial: ${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left`, tone: "warning" as const };
-    return null;
+    if ((clinic as any).lifecycle_status === "suspended" || clinic.is_active === false) {
+      return { text: "Clinic suspended", tone: "destructive" as const };
+    }
+    return { text: "Active", tone: "success" as const };
   })();
 
   return (
