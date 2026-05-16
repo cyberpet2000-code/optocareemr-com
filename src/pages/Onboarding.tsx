@@ -164,7 +164,7 @@ export default function Onboarding() {
                 <div className="text-lg font-semibold">{clinic.name}</div>
               </div>
               <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm text-primary">
-                You have <strong>{Number.isFinite(trialDaysLeft) ? trialDaysLeft : "∞"}</strong> days left on your free trial.
+                Welcome aboard — let's get your clinic set up.
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={back}>Back</Button>
