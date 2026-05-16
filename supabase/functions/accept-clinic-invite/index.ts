@@ -132,6 +132,15 @@ Deno.serve(async (req) => {
       await admin.from("invites").update({ accepted: true } as any).eq("id", inviteId);
     }
 
+    // Lightweight audit log
+    await admin.from("activity_logs").insert({
+      user_id: userId,
+      clinic_id: clinicId,
+      action: "invite_accepted",
+      table_name: "clinic_invites",
+      record_id: inviteId,
+    } as any);
+
     console.log("Invite accepted", { user_id: userId, clinic_id: clinicId, role: scopedRole, source: inviteSource });
     return json({
       ok: true,

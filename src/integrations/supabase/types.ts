@@ -2103,6 +2103,7 @@ export type Database = {
           created_at: string | null
           full_name: string | null
           id: string
+          is_active: boolean
           is_super_admin: boolean | null
           last_active_clinic_id: string | null
           phone: string | null
@@ -2118,6 +2119,7 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           id?: string
+          is_active?: boolean
           is_super_admin?: boolean | null
           last_active_clinic_id?: string | null
           phone?: string | null
@@ -2133,6 +2135,7 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           id?: string
+          is_active?: boolean
           is_super_admin?: boolean | null
           last_active_clinic_id?: string | null
           phone?: string | null

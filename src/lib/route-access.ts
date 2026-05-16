@@ -11,6 +11,7 @@ type ProtectedRouteInput = {
   roleMissing: boolean;
   membershipsCount?: number;
   lifecycleStatus?: string | null;
+  isActive?: boolean;
 };
 
 const BILLING_ALLOWED_PATHS = ["/billing", "/no-access", "/select-clinic"];
@@ -96,6 +97,7 @@ export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision
     roleMissing,
     membershipsCount = 0,
     lifecycleStatus,
+    isActive = true,
   } = input;
 
   const isSuperAdmin = role === "super_admin";
@@ -109,6 +111,12 @@ export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision
   // b. Auth failure
   if (!isAuthenticated || didTimeout) {
     return { type: "redirect", to: "/login" };
+  }
+
+  // Inactive staff (super admins bypass)
+  if (!isSuperAdmin && isActive === false) {
+    if (path === "/no-access") return { type: "allow" };
+    return { type: "redirect", to: "/no-access" };
   }
 
   // d. Super admin short-circuit — bypasses clinic, onboarding, billing, lifecycle.
