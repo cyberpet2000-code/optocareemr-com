@@ -162,7 +162,6 @@ export default function SuperAdminClinics() {
                   <td className="py-2.5 pr-3 font-medium flex items-center gap-2"><Building2 size={14} className="text-muted-foreground" /> {c.name}</td>
                   <td className="py-2.5 pr-3"><span className={`text-xs px-2 py-0.5 rounded-md ${lc.cls}`}>{lc.label}</span></td>
                   <td className="py-2.5 pr-3 text-xs">{c.setup_completed ? "✓ Done" : "Pending"}</td>
-                  <td className="py-2.5 pr-3 text-xs text-muted-foreground">{c.trial_end_date ? new Date(c.trial_end_date).toLocaleDateString() : "—"}</td>
                   <td className="py-2.5 pr-3 text-xs">{c.is_active ? "Yes" : "No"}</td>
                   <td className="py-2.5 pr-3 text-right">
                     <div className="inline-flex flex-wrap gap-2 justify-end">
