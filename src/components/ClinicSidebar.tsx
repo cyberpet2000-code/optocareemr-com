@@ -1,8 +1,7 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Users, ShoppingBag, Pill, DollarSign, ShieldCheck, Calendar, History,
-  UserPlus, ListOrdered, Building2, Activity, Sparkles, LifeBuoy, Settings, CheckCircle2,
-  CircleDashed, Clock, Mail,
+  LayoutDashboard, Users, ShoppingBag, DollarSign, ShieldCheck, Calendar,
+  UserPlus, Building2, Sparkles, LifeBuoy, CheckCircle2, CircleDashed, Clock,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
