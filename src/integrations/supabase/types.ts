@@ -891,39 +891,6 @@ export type Database = {
         }
         Relationships: []
       }
-      clinic_switch_log: {
-        Row: {
-          access_granted: boolean | null
-          admin_id: string | null
-          clinic_id: string
-          created_at: string | null
-          from_clinic: string | null
-          id: string
-          reason: string | null
-          to_clinic: string | null
-        }
-        Insert: {
-          access_granted?: boolean | null
-          admin_id?: string | null
-          clinic_id: string
-          created_at?: string | null
-          from_clinic?: string | null
-          id?: string
-          reason?: string | null
-          to_clinic?: string | null
-        }
-        Update: {
-          access_granted?: boolean | null
-          admin_id?: string | null
-          clinic_id?: string
-          created_at?: string | null
-          from_clinic?: string | null
-          id?: string
-          reason?: string | null
-          to_clinic?: string | null
-        }
-        Relationships: []
-      }
       clinic_system_issues: {
         Row: {
           clinic_id: string | null
@@ -1016,6 +983,13 @@ export type Database = {
             foreignKeyName: "clinic_users_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "user_access_context"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "clinic_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user_active_clinic"
             referencedColumns: ["id"]
           },
@@ -1088,8 +1062,6 @@ export type Database = {
           staff_setup_done: boolean | null
           subscription_status: string | null
           theme_color: string | null
-          trial_end_date: string | null
-          trial_start_date: string | null
           type: string | null
           updated_at: string | null
           upgrade_prompt_count: number | null
@@ -1126,8 +1098,6 @@ export type Database = {
           staff_setup_done?: boolean | null
           subscription_status?: string | null
           theme_color?: string | null
-          trial_end_date?: string | null
-          trial_start_date?: string | null
           type?: string | null
           updated_at?: string | null
           upgrade_prompt_count?: number | null
@@ -1164,8 +1134,6 @@ export type Database = {
           staff_setup_done?: boolean | null
           subscription_status?: string | null
           theme_color?: string | null
-          trial_end_date?: string | null
-          trial_start_date?: string | null
           type?: string | null
           updated_at?: string | null
           upgrade_prompt_count?: number | null
@@ -2080,64 +2048,6 @@ export type Database = {
             columns: ["billing_id"]
             isOneToOne: false
             referencedRelation: "billing"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pharmacy_sales: {
-        Row: {
-          clinic_id: string | null
-          created_at: string
-          id: string
-          inventory_id: string | null
-          patient_id: string | null
-          price: number | null
-          quantity: number
-          total: number | null
-          visit_id: string | null
-        }
-        Insert: {
-          clinic_id?: string | null
-          created_at?: string
-          id?: string
-          inventory_id?: string | null
-          patient_id?: string | null
-          price?: number | null
-          quantity?: number
-          total?: number | null
-          visit_id?: string | null
-        }
-        Update: {
-          clinic_id?: string | null
-          created_at?: string
-          id?: string
-          inventory_id?: string | null
-          patient_id?: string | null
-          price?: number | null
-          quantity?: number
-          total?: number | null
-          visit_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pharmacy_sales_inventory_id_fkey"
-            columns: ["inventory_id"]
-            isOneToOne: false
-            referencedRelation: "inventory"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pharmacy_sales_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pharmacy_sales_visit_id_fkey"
-            columns: ["visit_id"]
-            isOneToOne: false
-            referencedRelation: "visits"
             referencedColumns: ["id"]
           },
         ]
@@ -3124,21 +3034,25 @@ export type Database = {
         }
         Relationships: []
       }
+      user_access_context: {
+        Row: {
+          clinic_id: string | null
+          clinic_name: string | null
+          full_name: string | null
+          is_super_admin: boolean | null
+          lifecycle_status: string | null
+          profile_role: string | null
+          resolved_role: string | null
+          setup_completed: boolean | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       user_active_clinic: {
         Row: {
           id: string | null
           is_super_admin: boolean | null
           resolved_clinic_id: string | null
-        }
-        Insert: {
-          id?: string | null
-          is_super_admin?: boolean | null
-          resolved_clinic_id?: never
-        }
-        Update: {
-          id?: string | null
-          is_super_admin?: boolean | null
-          resolved_clinic_id?: never
         }
         Relationships: []
       }
@@ -3232,6 +3146,10 @@ export type Database = {
           pharmacy: boolean
         }[]
       }
+      has_clinic_access: {
+        Args: { target_clinic: string; uid: string }
+        Returns: boolean
+      }
       has_role:
         | {
             Args: {
@@ -3250,6 +3168,7 @@ export type Database = {
         Args: { clinic_id: string; feature: string }
         Returns: boolean
       }
+      is_platform_super_admin: { Args: { uid: string }; Returns: boolean }
       is_super_admin:
         | { Args: never; Returns: boolean }
         | { Args: { _user_id: string }; Returns: boolean }
