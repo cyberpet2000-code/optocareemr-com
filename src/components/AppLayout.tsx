@@ -33,7 +33,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const { isAdmin, isSuperAdmin, isDoctor, isReceptionist, roles } = useRole();
-  const { profile, clinic, loading: clinicLoading } = useClinic();
+  const { profile, clinic } = useClinic();
   const [cachedIdentity] = useState(readIdentity);
 
   const workspace = resolveWorkspace(location.pathname);
@@ -85,10 +85,10 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
 
   const headerClinicName = isSuperAdminWs
     ? "Platform Console"
-    : (resolvedClinicName || cachedIdentity.name || "OptoCare Clinic");
+    : (resolvedClinicName || cachedIdentity.name || "Loading clinic...");
   const headerRoleLabel = resolvedRoleLabel || cachedIdentity.role || "Staff";
   const showActiveBadge = !isSuperAdminWs && !!clinic;
-  const identityLoading = !isSuperAdminWs && clinicLoading && !resolvedClinicName && !cachedIdentity.name;
+  const identityLoading = !isSuperAdminWs && !resolvedClinicName && !cachedIdentity.name;
 
   useEffect(() => {
     if (isSuperAdminWs) return;
