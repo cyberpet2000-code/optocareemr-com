@@ -1,13 +1,11 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, Users, ShoppingBag, Pill, DollarSign, LogOut, ListOrdered, Calendar, UserPlus,
+  LayoutDashboard, Users, ShoppingBag, DollarSign, LogOut, Calendar, UserPlus,
   Bell, Search, Building2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useClinic } from "@/hooks/useClinic";
-import TrialBanner from "@/components/TrialBanner";
-import SubscriptionGate from "@/components/SubscriptionGate";
 import ClinicSidebar, { resolveWorkspace } from "@/components/ClinicSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
@@ -46,7 +44,6 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   const userName = profile?.full_name || "User";
   const userInitials = userName.split(/\s+/).slice(0, 2).map(s => s[0]).join("").toUpperCase();
 
-  // Mobile bottom nav (kept for handheld continuity)
   let mobilePrimary: { to: string; label: string; icon: any }[] = [];
   if (isSuperAdminWs) {
     mobilePrimary = [
@@ -56,22 +53,20 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
     ];
   } else if (isDoctor && !isAdmin && !isSuperAdmin) {
     mobilePrimary = [
-      { to: "/queue", label: "Queue", icon: ListOrdered },
       { to: "/patients", label: "Patients", icon: Users },
       { to: "/appointments", label: "Visits", icon: Calendar },
     ];
   } else if (isReceptionist && !isAdmin && !isDoctor) {
     mobilePrimary = [
       { to: "/register", label: "Register", icon: UserPlus },
-      { to: "/queue", label: "Queue", icon: ListOrdered },
       { to: "/appointments", label: "Appts", icon: Calendar },
       { to: "/billing", label: "Billing", icon: DollarSign },
     ];
   } else {
     mobilePrimary = [
       { to: "/dashboard", label: "Home", icon: LayoutDashboard },
-      { to: "/queue", label: "Queue", icon: ListOrdered },
       { to: "/patients", label: "Patients", icon: Users },
+      { to: "/appointments", label: "Visits", icon: Calendar },
       { to: "/billing", label: "Billing", icon: DollarSign },
       { to: "/inventory", label: "Optical", icon: ShoppingBag },
     ];
@@ -79,7 +74,6 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
 
   const isActive = (path: string) => path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
-  // Header clinic identity
   const headerClinicName = isSuperAdminWs ? "Platform Console" : (clinic?.name || "Clinic Dashboard");
   const showActiveBadge = !isSuperAdminWs && !!clinic;
 
@@ -89,12 +83,10 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
         <ClinicSidebar />
 
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Top header — clinic name dominant, OptoCare brand subtle */}
           <header className="sticky top-0 z-40 bg-card/85 backdrop-blur-xl border-b border-border/60">
             <div className="flex items-center gap-2 lg:gap-4 px-3 lg:px-6 h-14 lg:h-16">
               <SidebarTrigger className="shrink-0" />
 
-              {/* Active clinic identity */}
               <div className="flex items-center gap-2 lg:gap-3 min-w-0 flex-1">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -114,7 +106,6 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
                 </div>
               </div>
 
-              {/* Center search (desktop only) */}
               <div className="hidden xl:flex items-center gap-2 px-3 h-9 rounded-lg bg-muted/60 border border-border/60 w-72">
                 <Search size={14} className="text-muted-foreground" />
                 <input
@@ -123,7 +114,6 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
                 />
               </div>
 
-              {/* Right cluster */}
               <div className="flex items-center gap-1.5 lg:gap-2 shrink-0">
                 <button className="hidden lg:flex items-center justify-center w-9 h-9 rounded-lg hover:bg-muted transition-colors text-muted-foreground" aria-label="Notifications">
                   <Bell size={16} />
@@ -148,7 +138,6 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
               </div>
             </div>
 
-            {/* Persistent context strip */}
             {!isSuperAdminWs && clinic && (
               <div className="px-3 lg:px-6 py-1 border-t border-border/40 bg-success/5">
                 <div className="flex items-center gap-1.5 text-[10px] lg:text-[11px] font-medium text-success">
@@ -167,22 +156,16 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
             )}
           </header>
 
-          {/* Main content */}
           <main className="flex-1 px-3 lg:px-6 py-4 lg:py-6 pb-24 lg:pb-6 animate-page">
             <div className="max-w-7xl mx-auto">
-              <TrialBanner />
-              <SubscriptionGate>
-                {children ?? <Outlet />}
-              </SubscriptionGate>
+              {children ?? <Outlet />}
             </div>
           </main>
 
-          {/* Footer brand line (desktop) */}
           <footer className="hidden lg:block border-t border-border/40 px-6 py-2 text-[10px] text-muted-foreground/70 text-center">
             Powered by <span className="font-medium">OptoCare EMR</span>
           </footer>
 
-          {/* Mobile bottom nav */}
           <nav className="bottom-nav lg:hidden">
             <div className="flex items-center justify-around px-2 pb-safe pt-1">
               {mobilePrimary.slice(0, 5).map(item => {
@@ -203,6 +186,5 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   );
 }
 
-// Re-export so existing imports keep working
 export { resolveWorkspace } from "@/components/ClinicSidebar";
 export type { Workspace } from "@/components/ClinicSidebar";
