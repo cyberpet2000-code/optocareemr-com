@@ -112,7 +112,7 @@ export default function Dashboard() {
         <Metric icon={Users} label="Total Patients" value={totalCount} color="bg-primary/10 text-primary" to="/patients" />
         <Metric icon={TrendingUp} label="Revenue" value={`₦${totalRevenue.toLocaleString()}`} color="bg-success/10 text-success" to="/billing" />
         <Metric icon={DollarSign} label="Pending Bills" value={pendingBills} color="bg-warning/10 text-warning" to="/billing" />
-        <Metric icon={Pill} label="Stock Alerts" value={drugAlerts + lowStockCount} color="bg-destructive/10 text-destructive" to="/pharmacy" />
+        <Metric icon={ShoppingBag} label="Stock Alerts" value={lowStockCount} color="bg-destructive/10 text-destructive" to="/inventory" />
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-6">
