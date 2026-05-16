@@ -30,12 +30,22 @@ const ROLE_LABEL: Record<string, string> = {
 
 export default function ClinicSidebar() {
   const location = useLocation();
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const { isAdmin, isSuperAdmin, isDoctor, isReceptionist, roles } = useRole();
-  const { clinic: clinicBase, profile } = useClinic();
+  const { clinic: clinicBase, profile, loading: clinicLoading } = useClinic();
   const clinic = clinicBase as (typeof clinicBase & { logo_url?: string | null }) | null;
   const workspace = resolveWorkspace(location.pathname);
+  const [cachedIdentity] = useState(readIdentity);
+
+  // Auto-close mobile drawer on route change
+  useEffect(() => {
+    if (isMobile) setOpenMobile(false);
+  }, [location.pathname, isMobile, setOpenMobile]);
+
+  const handleNavClick = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   const { primary, secondary } = useMemo(() => {
     if (workspace === "super-admin") {
