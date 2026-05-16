@@ -40,11 +40,11 @@ export default function ClinicSidebar() {
 
   // Auto-close mobile drawer on route change
   useEffect(() => {
-    if (isMobile) setOpenMobile(false);
-  }, [location.pathname, isMobile, setOpenMobile]);
+    setOpenMobile(false);
+  }, [location.pathname, setOpenMobile]);
 
   const handleNavClick = () => {
-    if (isMobile) setOpenMobile(false);
+    setOpenMobile(false);
   };
 
   const { primary, secondary } = useMemo(() => {
