@@ -112,20 +112,29 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
 
               <div className="flex items-center gap-2 lg:gap-3 min-w-0 flex-1">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-base lg:text-xl font-bold text-foreground truncate leading-tight" title={headerClinicName}>
-                      {headerClinicName}
-                    </h1>
-                    {showActiveBadge && (
-                      <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-success/10 text-success shrink-0">
-                        <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                        Active
-                      </span>
-                    )}
-                  </div>
-                  <div className="hidden sm:block text-[10px] text-muted-foreground/70 leading-tight">
-                    {isSuperAdminWs ? "OptoCare EMR" : `OptoCare EMR · ${headerRoleLabel}`}
-                  </div>
+                  {identityLoading ? (
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="hidden sm:block h-2.5 w-20" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <h1 className="text-base lg:text-xl font-bold text-foreground truncate leading-tight" title={headerClinicName}>
+                          {headerClinicName}
+                        </h1>
+                        {showActiveBadge && (
+                          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-success/10 text-success shrink-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                            Active
+                          </span>
+                        )}
+                      </div>
+                      <div className="hidden sm:block text-[10px] text-muted-foreground/70 leading-tight">
+                        {isSuperAdminWs ? "OptoCare EMR" : `OptoCare EMR · ${headerRoleLabel}`}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
