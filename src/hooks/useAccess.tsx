@@ -55,40 +55,7 @@ function mergeMemberships({
   return Array.from(membershipMap.values());
 }
 
-function hexToHsl(hex?: string | null): string | null {
-  if (!hex) return null;
-  const m = hex.replace("#", "");
-  if (!/^[0-9a-fA-F]{6}$/.test(m)) return null;
-  const r = parseInt(m.slice(0, 2), 16) / 255;
-  const g = parseInt(m.slice(2, 4), 16) / 255;
-  const b = parseInt(m.slice(4, 6), 16) / 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s = 0; const l = (max + min) / 2;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)); break;
-      case g: h = (b - r) / d + 2; break;
-      default: h = (r - g) / d + 4;
-    }
-    h /= 6;
-  }
-  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
-}
-
-function applyClinicTheme(clinic: any | null) {
-  if (typeof document === "undefined") return;
-  const root = document.documentElement;
-  const primary = hexToHsl(clinic?.theme_color);
-  if (primary) {
-    root.style.setProperty("--primary", primary);
-    root.style.setProperty("--ring", primary);
-  } else {
-    root.style.removeProperty("--primary");
-    root.style.removeProperty("--ring");
-  }
-}
+// Theme is now a single static global theme — no runtime clinic theme hydration.
 
 const AccessContext = createContext<any>(null);
 
@@ -123,7 +90,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     setProfile(null); setClinic(null); setRoles([]); setRole(null);
     setMemberships([]); setResolvedClinicId(null); setClinicResolutionFailed(false);
     setProfileError(null);
-    applyClinicTheme(null);
+    
   }, []);
 
   // Single profile + role + clinic loader. Called after auth resolves.
@@ -191,7 +158,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           try {
             const { data } = await apiClient
               .from("clinics")
-              .select("id, name, subscription_status, trial_start_date, trial_end_date, setup_completed, onboarding_step, is_active, lifecycle_status, theme_color, secondary_color, logo_url")
+              .select("id, name, subscription_status, setup_completed, onboarding_step, is_active, lifecycle_status, logo_url")
               .eq("id", overrideClinicId)
               .maybeSingle();
             clinicData = data || null;
@@ -202,7 +169,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         }
         if (requestRef.current !== requestId) return;
         setClinic(clinicData);
-        applyClinicTheme(clinicData);
+        
         setAccessReady(true);
         // eslint-disable-next-line no-console
         console.debug("[access:super_admin_ready]", { user_id: nextUser.id, override_clinic_id: overrideClinicId });
@@ -229,7 +196,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       if (!backendResolvedClinicId) {
         setClinic(null);
         setClinicResolutionFailed(true);
-        applyClinicTheme(null);
+        
         setAccessReady(true);
         // eslint-disable-next-line no-console
         console.debug("[access:no_clinic]", { user_id: nextUser.id });
@@ -239,13 +206,13 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       setClinicResolutionFailed(false);
       const clinicResult = await apiClient
         .from("clinics")
-        .select("id, name, subscription_status, trial_start_date, trial_end_date, setup_completed, onboarding_step, is_active, lifecycle_status, theme_color, secondary_color, logo_url")
+        .select("id, name, subscription_status, setup_completed, onboarding_step, is_active, lifecycle_status, logo_url")
         .eq("id", backendResolvedClinicId)
         .maybeSingle();
       if (requestRef.current !== requestId) return;
 
       setClinic(clinicResult.data || null);
-      applyClinicTheme(clinicResult.data || null);
+      
       setAccessReady(true);
       // eslint-disable-next-line no-console
       console.debug("[access:ready]", {
@@ -260,7 +227,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       setResolvedClinicId(null);
       setClinicResolutionFailed(true);
       setProfileError(error);
-      applyClinicTheme(null);
+      
       setAccessReady(true);
       // eslint-disable-next-line no-console
       console.error("[access:error]", { user_id: nextUser.id, message: error?.message });
@@ -341,53 +308,17 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const switchClinic = useCallback(async (clinicId: string | null) => {
-    const fromClinic = activeClinicId;
-    let granted = true;
-    let reason: string | null = null;
-
     if (clinicId && user) {
       const grantedRole = await assertClinicAccess(apiClient as any, user.id, clinicId);
       if (!grantedRole) {
-        granted = false;
-        reason = "no membership in target clinic";
-        try {
-          await (apiClient.from as any)("clinic_switch_log").insert({
-            admin_id: user.id,
-            from_clinic: fromClinic,
-            to_clinic: clinicId,
-            clinic_id: clinicId,
-            access_granted: false,
-            reason,
-          });
-        } catch { /* swallow audit failures */ }
         throw new Error("You do not have access to this clinic.");
       }
     }
-
     persistActive(clinicId);
     setActiveClinicIdState(clinicId);
-    try {
-      await loadAccess(user, clinicId);
-    } catch (e: any) {
-      granted = false;
-      reason = e?.message || "load failed";
-      throw e;
-    } finally {
-      if (user && clinicId) {
-        try {
-          await (apiClient.from as any)("clinic_switch_log").insert({
-            admin_id: user.id,
-            from_clinic: fromClinic,
-            to_clinic: clinicId,
-            clinic_id: clinicId,
-            access_granted: granted,
-            reason,
-          });
-        } catch { /* swallow audit failures */ }
-      }
-    }
-    return granted;
-  }, [loadAccess, user, activeClinicId]);
+    await loadAccess(user, clinicId);
+    return true;
+  }, [loadAccess, user]);
 
   const isAuthenticated = !!user;
   const isAuthReady = !authLoading && (!isAuthenticated || accessReady);

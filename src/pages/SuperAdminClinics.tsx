@@ -10,24 +10,19 @@ import { useAccess } from "@/hooks/useAccess";
 import { toast } from "sonner";
 import PendingInvitesPanel from "@/components/PendingInvitesPanel";
 
-type Lifecycle = "trial" | "active" | "suspended" | "deactivated";
+type Lifecycle = "active" | "suspended" | "deactivated";
 
 function lifecycleLabel(c: any): { label: string; cls: string } {
-  const s: Lifecycle = (c.lifecycle_status as Lifecycle) || "trial";
+  const s: Lifecycle = (c.lifecycle_status as Lifecycle) || "active";
   switch (s) {
     case "active": return { label: "Active", cls: "bg-success/10 text-success" };
     case "suspended": return { label: "Suspended", cls: "bg-warning/10 text-warning" };
     case "deactivated": return { label: "Deactivated", cls: "bg-destructive/10 text-destructive" };
-    default: {
-      const days = c.trial_end_date ? Math.ceil((new Date(c.trial_end_date).getTime() - Date.now()) / 86400000) : null;
-      if (days !== null && days <= 3 && days >= 0) return { label: "Trial · Expiring", cls: "bg-warning/10 text-warning" };
-      return { label: "Trial", cls: "bg-primary/10 text-primary" };
-    }
+    default: return { label: "Active", cls: "bg-success/10 text-success" };
   }
 }
 
 const ALLOWED_TRANSITIONS: Record<Lifecycle, Lifecycle[]> = {
-  trial: ["active"],
   active: ["suspended", "deactivated"],
   suspended: ["active"],
   deactivated: [],
@@ -49,7 +44,7 @@ export default function SuperAdminClinics() {
 
   const refresh = async () => {
     const { data } = await apiClient.from("clinics")
-      .select("id, name, subscription_status, trial_end_date, setup_completed, is_active, lifecycle_status, deactivated_at, deactivation_reason, created_at")
+      .select("id, name, subscription_status, setup_completed, is_active, lifecycle_status, deactivated_at, deactivation_reason, created_at")
       .order("created_at", { ascending: false });
     setClinics(data || []);
     setLoading(false);
@@ -59,7 +54,7 @@ export default function SuperAdminClinics() {
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const transitionLifecycle = async (c: any, next: Lifecycle) => {
-    const current = (c.lifecycle_status as Lifecycle) || "trial";
+    const current = (c.lifecycle_status as Lifecycle) || "active";
     if (!ALLOWED_TRANSITIONS[current].includes(next)) {
       toast.error(`Cannot transition ${current} → ${next}`);
       return;
@@ -155,7 +150,6 @@ export default function SuperAdminClinics() {
                 <th className="py-2 pr-3">Name</th>
                 <th className="py-2 pr-3">Status</th>
                 <th className="py-2 pr-3">Setup</th>
-                <th className="py-2 pr-3">Trial Ends</th>
                 <th className="py-2 pr-3">Active</th>
                 <th className="py-2 pr-3"></th>
               </tr>
@@ -168,7 +162,6 @@ export default function SuperAdminClinics() {
                   <td className="py-2.5 pr-3 font-medium flex items-center gap-2"><Building2 size={14} className="text-muted-foreground" /> {c.name}</td>
                   <td className="py-2.5 pr-3"><span className={`text-xs px-2 py-0.5 rounded-md ${lc.cls}`}>{lc.label}</span></td>
                   <td className="py-2.5 pr-3 text-xs">{c.setup_completed ? "✓ Done" : "Pending"}</td>
-                  <td className="py-2.5 pr-3 text-xs text-muted-foreground">{c.trial_end_date ? new Date(c.trial_end_date).toLocaleDateString() : "—"}</td>
                   <td className="py-2.5 pr-3 text-xs">{c.is_active ? "Yes" : "No"}</td>
                   <td className="py-2.5 pr-3 text-right">
                     <div className="inline-flex flex-wrap gap-2 justify-end">
@@ -176,7 +169,7 @@ export default function SuperAdminClinics() {
                         <UserPlus size={14} className="mr-1" /> Invite
                       </Button>
                       {(() => {
-                        const cur = (c.lifecycle_status as Lifecycle) || "trial";
+                        const cur = (c.lifecycle_status as Lifecycle) || "active";
                         const allowed = ALLOWED_TRANSITIONS[cur];
                         const btn = (next: Lifecycle, label: string, Icon: any, variant: any = "outline") => (
                           <Button key={next} size="sm" variant={variant}

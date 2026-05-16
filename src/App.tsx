@@ -16,21 +16,13 @@ import PatientList from "./pages/PatientList";
 import PatientRecord from "./pages/PatientRecord";
 import Appointments from "./pages/Appointments";
 import Inventory from "./pages/Inventory";
-import Pharmacy from "./pages/Pharmacy";
 import Billing from "./pages/Billing";
-import SalesHistory from "./pages/SalesHistory";
 import AdminRoles from "./pages/AdminRoles";
-import Communications from "./pages/Communications";
-import Queue from "./pages/Queue";
 import HmoManagement from "./pages/HmoManagement";
 import Onboarding from "./pages/Onboarding";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import SuperAdminClinics from "./pages/SuperAdminClinics";
 import SuperAdminCreateClinic from "./pages/SuperAdminCreateClinic";
-import SuperAdminControlCenter from "./pages/SuperAdminControlCenter";
-import SuperAdminSafety from "./pages/SuperAdminSafety";
-import SuperAdminSwitchAudit from "./pages/SuperAdminSwitchAudit";
-import SuperAdminOperations from "./pages/SuperAdminOperations";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import SelectClinic from "./pages/SelectClinic";
@@ -66,7 +58,7 @@ function SuperAdminOnly({ children }: { children: React.ReactNode }) {
 
 function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const { clinic, profile, effectiveClinicId } = useClinic();
+  const { clinic, effectiveClinicId } = useClinic();
   const { role } = useRole();
   const { isAuthReady, roleMissing, memberships } = useAccess();
   const location = useLocation();
@@ -77,11 +69,7 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
       setTimedOut(false);
       return;
     }
-
-    const timer = window.setTimeout(() => {
-      setTimedOut(true);
-    }, ACCESS_TIMEOUT_MS);
-
+    const timer = window.setTimeout(() => setTimedOut(true), ACCESS_TIMEOUT_MS);
     return () => window.clearTimeout(timer);
   }, [isAuthReady, user]);
 
@@ -98,32 +86,9 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
     lifecycleStatus: (clinic as any)?.lifecycle_status ?? null,
   });
 
-  if (decision.type !== "loading") {
-    // Debug: structured access decision log
-    // eslint-disable-next-line no-console
-    console.debug("[access]", {
-      user_id: user?.id,
-      role,
-      clinic_id: effectiveClinicId,
-      lifecycle_status: (clinic as any)?.lifecycle_status ?? null,
-      path: location.pathname,
-      decision: decision.type,
-      to: (decision as any).to,
-    });
-  }
-
-  if (decision.type === "loading") {
-    return <FullScreenLoader label={decision.label} />;
-  }
-
-  if (decision.type === "error") {
-    return <FullScreenMessage label={decision.label} />;
-  }
-
-  if (decision.type === "redirect") {
-    return <Navigate to={decision.to} replace />;
-  }
-
+  if (decision.type === "loading") return <FullScreenLoader label={decision.label} />;
+  if (decision.type === "error") return <FullScreenMessage label={decision.label} />;
+  if (decision.type === "redirect") return <Navigate to={decision.to} replace />;
   return <>{children}</>;
 }
 
@@ -131,72 +96,51 @@ export function AppRoutes() {
   const location = useLocation();
   const { user, isAuthReady } = useAuth();
 
-  const isPublicRoute = location.pathname === "/login" || location.pathname === "/reset-password" || location.pathname === "/accept-invite" || location.pathname === "/signup" || location.pathname === "/no-access";
+  const isPublicRoute = ["/login", "/reset-password", "/accept-invite", "/signup", "/no-access"].includes(location.pathname);
 
-  // STRICT ORDER: never render anything (public or protected) until auth is hydrated.
-  if (!isAuthReady) {
-    return <FullScreenLoader label="Loading OptoCare…" />;
-  }
+  if (!isAuthReady) return <FullScreenLoader label="Loading OptoCare…" />;
 
-  // If an authenticated user lands on /login (or /signup), bounce to root so the
-  // protected gate can resolve their actual destination. Prevents the "stuck on
-  // login page" loop after token refresh or browser back.
   if (user && (location.pathname === "/login" || location.pathname === "/signup")) {
     return <Navigate to="/" replace />;
   }
 
-  return (
-    <>
-      {isPublicRoute ? (
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/accept-invite" element={<AcceptInvite />} />
-          <Route path="/signup" element={<AcceptInvite />} />
-          <Route path="/no-access" element={<NoAccess />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      ) : (
-        <ProtectedRouteGate>
-          <Routes>
-            {/* Routes that intentionally render WITHOUT the app shell */}
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/select-clinic" element={<SelectClinic />} />
+  return isPublicRoute ? (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/accept-invite" element={<AcceptInvite />} />
+      <Route path="/signup" element={<AcceptInvite />} />
+      <Route path="/no-access" element={<NoAccess />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  ) : (
+    <ProtectedRouteGate>
+      <Routes>
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/select-clinic" element={<SelectClinic />} />
 
-            {/* Persistent app shell — sidebar, header, clinic context stay mounted */}
-            <Route element={<AppLayout />}>
-              <Route path="/super-admin" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
-              <Route path="/super-admin-dashboard" element={<Navigate to="/super-admin" replace />} />
-              <Route path="/super-admin/create-clinic" element={<SuperAdminOnly><SuperAdminCreateClinic /></SuperAdminOnly>} />
-              <Route path="/super-admin/clinics" element={<SuperAdminOnly><SuperAdminClinics /></SuperAdminOnly>} />
-              <Route path="/super-admin/users" element={<SuperAdminOnly><AdminRoles embedded /></SuperAdminOnly>} />
-              <Route path="/super-admin/performance" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
-              <Route path="/super-admin/control" element={<SuperAdminOnly><SuperAdminControlCenter /></SuperAdminOnly>} />
-              <Route path="/super-admin/safety" element={<SuperAdminOnly><SuperAdminSafety /></SuperAdminOnly>} />
-              <Route path="/super-admin/audit" element={<SuperAdminOnly><SuperAdminSwitchAudit /></SuperAdminOnly>} />
-              <Route path="/super-admin/operations" element={<SuperAdminOnly><SuperAdminOperations /></SuperAdminOnly>} />
+        <Route element={<AppLayout />}>
+          <Route path="/super-admin" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
+          <Route path="/super-admin-dashboard" element={<Navigate to="/super-admin" replace />} />
+          <Route path="/super-admin/create-clinic" element={<SuperAdminOnly><SuperAdminCreateClinic /></SuperAdminOnly>} />
+          <Route path="/super-admin/clinics" element={<SuperAdminOnly><SuperAdminClinics /></SuperAdminOnly>} />
+          <Route path="/super-admin/users" element={<SuperAdminOnly><AdminRoles embedded /></SuperAdminOnly>} />
 
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/register" element={<PatientRegister />} />
-              <Route path="/patients" element={<PatientList />} />
-              <Route path="/patient/:id" element={<PatientRecord />} />
-              <Route path="/queue" element={<Queue />} />
-              <Route path="/hmos" element={<HmoManagement />} />
-              <Route path="/appointments" element={<Appointments />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/pharmacy" element={<Pharmacy />} />
-              <Route path="/billing" element={<Billing />} />
-              <Route path="/sales-history" element={<SalesHistory />} />
-              <Route path="/admin/roles" element={<AdminRoles />} />
-              <Route path="/communications" element={<Communications />} />
-              <Route path="*" element={<NotFound />} />
-            </Route>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/register" element={<PatientRegister />} />
+          <Route path="/patients" element={<PatientList />} />
+          <Route path="/patient/:id" element={<PatientRecord />} />
+          <Route path="/hmos" element={<HmoManagement />} />
+          <Route path="/appointments" element={<Appointments />} />
+          <Route path="/inventory" element={<Inventory />} />
+          <Route path="/billing" element={<Billing />} />
+          <Route path="/admin/roles" element={<AdminRoles />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
 
-            <Route path="/" element={<LandingRedirect />} />
-          </Routes>
-        </ProtectedRouteGate>
-      )}
-    </>
+        <Route path="/" element={<LandingRedirect />} />
+      </Routes>
+    </ProtectedRouteGate>
   );
 }
 

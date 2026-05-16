@@ -1,8 +1,7 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Users, ShoppingBag, Pill, DollarSign, ShieldCheck, Calendar, History,
-  UserPlus, ListOrdered, Building2, Activity, Sparkles, LifeBuoy, Settings, CheckCircle2,
-  CircleDashed, Clock, Mail,
+  LayoutDashboard, Users, ShoppingBag, DollarSign, ShieldCheck, Calendar,
+  UserPlus, Building2, Sparkles, LifeBuoy, CheckCircle2, CircleDashed, Clock,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -31,7 +30,7 @@ export default function ClinicSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { isAdmin, isSuperAdmin, isDoctor, isReceptionist, roles } = useRole();
-  const { clinic: clinicBase, profile, trialDaysLeft, trialExpired } = useClinic();
+  const { clinic: clinicBase, profile } = useClinic();
   const clinic = clinicBase as (typeof clinicBase & { logo_url?: string | null }) | null;
   const workspace = resolveWorkspace(location.pathname);
 
@@ -42,31 +41,25 @@ export default function ClinicSidebar() {
     primary = [
       { to: "/super-admin", label: "Overview", icon: LayoutDashboard },
       { to: "/super-admin/clinics", label: "Clinics", icon: Building2 },
-      { to: "/super-admin/operations", label: "Operations", icon: Activity },
-      { to: "/super-admin/performance", label: "Performance", icon: Activity },
     ];
     secondary = [
       { to: "/super-admin/create-clinic", label: "Create Clinic", icon: Sparkles },
       { to: "/super-admin/users", label: "Users", icon: ShieldCheck },
-      { to: "/super-admin/audit", label: "Switch Audit", icon: History },
     ];
   } else if (isDoctor && !isAdmin && !isSuperAdmin) {
     primary = [
-      { to: "/queue", label: "Queue", icon: ListOrdered },
       { to: "/patients", label: "Patients", icon: Users },
       { to: "/appointments", label: "Visits", icon: Calendar },
     ];
   } else if (isReceptionist && !isAdmin && !isDoctor) {
     primary = [
       { to: "/register", label: "Register", icon: UserPlus },
-      { to: "/queue", label: "Queue", icon: ListOrdered },
       { to: "/appointments", label: "Appointments", icon: Calendar },
       { to: "/billing", label: "Billing", icon: DollarSign },
     ];
   } else {
     primary = [
       { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { to: "/queue", label: "Queue", icon: ListOrdered },
       { to: "/patients", label: "Patients", icon: Users },
       { to: "/billing", label: "Billing", icon: DollarSign },
       { to: "/inventory", label: "Optical", icon: ShoppingBag },
@@ -74,11 +67,8 @@ export default function ClinicSidebar() {
     secondary = [
       { to: "/register", label: "Add Patient", icon: UserPlus },
       { to: "/appointments", label: "Appointments", icon: Calendar },
-      { to: "/pharmacy", label: "Pharmacy", icon: Pill },
       { to: "/hmos", label: "HMOs", icon: Building2 },
-      { to: "/sales-history", label: "Sales History", icon: History },
       ...(isAdmin ? [{ to: "/admin/roles", label: "Manage Roles", icon: ShieldCheck }] : []),
-      ...(isAdmin ? [{ to: "/communications", label: "Communications", icon: Mail }] : []),
     ];
   }
 
@@ -92,12 +82,12 @@ export default function ClinicSidebar() {
   const setupComplete = !isSuperAdminWs && clinic?.setup_completed === true;
   const setupPending = !isSuperAdminWs && clinic?.setup_completed === false;
 
-  const trialLabel = (() => {
+  const lifecycleLabel = (() => {
     if (isSuperAdminWs || !clinic) return null;
-    if (clinic.subscription_status === "active") return { text: "Subscription active", tone: "success" as const };
-    if (trialExpired) return { text: "Trial expired", tone: "destructive" as const };
-    if (Number.isFinite(trialDaysLeft)) return { text: `Trial: ${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left`, tone: "warning" as const };
-    return null;
+    if ((clinic as any).lifecycle_status === "suspended" || clinic.is_active === false) {
+      return { text: "Clinic suspended", tone: "destructive" as const };
+    }
+    return { text: "Active", tone: "success" as const };
   })();
 
   return (
@@ -193,13 +183,12 @@ export default function ClinicSidebar() {
                 <><Clock size={13} className="text-muted-foreground" /><span className="text-muted-foreground">Setup status unknown</span></>
               )}
             </div>
-            {trialLabel && (
+            {lifecycleLabel && (
               <div className={`text-[11px] px-2 py-1.5 rounded-md flex items-center gap-1.5 ${
-                trialLabel.tone === "success" ? "bg-success/10 text-success" :
-                trialLabel.tone === "warning" ? "bg-warning/10 text-warning" :
+                lifecycleLabel.tone === "success" ? "bg-success/10 text-success" :
                 "bg-destructive/10 text-destructive"
               }`}>
-                <Clock size={12} /> {trialLabel.text}
+                <Clock size={12} /> {lifecycleLabel.text}
               </div>
             )}
           </>
