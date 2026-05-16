@@ -26,18 +26,30 @@ Deno.serve(async (req) => {
 
     const admin = createClient(url, serviceKey);
 
-    // Verify super_admin
-    const { data: roleRow } = await admin
-      .from("user_roles").select("role").eq("user_id", callerId).eq("role", "super_admin").maybeSingle();
-    const { data: callerProfile } = await admin
-      .from("profiles").select("is_super_admin, role").eq("id", callerId).maybeSingle();
-    const isSuper = !!roleRow || !!callerProfile?.is_super_admin || callerProfile?.role === "super_admin";
-    if (!isSuper) return json({ error: "Forbidden — super admin only" }, 403);
-
     const body = await req.json().catch(() => ({}));
     const clinic_id: string | undefined = body?.clinic_id;
     const emailRaw: string | undefined = body?.email;
     const role: string = (body?.role || "admin").toString();
+    const full_name: string | undefined = (body?.full_name || "").toString().trim() || undefined;
+
+    const ALLOWED_ROLES = new Set(["admin", "doctor", "nurse", "receptionist"]);
+
+    // Verify caller is super_admin OR clinic admin for clinic_id
+    const { data: callerProfile } = await admin
+      .from("profiles").select("is_super_admin, role").eq("id", callerId).maybeSingle();
+    const isSuper = !!callerProfile?.is_super_admin || callerProfile?.role === "super_admin";
+
+    let isClinicAdmin = false;
+    if (!isSuper && clinic_id) {
+      const { data: adminRow } = await admin
+        .from("user_roles").select("role")
+        .eq("user_id", callerId).eq("clinic_id", clinic_id).eq("role", "admin").maybeSingle();
+      isClinicAdmin = !!adminRow;
+    }
+    if (!isSuper && !isClinicAdmin) return json({ error: "Forbidden" }, 403);
+    if (!ALLOWED_ROLES.has(role) && !(isSuper && role === "super_admin")) {
+      return json({ error: "Invalid role" }, 400);
+    }
     // Centralized APP_URL — hardened resolver rejects preview/lovable hosts.
     const { APP_URL } = await import("../_shared/email.ts");
 
