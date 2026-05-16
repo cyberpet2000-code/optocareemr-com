@@ -69,7 +69,7 @@ export default function SuperAdminOperations() {
         .order("created_at", { ascending: false })
         .limit(50),
     ]);
-    setClinics((cList as Clinic[]) || []);
+    setClinics(((cList as unknown) as Clinic[]) || []);
     const map: Record<string, Score> = {};
     (sList as Score[] | null)?.forEach((s) => (map[s.clinic_id] = s));
     setScores(map);
