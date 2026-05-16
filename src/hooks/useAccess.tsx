@@ -426,8 +426,9 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       setKnownSupabaseSession(session);
       userRef.current = nextUser;
       setUser((prev) => {
-        if (!nextUser) return null;
-        return prev?.id === nextUser.id ? prev : nextUser;
+        if (!nextUser) return prev ? null : prev;
+        if (!prev) return nextUser;
+        return prev.id === nextUser.id ? prev : nextUser;
       });
 
       console.debug("[auth:session]", {
@@ -494,10 +495,10 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       if (event === "SIGNED_OUT") {
         invalidatePendingLoads();
         persistActive(null);
-        setActiveClinicIdState(null);
+        setActiveClinicIdState((prev) => (prev === null ? prev : null));
         setKnownSupabaseSession(null);
-        setUser(null);
-        setAccessState(createEmptyAccessState(true));
+        setUser((prev) => (prev === null ? prev : null));
+        commitAccessState(createEmptyAccessState(true));
         setAuthLoading(false);
         return;
       }
@@ -528,7 +529,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         console.error("[auth:bootstrap:error]", { message: error?.message });
         if (!mounted) return;
         setKnownSupabaseSession(null);
-        setUser(null);
+        setUser((prev) => (prev === null ? prev : null));
         clearAccessState(true);
         setAuthLoading(false);
       }
@@ -538,7 +539,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [clearAccessState, invalidatePendingLoads, loadAccess, persistActive]);
+  }, [clearAccessState, commitAccessState, invalidatePendingLoads, loadAccess, persistActive]);
 
   const reload = useCallback(() => {
     return loadAccess(userRef.current, activeClinicIdRef.current, {
@@ -568,7 +569,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     }
 
     persistActive(clinicId);
-    setActiveClinicIdState(clinicId);
+    setActiveClinicIdState((prev) => (prev === clinicId ? prev : clinicId));
 
     await loadAccess(userRef.current, clinicId, {
       force: true,
