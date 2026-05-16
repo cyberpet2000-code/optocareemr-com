@@ -104,10 +104,10 @@ export default function ClinicSidebar() {
   const resolvedName = clinic?.name?.trim() || null;
   const clinicName = isSuperAdminWs
     ? "Platform Console"
-    : (resolvedName || cachedIdentity.name || "OptoCare Clinic");
+    : (resolvedName || cachedIdentity.name || "Loading clinic...");
   const userRole = isSuperAdminWs ? "super_admin" : (roles.find(r => r !== "super_admin") || roles[0] || "admin");
-  const initials = (clinicName || "?").split(/\s+/).slice(0, 2).map(s => s[0]).join("").toUpperCase();
-  const identityLoading = !isSuperAdminWs && clinicLoading && !resolvedName && !cachedIdentity.name;
+  const initials = (resolvedName || cachedIdentity.name || "?").split(/\s+/).slice(0, 2).map(s => s[0]).join("").toUpperCase();
+  const identityLoading = !isSuperAdminWs && !resolvedName && !cachedIdentity.name;
 
   const setupComplete = !isSuperAdminWs && clinic?.setup_completed === true;
   const setupPending = !isSuperAdminWs && clinic?.setup_completed === false;
