@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, ShoppingBag, DollarSign, ShieldCheck, Calendar,
@@ -12,7 +12,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useRole } from "@/hooks/useRole";
 import { useClinic } from "@/hooks/useClinic";
 import ClinicSwitcher from "@/components/ClinicSwitcher";
-import { readIdentity } from "@/lib/clinic-identity";
 
 export type Workspace = "super-admin" | "clinic";
 
@@ -36,7 +35,6 @@ export default function ClinicSidebar() {
   const { clinic: clinicBase, profile } = useClinic();
   const clinic = clinicBase as (typeof clinicBase & { logo_url?: string | null }) | null;
   const workspace = resolveWorkspace(location.pathname);
-  const [cachedIdentity] = useState(readIdentity);
 
   // Auto-close mobile drawer on route change
   useEffect(() => {
@@ -104,10 +102,10 @@ export default function ClinicSidebar() {
   const resolvedName = clinic?.name?.trim() || null;
   const clinicName = isSuperAdminWs
     ? "Platform Console"
-    : (resolvedName || cachedIdentity.name || "Loading clinic...");
+    : (resolvedName || "Loading clinic...");
   const userRole = isSuperAdminWs ? "super_admin" : (roles.find(r => r !== "super_admin") || roles[0] || "admin");
-  const initials = (resolvedName || cachedIdentity.name || "?").split(/\s+/).slice(0, 2).map(s => s[0]).join("").toUpperCase();
-  const identityLoading = !isSuperAdminWs && !resolvedName && !cachedIdentity.name;
+  const initials = (resolvedName || "?").split(/\s+/).slice(0, 2).map(s => s[0]).join("").toUpperCase();
+  const identityLoading = !isSuperAdminWs && !resolvedName;
 
   const setupComplete = !isSuperAdminWs && clinic?.setup_completed === true;
   const setupPending = !isSuperAdminWs && clinic?.setup_completed === false;
