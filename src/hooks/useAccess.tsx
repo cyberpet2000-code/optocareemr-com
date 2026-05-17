@@ -429,11 +429,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
       setKnownSupabaseSession(session);
       userRef.current = nextUser;
-      setUser((prev) => {
-        if (!nextUser) return prev ? null : prev;
-        if (!prev) return nextUser;
-        return prev.id === nextUser.id ? prev : nextUser;
-      });
+      setUser(nextUser);
 
       console.debug("[auth:session]", {
         reason,
