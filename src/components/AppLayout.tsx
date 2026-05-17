@@ -1,7 +1,6 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { readIdentity, writeIdentity } from "@/lib/clinic-identity";
 import {
   LayoutDashboard, Users, ShoppingBag, DollarSign, LogOut, Calendar, UserPlus,
   Bell, Search, Building2,
@@ -34,7 +33,6 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   const { signOut } = useAuth();
   const { isAdmin, isSuperAdmin, isDoctor, isReceptionist, roles } = useRole();
   const { profile, clinic } = useClinic();
-  const [cachedIdentity] = useState(readIdentity);
 
   const workspace = resolveWorkspace(location.pathname);
   const isSuperAdminWs = workspace === "super-admin";
@@ -85,20 +83,10 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
 
   const headerClinicName = isSuperAdminWs
     ? "Platform Console"
-    : (resolvedClinicName || cachedIdentity.name || "Loading clinic...");
-  const headerRoleLabel = resolvedRoleLabel || cachedIdentity.role || "Staff";
+    : (resolvedClinicName || "Loading clinic...");
+  const headerRoleLabel = resolvedRoleLabel || "Staff";
   const showActiveBadge = !isSuperAdminWs && !!clinic;
-  const identityLoading = !isSuperAdminWs && !resolvedClinicName && !cachedIdentity.name;
-
-  useEffect(() => {
-    if (isSuperAdminWs) return;
-    if (resolvedClinicName || resolvedRoleLabel) {
-      writeIdentity({
-        name: resolvedClinicName ?? cachedIdentity.name,
-        role: resolvedRoleLabel ?? cachedIdentity.role,
-      });
-    }
-  }, [resolvedClinicName, resolvedRoleLabel, isSuperAdminWs, cachedIdentity.name, cachedIdentity.role]);
+  const identityLoading = !isSuperAdminWs && !resolvedClinicName;
 
   return (
     <SidebarProvider defaultOpen={true}>
