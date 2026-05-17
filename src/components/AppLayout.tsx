@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   LayoutDashboard, Users, ShoppingBag, DollarSign, LogOut, Calendar, UserPlus,
@@ -10,6 +10,7 @@ import { useRole } from "@/hooks/useRole";
 import { useClinic } from "@/hooks/useClinic";
 import ClinicSidebar, { resolveWorkspace } from "@/components/ClinicSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { diag } from "@/lib/diag";
 
 const ROLE_LABEL: Record<string, string> = {
   doctor: "Doctor",
@@ -87,6 +88,17 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   const headerRoleLabel = resolvedRoleLabel || "Staff";
   const showActiveBadge = !isSuperAdminWs && !!clinic;
   const identityLoading = !isSuperAdminWs && !resolvedClinicName;
+
+  useEffect(() => {
+    if (identityLoading) {
+      diag.warn("hydration", "clinic-name-empty", {
+        profileId: profile?.id ?? null,
+        activeClinicId: profile?.active_clinic_id ?? null,
+      });
+    } else if (!isSuperAdminWs) {
+      diag.event("hydration", "clinic-resolved", { clinicName: resolvedClinicName });
+    }
+  }, [identityLoading, isSuperAdminWs, profile?.id, profile?.active_clinic_id, resolvedClinicName]);
 
   return (
     <SidebarProvider defaultOpen={true}>
