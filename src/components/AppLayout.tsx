@@ -92,13 +92,13 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   useEffect(() => {
     if (identityLoading) {
       diag.warn("hydration", "clinic-name-empty", {
-        profileId: profile?.id ?? null,
-        activeClinicId: profile?.active_clinic_id ?? null,
+        profileId: (profile as any)?.id ?? null,
+        activeClinicId: (profile as any)?.active_clinic_id ?? null,
       });
     } else if (!isSuperAdminWs) {
       diag.event("hydration", "clinic-resolved", { clinicName: resolvedClinicName });
     }
-  }, [identityLoading, isSuperAdminWs, profile?.id, profile?.active_clinic_id, resolvedClinicName]);
+  }, [identityLoading, isSuperAdminWs, profile, resolvedClinicName]);
 
   return (
     <SidebarProvider defaultOpen={true}>
