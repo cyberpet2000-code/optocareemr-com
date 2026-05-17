@@ -28,6 +28,9 @@ import SelectClinic from "./pages/SelectClinic";
 import AcceptInvite from "./pages/AcceptInvite";
 import NoAccess from "./pages/NoAccess";
 import NotFound from "./pages/NotFound";
+import { diag, isDiagEnabled, installDiagFetchPatch, DiagOverlay } from "@/lib/diag";
+
+installDiagFetchPatch();
 
 const queryClient = new QueryClient();
 
@@ -125,6 +128,10 @@ export function AppRoutes() {
   const location = useLocation();
   const { user, isAuthReady } = useAuth();
 
+  useEffect(() => {
+    diag.event("routing", "navigate", { path: location.pathname });
+  }, [location.pathname]);
+
   const isPublicRoute = ["/login", "/reset-password", "/accept-invite", "/signup", "/no-access"].includes(location.pathname);
 
   if (!isAuthReady) return <FullScreenLoader label="Loading OptoCare…" />;
@@ -183,6 +190,7 @@ const App = () => (
           <AppRoutes />
         </BrowserRouter>
       </AccessProvider>
+      {isDiagEnabled() && <DiagOverlay />}
     </TooltipProvider>
   </QueryClientProvider>
 );
