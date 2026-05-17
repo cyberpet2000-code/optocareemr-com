@@ -23,10 +23,18 @@ export default function SuperAdminDashboard() {
           apiClient.from("patients").select("id", { count: "exact", head: true }),
           apiClient.from("profiles").select("id", { count: "exact", head: true }),
         ]);
-        const firstError = c.error || p.error || u.error;
-        if (firstError) {
-          console.error("[SuperAdminDashboard] stats query error:", firstError);
-          if (!cancelled) setError(firstError.message || "Failed to load stats");
+        const errors: { table: string; error: { message: string } }[] = [
+          { table: "clinics", error: c.error },
+          { table: "patients", error: p.error },
+          { table: "profiles", error: u.error },
+        ].filter(e => e.error) as { table: string; error: { message: string } }[];
+
+        if (errors.length > 0) {
+          errors.forEach(e => {
+            console.error(`[SuperAdminDashboard] ${e.table} query error:`, e.error.message);
+          });
+          const first = errors[0];
+          if (!cancelled) setError(`${first.table} query failed: ${first.error.message}`);
           return;
         }
         if (!cancelled) {
