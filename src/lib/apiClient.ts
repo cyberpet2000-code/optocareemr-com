@@ -1,6 +1,6 @@
 import { supabase, SHARED_CLIENT_HEADER, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
 import { getKnownSupabaseSession } from "@/lib/supabase-auth";
-import { diag } from "@/lib/diag";
+
 
 type EdgeInvokeOptions = Parameters<typeof supabase.functions.invoke>[1];
 
@@ -85,24 +85,5 @@ export async function authenticatedFetch(input: RequestInfo | URL, init?: Reques
     apiKeyPresent: headers.has("apikey"),
   });
 
-  const end = diag.time("query", "fetch", { url, method: init?.method || "GET" });
-  const res = await fetch(input, { ...init, headers });
-  end({ status: res.status });
-  if (!res.ok) {
-    let body: any = null;
-    try {
-      const clone = res.clone();
-      const text = await clone.text();
-      try { body = JSON.parse(text); } catch { body = text?.slice(0, 500); }
-    } catch { /* noop */ }
-    const code = body?.code ?? null;
-    const message = body?.message ?? `HTTP ${res.status}`;
-    const tableMatch = url.match(/\/rest\/v1\/([^?]+)/);
-    const table = tableMatch?.[1] ?? null;
-    const area = code === "42501" || code === "42P17" || res.status === 401 || res.status === 403 ? "rls" : "query";
-    diag.error(area, table ? `${table} request failed` : "request failed", { message, code }, {
-      url, status: res.status, table,
-    });
-  }
-  return res;
+  return fetch(input, { ...init, headers });
 }
