@@ -4,6 +4,7 @@ import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { Building2, Users, Activity, Sparkles, ShieldCheck, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { diag } from "@/lib/diag";
 
 export default function SuperAdminDashboard() {
   const { isAuthReady } = useAuth();
@@ -17,6 +18,7 @@ export default function SuperAdminDashboard() {
     (async () => {
       setLoading(true);
       setError(null);
+      const end = diag.time("perf", "super-admin-stats");
       try {
         const [c, p, u] = await Promise.all([
           apiClient.from("clinics").select("id", { count: "exact", head: true }),
@@ -32,6 +34,7 @@ export default function SuperAdminDashboard() {
         if (errors.length > 0) {
           errors.forEach(e => {
             console.error(`[SuperAdminDashboard] ${e.table} query error:`, e.error.message);
+            diag.error("query", `${e.table} stats failed`, e.error, { table: e.table });
           });
           const first = errors[0];
           if (!cancelled) setError(`${first.table} query failed: ${first.error.message}`);
@@ -46,8 +49,10 @@ export default function SuperAdminDashboard() {
         }
       } catch (err: any) {
         console.error("[SuperAdminDashboard] stats fetch failed:", err);
+        diag.error("query", "super-admin-stats fetch failed", err);
         if (!cancelled) setError(err?.message || "Failed to load stats");
       } finally {
+        end();
         if (!cancelled) setLoading(false);
       }
     })();
