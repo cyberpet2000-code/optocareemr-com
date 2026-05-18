@@ -22,6 +22,7 @@ import Onboarding from "./pages/Onboarding";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import SuperAdminClinics from "./pages/SuperAdminClinics";
 import SuperAdminCreateClinic from "./pages/SuperAdminCreateClinic";
+import SuperAdminSystemHealth from "./pages/SuperAdminSystemHealth";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import SelectClinic from "./pages/SelectClinic";
@@ -157,6 +158,7 @@ export function AppRoutes() {
 
         <Route element={<AppLayout />}>
           <Route path="/super-admin" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
+          <Route path="/super-admin/system-health" element={<SuperAdminOnly><SuperAdminSystemHealth /></SuperAdminOnly>} />
           <Route path="/super-admin-dashboard" element={<Navigate to="/super-admin" replace />} />
           <Route path="/super-admin/create-clinic" element={<SuperAdminOnly><SuperAdminCreateClinic /></SuperAdminOnly>} />
           <Route path="/super-admin/clinics" element={<SuperAdminOnly><SuperAdminClinics /></SuperAdminOnly>} />
