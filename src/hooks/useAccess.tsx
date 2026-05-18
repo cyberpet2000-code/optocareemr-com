@@ -607,9 +607,24 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     profileError: accessState.profileError,
     clinic: accessState.clinic,
     memberships: accessState.memberships,
-    profileLoading: !accessState.accessReady && isAuthenticated,
-    clinicLoading: !accessState.accessReady && isAuthenticated,
-    membershipLoading: !accessState.accessReady && isAuthenticated,
+    profileLoading:
+  isAuthenticated &&
+  (!accessState.accessReady || !accessState.profile),
+
+clinicLoading:
+  isAuthenticated &&
+  (
+    !accessState.accessReady ||
+    (
+      !!effectiveClinicId &&
+      !accessState.clinic &&
+      !accessState.clinicResolutionFailed
+    )
+  ),
+
+membershipLoading:
+  isAuthenticated &&
+  !accessState.accessReady,
     accessReady: accessState.accessReady,
     activeClinicId,
     effectiveClinicId,
