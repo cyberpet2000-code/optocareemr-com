@@ -92,7 +92,6 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   !resolvedClinicName &&
   !!profile;
 
-  useEffect(() => {
     useEffect(() => {
   if (!isSuperAdminWs && resolvedClinicName) {
     diag.event("hydration", "clinic-resolved", {
