@@ -40,13 +40,20 @@ export default function SuperAdminDashboard() {
           if (!cancelled) setError(`${first.table} query failed: ${first.error.message}`);
           return;
         }
-        if (!cancelled) {
-          setStats({
-            clinics: c.count ?? 0,
-            patients: p.count ?? 0,
-            users: u.count ?? 0,
-          });
-        }
+        console.log("SUPER ADMIN COUNTS", {
+  clinics: c.count,
+  patients: p.count,
+  users: u.count,
+  clinicsError: c.error,
+});
+
+if (!cancelled) {
+  setStats({
+    clinics: c.count ?? 0,
+    patients: p.count ?? 0,
+    users: u.count ?? 0,
+  });
+}
       } catch (err: any) {
         console.error("[SuperAdminDashboard] stats fetch failed:", err);
         diag.error("query", "super-admin-stats fetch failed", err);
