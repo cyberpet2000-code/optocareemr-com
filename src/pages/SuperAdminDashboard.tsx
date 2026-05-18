@@ -81,7 +81,7 @@ if (!cancelled) {
     { to: "/super-admin/users", label: "Safety & Roles", icon: ShieldCheck, desc: "User access and safeguards" },
   ];
 
-  const showSkeletons = !isAuthReady || loading || 
+  const showSkeletons = !isAuthReady || loading || !stats;
 
   return (
     <div className="space-y-6">
