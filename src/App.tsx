@@ -22,6 +22,7 @@ import Onboarding from "./pages/Onboarding";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import SuperAdminClinics from "./pages/SuperAdminClinics";
 import SuperAdminCreateClinic from "./pages/SuperAdminCreateClinic";
+import SystemHealth from "./pages/super-admin/SystemHealth";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import SelectClinic from "./pages/SelectClinic";
@@ -77,19 +78,23 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(timer);
   }, [isAuthReady, user]);
 
-  const decision = useMemo(() => resolveProtectedRoute({
-    path: location.pathname,
-    isAuthenticated: !!user,
-    isAuthReady,
-    didTimeout: timedOut,
-    role,
-    clinicId: effectiveClinicId,
-    setupCompleted,
-    roleMissing,
-    membershipsCount: memberships.length,
-    lifecycleStatus,
-    isActive,
-  }), [effectiveClinicId, isActive, isAuthReady, lifecycleStatus, location.pathname, memberships.length, role, roleMissing, setupCompleted, timedOut, user]);
+  const decision = useMemo(
+    () =>
+      resolveProtectedRoute({
+        path: location.pathname,
+        isAuthenticated: !!user,
+        isAuthReady,
+        didTimeout: timedOut,
+        role,
+        clinicId: effectiveClinicId,
+        setupCompleted,
+        roleMissing,
+        membershipsCount: memberships.length,
+        lifecycleStatus,
+        isActive,
+      }),
+    [effectiveClinicId, isActive, isAuthReady, lifecycleStatus, location.pathname, memberships.length, role, roleMissing, setupCompleted, timedOut, user],
+  );
 
   useEffect(() => {
     console.debug("[route:guard]", {
@@ -114,12 +119,16 @@ const LandingRedirect = memo(function LandingRedirect() {
   const { clinic, effectiveClinicId, memberships } = useAccessClinic();
   const { role } = useAccessRole();
 
-  const target = useMemo(() => resolveDefaultRoute({
-    role,
-    clinicId: effectiveClinicId,
-    setupCompleted: clinic?.setup_completed,
-    membershipsCount: memberships.length,
-  }), [clinic?.setup_completed, effectiveClinicId, memberships.length, role]);
+  const target = useMemo(
+    () =>
+      resolveDefaultRoute({
+        role,
+        clinicId: effectiveClinicId,
+        setupCompleted: clinic?.setup_completed,
+        membershipsCount: memberships.length,
+      }),
+    [clinic?.setup_completed, effectiveClinicId, memberships.length, role],
+  );
 
   return <Navigate to={target} replace />;
 });
@@ -161,6 +170,7 @@ export function AppRoutes() {
           <Route path="/super-admin/create-clinic" element={<SuperAdminOnly><SuperAdminCreateClinic /></SuperAdminOnly>} />
           <Route path="/super-admin/clinics" element={<SuperAdminOnly><SuperAdminClinics /></SuperAdminOnly>} />
           <Route path="/super-admin/users" element={<SuperAdminOnly><AdminRoles embedded /></SuperAdminOnly>} />
+          <Route path="/super-admin/system-health" element={<SuperAdminOnly><SystemHealth /></SuperAdminOnly>} />
 
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/register" element={<PatientRegister />} />
