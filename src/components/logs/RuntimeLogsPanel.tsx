@@ -1,10 +1,19 @@
-import React, { useMemo, useState } from "react";
-import { exportLogs } from "../../utils/exportLogs";
+import React, { useMemo, useState, useEffect } from "react";
+import { diag } from "@/lib/diag";
 
-export default function RuntimeLogsPanel({ initialLogs = [] as string[] }: { initialLogs?: string[] }) {
-  const [logs, setLogs] = useState<string[]>(initialLogs);
+export default function RuntimeLogsPanel() {
   const [filter, setFilter] = useState("");
   const [copied, setCopied] = useState(false);
+  const [logs, setLogs] = useState<string[]>(() => {
+    return diag.getLogs().map((l) => formatEntry(l));
+  });
+
+  useEffect(() => {
+    const unsub = diag.subscribe((entries) => {
+      setLogs(entries.map((l) => formatEntry(l)));
+    });
+    return unsub;
+  }, []);
 
   const filtered = useMemo(() => {
     if (!filter) return logs;
@@ -17,7 +26,6 @@ export default function RuntimeLogsPanel({ initialLogs = [] as string[] }: { ini
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(payload);
       } else {
-        // fallback
         const ta = document.createElement("textarea");
         ta.value = payload;
         document.body.appendChild(ta);
@@ -28,18 +36,16 @@ export default function RuntimeLogsPanel({ initialLogs = [] as string[] }: { ini
       setCopied(true);
       setTimeout(() => setCopied(false), 1900);
     } catch (err) {
-      // noop - console for developer
-      // eslint-disable-next-line no-console
       console.error("Copy failed", err);
     }
   };
 
-  const clearLogs = () => {
-    setLogs([]);
+  const clearLogsHandler = () => {
+    diag.clearLogs();
   };
 
   const handleExport = (format: "log" | "json") => {
-    exportLogs(filtered, `opto-care-runtime-${new Date().toISOString()}`, format);
+    diag.exportLogs(`opto-care-runtime-${new Date().toISOString()}`, format);
   };
 
   return (
@@ -62,7 +68,7 @@ export default function RuntimeLogsPanel({ initialLogs = [] as string[] }: { ini
           <button onClick={() => handleExport("json")} className="px-3 py-2 bg-white border rounded text-sm hover:bg-slate-50">
             Export JSON
           </button>
-          <button onClick={clearLogs} className="px-3 py-2 bg-rose-50 border border-rose-100 text-rose-700 rounded text-sm hover:bg-rose-100">
+          <button onClick={clearLogsHandler} className="px-3 py-2 bg-rose-50 border border-rose-100 text-rose-700 rounded text-sm hover:bg-rose-100">
             Clear
           </button>
         </div>
@@ -72,7 +78,7 @@ export default function RuntimeLogsPanel({ initialLogs = [] as string[] }: { ini
         {filtered.length === 0 ? (
           <div className="text-slate-400">No logs to show</div>
         ) : (
-          filtered.map((l, idx) => (
+          filtered.slice().reverse().map((l, idx) => (
             <div key={idx} className="whitespace-pre-wrap break-words mb-1">
               {l}
             </div>
@@ -81,4 +87,9 @@ export default function RuntimeLogsPanel({ initialLogs = [] as string[] }: { ini
       </div>
     </div>
   );
+}
+
+function formatEntry(l: any) {
+  const meta = l.metadata ? ` ${JSON.stringify(l.metadata)}` : "";
+  return `[${l.timestamp}] ${l.level.toUpperCase()} ${l.category} ${l.message}${meta}`;
 }
