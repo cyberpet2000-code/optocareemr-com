@@ -95,7 +95,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   const showActiveBadge = !isSuperAdminWs && !!clinic;
   const identityLoading =
   !isSuperAdminWs &&
-  loading;
+  (loading || (!!effectiveClinicId && !clinic));
 
     useEffect(() => {
   if (isSuperAdminWs || loading) return;
