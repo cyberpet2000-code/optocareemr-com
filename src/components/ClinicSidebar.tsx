@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, ShoppingBag, DollarSign, ShieldCheck, Calendar,
-  UserPlus, Building2, Sparkles, LifeBuoy, CheckCircle2, CircleDashed, Clock,
+  UserPlus, Building2, Sparkles, LifeBuoy, CheckCircle2, CircleDashed, Clock, Activity,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -51,6 +51,7 @@ export default function ClinicSidebar() {
         primary: [
           { to: "/super-admin", label: "Overview", icon: LayoutDashboard },
           { to: "/super-admin/clinics", label: "Clinics", icon: Building2 },
+          { to: "/super-admin/system-health", label: "System Health", icon: Activity },
         ],
         secondary: [
           { to: "/super-admin/create-clinic", label: "Create Clinic", icon: Sparkles },
