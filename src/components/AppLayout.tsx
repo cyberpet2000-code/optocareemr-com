@@ -33,7 +33,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const { isAdmin, isSuperAdmin, isDoctor, isReceptionist, roles } = useRole();
-  const { profile, clinic } = useClinic();
+  const { profile, clinic, loading } = useClinic();
 
   const workspace = resolveWorkspace(location.pathname);
   const isSuperAdminWs = workspace === "super-admin";
@@ -89,24 +89,30 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   const showActiveBadge = !isSuperAdminWs && !!clinic;
   const identityLoading =
   !isSuperAdminWs &&
-  !resolvedClinicName &&
-  !!profile;
+  loading;
 
     useEffect(() => {
-  if (!isSuperAdminWs && resolvedClinicName) {
+  if (isSuperAdminWs || loading) return;
+
+  if (resolvedClinicName) {
     diag.event("hydration", "clinic-resolved", {
       clinicName: resolvedClinicName,
     });
-    return;
+  } else {
+    diag.warn("hydration", "clinic-name-empty", {
+      profileId: (profile as any)?.id ?? null,
+      activeClinicId: activeClinicId ?? null,
+      effectiveClinicId: effectiveClinicId ?? null,
+    });
   }
-
-  const timer = setTimeout(() => {
-    if (!resolvedClinicName && profile) {
-      diag.warn("hydration", "clinic-name-empty", {
-        profileId: (profile as any)?.id ?? null,
-      });
-    }
-  }, 2500);
+}, [
+  isSuperAdminWs,
+  loading,
+  resolvedClinicName,
+  profile,
+  activeClinicId,
+  effectiveClinicId,
+]);
 
   return () => clearTimeout(timer);
 }, [isSuperAdminWs, profile, resolvedClinicName]);
