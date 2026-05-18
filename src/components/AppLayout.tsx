@@ -87,7 +87,10 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
     : (resolvedClinicName || "Loading clinic...");
   const headerRoleLabel = resolvedRoleLabel || "Staff";
   const showActiveBadge = !isSuperAdminWs && !!clinic;
-  const identityLoading = !isSuperAdminWs && !resolvedClinicName;
+  const identityLoading =
+  !isSuperAdminWs &&
+  !resolvedClinicName &&
+  !!profile;
 
   useEffect(() => {
     if (identityLoading) {
