@@ -80,7 +80,7 @@ export default function AdminRoles({ embedded = false }: { embedded?: boolean })
     if (!effectiveClinicId) { toast.error("No active clinic"); return; }
     if (!inviteEmail.trim()) { toast.error("Email is required"); return; }
     setInviting(true);
-    const { data, error } = await apiClient.functions.invoke("create-clinic-invite", {
+    const { data, error } = await supabase.functions.invoke("create-clinic-invite", {
       body: {
         clinic_id: effectiveClinicId,
         email: inviteEmail.trim().toLowerCase(),
