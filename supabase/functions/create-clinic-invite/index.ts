@@ -1,6 +1,5 @@
 // Super-admin only: creates an invite for a clinic admin and returns a shareable link.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
