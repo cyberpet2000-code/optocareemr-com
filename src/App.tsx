@@ -22,7 +22,7 @@ import Onboarding from "./pages/Onboarding";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import SuperAdminClinics from "./pages/SuperAdminClinics";
 import SuperAdminCreateClinic from "./pages/SuperAdminCreateClinic";
-import SuperAdminSystemHealth from "./pages/SuperAdminSystemHealth";
+import SystemHealth from "./pages/SuperAdminSystemHealth";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import SelectClinic from "./pages/SelectClinic";
