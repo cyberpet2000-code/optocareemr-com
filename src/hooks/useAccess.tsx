@@ -3,6 +3,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { apiClient } from "@/lib/apiClient";
 import { assertClinicAccess } from "@/lib/route-access";
 import { safeSupabaseStorage, setKnownSupabaseSession } from "@/lib/supabase-auth";
+import { diag } from "@/lib/diag";
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
 const ACTIVE_CLINIC_KEY = "active_clinic_id";
@@ -219,6 +220,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       invalidatePendingLoads();
       completedLoadKeyRef.current = loadKey;
       commitAccessState(createEmptyAccessState(true));
+      diag.event("auth", "signed_out", { reason: "no_user", user_id: null });
       return;
     }
 
@@ -264,14 +266,32 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         force,
       });
 
+      // Clinic hydration start
+      diag.event("clinic", "hydration_start", { reason, user_id: nextUser.id, override_clinic_id: overrideClinicId });
+
       try {
+        const opStart = Date.now();
         const [profileResult, userRolesResult, clinicUsersResult] = await Promise.all([
           apiClient.from("profiles").select("*").eq("id", nextUser.id).maybeSingle(),
           apiClient.from("user_roles").select("role, clinic_id").eq("user_id", nextUser.id),
           apiClient.from("clinic_users").select("role, clinic_id").eq("user_id", nextUser.id),
         ]);
+        const opDur = Date.now() - opStart;
+        if (opDur > 1000) {
+          diag.warn("query", "slow_query", { duration_ms: opDur, query: "access.loadAccess.initialQueries", user_id: nextUser.id });
+        }
 
         if (requestRef.current !== requestId) return;
+
+        if (profileResult.error) {
+          diag.captureQueryFailure({ message: profileResult.error.message }, { query: "profiles.select", user_id: nextUser.id });
+        }
+        if (userRolesResult.error) {
+          diag.captureQueryFailure({ message: userRolesResult.error.message }, { query: "user_roles.select", user_id: nextUser.id });
+        }
+        if (clinicUsersResult.error) {
+          diag.captureQueryFailure({ message: clinicUsersResult.error.message }, { query: "clinic_users.select", user_id: nextUser.id });
+        }
 
         const nextProfile = profileResult.data || null;
         const userRolesRows = (userRolesResult.data || []) as Array<{ role: string; clinic_id: string | null }>;
@@ -290,10 +310,18 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
         let membershipRows: MembershipRow[] = [];
         if (membershipClinicIds.length > 0) {
-          const { data: clinicsData } = await apiClient
+          const qStart = Date.now();
+          const { data: clinicsData, error: clinicsError } = await apiClient
             .from("clinics")
             .select("id, name, setup_completed")
             .in("id", membershipClinicIds);
+          const qDur = Date.now() - qStart;
+          if (qDur > 1000) {
+            diag.warn("query", "slow_query", { duration_ms: qDur, query: "clinics.byIds", user_id: nextUser.id });
+          }
+          if (clinicsError) {
+            diag.captureQueryFailure({ message: clinicsError.message }, { query: "clinics.select.in", user_id: nextUser.id });
+          }
 
           if (requestRef.current !== requestId) return;
 
@@ -318,14 +346,20 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         if (isSuperAdminUser) {
           if (overrideClinicId) {
             try {
+              const qStart = Date.now();
               const { data } = await apiClient
                 .from("clinics")
                 .select("id, name, subscription_status, setup_completed, onboarding_step, is_active, lifecycle_status, logo_url")
                 .eq("id", overrideClinicId)
                 .maybeSingle();
+              const qDur = Date.now() - qStart;
+              if (qDur > 1000) {
+                diag.warn("query", "slow_query", { duration_ms: qDur, query: "clinics.byId.override", user_id: nextUser.id });
+              }
               nextAccessState.clinic = data || null;
             } catch (error: any) {
               console.warn("[access:super_admin_clinic_override_failed]", { message: error?.message });
+              diag.error("clinic", "super_admin_clinic_override_failed", { message: String(error?.message), user_id: nextUser.id });
             }
           }
 
@@ -338,6 +372,9 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
             user_id: nextUser.id,
             override_clinic_id: overrideClinicId,
           });
+
+          // Hydration end for super admin flow
+          diag.event("clinic", "hydration_end", { reason, user_id: nextUser.id, clinic_id: nextAccessState.clinic?.id ?? null, role: primaryRole });
           return;
         }
 
@@ -348,14 +385,19 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           .maybeSingle();
 
         if (requestRef.current !== requestId) return;
-        if (resolvedError) throw resolvedError;
+        if (resolvedError) {
+          diag.captureQueryFailure({ message: resolvedError.message }, { query: "user_active_clinic.select", user_id: nextUser.id });
+          throw resolvedError;
+        }
 
         const backendResolvedClinicId = (resolvedRow as any)?.resolved_clinic_id ?? null;
         nextAccessState.resolvedClinicId = backendResolvedClinicId;
 
+        // Active clinic mismatch
         if (overrideClinicId && overrideClinicId !== backendResolvedClinicId) {
           persistActive(null);
           setActiveClinicIdState((prev) => (prev === null ? prev : null));
+          diag.warn("clinic", "active_clinic_mismatch", { override_clinic_id: overrideClinicId, backend_resolved_clinic_id: backendResolvedClinicId, user_id: nextUser.id });
         }
 
         if (!backendResolvedClinicId) {
@@ -363,14 +405,20 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           commitAccessState(nextAccessState);
           completedLoadKeyRef.current = loadKey;
           console.debug("[access:no_clinic]", { reason, user_id: nextUser.id });
+          diag.warn("clinic", "no_resolved_clinic", { reason, user_id: nextUser.id });
           return;
         }
 
+        const qStart = Date.now();
         const clinicResult = await apiClient
           .from("clinics")
           .select("id, name, subscription_status, setup_completed, onboarding_step, is_active, lifecycle_status, logo_url")
           .eq("id", backendResolvedClinicId)
           .maybeSingle();
+        const qDur2 = Date.now() - qStart;
+        if (qDur2 > 1000) {
+          diag.warn("query", "slow_query", { duration_ms: qDur2, query: "clinics.byId.resolved", user_id: nextUser.id });
+        }
 
         if (requestRef.current !== requestId) return;
 
@@ -384,6 +432,9 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           role: primaryRole,
           clinic_id: backendResolvedClinicId,
         });
+
+        // Hydration end
+        diag.event("clinic", "hydration_end", { reason, user_id: nextUser.id, clinic_id: backendResolvedClinicId, role: primaryRole });
       } catch (error: any) {
         if (requestRef.current !== requestId) return;
 
@@ -402,6 +453,9 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           user_id: nextUser.id,
           message: error?.message,
         });
+
+        // runtime-level critical capture
+        diag.critical("runtime", "access_provider_exception", { message: String(error?.message), user_id: nextUser.id, reason });
       }
     })();
 
@@ -438,10 +492,20 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         has_session: !!session,
       });
 
+      // Auth diagnostics
+      if (session && nextUserId) {
+        if (reason === "SIGNED_IN") {
+          diag.event("auth", "signed_in", { user_id: nextUserId });
+        } else {
+          diag.event("auth", "session_applied", { reason, user_id: nextUserId });
+        }
+      }
+
       if (!nextUser) {
         clearAccessState(true);
         setAuthLoading(false);
         console.debug("[auth:init:end]", { reason, has_session: false, user_id: null });
+        diag.event("auth", "signed_out", { reason, user_id: null });
         return;
       }
 
@@ -481,6 +545,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           user_id: session?.user?.id ?? null,
           refreshed: !!session?.access_token,
         });
+        // auth diagnostic (token refresh) - do not log tokens
+        diag.event("auth", "token_refreshed", { user_id: session?.user?.id ?? null });
         return;
       }
 
@@ -500,6 +566,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         setUser((prev) => (prev === null ? prev : null));
         commitAccessState(createEmptyAccessState(true));
         setAuthLoading(false);
+        diag.event("auth", "signed_out", { reason: "SIGNED_OUT", user_id: null });
         return;
       }
 
@@ -527,6 +594,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         await applySession(data.session ?? null, "bootstrap");
       } catch (error: any) {
         console.error("[auth:bootstrap:error]", { message: error?.message });
+        diag.error("auth", "bootstrap_failed", { message: String(error?.message) });
         if (!mounted) return;
         setKnownSupabaseSession(null);
         setUser((prev) => (prev === null ? prev : null));
@@ -564,6 +632,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     if (clinicId && userRef.current) {
       const grantedRole = await assertClinicAccess(apiClient as any, userRef.current.id, clinicId);
       if (!grantedRole) {
+        // route diagnostic for access denial
+        diag.warn("route", "clinic_access_denied", { clinic_id: clinicId, user_id: userRef.current.id });
         throw new Error("You do not have access to this clinic.");
       }
     }
@@ -585,6 +655,9 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     setActiveClinicIdState((prev) => (prev === null ? prev : null));
     try { sessionStorage.removeItem("optocare:clinic-identity"); } catch { /* ignore */ }
     await apiClient.auth.signOut();
+
+    // auth diagnostic: sign out triggered
+    diag.event("auth", "sign_out_initiated", { user_id: userRef.current?.id ?? null });
   }, [persistActive]);
 
   const isAuthenticated = !!user;
@@ -611,7 +684,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   isAuthenticated &&
   (!accessState.accessReady || !accessState.profile),
 
-clinicLoading:
+  clinicLoading:
   isAuthenticated &&
   (
     !accessState.accessReady ||
@@ -622,7 +695,7 @@ clinicLoading:
     )
   ),
 
-membershipLoading:
+  membershipLoading:
   isAuthenticated &&
   !accessState.accessReady,
     accessReady: accessState.accessReady,
