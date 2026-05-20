@@ -192,7 +192,7 @@ const App = () => (
           <AppRoutes />
         </BrowserRouter>
       </AccessProvider>
-      <DiagOverlay />
+      {isDiagEnabled() && <DiagOverlay />}
     </TooltipProvider>
   </QueryClientProvider>
 );
