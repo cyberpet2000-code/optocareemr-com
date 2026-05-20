@@ -158,7 +158,7 @@ export function AppRoutes() {
 
         <Route element={<AppLayout />}>
           <Route path="/super-admin" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
-          <Route path="/super-admin/system-health" element={<SuperAdminOnly><SuperAdminSystemHealth /></SuperAdminOnly>} />
+          <Route path="/super-admin/system-health" element={<SuperAdminOnly><SystemHealth /></SuperAdminOnly>} />
           <Route path="/super-admin-dashboard" element={<Navigate to="/super-admin" replace />} />
           <Route path="/super-admin/create-clinic" element={<SuperAdminOnly><SuperAdminCreateClinic /></SuperAdminOnly>} />
           <Route path="/super-admin/clinics" element={<SuperAdminOnly><SuperAdminClinics /></SuperAdminOnly>} />
