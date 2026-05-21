@@ -38,11 +38,12 @@ export default function Appointments() {
     setLoading(true);
     const dateStr = format(filterDate, "yyyy-MM-dd");
     const { data } = await apiClient
-      .from("appointments")
-      .select("*")
-      .eq("clinic_id", cid)
-      .eq("appointment_date", dateStr)
-      .order("appointment_time");
+  .from("appointments")
+  .select("*")
+  .eq("clinic_id", cid)
+  .gte("appointment_date", dateStr)
+  .order("appointment_date")
+  .order("appointment_time");
     console.debug("[appointments]", { clinic_id: cid, count: data?.length ?? 0 });
     if (data && data.length > 0) {
       const patientIds = [...new Set(data.filter((a: any) => a.patient_id).map((a: any) => a.patient_id))];
