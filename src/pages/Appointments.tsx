@@ -69,7 +69,7 @@ export default function Appointments() {
 
   const handleSubmit = async () => {
     if (!cid) { toast.error("No active clinic"); return; }
-    if (!form.time) { toast.error("Set a time"); return; }
+    if (!form.time || form.time.trim() === "") { toast.error("Set a time"); return; }
     setSaving(true);
     const { error } = await apiClient.from("appointments").insert({
       clinic_id: cid,
