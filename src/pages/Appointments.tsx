@@ -45,6 +45,13 @@ export default function Appointments() {
   .order("appointment_time");
 
     console.log("appointments data", data);
+    
+    console.log("effective clinic id", cid);
+
+console.log(
+  "appointment clinic ids",
+  data?.map(a => a.clinic_id)
+);
     console.debug("[appointments]", { clinic_id: cid, count: data?.length ?? 0 });
     if (data && data.length > 0) {
       const patientIds = [...new Set(data.filter((a: any) => a.patient_id).map((a: any) => a.patient_id))];
