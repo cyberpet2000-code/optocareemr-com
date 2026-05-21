@@ -152,6 +152,9 @@ export default function Appointments() {
       )}
 
       <div className="flex items-center gap-3 mb-4">
+        <p className="text-xs text-muted-foreground">
+  Showing appointments from {format(filterDate, "PPP")} onward
+</p>
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="rounded-xl">
