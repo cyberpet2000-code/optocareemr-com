@@ -151,7 +151,7 @@ export default function Appointments() {
         </div>
       )}
 
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex flex-col gap-1 mb-4">
         <p className="text-xs text-muted-foreground">
   Showing appointments from {format(filterDate, "PPP")} onward
 </p>
