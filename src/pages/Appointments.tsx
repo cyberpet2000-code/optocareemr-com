@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,82 +8,136 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { CalendarIcon, Plus, X, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { CalendarIcon, Plus, X, Clock, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
-import { useAccess } from "@/hooks/useAccess";
+import { useAccessClinic } from "@/hooks/useAccess";
+import { diag } from "@/lib/diag";
 
 interface Appointment {
   id: string;
   patient_id: string | null;
   appointment_date: string;
-  appointment_time: string;
+  appointment_time: string | null;
   reason: string | null;
   status: string;
   source: string;
+  clinic_id: string | null;
   patient_name?: string;
 }
 
+type PatientLite = { id: string; full_name: string };
+
 export default function Appointments() {
-  const { effectiveClinicId: cid } = useAccess();
+  // Gate on auth/clinic hydration so we don't fire queries without context.
+  const { effectiveClinicId, profileLoading, clinicLoading } = useAccessClinic();
+  const cid = effectiveClinicId;
+  const hydrating = profileLoading || clinicLoading;
+
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [patients, setPatients] = useState<{ id: string; full_name: string }[]>([]);
+  const [patients, setPatients] = useState<PatientLite[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [filterDate, setFilterDate] = useState<Date>(new Date());
   const [form, setForm] = useState({ patientId: "", date: new Date(), time: "", reason: "" });
   const [saving, setSaving] = useState(false);
 
-  const loadAppointments = async () => {
+  const filterDateStr = useMemo(() => format(filterDate, "yyyy-MM-dd"), [filterDate]);
+
+  // ── Appointments fetch ─────────────────────────────────────────────────
+  // Explicit clinic_id filter + date filter. Isolated from patient lookup
+  // so a patient-lookup failure never blanks the appointments list.
+  const loadAppointments = useCallback(async (signal?: AbortSignal) => {
     if (!cid) {
-  console.log("NO CLINIC ID");
+      setAppointments([]);
+      setLoading(false);
+      return;
     }
     setLoading(true);
-    const dateStr = format(filterDate, "yyyy-MM-dd");
-    const { data, error } = await apiClient
-  .from("appointments")
-  .select("*")
-  .order("appointment_date")
-  .order("appointment_time");
+    setError(null);
 
-    console.log("appointments error", error);
-console.log("appointments data", data);
+    const end = diag.time("query", "appointments.list", { clinic_id: cid, from: filterDateStr });
+    const { data, error: qErr } = await apiClient
+      .from("appointments")
+      .select("id, patient_id, appointment_date, appointment_time, reason, status, source, clinic_id")
+      .eq("clinic_id", cid)
+      .gte("appointment_date", filterDateStr)
+      .order("appointment_date", { ascending: true })
+      .order("appointment_time", { ascending: true })
+      .limit(500);
+    end({ status: qErr ? "error" : "ok", count: data?.length ?? 0 });
 
-    console.log("appointments data", data);
-    
-    console.log("effective clinic id", cid);
-    console.log(
-  "appointment clinic ids",
-  data?.map((a: any) => a.clinic_id)
-);
-     
-    console.debug("[appointments]", { clinic_id: cid, count: data?.length ?? 0 });
-    if (data && data.length > 0) {
-      const patientIds = [...new Set(data.filter((a: any) => a.patient_id).map((a: any) => a.patient_id))];
-      let patMap = new Map<string, string>();
-      if (patientIds.length > 0) {
-        const { data: pats } = await apiClient.from("patients").select("id, full_name").in("id", patientIds as string[]);
-        patMap = new Map((pats || []).map((p: any) => [p.id, p.full_name]));
-      }
-      setAppointments(data.map((a: any) => ({ ...a, patient_name: a.patient_id ? patMap.get(a.patient_id) || "Unknown" : "Walk-in" })));
-    } else {
+    if (signal?.aborted) return;
+
+    if (qErr) {
+      diag.error("query", "appointments.list failed", qErr, { clinic_id: cid });
+      setError(qErr.message || "Failed to load appointments");
       setAppointments([]);
+      setLoading(false);
+      return;
     }
+
+    const rows = (data ?? []) as Appointment[];
+
+    // Patient name enrichment — best-effort, never blocks render.
+    let nameMap = new Map<string, string>();
+    const patientIds = Array.from(new Set(rows.map(r => r.patient_id).filter((x): x is string => !!x)));
+    if (patientIds.length > 0) {
+      const { data: pats, error: pErr } = await apiClient
+        .from("patients")
+        .select("id, full_name")
+        .eq("clinic_id", cid)
+        .in("id", patientIds);
+      if (pErr) {
+        diag.warn("query", "patient name lookup failed", { message: pErr.message, code: pErr.code });
+      } else if (pats) {
+        nameMap = new Map((pats as PatientLite[]).map(p => [p.id, p.full_name]));
+      }
+    }
+
+    if (signal?.aborted) return;
+    setAppointments(rows.map(r => ({
+      ...r,
+      patient_name: r.patient_id ? (nameMap.get(r.patient_id) ?? "Unknown patient") : "Walk-in",
+    })));
     setLoading(false);
-  };
+  }, [cid, filterDateStr]);
 
-  useEffect(() => { loadAppointments(); }, [filterDate, cid]);
   useEffect(() => {
-    if (!cid) { setPatients([]); return; }
-    apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data }) => {
-      if (data) setPatients(data as any);
-    });
-  }, [cid]);
+    if (hydrating) return;
+    const ctrl = new AbortController();
+    loadAppointments(ctrl.signal);
+    return () => ctrl.abort();
+  }, [hydrating, loadAppointments]);
 
+  // ── Patient dropdown ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (hydrating || !cid) { setPatients([]); return; }
+    let cancelled = false;
+    (async () => {
+      const { data, error: pErr } = await apiClient
+        .from("patients")
+        .select("id, full_name")
+        .eq("clinic_id", cid)
+        .order("full_name")
+        .limit(500);
+      if (cancelled) return;
+      if (pErr) {
+        diag.warn("query", "patients dropdown failed", { message: pErr.message, code: pErr.code });
+        setPatients([]);
+      } else {
+        setPatients((data ?? []) as PatientLite[]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [hydrating, cid]);
+
+  // ── Mutations ──────────────────────────────────────────────────────────
   const handleSubmit = async () => {
-    if (!cid) { toast.error("No active clinic"); return; }
-    if (!form.time || form.time.trim() === "") { toast.error("Set a time"); return; }
+    if (!cid) { toast.error("No active clinic selected"); return; }
+    if (!form.time?.trim()) { toast.error("Set a time"); return; }
     setSaving(true);
-    const { error } = await apiClient.from("appointments").insert({
+    const { error: insErr } = await apiClient.from("appointments").insert({
       clinic_id: cid,
       patient_id: form.patientId || null,
       appointment_date: format(form.date, "yyyy-MM-dd"),
@@ -93,7 +147,11 @@ console.log("appointments data", data);
       source: "manual",
     } as any);
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
+    if (insErr) {
+      diag.error("query", "appointment insert failed", insErr, { clinic_id: cid });
+      toast.error(insErr.message);
+      return;
+    }
     toast.success("Appointment scheduled");
     setShowForm(false);
     setForm({ patientId: "", date: new Date(), time: "", reason: "" });
@@ -102,7 +160,16 @@ console.log("appointments data", data);
 
   const updateStatus = async (id: string, status: string) => {
     if (!cid) return;
-    await apiClient.from("appointments").update({ status } as any).eq("clinic_id", cid).eq("id", id);
+    const { error: uErr } = await apiClient
+      .from("appointments")
+      .update({ status } as any)
+      .eq("clinic_id", cid)
+      .eq("id", id);
+    if (uErr) {
+      diag.error("query", "appointment status update failed", uErr, { id, status });
+      toast.error(uErr.message);
+      return;
+    }
     loadAppointments();
   };
 
@@ -113,16 +180,20 @@ console.log("appointments data", data);
     return "bg-primary/10 text-primary";
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────
+  const showHydrating = hydrating;
+  const showNoClinic = !hydrating && !cid;
+
   return (
     <>
       <div className="flex items-center justify-between mb-5">
         <h1 className="page-header">Appointments</h1>
-        <Button onClick={() => setShowForm(!showForm)} size="sm" className="rounded-xl gap-1.5">
+        <Button onClick={() => setShowForm(v => !v)} size="sm" className="rounded-xl gap-1.5" disabled={!cid}>
           {showForm ? <><X size={14} /> Cancel</> : <><Plus size={14} /> New</>}
         </Button>
       </div>
 
-      {showForm && (
+      {showForm && cid && (
         <div className="form-section mb-5 max-w-lg animate-fade-in">
           <div className="space-y-3">
             <div className="space-y-1">
@@ -164,9 +235,7 @@ console.log("appointments data", data);
       )}
 
       <div className="flex flex-col gap-1 mb-4">
-        <p className="text-xs text-muted-foreground">
-  Showing appointments from {format(filterDate, "PPP")} onward
-</p>
+        <p className="text-xs text-muted-foreground">Showing appointments from {format(filterDate, "PPP")} onward</p>
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="rounded-xl">
@@ -180,7 +249,28 @@ console.log("appointments data", data);
         </Popover>
       </div>
 
-      {loading ? (
+      {showHydrating ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        </div>
+      ) : showNoClinic ? (
+        <div className="form-section flex items-start gap-3 text-sm">
+          <AlertCircle size={18} className="text-warning shrink-0 mt-0.5" />
+          <div>
+            <div className="font-medium">No active clinic</div>
+            <div className="text-muted-foreground">Select a clinic to view appointments.</div>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="form-section flex items-start gap-3 text-sm border-destructive/40">
+          <AlertCircle size={18} className="text-destructive shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <div className="font-medium text-destructive">Couldn't load appointments</div>
+            <div className="text-muted-foreground break-words">{error}</div>
+            <Button size="sm" variant="outline" className="mt-2 rounded-xl" onClick={() => loadAppointments()}>Retry</Button>
+          </div>
+        </div>
+      ) : loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
         </div>
@@ -195,19 +285,20 @@ console.log("appointments data", data);
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-bold">{a.appointment_time}</span>
+                  <span className="text-sm font-bold">{a.appointment_time ?? "—"}</span>
                   <span className="text-sm font-medium truncate">{a.patient_name}</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${statusStyle(a.status)}`}>{a.status}</span>
                   {a.source === "auto" && <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">auto</span>}
                 </div>
                 {a.reason && <p className="text-xs text-muted-foreground mt-0.5 truncate">{a.reason}</p>}
+                <p className="text-[10px] text-muted-foreground/70 mt-0.5">{a.appointment_date}</p>
               </div>
               {(a.status === "pending" || a.status === "confirmed") && (
                 <div className="flex gap-1 shrink-0">
-                  <button onClick={() => updateStatus(a.id, "completed")} className="p-2 rounded-xl hover:bg-muted transition-colors">
+                  <button onClick={() => updateStatus(a.id, "completed")} className="p-2 rounded-xl hover:bg-muted transition-colors" aria-label="Mark completed">
                     <CheckCircle2 size={16} className="text-success" />
                   </button>
-                  <button onClick={() => updateStatus(a.id, "cancelled")} className="p-2 rounded-xl hover:bg-muted transition-colors">
+                  <button onClick={() => updateStatus(a.id, "cancelled")} className="p-2 rounded-xl hover:bg-muted transition-colors" aria-label="Cancel">
                     <XCircle size={16} className="text-destructive" />
                   </button>
                 </div>
