@@ -170,7 +170,7 @@ export default function Appointments() {
           <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
         </div>
       ) : appointments.length === 0 ? (
-        <div className="text-center py-12 text-sm text-muted-foreground">No appointments for this date.</div>
+        <div className="text-center py-12 text-sm text-muted-foreground">No upcoming appointments.</div>
       ) : (
         <div className="space-y-2">
           {appointments.map(a => (
