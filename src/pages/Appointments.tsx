@@ -51,8 +51,11 @@ console.log("appointments data", data);
     console.log("appointments data", data);
     
     console.log("effective clinic id", cid);
-
-data?.map((a: any) => a.clinic_id)
+    console.log(
+  "appointment clinic ids",
+  data?.map((a: any) => a.clinic_id)
+);
+     
 );
     console.debug("[appointments]", { clinic_id: cid, count: data?.length ?? 0 });
     if (data && data.length > 0) {
