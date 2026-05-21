@@ -41,7 +41,6 @@ export default function Appointments() {
   .from("appointments")
   .select("*")
   .eq("clinic_id", cid)
-  .gte("appointment_date", dateStr)
   .order("appointment_date")
   .order("appointment_time");
     console.debug("[appointments]", { clinic_id: cid, count: data?.length ?? 0 });
