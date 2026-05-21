@@ -81,19 +81,35 @@ export default function AdminRoles({ embedded = false }: { embedded?: boolean })
     if (!effectiveClinicId) { toast.error("No active clinic"); return; }
     if (!inviteEmail.trim()) { toast.error("Email is required"); return; }
     setInviting(true);
-    const { data, error } = await supabase.functions.invoke("create-clinic-invite", {
-      body: {
-        clinic_id: effectiveClinicId,
-        email: inviteEmail.trim().toLowerCase(),
-        role: inviteRole,
-        full_name: inviteName.trim() || undefined,
+    try {
+  const res = await fetch(
+    "https://avogfzqizuusqzjivhqj.supabase.co/functions/v1/create-clinic-invite",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    });
-    setInviting(false);
-    if (error || (data as any)?.error) {
-      toast.error((data as any)?.error || error?.message || "Failed to send invite");
-      return;
+      body: JSON.stringify({
+        test: true,
+      }),
     }
+  );
+
+  const text = await res.text();
+
+  console.log("RAW RESPONSE", text);
+
+  setInviting(false);
+
+  toast.success("Function reached");
+} catch (err) {
+  console.error(err);
+
+  setInviting(false);
+
+  toast.error("Direct fetch failed");
+  return;
+  } 
     toast.success(`Invite sent to ${inviteEmail}`);
     setInviteName(""); setInviteEmail(""); setInviteRole("doctor");
   };
