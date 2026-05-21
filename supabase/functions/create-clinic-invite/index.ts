@@ -1,150 +1,169 @@
-// Super-admin only: creates an invite for a clinic admin and returns a shareable link.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+// Super-admin or clinic admin creates an invite for a clinic and returns a
+// shareable link. Structured error responses, CORS-safe, JWT validated in code.
+//
+// Response shape:
+//   2xx -> { ok: true, invite_id, token, link, clinic_name }
+//   4xx/5xx -> { ok: false, code, message, details? }
+//
+// Error codes (stable, mobile-friendly):
+//   "unauthorized" | "forbidden" | "invalid_input" | "clinic_not_found"
+//   | "invite_failed" | "internal_error"
+
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "authorization, x-client-info, apikey, content-type, x-optocare-shared-client",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
 };
 
-Deno.serve(async (req) => {
-  console.log("FUNCTION STARTED");
+type ErrCode =
+  | "unauthorized"
+  | "forbidden"
+  | "invalid_input"
+  | "clinic_not_found"
+  | "invite_failed"
+  | "internal_error";
 
+function jsonOk(body: Record<string, unknown>) {
+  return new Response(JSON.stringify({ ok: true, ...body }), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function jsonErr(code: ErrCode, message: string, status: number, details?: unknown) {
+  // ALWAYS 200-safe shape with CORS so "Failed to fetch" never masks a real error.
+  return new Response(JSON.stringify({ ok: false, code, message, details }), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+const ALLOWED_ROLES = new Set(["admin", "doctor", "nurse", "receptionist"]);
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders,
-    });
+    return new Response("ok", { status: 200, headers: corsHeaders });
+  }
+  if (req.method !== "POST") {
+    return jsonErr("invalid_input", "Method not allowed", 405);
   }
 
-  const url = Deno.env.get("SUPABASE_URL")!;
-  const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-  const json = (body: unknown, status = 200) =>
-    new Response(JSON.stringify(body), {
-      status,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
-      },
-    });
+  const reqId = crypto.randomUUID();
+  const log = (msg: string, extra?: Record<string, unknown>) =>
+    console.log(JSON.stringify({ fn: "create-clinic-invite", reqId, msg, ...extra }));
+  const logErr = (msg: string, extra?: Record<string, unknown>) =>
+    console.error(JSON.stringify({ fn: "create-clinic-invite", reqId, level: "error", msg, ...extra }));
 
   try {
-    // Verify auth
-    const authHeader = req.headers.get("Authorization");
+    const url = Deno.env.get("SUPABASE_URL");
+    const anon = Deno.env.get("SUPABASE_ANON_KEY");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const APP_URL = Deno.env.get("APP_URL") || "https://optocareemr.com";
 
-    if (!authHeader?.startsWith("Bearer ")) {
-      return json({ error: "Unauthorized" }, 401);
+    if (!url || !anon || !serviceKey) {
+      logErr("missing env", { hasUrl: !!url, hasAnon: !!anon, hasService: !!serviceKey });
+      return jsonErr("internal_error", "Server misconfigured", 500);
     }
+
+    // ── Auth ──────────────────────────────────────────────────────────────
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return jsonErr("unauthorized", "Missing bearer token", 401);
+    }
+    const token = authHeader.slice("Bearer ".length).trim();
 
     const userClient = createClient(url, anon, {
-      global: {
-        headers: {
-          Authorization: authHeader,
-        },
-      },
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    const { data: userData, error: userErr } =
-      await userClient.auth.getUser();
+    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) {
+      logErr("getClaims failed", { error: claimsErr?.message });
+      return jsonErr("unauthorized", "Invalid or expired token", 401);
+    }
+    const callerId = claimsData.claims.sub as string;
 
-    if (userErr || !userData?.user) {
-      return json({ error: "Unauthorized" }, 401);
+    // ── Body ──────────────────────────────────────────────────────────────
+    let body: any = {};
+    try { body = await req.json(); } catch {
+      return jsonErr("invalid_input", "Body must be valid JSON", 400);
     }
 
-    const callerId = userData.user.id;
+    const clinic_id: string | undefined = typeof body?.clinic_id === "string" ? body.clinic_id : undefined;
+    const emailRaw: string | undefined = typeof body?.email === "string" ? body.email : undefined;
+    const role: string = (body?.role ?? "admin").toString();
+    const full_name: string | undefined = body?.full_name
+      ? body.full_name.toString().trim() || undefined
+      : undefined;
 
-    const admin = createClient(url, serviceKey);
+    if (!clinic_id) return jsonErr("invalid_input", "clinic_id is required", 400);
+    const email = emailRaw?.trim().toLowerCase();
+    if (!email || !EMAIL_RE.test(email)) return jsonErr("invalid_input", "Valid email required", 400);
 
-    // Parse body
-    const body = await req.json().catch(() => ({}));
+    // ── Authorization (super_admin OR clinic admin) ───────────────────────
+    const admin = createClient(url, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
 
-    const clinic_id: string | undefined = body?.clinic_id;
-    const emailRaw: string | undefined = body?.email;
-    const role: string = (body?.role || "admin").toString();
-    const full_name: string | undefined =
-      (body?.full_name || "").toString().trim() || undefined;
-
-    const ALLOWED_ROLES = new Set([
-      "admin",
-      "doctor",
-      "nurse",
-      "receptionist",
-    ]);
-
-    // Verify permissions
-    const { data: callerProfile } = await admin
+    const { data: callerProfile, error: profileErr } = await admin
       .from("profiles")
       .select("is_super_admin, role")
       .eq("id", callerId)
       .maybeSingle();
 
+    if (profileErr) {
+      logErr("profile lookup failed", { error: profileErr.message });
+      return jsonErr("internal_error", "Failed to verify caller", 500);
+    }
+
     const isSuper =
-      !!callerProfile?.is_super_admin ||
-      callerProfile?.role === "super_admin";
+      !!callerProfile?.is_super_admin || callerProfile?.role === "super_admin";
 
     let isClinicAdmin = false;
-
-    if (!isSuper && clinic_id) {
-      const { data: adminRow } = await admin
+    if (!isSuper) {
+      const { data: adminRow, error: roleErr } = await admin
         .from("user_roles")
         .select("role")
         .eq("user_id", callerId)
         .eq("clinic_id", clinic_id)
         .eq("role", "admin")
         .maybeSingle();
-
+      if (roleErr) {
+        logErr("role lookup failed", { error: roleErr.message });
+        return jsonErr("internal_error", "Failed to verify clinic role", 500);
+      }
       isClinicAdmin = !!adminRow;
     }
 
     if (!isSuper && !isClinicAdmin) {
-      return json({ error: "Forbidden" }, 403);
+      return jsonErr("forbidden", "Only super-admin or clinic admin can invite", 403);
     }
 
-    if (
-      !ALLOWED_ROLES.has(role) &&
-      !(isSuper && role === "super_admin")
-    ) {
-      return json({ error: "Invalid role" }, 400);
+    if (!ALLOWED_ROLES.has(role) && !(isSuper && role === "super_admin")) {
+      return jsonErr("invalid_input", `Invalid role: ${role}`, 400);
     }
 
-    // App URL
-    const APP_URL =
-      Deno.env.get("APP_URL") || "https://optocareemr.com";
-
-    // Validation
-    if (!clinic_id) {
-      return json({ error: "clinic_id is required" }, 400);
-    }
-
-    const email = emailRaw?.trim().toLowerCase();
-
-    if (
-      !email ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-    ) {
-      return json({ error: "Valid email required" }, 400);
-    }
-
-    // Verify clinic
-    const { data: clinicRow } = await admin
+    // ── Clinic exists ─────────────────────────────────────────────────────
+    const { data: clinicRow, error: clinicErr } = await admin
       .from("clinics")
       .select("id, name")
       .eq("id", clinic_id)
       .maybeSingle();
-
-    if (!clinicRow) {
-      return json({ error: "Clinic not found" }, 404);
+    if (clinicErr) {
+      logErr("clinic lookup failed", { error: clinicErr.message });
+      return jsonErr("internal_error", "Failed to look up clinic", 500);
     }
+    if (!clinicRow) return jsonErr("clinic_not_found", "Clinic not found", 404);
 
-    // Create invite
-    const expires_at = new Date(
-      Date.now() + 48 * 60 * 60 * 1000
-    ).toISOString();
-
-    const token = crypto.randomUUID();
+    // ── Insert invite ─────────────────────────────────────────────────────
+    const expires_at = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    const inviteToken = crypto.randomUUID();
 
     const { data: invite, error: invErr } = await admin
       .from("clinic_invites")
@@ -153,7 +172,7 @@ Deno.serve(async (req) => {
         email,
         role,
         status: "pending",
-        token,
+        token: inviteToken,
         expires_at,
         invited_by: callerId,
       })
@@ -161,52 +180,35 @@ Deno.serve(async (req) => {
       .single();
 
     if (invErr || !invite) {
-      console.error("invite insert failed", invErr);
-
-      return json(
-        {
-          error:
-            invErr?.message || "Failed to create invite",
-        },
-        400
-      );
+      logErr("invite insert failed", { error: invErr?.message });
+      return jsonErr("invite_failed", invErr?.message ?? "Failed to create invite", 400, invErr);
     }
 
-    // Activity log
-    await admin.from("activity_logs").insert({
-      user_id: callerId,
-      clinic_id,
-      action: "invite_sent",
-      table_name: "clinic_invites",
-      record_id: invite.id,
-    });
+    // Best-effort activity log — failure must not fail the request.
+    admin
+      .from("activity_logs")
+      .insert({
+        user_id: callerId,
+        clinic_id,
+        action: "invite_sent",
+        table_name: "clinic_invites",
+        record_id: invite.id,
+      })
+      .then(({ error: actErr }) => {
+        if (actErr) logErr("activity log insert failed", { error: actErr.message });
+      });
 
     const link = `${APP_URL}/accept-invite?token=${invite.token}`;
+    log("invite created", { clinic_id, email, role, full_name, invite_id: invite.id });
 
-    console.log("Invite created", {
-      clinic_id,
-      email,
-      role,
-      full_name,
-      invite_id: invite.id,
-      link,
-    });
-
-    return json({
-      ok: true,
+    return jsonOk({
       invite_id: invite.id,
       token: invite.token,
       link,
       clinic_name: clinicRow.name,
     });
   } catch (e) {
-    console.error("create-clinic-invite fatal", e);
-
-    return json(
-      {
-        error: (e as Error).message,
-      },
-      500
-    );
+    logErr("fatal", { error: (e as Error)?.message, stack: (e as Error)?.stack });
+    return jsonErr("internal_error", (e as Error)?.message ?? "Unexpected error", 500);
   }
 });
