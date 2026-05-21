@@ -37,7 +37,7 @@ export default function Appointments() {
     if (!cid) { setAppointments([]); setLoading(false); return; }
     setLoading(true);
     const dateStr = format(filterDate, "yyyy-MM-dd");
-    const { data } = await apiClient
+    const { data error } = await apiClient
   .from("appointments")
   .select("*")
   .order("appointment_date")
