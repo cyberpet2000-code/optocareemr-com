@@ -40,7 +40,6 @@ export default function Appointments() {
     const { data } = await apiClient
   .from("appointments")
   .select("*")
-  .eq("clinic_id", cid)
   .order("appointment_date")
   .order("appointment_time");
 
