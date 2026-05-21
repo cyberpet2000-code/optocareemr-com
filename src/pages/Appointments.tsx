@@ -34,7 +34,9 @@ export default function Appointments() {
   const [saving, setSaving] = useState(false);
 
   const loadAppointments = async () => {
-    if (!cid) { setAppointments([]); setLoading(false); return; }
+    if (!cid) {
+  console.log("NO CLINIC ID");
+    }
     setLoading(true);
     const dateStr = format(filterDate, "yyyy-MM-dd");
     const { data, error } = await apiClient
