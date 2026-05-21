@@ -43,6 +43,9 @@ export default function Appointments() {
   .order("appointment_date")
   .order("appointment_time");
 
+    console.log("appointments error", error);
+console.log("appointments data", data);
+
     console.log("appointments data", data);
     
     console.log("effective clinic id", cid);
