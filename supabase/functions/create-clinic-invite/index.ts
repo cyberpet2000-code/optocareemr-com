@@ -25,6 +25,7 @@ type ErrCode =
   | "invalid_input"
   | "clinic_not_found"
   | "invite_failed"
+  | "email_failed"
   | "internal_error";
 
 function jsonOk(body: Record<string, unknown>) {
@@ -161,10 +162,49 @@ Deno.serve(async (req) => {
     }
     if (!clinicRow) return jsonErr("clinic_not_found", "Clinic not found", 404);
 
-    // ── Insert invite ─────────────────────────────────────────────────────
+    // ── Generate token + link BEFORE sending so we can include it ────────
     const expires_at = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
     const inviteToken = crypto.randomUUID();
+    const link = `${APP_URL}/accept-invite?token=${inviteToken}`;
 
+    // ── Send email FIRST. Only persist the invite row if email succeeds ──
+    let emailResult: { ok: boolean; status: number; body: any } = { ok: false, status: 0, body: null };
+    try {
+      const r = await fetch(`${url}/functions/v1/send-invite-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: serviceKey,
+        },
+        body: JSON.stringify({
+          email,
+          clinic_name: clinicRow.name,
+          clinic_id,
+          role,
+          token: inviteToken,
+        }),
+      });
+      const text = await r.text();
+      let parsed: any = null;
+      try { parsed = text ? JSON.parse(text) : null; } catch { parsed = { raw: text }; }
+      emailResult = { ok: r.ok && parsed?.ok !== false, status: r.status, body: parsed };
+      log("send-invite-email result", { status: r.status, ok: emailResult.ok, providerId: parsed?.provider_message_id, error: parsed?.error });
+    } catch (e) {
+      logErr("send-invite-email fetch threw", { error: (e as Error).message });
+      emailResult = { ok: false, status: 0, body: { error: (e as Error).message } };
+    }
+
+    if (!emailResult.ok) {
+      return jsonErr(
+        "email_failed",
+        emailResult.body?.error || "Failed to send invitation email",
+        502,
+        { status: emailResult.status, response: emailResult.body, reqId },
+      );
+    }
+
+    // ── Email sent — persist the pending invite row ──────────────────────
     const { data: invite, error: invErr } = await admin
       .from("clinic_invites")
       .insert({
@@ -180,7 +220,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (invErr || !invite) {
-      logErr("invite insert failed", { error: invErr?.message });
+      logErr("invite insert failed AFTER email sent", { error: invErr?.message });
       return jsonErr("invite_failed", invErr?.message ?? "Failed to create invite", 400, invErr);
     }
 
@@ -198,14 +238,14 @@ Deno.serve(async (req) => {
         if (actErr) logErr("activity log insert failed", { error: actErr.message });
       });
 
-    const link = `${APP_URL}/accept-invite?token=${invite.token}`;
-    log("invite created", { clinic_id, email, role, full_name, invite_id: invite.id });
+    log("invite created + emailed", { clinic_id, email, role, full_name, invite_id: invite.id });
 
     return jsonOk({
       invite_id: invite.id,
       token: invite.token,
       link,
       clinic_name: clinicRow.name,
+      email_sent: true,
     });
   } catch (e) {
     logErr("fatal", { error: (e as Error)?.message, stack: (e as Error)?.stack });
