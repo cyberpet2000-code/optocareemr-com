@@ -82,36 +82,31 @@ export default function AdminRoles({ embedded = false }: { embedded?: boolean })
     if (!inviteEmail.trim()) { toast.error("Email is required"); return; }
     setInviting(true);
     try {
-  const res = await fetch(
-    "https://avogfzqizuusqzjivhqj.supabase.co/functions/v1/create-clinic-invite",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        test: true,
-      }),
+      const { data, error } = await apiClient.functions.invoke("create-clinic-invite", {
+        body: {
+          clinic_id: effectiveClinicId,
+          email: inviteEmail.trim().toLowerCase(),
+          role: inviteRole,
+          full_name: inviteName.trim() || undefined,
+        },
+      });
+      if (error) {
+        const msg = (data as any)?.message || error.message || "Failed to send invite";
+        toast.error(msg);
+        return;
+      }
+      if (!data?.ok) {
+        toast.error(data?.message || "Failed to send invite");
+        return;
+      }
+      toast.success(`Invite sent to ${inviteEmail}`);
+      setInviteName(""); setInviteEmail(""); setInviteRole("doctor");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "Failed to send invite");
+    } finally {
+      setInviting(false);
     }
-  );
-
-  const text = await res.text();
-
-  console.log("RAW RESPONSE", text);
-
-  setInviting(false);
-
-  toast.success("Function reached");
-} catch (err) {
-  console.error(err);
-
-  setInviting(false);
-
-  toast.error("Direct fetch failed");
-  return;
-  } 
-    toast.success(`Invite sent to ${inviteEmail}`);
-    setInviteName(""); setInviteEmail(""); setInviteRole("doctor");
   };
 
   const changeRole = async (row: StaffRow, nextRole: AppRole) => {
