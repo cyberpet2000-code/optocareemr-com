@@ -1,5 +1,5 @@
 import { supabase, SHARED_CLIENT_HEADER, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
-import { getKnownSupabaseSession } from "@/lib/supabase-auth";
+import { getKnownSupabaseSession, setKnownSupabaseSession } from "@/lib/supabase-auth";
 
 
 type EdgeInvokeOptions = Parameters<typeof supabase.functions.invoke>[1];
@@ -19,8 +19,20 @@ function resolveSourceModule() {
   return "unknown";
 }
 
-function getAccessToken() {
-  return getKnownSupabaseSession()?.access_token ?? null;
+async function getAccessToken(): Promise<string | null> {
+  const cached = getKnownSupabaseSession()?.access_token;
+  if (cached) return cached;
+  // Fallback: load from supabase auth storage in case useAccess hasn't hydrated yet.
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (data?.session) {
+      setKnownSupabaseSession(data.session);
+      return data.session.access_token ?? null;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
 }
 
 async function invokeWithHeaders(
