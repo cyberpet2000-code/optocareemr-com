@@ -78,7 +78,7 @@ export const apiClient = {
 };
 
 export async function authenticatedFetch(input: RequestInfo | URL, init?: RequestInit) {
-  const accessToken = getAccessToken();
+  const accessToken = await getAccessToken();
   const headers = new Headers(init?.headers);
   headers.set("apikey", SUPABASE_PUBLISHABLE_KEY);
   headers.set(SHARED_CLIENT_HEADER, "1");
