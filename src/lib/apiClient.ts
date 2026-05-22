@@ -39,7 +39,7 @@ async function invokeWithHeaders(
   functionName: string,
   options?: EdgeInvokeOptions,
 ) {
-  const accessToken = getAccessToken();
+  const accessToken = await getAccessToken();
   const headers = new Headers(options?.headers);
   headers.set("apikey", SUPABASE_PUBLISHABLE_KEY);
   headers.set(SHARED_CLIENT_HEADER, "1");
