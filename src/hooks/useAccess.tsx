@@ -349,6 +349,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
+        const resolveClinicStart = performance.now();
+
         const { data: resolvedRow, error: resolvedError } = await apiClient
           .from("user_active_clinic")
           .select("resolved_clinic_id, is_super_admin")
