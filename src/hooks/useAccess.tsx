@@ -266,6 +266,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       });
 
       try {
+        const stage1Start = performance.now();
+
         const [profileResult, userRolesResult, clinicUsersResult] = await Promise.all([
           apiClient.from("profiles").select("*").eq("id", nextUser.id).maybeSingle(),
           apiClient.from("user_roles").select("role, clinic_id").eq("user_id", nextUser.id),
