@@ -311,14 +311,16 @@ console.debug("[access:stage1_complete]", {
         let membershipRows: MembershipRow[] = [];
         if (membershipClinicIds.length > 0) {
           const membershipsStart = performance.now();
-          console.debug("[access:memberships_complete]", {
-  durationMs: performance.now() - membershipsStart,
-  clinic_count: membershipClinicIds.length,
-});
+          
           const { data: clinicsData } = await apiClient
             .from("clinics")
             .select("id, name, setup_completed")
             .in("id", membershipClinicIds);
+
+          console.debug("[access:memberships_complete]", {
+  durationMs: performance.now() - membershipsStart,
+  clinic_count: membershipClinicIds.length,
+});
 
           if (requestRef.current !== requestId) return;
 
