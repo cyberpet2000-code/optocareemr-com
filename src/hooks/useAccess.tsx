@@ -297,6 +297,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
         let membershipRows: MembershipRow[] = [];
         if (membershipClinicIds.length > 0) {
+          const membershipsStart = performance.now();
           const { data: clinicsData } = await apiClient
             .from("clinics")
             .select("id, name, setup_completed")
