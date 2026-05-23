@@ -235,6 +235,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
 
     const promise = (async () => {
       const requestId = ++requestRef.current;
+      const loadStartedAt = performance.now();
       completedLoadKeyRef.current = null;
 
       if (blocking) {
