@@ -376,6 +376,10 @@ console.debug("[access:stage1_complete]", {
 
         if (requestRef.current !== requestId) return;
         if (resolvedError) throw resolvedError;
+        console.debug("[access:resolve_clinic_complete]", {
+  durationMs: performance.now() - resolveClinicStart,
+  resolved_clinic_id: (resolvedRow as any)?.resolved_clinic_id ?? null,
+});
 
         const backendResolvedClinicId = (resolvedRow as any)?.resolved_clinic_id ?? null;
         nextAccessState.resolvedClinicId = backendResolvedClinicId;
