@@ -376,6 +376,8 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
+        const clinicFetchStart = performance.now();
+
         const clinicResult = await apiClient
           .from("clinics")
           .select("id, name, subscription_status, setup_completed, onboarding_step, is_active, lifecycle_status, logo_url")
