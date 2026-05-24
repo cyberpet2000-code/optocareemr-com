@@ -402,14 +402,17 @@ console.debug("[access:stage1_complete]", {
         const clinicFetchStart = performance.now();
 
         const clinicResult = await apiClient
-          console.debug("[access:clinic_fetch_complete]", {
+  .from("clinics")
+  .select(
+    "id, name, subscription_status, setup_completed, onboarding_step, is_active, lifecycle_status, logo_url"
+  )
+  .eq("id", backendResolvedClinicId)
+  .maybeSingle();
+
+console.debug("[access:clinic_fetch_complete]", {
   durationMs: performance.now() - clinicFetchStart,
   clinic_id: backendResolvedClinicId,
 });
-          .from("clinics")
-          .select("id, name, subscription_status, setup_completed, onboarding_step, is_active, lifecycle_status, logo_url")
-          .eq("id", backendResolvedClinicId)
-          .maybeSingle();
 
         if (requestRef.current !== requestId) return;
 
