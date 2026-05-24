@@ -420,6 +420,11 @@ console.debug("[access:clinic_fetch_complete]", {
         commitAccessState(nextAccessState);
         completedLoadKeyRef.current = loadKey;
 
+        console.debug("[access:load:total]", {
+  durationMs: performance.now() - loadStartedAt,
+  user_id: nextUser.id,
+});
+
         console.debug("[access:ready]", {
           reason,
           user_id: nextUser.id,
