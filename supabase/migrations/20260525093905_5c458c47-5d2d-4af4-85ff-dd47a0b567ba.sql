@@ -1,0 +1,1 @@
+ALTER TABLE public.visits ADD COLUMN IF NOT EXISTS iop_od_time time, ADD COLUMN IF NOT EXISTS iop_os_time time;

@@ -53,17 +53,23 @@ export default function AcceptInvite() {
         setInvite({ kind: "invalid", reason: "missing_token" });
         return;
       }
-      const { data, error } = await apiClient.functions.invoke("validate-invite", { body: { token } });
-      if (cancelled) return;
-      if (error || !data) {
-        setInvite({ kind: "invalid", reason: "error" });
-        return;
-      }
-      const d = data as any;
-      if (d.valid) {
-        setInvite({ kind: "valid", clinic_id: d.clinic_id, clinic_name: d.clinic_name, email: d.email });
-      } else {
-        setInvite({ kind: "invalid", reason: d.reason || "unknown", email: d.email });
+      try {
+        const { data, error } = await apiClient.functions.invoke("validate-invite", { body: { token } });
+        if (cancelled) return;
+        if (error || !data) {
+          // Network / function deployment / CORS failure — distinct from "not found"
+          setInvite({ kind: "invalid", reason: "service_unavailable" });
+          return;
+        }
+        const d = data as any;
+        if (d.valid) {
+          setInvite({ kind: "valid", clinic_id: d.clinic_id, clinic_name: d.clinic_name, email: d.email });
+        } else {
+          setInvite({ kind: "invalid", reason: d.reason || "unknown", email: d.email });
+        }
+      } catch (e) {
+        if (cancelled) return;
+        setInvite({ kind: "invalid", reason: "service_unavailable" });
       }
     })();
     return () => { cancelled = true; };
@@ -208,20 +214,31 @@ export default function AcceptInvite() {
   }
 
   if (invite.kind === "invalid") {
+    const isServiceError = invite.reason === "service_unavailable";
+    const title = isServiceError ? "Invite verification unavailable" : "Invite unavailable";
     const label =
-      invite.reason === "already_used" ? "This invite has already been used."
+      isServiceError ? "Invite verification service unavailable. Please try again in a moment."
+      : invite.reason === "already_used" ? "This invite has already been used."
       : invite.reason === "missing_token" ? "No invite token found in this link."
-      : invite.reason === "not_found" ? "Invite expired or invalid."
+      : invite.reason === "expired" ? "This invite has expired."
+      : invite.reason === "not_found" ? "We couldn't find this invite. It may have been revoked."
       : "We couldn't verify this invite. It may have expired.";
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-background">
         <div className="w-full max-w-sm form-section text-center space-y-3">
           <AlertTriangle className="mx-auto text-destructive" size={36} />
-          <h1 className="text-lg font-bold">Invite unavailable</h1>
+          <h1 className="text-lg font-bold">{title}</h1>
           <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="text-xs text-muted-foreground">
-            Please ask your super admin to send you a new invite link.
-          </p>
+          {!isServiceError && (
+            <p className="text-xs text-muted-foreground">
+              Please ask your super admin to send you a new invite link.
+            </p>
+          )}
+          {isServiceError && (
+            <Button className="w-full" onClick={() => window.location.reload()}>
+              Try again
+            </Button>
+          )}
           <Button variant="outline" className="w-full" onClick={() => navigate("/login", { replace: true })}>
             Go to sign in
           </Button>
