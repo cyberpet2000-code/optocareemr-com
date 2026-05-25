@@ -426,7 +426,13 @@ export default function PatientRecord() {
                         <div><strong>VA Aided OS:</strong> {v.va_aided_os || "—"}</div>
                       </div>
                       {(v.iop_od || v.iop_os) && (
-                        <div><strong>IOP:</strong> OD {v.iop_od ?? "—"} / OS {v.iop_os ?? "—"} mmHg</div>
+                        <div>
+                          <strong>IOP:</strong>{" "}
+                          OD {v.iop_od ?? "—"}{v.iop_od_time ? ` @ ${String(v.iop_od_time).slice(0,5)}` : ""}
+                          {" / "}
+                          OS {v.iop_os ?? "—"}{v.iop_os_time ? ` @ ${String(v.iop_os_time).slice(0,5)}` : ""}
+                          {" mmHg"}
+                        </div>
                       )}
                       {v.examination && <div><strong>Exam:</strong> {v.examination}</div>}
                       {v.diagnosis && <div><strong>Diagnosis:</strong> {v.diagnosis}</div>}
