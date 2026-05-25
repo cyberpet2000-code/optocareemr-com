@@ -2776,9 +2776,8 @@ export type Database = {
           history: string | null
           id: string
           iop_od: number | null
-          iop_od_time: string | null
           iop_os: number | null
-          iop_os_time: string | null
+          iop_time: string | null
           notes: string | null
           old_lens_prescription: string | null
           patient_id: string
@@ -2832,9 +2831,8 @@ export type Database = {
           history?: string | null
           id?: string
           iop_od?: number | null
-          iop_od_time?: string | null
           iop_os?: number | null
-          iop_os_time?: string | null
+          iop_time?: string | null
           notes?: string | null
           old_lens_prescription?: string | null
           patient_id: string
@@ -2888,9 +2886,8 @@ export type Database = {
           history?: string | null
           id?: string
           iop_od?: number | null
-          iop_od_time?: string | null
           iop_os?: number | null
-          iop_os_time?: string | null
+          iop_time?: string | null
           notes?: string | null
           old_lens_prescription?: string | null
           patient_id?: string

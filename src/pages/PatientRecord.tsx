@@ -48,7 +48,7 @@ const emptyVisitForm = () => ({
   subOsSphere: "", subOsCyl: "", subOsAxis: "", subVaOs: "",
   subReadingAdd: "", subVaOutcome: "",
   examination: "",
-  iopOd: "", iopOs: "", iopOdTime: "", iopOsTime: "",
+  iopOd: "", iopOs: "", iopTime: "",
   diagnosis: "", treatment: "", notes: "",
 });
 
@@ -113,8 +113,7 @@ export default function PatientRecord() {
       examination: form.examination || null,
       iop_od: form.iopOd ? Number(form.iopOd) : null,
       iop_os: form.iopOs ? Number(form.iopOs) : null,
-      iop_od_time: form.iopOdTime || null,
-      iop_os_time: form.iopOsTime || null,
+      iop_time: form.iopTime || null,
       diagnosis: form.diagnosis || null,
       treatment: form.treatment || null,
       notes: form.notes || null,
@@ -367,19 +366,49 @@ export default function PatientRecord() {
             <h2 className="section-title text-sm"><Gauge size={16} /> Examination</h2>
             <div className="space-y-3">
               <div className="space-y-1"><Label className="text-xs">Examination findings</Label><Textarea className="rounded-xl" value={form.examination} onChange={e => set("examination", e.target.value)} rows={4} placeholder="External, anterior segment, posterior segment..." /></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Right Eye (OD)</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input className="rounded-xl" type="number" inputMode="decimal" value={form.iopOd} onChange={e => set("iopOd", e.target.value)} placeholder="16 mmHg" aria-label="IOP OD mmHg" />
-                    <Input className="rounded-xl" type="time" value={form.iopOdTime} onChange={e => set("iopOdTime", e.target.value)} aria-label="IOP OD time" />
-                  </div>
+              <div className="space-y-3">
+                <div className="space-y-1 max-w-xs">
+                  <Label className="text-xs">IOP — Time</Label>
+                  <Input className="rounded-xl" type="time" value={form.iopTime} onChange={e => set("iopTime", e.target.value)} aria-label="IOP time (shared)" />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Left Eye (OS)</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input className="rounded-xl" type="number" inputMode="decimal" value={form.iopOs} onChange={e => set("iopOs", e.target.value)} placeholder="16 mmHg" aria-label="IOP OS mmHg" />
-                    <Input className="rounded-xl" type="time" value={form.iopOsTime} onChange={e => set("iopOsTime", e.target.value)} aria-label="IOP OS time" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Right Eye (OD)</Label>
+                    <Input
+                      className="rounded-xl"
+                      type="number"
+                      inputMode="decimal"
+                      value={form.iopOd}
+                      onChange={e => {
+                        const v = e.target.value;
+                        setForm(f => ({
+                          ...f,
+                          iopOd: v,
+                          iopTime: v && !f.iopTime ? new Date().toTimeString().slice(0, 5) : f.iopTime,
+                        }));
+                      }}
+                      placeholder="18 mmHg"
+                      aria-label="IOP OD mmHg"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Left Eye (OS)</Label>
+                    <Input
+                      className="rounded-xl"
+                      type="number"
+                      inputMode="decimal"
+                      value={form.iopOs}
+                      onChange={e => {
+                        const v = e.target.value;
+                        setForm(f => ({
+                          ...f,
+                          iopOs: v,
+                          iopTime: v && !f.iopTime ? new Date().toTimeString().slice(0, 5) : f.iopTime,
+                        }));
+                      }}
+                      placeholder="16 mmHg"
+                      aria-label="IOP OS mmHg"
+                    />
                   </div>
                 </div>
               </div>
@@ -428,10 +457,8 @@ export default function PatientRecord() {
                       {(v.iop_od || v.iop_os) && (
                         <div>
                           <strong>IOP:</strong>{" "}
-                          OD {v.iop_od ?? "—"}{v.iop_od_time ? ` @ ${String(v.iop_od_time).slice(0,5)}` : ""}
-                          {" / "}
-                          OS {v.iop_os ?? "—"}{v.iop_os_time ? ` @ ${String(v.iop_os_time).slice(0,5)}` : ""}
-                          {" mmHg"}
+                          OD {v.iop_od ?? "—"} / OS {v.iop_os ?? "—"} mmHg
+                          {v.iop_time ? ` @ ${String(v.iop_time).slice(0,5)}` : ""}
                         </div>
                       )}
                       {v.examination && <div><strong>Exam:</strong> {v.examination}</div>}
