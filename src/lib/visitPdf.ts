@@ -28,10 +28,9 @@ export function generateVisitPdf(patient: any, visit: any) {
   lines.push("");
   lines.push("---- EXAMINATION ----");
   add("Examination", visit.examination);
+  add("IOP Time", visit.iop_time ? String(visit.iop_time).slice(0, 5) : null);
   add("IOP OD (mmHg)", visit.iop_od);
-  add("IOP OD Time", visit.iop_od_time ? String(visit.iop_od_time).slice(0, 5) : null);
   add("IOP OS (mmHg)", visit.iop_os);
-  add("IOP OS Time", visit.iop_os_time ? String(visit.iop_os_time).slice(0, 5) : null);
   lines.push("");
   lines.push("---- DIAGNOSIS / TREATMENT ----");
   add("Diagnosis", visit.diagnosis);
