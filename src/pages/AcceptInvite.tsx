@@ -53,17 +53,23 @@ export default function AcceptInvite() {
         setInvite({ kind: "invalid", reason: "missing_token" });
         return;
       }
-      const { data, error } = await apiClient.functions.invoke("validate-invite", { body: { token } });
-      if (cancelled) return;
-      if (error || !data) {
-        setInvite({ kind: "invalid", reason: "error" });
-        return;
-      }
-      const d = data as any;
-      if (d.valid) {
-        setInvite({ kind: "valid", clinic_id: d.clinic_id, clinic_name: d.clinic_name, email: d.email });
-      } else {
-        setInvite({ kind: "invalid", reason: d.reason || "unknown", email: d.email });
+      try {
+        const { data, error } = await apiClient.functions.invoke("validate-invite", { body: { token } });
+        if (cancelled) return;
+        if (error || !data) {
+          // Network / function deployment / CORS failure — distinct from "not found"
+          setInvite({ kind: "invalid", reason: "service_unavailable" });
+          return;
+        }
+        const d = data as any;
+        if (d.valid) {
+          setInvite({ kind: "valid", clinic_id: d.clinic_id, clinic_name: d.clinic_name, email: d.email });
+        } else {
+          setInvite({ kind: "invalid", reason: d.reason || "unknown", email: d.email });
+        }
+      } catch (e) {
+        if (cancelled) return;
+        setInvite({ kind: "invalid", reason: "service_unavailable" });
       }
     })();
     return () => { cancelled = true; };
