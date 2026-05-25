@@ -48,7 +48,7 @@ const emptyVisitForm = () => ({
   subOsSphere: "", subOsCyl: "", subOsAxis: "", subVaOs: "",
   subReadingAdd: "", subVaOutcome: "",
   examination: "",
-  iopOd: "", iopOs: "",
+  iopOd: "", iopOs: "", iopOdTime: "", iopOsTime: "",
   diagnosis: "", treatment: "", notes: "",
 });
 
@@ -113,6 +113,8 @@ export default function PatientRecord() {
       examination: form.examination || null,
       iop_od: form.iopOd ? Number(form.iopOd) : null,
       iop_os: form.iopOs ? Number(form.iopOs) : null,
+      iop_od_time: form.iopOdTime || null,
+      iop_os_time: form.iopOsTime || null,
       diagnosis: form.diagnosis || null,
       treatment: form.treatment || null,
       notes: form.notes || null,
@@ -365,9 +367,21 @@ export default function PatientRecord() {
             <h2 className="section-title text-sm"><Gauge size={16} /> Examination</h2>
             <div className="space-y-3">
               <div className="space-y-1"><Label className="text-xs">Examination findings</Label><Textarea className="rounded-xl" value={form.examination} onChange={e => set("examination", e.target.value)} rows={4} placeholder="External, anterior segment, posterior segment..." /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><Label className="text-xs">IOP OD (mmHg)</Label><Input className="rounded-xl" type="number" value={form.iopOd} onChange={e => set("iopOd", e.target.value)} placeholder="16" /></div>
-                <div className="space-y-1"><Label className="text-xs">IOP OS (mmHg)</Label><Input className="rounded-xl" type="number" value={form.iopOs} onChange={e => set("iopOs", e.target.value)} placeholder="16" /></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Right Eye (OD)</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input className="rounded-xl" type="number" inputMode="decimal" value={form.iopOd} onChange={e => set("iopOd", e.target.value)} placeholder="16 mmHg" aria-label="IOP OD mmHg" />
+                    <Input className="rounded-xl" type="time" value={form.iopOdTime} onChange={e => set("iopOdTime", e.target.value)} aria-label="IOP OD time" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Left Eye (OS)</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input className="rounded-xl" type="number" inputMode="decimal" value={form.iopOs} onChange={e => set("iopOs", e.target.value)} placeholder="16 mmHg" aria-label="IOP OS mmHg" />
+                    <Input className="rounded-xl" type="time" value={form.iopOsTime} onChange={e => set("iopOsTime", e.target.value)} aria-label="IOP OS time" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
