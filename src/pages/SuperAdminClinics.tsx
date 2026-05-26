@@ -170,7 +170,7 @@ export default function SuperAdminClinics() {
                       </Button>
                       {(() => {
                         const cur = (c.lifecycle_status as Lifecycle) || "active";
-                        const allowed = ALLOWED_TRANSITIONS[cur];
+                        const allowed = ALLOWED_TRANSITIONS[cur] || [];
                         const btn = (next: Lifecycle, label: string, Icon: any, variant: any = "outline") => (
                           <Button key={next} size="sm" variant={variant}
                             onClick={() => transitionLifecycle(c, next)}
