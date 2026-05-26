@@ -12,21 +12,25 @@ import PendingInvitesPanel from "@/components/PendingInvitesPanel";
 
 type Lifecycle = "active" | "suspended" | "deactivated";
 
-function lifecycleLabel(c: any): { label: string; cls: string } {
-  const s: Lifecycle = (c.lifecycle_status as Lifecycle) || "active";
-  switch (s) {
-    case "active": return { label: "Active", cls: "bg-success/10 text-success" };
-    case "suspended": return { label: "Suspended", cls: "bg-warning/10 text-warning" };
-    case "deactivated": return { label: "Deactivated", cls: "bg-destructive/10 text-destructive" };
-    default: return { label: "Active", cls: "bg-success/10 text-success" };
-  }
-}
-
-const ALLOWED_TRANSITIONS: Record<Lifecycle, Lifecycle[]> = {
+const ALLOWED_TRANSITIONS: Record<string, Lifecycle[]> = {
   active: ["suspended", "deactivated"],
   suspended: ["active"],
   deactivated: [],
 };
+
+function normalizeLifecycle(raw: unknown): string {
+  return typeof raw === "string" ? raw.trim() : "";
+}
+
+function lifecycleLabel(c: any): { label: string; cls: string } {
+  const s = normalizeLifecycle(c?.lifecycle_status);
+  switch (s) {
+    case "active": return { label: "Active", cls: "bg-success/10 text-success" };
+    case "suspended": return { label: "Suspended", cls: "bg-warning/10 text-warning" };
+    case "deactivated": return { label: "Deactivated", cls: "bg-destructive/10 text-destructive" };
+    default: return { label: s ? s : "Unknown", cls: "bg-muted text-muted-foreground" };
+  }
+}
 
 export default function SuperAdminClinics() {
   const [clinics, setClinics] = useState<any[]>([]);
@@ -54,9 +58,10 @@ export default function SuperAdminClinics() {
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const transitionLifecycle = async (c: any, next: Lifecycle) => {
-    const current = (c.lifecycle_status as Lifecycle) || "active";
-    if (!ALLOWED_TRANSITIONS[current].includes(next)) {
-      toast.error(`Cannot transition ${current} → ${next}`);
+    const current = normalizeLifecycle(c?.lifecycle_status);
+    const allowed = ALLOWED_TRANSITIONS[current] ?? [];
+    if (!allowed.includes(next)) {
+      toast.error(`Cannot transition ${current || "unknown"} → ${next}`);
       return;
     }
     let reason: string | null = null;
@@ -169,8 +174,12 @@ export default function SuperAdminClinics() {
                         <UserPlus size={14} className="mr-1" /> Invite
                       </Button>
                       {(() => {
-                        const cur = (c.lifecycle_status as Lifecycle) || "active";
-                        const allowed = ALLOWED_TRANSITIONS[cur] || [];
+                        const cur = normalizeLifecycle(c?.lifecycle_status);
+                        if (cur && !ALLOWED_TRANSITIONS[cur]) {
+                          // eslint-disable-next-line no-console
+                          console.warn("[clinic:lifecycle:unknown]", { clinicId: c?.id ?? null, lifecycle_status: cur });
+                        }
+                        const allowed = ALLOWED_TRANSITIONS[cur] ?? [];
                         const btn = (next: Lifecycle, label: string, Icon: any, variant: any = "outline") => (
                           <Button key={next} size="sm" variant={variant}
                             onClick={() => transitionLifecycle(c, next)}
