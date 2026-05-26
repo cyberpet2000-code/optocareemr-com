@@ -174,8 +174,12 @@ export default function SuperAdminClinics() {
                         <UserPlus size={14} className="mr-1" /> Invite
                       </Button>
                       {(() => {
-                        const cur = (c.lifecycle_status as Lifecycle) || "active";
-                        const allowed = ALLOWED_TRANSITIONS[cur] || [];
+                        const cur = normalizeLifecycle(c?.lifecycle_status);
+                        if (cur && !ALLOWED_TRANSITIONS[cur]) {
+                          // eslint-disable-next-line no-console
+                          console.warn("[clinic:lifecycle:unknown]", { clinicId: c?.id ?? null, lifecycle_status: cur });
+                        }
+                        const allowed = ALLOWED_TRANSITIONS[cur] ?? [];
                         const btn = (next: Lifecycle, label: string, Icon: any, variant: any = "outline") => (
                           <Button key={next} size="sm" variant={variant}
                             onClick={() => transitionLifecycle(c, next)}
