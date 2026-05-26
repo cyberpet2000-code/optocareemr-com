@@ -42,7 +42,8 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   activeClinicId,
   effectiveClinicId,
 } = useClinic();
-  const { memberships } = (require("@/hooks/useAccess") as typeof import("@/hooks/useAccess")).useAccessClinic();
+  const { memberships } = useAccessClinic();
+
 
 
   const workspace = resolveWorkspace(location.pathname);
