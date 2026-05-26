@@ -32,17 +32,17 @@ export default function ClinicSwitcher({ variant = "header", className = "" }: C
   }, [role]);
 
   const clinics = useMemo<ClinicRow[]>(() => {
-    if (role === "super_admin" && location.pathname.startsWith("/super-admin")) {
-      return allClinics;
-    }
-    // For regular users (and super-admin in clinic workspace), show only the clinics they're a member of
-    return (memberships || []).map((m: any) => ({
-      id: m.clinic_id,
-      name: m.clinic_name || "Unnamed clinic",
-      setup_completed: m.setup_completed,
-      role: m.role,
-    }));
+    const raw = role === "super_admin" && location.pathname.startsWith("/super-admin")
+      ? allClinics
+      : (memberships || []).map((m: any) => ({
+          id: m?.clinic_id,
+          name: m?.clinic_name || "Unnamed clinic",
+          setup_completed: m?.setup_completed,
+          role: m?.role,
+        }));
+    return (raw || []).filter((c: any) => c && typeof c.id === "string" && c.id.length > 0);
   }, [role, location.pathname, allClinics, memberships]);
+
 
   // Hide if there's nothing to switch between
   if (clinics.length === 0) return null;

@@ -8,6 +8,8 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useClinic } from "@/hooks/useClinic";
+import { useAccessClinic } from "@/hooks/useAccess";
+
 import ClinicSidebar, { resolveWorkspace } from "@/components/ClinicSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { diag } from "@/lib/diag";
@@ -40,6 +42,9 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   activeClinicId,
   effectiveClinicId,
 } = useClinic();
+  const { memberships } = useAccessClinic();
+
+
 
   const workspace = resolveWorkspace(location.pathname);
   const isSuperAdminWs = workspace === "super-admin";
@@ -100,15 +105,33 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
     useEffect(() => {
   if (isSuperAdminWs || loading) return;
 
+  const normalizedId = (typeof activeClinicId === "string" ? activeClinicId.trim() : "") || null;
+  const membershipIds = Array.isArray(memberships)
+    ? memberships.map((m: any) => m?.clinic_id).filter(Boolean)
+    : [];
+
   if (resolvedClinicName) {
     diag.event("hydration", "clinic-resolved", {
       clinicName: resolvedClinicName,
     });
-  } else {
+    return;
+  }
+
+  // Suppress false positives:
+  //  - "all" sentinel is not a real clinic id
+  //  - memberships not loaded yet (can't tell if id is valid)
+  //  - id is a known membership but clinic record still in-flight
+  if (
+    normalizedId &&
+    normalizedId !== "all" &&
+    membershipIds.length > 0 &&
+    !membershipIds.includes(normalizedId)
+  ) {
     diag.warn("hydration", "clinic-name-empty", {
       profileId: (profile as any)?.id ?? null,
-      activeClinicId: activeClinicId ?? null,
+      activeClinicId: normalizedId,
       effectiveClinicId: effectiveClinicId ?? null,
+      clinicIds: membershipIds,
     });
   }
 }, [
@@ -118,7 +141,9 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   profile,
   activeClinicId,
   effectiveClinicId,
+  memberships,
 ]);
+
 
   return (
     <SidebarProvider defaultOpen={true}>
