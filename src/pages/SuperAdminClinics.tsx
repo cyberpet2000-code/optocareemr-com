@@ -12,21 +12,25 @@ import PendingInvitesPanel from "@/components/PendingInvitesPanel";
 
 type Lifecycle = "active" | "suspended" | "deactivated";
 
-function lifecycleLabel(c: any): { label: string; cls: string } {
-  const s: Lifecycle = (c.lifecycle_status as Lifecycle) || "active";
-  switch (s) {
-    case "active": return { label: "Active", cls: "bg-success/10 text-success" };
-    case "suspended": return { label: "Suspended", cls: "bg-warning/10 text-warning" };
-    case "deactivated": return { label: "Deactivated", cls: "bg-destructive/10 text-destructive" };
-    default: return { label: "Active", cls: "bg-success/10 text-success" };
-  }
-}
-
-const ALLOWED_TRANSITIONS: Record<Lifecycle, Lifecycle[]> = {
+const ALLOWED_TRANSITIONS: Record<string, Lifecycle[]> = {
   active: ["suspended", "deactivated"],
   suspended: ["active"],
   deactivated: [],
 };
+
+function normalizeLifecycle(raw: unknown): string {
+  return typeof raw === "string" ? raw.trim() : "";
+}
+
+function lifecycleLabel(c: any): { label: string; cls: string } {
+  const s = normalizeLifecycle(c?.lifecycle_status);
+  switch (s) {
+    case "active": return { label: "Active", cls: "bg-success/10 text-success" };
+    case "suspended": return { label: "Suspended", cls: "bg-warning/10 text-warning" };
+    case "deactivated": return { label: "Deactivated", cls: "bg-destructive/10 text-destructive" };
+    default: return { label: s ? s : "Unknown", cls: "bg-muted text-muted-foreground" };
+  }
+}
 
 export default function SuperAdminClinics() {
   const [clinics, setClinics] = useState<any[]>([]);
