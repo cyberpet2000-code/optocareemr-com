@@ -56,20 +56,66 @@ export default function AcceptInvite() {
       try {
         const { data, error } = await apiClient.functions.invoke("validate-invite", { body: { token } });
         if (cancelled) return;
-        if (error || !data) {
-          // Network / function deployment / CORS failure — distinct from "not found"
-          setInvite({ kind: "invalid", reason: "service_unavailable" });
-          return;
-        }
-        const d = data as any;
-        if (d.valid) {
-          setInvite({ kind: "valid", clinic_id: d.clinic_id, clinic_name: d.clinic_name, email: d.email });
-        } else {
-          setInvite({ kind: "invalid", reason: d.reason || "unknown", email: d.email });
-        }
-      } catch (e) {
-        if (cancelled) return;
-        setInvite({ kind: "invalid", reason: "service_unavailable" });
+        console.log(
+    "[accept-invite] validate result",
+    { data, error }
+  );
+
+  if (error) {
+    console.error(
+      "[accept-invite] validate error",
+      error
+    );
+
+    setInvite({
+      kind: "invalid",
+      reason:
+        error.message ||
+        "service_unavailable",
+    });
+
+    return;
+  }
+
+  if (!data) {
+    setInvite({
+      kind: "invalid",
+      reason: "service_unavailable",
+    });
+
+    return;
+  }
+
+  const d = data as any;
+
+  if (d.valid) {
+    setInvite({
+      kind: "valid",
+      clinic_id: d.clinic_id,
+      clinic_name: d.clinic_name,
+      email: d.email,
+    });
+  } else {
+    setInvite({
+      kind: "invalid",
+      reason: d.reason || "unknown",
+      email: d.email,
+    });
+  }
+} catch (e: any) {
+  if (cancelled) return;
+
+  console.error(
+    "[accept-invite] validate crashed",
+    e
+  );
+
+  setInvite({
+    kind: "invalid",
+    reason:
+      e?.message ||
+      "service_unavailable",
+  });
       }
     })();
     return () => { cancelled = true; };
