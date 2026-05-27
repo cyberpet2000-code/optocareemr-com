@@ -257,6 +257,7 @@ if (sessionData?.session?.user) {
 
 setErrMsg("Signed in but session not ready. Please try again.");
 setWorking(false);
+};
 
 
   // ---- RENDER ----
