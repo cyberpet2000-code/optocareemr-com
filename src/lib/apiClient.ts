@@ -1,4 +1,4 @@
-import { supabase, SHARED_CLIENT_HEADER, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
 import { getKnownSupabaseSession, setKnownSupabaseSession } from "@/lib/supabase-auth";
 
 
