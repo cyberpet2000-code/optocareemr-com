@@ -5,7 +5,6 @@ import { safeSupabaseStorage } from '@/lib/supabase-auth';
 
 export const SUPABASE_URL = "https://avogfzqizuusqzjivhqj.supabase.co";
 export const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2b2dmenFpenV1c3F6aml2aHFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5OTQ0MTgsImV4cCI6MjA5MDU3MDQxOH0._mQQxxm-raT1p_fqowfQu65Tww_8nLduDuYJBKyzo2U";
-export const SHARED_CLIENT_HEADER = 'x-optocare-shared-client';
 export const SUPABASE_AUTH_STORAGE_KEY = `sb-${new URL(SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
 
 type GlobalWithSupabaseSingleton = typeof globalThis & {
@@ -23,10 +22,5 @@ export const supabase: SupabaseClient<Database> =
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-    },
-    global: {
-      headers: {
-        [SHARED_CLIENT_HEADER]: '1',
-      },
     },
   }));
