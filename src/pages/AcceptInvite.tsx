@@ -244,7 +244,7 @@ export default function AcceptInvite() {
     if (error) {
   setErrMsg(error.message);
   setWorking(false);
-  return; 
+  return;
 }
 // force refresh session immediately
 const { data: sessionData } = await apiClient.auth.getSession();
