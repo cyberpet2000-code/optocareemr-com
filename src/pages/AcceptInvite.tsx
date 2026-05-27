@@ -242,12 +242,22 @@ export default function AcceptInvite() {
       password: signinPassword,
     });
     if (error) {
-      setErrMsg(error.message);
-      setWorking(false);
-      return;
-    }
-    // finalize() will run via user effect
-  };
+  setErrMsg(error.message);
+  setWorking(false);
+  return; 
+}
+// force refresh session immediately
+const { data: sessionData } = await apiClient.auth.getSession();
+
+if (sessionData?.session?.user) {
+  await reload();
+  await finalize();
+  return;
+}
+
+setErrMsg("Signed in but session not ready. Please try again.");
+setWorking(false);
+
 
   // ---- RENDER ----
 
