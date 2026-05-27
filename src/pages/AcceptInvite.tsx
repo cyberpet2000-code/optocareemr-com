@@ -251,9 +251,14 @@ const { data: sessionData } = await apiClient.auth.getSession();
 
 if (sessionData?.session?.user) {
   await reload();
-  await finalize();
+
+  // give React state one tick to update
+  setTimeout(() => {
+    void finalize();
+  }, 0);
+
   return;
-}
+      }
 
 setErrMsg("Signed in but session not ready. Please try again.");
 setWorking(false);
