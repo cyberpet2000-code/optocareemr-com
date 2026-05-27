@@ -42,7 +42,6 @@ async function invokeWithHeaders(
   const accessToken = await getAccessToken();
   const headers = new Headers(options?.headers);
   headers.set("apikey", SUPABASE_PUBLISHABLE_KEY);
-  headers.set(SHARED_CLIENT_HEADER, "1");
 
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
@@ -81,7 +80,7 @@ export async function authenticatedFetch(input: RequestInfo | URL, init?: Reques
   const accessToken = await getAccessToken();
   const headers = new Headers(init?.headers);
   headers.set("apikey", SUPABASE_PUBLISHABLE_KEY);
-  headers.set(SHARED_CLIENT_HEADER, "1");
+  
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
