@@ -42,10 +42,22 @@ export default function Inventory() {
 
   const loadItems = async () => {
     if (!cid) { setItems([]); setLoading(false); return; }
-    const { data } = await apiClient.from("inventory").select("*").eq("clinic_id", cid).order("name");
-    console.debug("[inventory]", { clinic_id: cid, count: data?.length ?? 0 });
-    if (data) setItems(data as unknown as InventoryItem[]);
-    setLoading(false);
+    const cacheKey = `inventory:${cid}`;
+    const loadFromCache = () => {
+      const cached = offlineStore.get<InventoryItem[]>(cacheKey);
+      if (cached) setItems(cached);
+      setLoading(false);
+    };
+    if (typeof navigator !== "undefined" && !navigator.onLine) { loadFromCache(); return; }
+    try {
+      const { data, error } = await apiClient.from("inventory").select("*").eq("clinic_id", cid).order("name");
+      if (error || !data) { loadFromCache(); return; }
+      setItems(data as unknown as InventoryItem[]);
+      offlineStore.save(cacheKey, data);
+      setLoading(false);
+    } catch {
+      loadFromCache();
+    }
   };
 
   useEffect(() => { loadItems(); }, [cid]);
