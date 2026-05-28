@@ -4,6 +4,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
+type StepError = { step: string; error: string; details?: unknown };
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -17,122 +19,187 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
+  const fail = (step: string, error: string, status = 403, details?: unknown) => {
+    const payload: StepError & { success: false } = { success: false, step, error };
+    if (details !== undefined) payload.details = details;
+    console.error("[accept-clinic-invite:fail]", payload);
+    return json(payload, status);
+  };
+
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized — please sign in" }, 401);
+    if (!authHeader?.startsWith("Bearer ")) {
+      return fail("auth_header", "Missing Bearer token — please sign in again", 401);
+    }
 
     const userClient = createClient(url, anon, { global: { headers: { Authorization: authHeader } } });
     const { data: userData, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !userData?.user) return json({ error: "Unauthorized" }, 401);
+    if (userErr || !userData?.user) {
+      return fail("auth_user", userErr?.message ?? "Could not resolve authenticated user", 401);
+    }
 
     const userId = userData.user.id;
-    const userEmail = (userData.user.email || "").toLowerCase();
+    const userEmail = (userData.user.email || "").toLowerCase().trim();
 
     const body = await req.json().catch(() => ({}));
     const token: string | undefined = body?.token;
-    if (!token) return json({ error: "Token required" }, 400);
+    if (!token) return fail("token_missing", "Token required", 400);
+
+    console.log("[accept-clinic-invite:start]", {
+      token_prefix: token.slice(0, 8),
+      user_id: userId,
+      user_email: userEmail,
+    });
 
     const admin = createClient(url, serviceKey);
 
-    // Try clinic_invites first
+    // ---- Invite lookup --------------------------------------------------
     let inviteSource: "clinic_invites" | "invites" | null = null;
     let inviteId: string | null = null;
     let inviteEmail = "";
     let inviteRole = "admin";
     let clinicId: string | null = null;
     let alreadyAccepted = false;
-
     let inviteExpiresAt: string | null = null;
 
-    const { data: ci } = await admin
+    const { data: ci, error: ciErr } = await admin
       .from("clinic_invites")
       .select("id, clinic_id, email, role, status, expires_at")
       .eq("token", token)
       .maybeSingle();
 
+    if (ciErr) {
+      return fail("invite_lookup", `clinic_invites lookup failed: ${ciErr.message}`, 500, ciErr);
+    }
+
     if (ci) {
       inviteSource = "clinic_invites";
       inviteId = ci.id;
-      inviteEmail = (ci.email || "").toLowerCase();
+      inviteEmail = (ci.email || "").toLowerCase().trim();
       inviteRole = ci.role || "admin";
       clinicId = ci.clinic_id;
       alreadyAccepted = ci.status === "accepted";
       inviteExpiresAt = (ci as any).expires_at || null;
     } else {
-      const { data: legacy } = await admin
+      const { data: legacy, error: legacyErr } = await admin
         .from("invites")
         .select("id, clinic_id, email, role, accepted")
         .eq("token", token)
         .maybeSingle();
+      if (legacyErr) {
+        return fail("invite_lookup", `legacy invites lookup failed: ${legacyErr.message}`, 500, legacyErr);
+      }
       if (legacy) {
         inviteSource = "invites";
         inviteId = legacy.id;
-        inviteEmail = (legacy.email || "").toLowerCase();
+        inviteEmail = (legacy.email || "").toLowerCase().trim();
         inviteRole = legacy.role || "admin";
         clinicId = legacy.clinic_id;
         alreadyAccepted = !!legacy.accepted;
       }
     }
 
-    if (!inviteSource || !inviteId) return json({ error: "Invite not found or expired" }, 404);
-    if (alreadyAccepted) return json({ error: "Invite already used" }, 409);
+    console.log("[accept-clinic-invite:invite]", {
+      inviteSource,
+      inviteId,
+      inviteEmail,
+      inviteRole,
+      clinicId,
+      alreadyAccepted,
+      inviteExpiresAt,
+    });
+
+    if (!inviteSource || !inviteId) {
+      return fail("invite_lookup", "Invite not found for the provided token", 404);
+    }
+    if (alreadyAccepted) {
+      return fail("invite_status", "Invite has already been used", 409);
+    }
     if (inviteExpiresAt && new Date(inviteExpiresAt).getTime() < Date.now()) {
       if (inviteSource === "clinic_invites") {
         await admin.from("clinic_invites").update({ status: "expired" } as any).eq("id", inviteId);
       }
-      return json({ error: "This invite has expired. Please ask your super admin for a new one." }, 410);
+      return fail("invite_expired", "This invite has expired. Please ask your super admin for a new one.", 410);
     }
     if (inviteEmail && inviteEmail !== userEmail) {
-      return json({ error: `This invite is for ${inviteEmail}. Sign in with that email to accept.` }, 403);
+      return fail(
+        "email_check",
+        `Signed-in email (${userEmail}) does not match invited email (${inviteEmail}). Sign in with the invited email.`,
+      );
     }
-    if (!clinicId) return json({ error: "Invite has no clinic" }, 400);
+    if (!clinicId) {
+      return fail("invite_clinic", "Invite has no associated clinic", 400);
+    }
 
-    // Normalize role: "clinic_admin" → "admin" for clinic_users; keep original for user_roles
+    // ---- Normalize roles ------------------------------------------------
     const membershipRole = inviteRole === "clinic_admin" ? "admin" : inviteRole;
     const scopedRole = inviteRole === "clinic_admin" ? "admin" : inviteRole;
 
-    const { data: clinicRow } = await admin.from("clinics")
-      .select("id, name, setup_completed").eq("id", clinicId).maybeSingle();
-    if (!clinicRow) return json({ error: "Clinic no longer exists" }, 404);
+    const { data: clinicRow, error: clinicErr } = await admin
+      .from("clinics")
+      .select("id, name, setup_completed")
+      .eq("id", clinicId)
+      .maybeSingle();
+    if (clinicErr) return fail("clinic_lookup", clinicErr.message, 500, clinicErr);
+    if (!clinicRow) return fail("clinic_lookup", "Clinic no longer exists", 404);
 
-    // Link membership
-    const { error: linkErr } = await admin
-      .from("clinic_users")
-      .upsert({ user_id: userId, clinic_id: clinicId, role: membershipRole } as any,
-        { onConflict: "user_id,clinic_id" });
-    if (linkErr) {
-      console.error("clinic_users link failed", linkErr);
-      return json({ error: linkErr.message }, 400);
+    // ---- Ensure profile FIRST (clinic_users.user_id FK -> profiles.id) --
+    const { data: existingProfile, error: profileSelErr } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (profileSelErr) {
+      return fail("profile_lookup", profileSelErr.message, 500, profileSelErr);
+    }
+    if (!existingProfile) {
+      const profilePayload: Record<string, unknown> = {
+        id: userId,
+        full_name: userData.user.user_metadata?.full_name || userEmail,
+        clinic_id: clinicId,
+        role: scopedRole,
+      };
+      const { error: profileInsErr } = await admin
+        .from("profiles")
+        .insert(profilePayload as any);
+      if (profileInsErr) {
+        return fail("profile_create", profileInsErr.message, 500, profileInsErr);
+      }
     }
 
-    // Scoped role in user_roles
+    // ---- Membership -----------------------------------------------------
+    const { data: existingMembership } = await admin
+      .from("clinic_users")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("clinic_id", clinicId)
+      .maybeSingle();
+
+    const { error: linkErr } = await admin
+      .from("clinic_users")
+      .upsert(
+        { user_id: userId, clinic_id: clinicId, role: membershipRole } as any,
+        { onConflict: "user_id,clinic_id" },
+      );
+    if (linkErr) {
+      return fail("membership_insert", `clinic_users upsert failed: ${linkErr.message}`, 500, linkErr);
+    }
+
+    // ---- Scoped role ----------------------------------------------------
     const { error: roleErr } = await admin
       .from("user_roles")
       .insert({ user_id: userId, role: scopedRole, clinic_id: clinicId } as any);
     if (roleErr && !String(roleErr.message || "").toLowerCase().includes("duplicate")) {
-      console.error("user_roles insert failed", roleErr);
-      return json({ error: roleErr.message }, 400);
+      return fail("role_insert", `user_roles insert failed: ${roleErr.message}`, 500, roleErr);
     }
 
-    // Ensure profile
-    const { data: existingProfile } = await admin.from("profiles")
-      .select("id").eq("id", userId).maybeSingle();
-    const profilePayload: Record<string, unknown> = { id: userId };
-    if (!existingProfile) {
-      profilePayload.full_name = userData.user.user_metadata?.full_name || userEmail;
-      profilePayload.clinic_id = clinicId;
-      profilePayload.role = scopedRole;
-    }
-    await admin.from("profiles").upsert(profilePayload, { onConflict: "id" });
-
-    // Mark invite accepted
+    // ---- Mark invite accepted -------------------------------------------
     if (inviteSource === "clinic_invites") {
       await admin.from("clinic_invites").update({ status: "accepted" } as any).eq("id", inviteId);
     } else {
       await admin.from("invites").update({ accepted: true } as any).eq("id", inviteId);
     }
 
-    // Lightweight audit log
     await admin.from("activity_logs").insert({
       user_id: userId,
       clinic_id: clinicId,
@@ -141,16 +208,27 @@ Deno.serve(async (req) => {
       record_id: inviteId,
     } as any);
 
-    console.log("Invite accepted", { user_id: userId, clinic_id: clinicId, role: scopedRole, source: inviteSource });
+    console.log("[accept-clinic-invite:ok]", {
+      user_id: userId,
+      clinic_id: clinicId,
+      role: scopedRole,
+      source: inviteSource,
+      membership_existed: !!existingMembership,
+    });
+
     return json({
       ok: true,
+      success: true,
       clinic_id: clinicId,
       clinic_name: clinicRow.name,
       setup_completed: !!clinicRow.setup_completed,
       role: scopedRole,
     });
   } catch (e) {
-    console.error("accept-clinic-invite fatal", e);
-    return json({ error: (e as Error).message }, 500);
+    console.error("[accept-clinic-invite:fatal]", e);
+    return json(
+      { success: false, step: "unhandled", error: (e as Error).message },
+      500,
+    );
   }
 });

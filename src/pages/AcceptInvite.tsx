@@ -156,8 +156,13 @@ export default function AcceptInvite() {
         15000,
         "Accept invite",
       );
-      if (error || (data as any)?.error) {
-        throw new Error((data as any)?.error || error?.message || "Failed to accept invite");
+      const payload = data as any;
+      const failed = error || (payload && payload.success === false) || payload?.error;
+      if (failed) {
+        const step = payload?.step ? ` [${payload.step}]` : "";
+        const message = payload?.error || error?.message || "Failed to accept invite";
+        console.error("[invite] accept failed", { step: payload?.step, payload, error });
+        throw new Error(`${message}${step}`);
       }
       console.log("[invite] accepted", data);
 
