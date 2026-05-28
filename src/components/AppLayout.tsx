@@ -35,6 +35,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { isOffline } = useOffline();
   const { isAdmin, isSuperAdmin, isDoctor, isReceptionist, roles } = useRole();
   const {
   profile,
