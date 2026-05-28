@@ -161,7 +161,13 @@ export default function Billing() {
           .ilike("item_name", name)
           .maybeSingle();
 
-      if (!stock) continue;
+      if (!stock) {
+  console.log(
+    "[inventory deduct] no match",
+    name
+  );
+  continue;
+      }
 
       const currentQty =
         Number(stock.quantity) || 0;
