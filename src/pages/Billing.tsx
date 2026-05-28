@@ -139,7 +139,53 @@ export default function Billing() {
       }));
       const { error: itemErr } = await apiClient.from("billing_items").insert(payload as any);
       if (itemErr) toast.error("Items: " + itemErr.message);
+    }else {
+
+    for (const it of items) {
+      const name =
+        (it.item_name || "").trim();
+
+      if (!name) continue;
+
+      const { data: stock } =
+        await apiClient
+          .from("inventory")
+          .select("id, quantity")
+          .eq("clinic_id", cid)
+          .ilike("item_name", name)
+          .maybeSingle();
+
+      if (!stock) continue;
+
+      const currentQty =
+        Number(stock.quantity) || 0;
+
+      const billedQty =
+        Number(it.quantity) || 0;
+
+      const nextQty =
+        Math.max(
+          currentQty - billedQty,
+          0
+        );
+
+      const { error: stockErr } =
+        await apiClient
+          .from("inventory")
+          .update({
+            quantity: nextQty,
+          })
+          .eq("id", stock.id);
+
+      if (stockErr) {
+        console.error(
+          "[inventory deduct]",
+          stockErr
+        );
+      }
     }
+  }
+  }
 
     if (isHmo && selectedPatient?.active_hmo_id) {
       await apiClient.from("hmo_claims").insert({
