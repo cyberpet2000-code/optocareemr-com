@@ -5,6 +5,8 @@ import { apiClient } from "@/lib/apiClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAccess } from "@/hooks/useAccess";
+import { offlineStore } from "@/lib/offlineStore";
+import { useOffline } from "@/hooks/useOffline";
 
 interface PatientRow {
   id: string;
@@ -21,30 +23,46 @@ interface PatientRow {
 
 export default function PatientList() {
   const { effectiveClinicId: cid } = useAccess();
+  const { isOffline } = useOffline();
   const [patients, setPatients] = useState<PatientRow[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!cid) { setPatients([]); setLoading(false); return; }
-    (async () => {
-      const { data } = await apiClient
-        .from("patients")
-        .select("id, full_name, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number")
-        .eq("clinic_id", cid)
-        .order("created_at", { ascending: false });
-      console.debug("[patients]", { clinic_id: cid, count: data?.length ?? 0 });
-      if (!data) { setLoading(false); return; }
-      const hmoIds = [...new Set(data.map((p: any) => p.active_hmo_id).filter(Boolean))];
-      let hmoMap = new Map<string, string>();
-      if (hmoIds.length > 0) {
-        const { data: hmos } = await apiClient.from("hmos").select("id, name").eq("clinic_id", cid).in("id", hmoIds as string[]);
-        hmoMap = new Map((hmos || []).map((h: any) => [h.id, h.name]));
-      }
-      setPatients(data.map((p: any) => ({ ...p, hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined })));
+    const cacheKey = `patients:${cid}`;
+
+    const loadFromCache = () => {
+      const cached = offlineStore.get<PatientRow[]>(cacheKey);
+      if (cached) setPatients(cached);
       setLoading(false);
+    };
+
+    if (isOffline) { loadFromCache(); return; }
+
+    (async () => {
+      try {
+        const { data, error } = await apiClient
+          .from("patients")
+          .select("id, full_name, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number")
+          .eq("clinic_id", cid)
+          .order("created_at", { ascending: false });
+        if (error || !data) { loadFromCache(); return; }
+        const hmoIds = [...new Set(data.map((p: any) => p.active_hmo_id).filter(Boolean))];
+        let hmoMap = new Map<string, string>();
+        if (hmoIds.length > 0) {
+          const { data: hmos } = await apiClient.from("hmos").select("id, name").eq("clinic_id", cid).in("id", hmoIds as string[]);
+          hmoMap = new Map((hmos || []).map((h: any) => [h.id, h.name]));
+        }
+        const rows = data.map((p: any) => ({ ...p, hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined }));
+        setPatients(rows);
+        offlineStore.save(cacheKey, rows);
+        setLoading(false);
+      } catch {
+        loadFromCache();
+      }
     })();
-  }, [cid]);
+  }, [cid, isOffline]);
 
   const filtered = patients.filter(p =>
     p.full_name.toLowerCase().includes(search.toLowerCase()) ||
