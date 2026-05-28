@@ -181,6 +181,16 @@ export default function Billing() {
           0
         );
 
+      console.log(
+  "[inventory deduct]",
+  {
+    item: name,
+    currentQty,
+    billedQty,
+    nextQty,
+  }
+);
+
       const { error: stockErr } =
         await apiClient
           .from("inventory")
