@@ -13,6 +13,7 @@ import { useAccessClinic } from "@/hooks/useAccess";
 import ClinicSidebar, { resolveWorkspace } from "@/components/ClinicSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { diag } from "@/lib/diag";
+import { useOffline } from "@/hooks/useOffline";
 
 const ROLE_LABEL: Record<string, string> = {
   doctor: "Doctor",
