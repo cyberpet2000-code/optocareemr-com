@@ -128,20 +128,25 @@ export default function Billing() {
     if (error || !bill) { toast.error(error?.message || "Failed"); setSaving(false); return; }
 
     if (items.length > 0) {
-      const payload = items.map(it => ({
-        clinic_id: cid,
-        billing_id: (bill as any).id,
-        item_type: it.item_type,
-        item_name: it.item_name || it.item_type,
-        quantity: it.quantity,
-        unit_price: it.unit_price,
-        total_price: it.total_price,
-      }));
-      const { error: itemErr } = await apiClient.from("billing_items").insert(payload as any);
-      if (itemErr) toast.error("Items: " + itemErr.message);
-    }else {
-      
-    // deduct inventory after save
+  const payload = items.map(it => ({
+    clinic_id: cid,
+    billing_id: (bill as any).id,
+    item_type: it.item_type,
+    item_name: it.item_name || it.item_type,
+    quantity: it.quantity,
+    unit_price: it.unit_price,
+    total_price: it.total_price,
+  }));
+
+  const { error: itemErr } =
+    await apiClient
+      .from("billing_items")
+      .insert(payload as any);
+
+  if (itemErr) {
+    toast.error("Items: " + itemErr.message);
+  } else {
+    // deduct inventory after billing item save
     for (const it of items) {
       const name =
         (it.item_name || "").trim();
@@ -186,7 +191,7 @@ export default function Billing() {
       }
     }
   }
-  }
+    }
 
     if (isHmo && selectedPatient?.active_hmo_id) {
       await apiClient.from("hmo_claims").insert({
