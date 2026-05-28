@@ -140,7 +140,8 @@ export default function Billing() {
       const { error: itemErr } = await apiClient.from("billing_items").insert(payload as any);
       if (itemErr) toast.error("Items: " + itemErr.message);
     }else {
-
+      
+    // deduct inventory after save
     for (const it of items) {
       const name =
         (it.item_name || "").trim();
