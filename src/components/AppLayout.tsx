@@ -153,6 +153,11 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
         <ClinicSidebar />
 
         <div className="flex-1 flex flex-col min-w-0">
+          {isOffline && (
+            <div className="bg-destructive text-destructive-foreground text-xs font-medium px-3 lg:px-6 py-1.5 text-center">
+              Offline mode — changes will sync automatically
+            </div>
+          )}
           <header className="sticky top-0 z-40 bg-card/85 backdrop-blur-xl border-b border-border/60">
             <div className="flex items-center gap-2 lg:gap-4 px-3 lg:px-6 h-14 lg:h-16">
               <SidebarTrigger className="shrink-0" />
