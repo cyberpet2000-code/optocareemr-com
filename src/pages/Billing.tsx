@@ -69,7 +69,6 @@ export default function Billing() {
   useEffect(() => { loadData(); }, [cid]);
 
   const loadData = async () => {
-  const loadData = async () => {
     if (!cid) { setBills([]); setPatients([]); setLoading(false); return; }
     const billsKey = `bills:${cid}`;
     const patientsKey = `billing-patients:${cid}`;
