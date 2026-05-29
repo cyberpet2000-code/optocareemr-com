@@ -168,8 +168,7 @@ export default function Appointments() {
   const handleSubmit = async () => {
     if (!cid) { toast.error("No active clinic selected"); return; }
     if (!form.time?.trim()) { toast.error("Set a time"); return; }
-    setSaving(true);
-    const { error: insErr } = await apiClient.from("appointments").insert({
+    const payload = {
       clinic_id: cid,
       patient_id: form.patientId || null,
       appointment_date: format(form.date, "yyyy-MM-dd"),
@@ -177,7 +176,20 @@ export default function Appointments() {
       reason: form.reason || null,
       status: "pending",
       source: "manual",
-    } as any);
+    };
+    const offline = isOffline || (typeof navigator !== "undefined" && !navigator.onLine);
+    if (offline) {
+      const queueKey = `appointments-queue:${cid}`;
+      const queue = offlineStore.get<any[]>(queueKey) ?? [];
+      queue.push({ ...payload, queued_at: Date.now() });
+      offlineStore.save(queueKey, queue);
+      toast.success("Saved offline — will sync automatically");
+      setShowForm(false);
+      setForm({ patientId: "", date: new Date(), time: "", reason: "" });
+      return;
+    }
+    setSaving(true);
+    const { error: insErr } = await apiClient.from("appointments").insert(payload as any);
     setSaving(false);
     if (insErr) {
       diag.error("query", "appointment insert failed", insErr, { clinic_id: cid });
