@@ -65,13 +65,25 @@ export default function Inventory() {
     }
   };
 
-  useEffect(() => { loadItems(); }, [cid]);
+  useEffect(() => { loadItems(); }, [cid, isOffline]);
   useEffect(() => {
     if (!cid) { setPatients([]); return; }
-    apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data }) => {
-      if (data) setPatients(data as any);
-    });
-  }, [cid]);
+    const cacheKey = `inventory-patients:${cid}`;
+    const loadCachedPats = () => {
+      const cached = offlineStore.get<{ id: string; full_name: string }[]>(cacheKey);
+      if (cached) setPatients(cached);
+    };
+    if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
+      loadCachedPats();
+      return;
+    }
+    apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data, error }) => {
+      if (error || !data) { loadCachedPats(); return; }
+      setPatients(data as any);
+      offlineStore.save(cacheKey, data);
+    }).catch(loadCachedPats);
+  }, [cid, isOffline]);
+
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
