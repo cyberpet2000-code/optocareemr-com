@@ -81,7 +81,8 @@ export default function Inventory() {
       if (error || !data) { loadCachedPats(); return; }
       setPatients(data as any);
       offlineStore.save(cacheKey, data);
-    }).catch(loadCachedPats);
+    }, loadCachedPats);
+
   }, [cid, isOffline]);
 
 
