@@ -147,6 +147,28 @@ export default function Billing() {
     if (!cid) { toast.error("No active clinic"); return; }
     if (!form.patientId) { toast.error("Select a patient"); return; }
     if (grandTotal <= 0) { toast.error("Add a consultation fee or items"); return; }
+    const offline = isOffline || (typeof navigator !== "undefined" && !navigator.onLine);
+    if (offline) {
+      const queueKey = `bills-queue:${cid}`;
+      const queue = offlineStore.get<any[]>(queueKey) ?? [];
+      const isHmoQ = selectedPatient?.payment_type === "hmo";
+      queue.push({
+        clinic_id: cid,
+        patient_id: form.patientId,
+        payer_type: isHmoQ ? "hmo" : "private",
+        hmo_id: isHmoQ ? selectedPatient?.active_hmo_id : null,
+        consultation_fee: consult,
+        notes: form.notes || null,
+        items,
+        queued_at: Date.now(),
+      });
+      offlineStore.save(queueKey, queue);
+      toast.success("Saved offline — will sync automatically");
+      setShowForm(false);
+      setForm({ patientId: "", consultationFee: "", notes: "" });
+      setItems([]);
+      return;
+    }
     setSaving(true);
     const isHmo = selectedPatient?.payment_type === "hmo";
     const { data: bill, error } = await apiClient.from("billing").insert({
