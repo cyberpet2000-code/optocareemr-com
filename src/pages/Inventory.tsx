@@ -27,8 +27,10 @@ interface CartItem {
 
 const emptyProduct = { name: "", category: "Frames", price: "", stock: "", drugCategory: "", expiryDate: "", lowStockThreshold: "5" };
 
-export default function Inventory() {
-  const { user } = useAuth();
+  const { effectiveClinicId: cid } = useAccess();
+  const { isOffline } = useOffline();
+  const [items, setItems] = useState<InventoryItem[]>([]);
+
   const { effectiveClinicId: cid } = useAccess();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
