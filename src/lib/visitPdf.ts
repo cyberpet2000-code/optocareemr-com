@@ -4,10 +4,12 @@ export function generateVisitPdf(patient: any, visit: any) {
   const lines: string[] = [];
   const add = (label: string, value: any) => { if (value !== null && value !== undefined && value !== "") lines.push(`${label}: ${value}`); };
 
-  lines.push("===============================================");
-  lines.push("           OPTOCARE EMR — VISIT RECORD");
-  lines.push("===============================================");
-  lines.push("");
+  const clinicName = patient.clinic_name || "Clinic";
+
+lines.push("===============================================");
+lines.push(`           ${clinicName.toUpperCase()} — VISIT RECORD`);
+lines.push("           Powered by OptoCare EMR");
+lines.push("===============================================");
   lines.push(`Patient: ${patient.full_name}`);
   add("Age", patient.age);
   add("Gender", patient.gender);
