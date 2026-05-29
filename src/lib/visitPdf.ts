@@ -16,10 +16,39 @@ export function generateVisitPdf(patient: any, visit: any) {
   lines.push(`Visit Date: ${date}`);
   lines.push("");
   lines.push("---- VISUAL ACUITY ----");
-  add("VA Unaided OD", visit.va_unaided_od);
-  add("VA Unaided OS", visit.va_unaided_os);
-  add("VA Aided OD", visit.va_aided_od);
-  add("VA Aided OS", visit.va_aided_os);
+
+add(
+  "VA Unaided OD",
+  visit.va_unaided_od
+    ? `${visit.va_unaided_od}${visit.va_unaided_od_ph ? ` (PH: ${visit.va_unaided_od_ph})` : ""}`
+    : null
+);
+
+add(
+  "VA Unaided OS",
+  visit.va_unaided_os
+    ? `${visit.va_unaided_os}${visit.va_unaided_os_ph ? ` (PH: ${visit.va_unaided_os_ph})` : ""}`
+    : null
+);
+
+add(
+  "VA Aided OD",
+  visit.va_aided_od
+    ? `${visit.va_aided_od}${visit.va_aided_od_ph ? ` (PH: ${visit.va_aided_od_ph})` : ""}`
+    : null
+);
+
+add(
+  "VA Aided OS",
+  visit.va_aided_os
+    ? `${visit.va_aided_os}${visit.va_aided_os_ph ? ` (PH: ${visit.va_aided_os_ph})` : ""}`
+    : null
+);
+
+add("Near VA Unaided (OU)", visit.va_unaided_near_ou);
+add("Near VA Aided (OU)", visit.va_aided_near_ou);
+
+add("Old Lens Prescription", visit.old_lens_prescription);
   add("Old Lens Prescription", visit.old_lens_prescription);
   lines.push("");
   lines.push("---- HISTORY ----");
