@@ -156,9 +156,9 @@ export default function Billing() {
       const { data: stock } =
         await apiClient
           .from("inventory")
-          .select("id, quantity")
+          .select("id, stock_quantity")
           .eq("clinic_id", cid)
-          .ilike("item_name", name)
+          .ilike("name", name)
           .maybeSingle();
 
       if (!stock) {
@@ -170,7 +170,7 @@ export default function Billing() {
       }
 
       const currentQty =
-        Number(stock.quantity) || 0;
+        Number(stock.stock_quantity) || 0;
 
       const billedQty =
         Number(it.quantity) || 0;
@@ -195,9 +195,10 @@ export default function Billing() {
         await apiClient
           .from("inventory")
           .update({
-            quantity: nextQty,
+            stock_quantity: nextQty,
           })
           .eq("id", stock.id);
+
 
       if (stockErr) {
         console.error(
