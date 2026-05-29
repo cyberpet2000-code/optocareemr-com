@@ -48,7 +48,7 @@ add(
 add("Near VA Unaided (OU)", visit.va_unaided_near_ou);
 add("Near VA Aided (OU)", visit.va_aided_near_ou);
 
-add("Old Lens Prescription", visit.old_lens_prescription);
+
   add("Old Lens Prescription", visit.old_lens_prescription);
   lines.push("");
   lines.push("---- HISTORY ----");
