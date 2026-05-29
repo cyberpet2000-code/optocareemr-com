@@ -12,6 +12,8 @@ import { CalendarIcon, Plus, X, Clock, CheckCircle2, XCircle, AlertCircle } from
 import { format } from "date-fns";
 import { useAccessClinic } from "@/hooks/useAccess";
 import { diag } from "@/lib/diag";
+import { offlineStore } from "@/lib/offlineStore";
+import { useOffline } from "@/hooks/useOffline";
 
 interface Appointment {
   id: string;
@@ -32,6 +34,7 @@ export default function Appointments() {
   const { effectiveClinicId, profileLoading, clinicLoading } = useAccessClinic();
   const cid = effectiveClinicId;
   const hydrating = profileLoading || clinicLoading;
+  const { isOffline } = useOffline();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<PatientLite[]>([]);
@@ -56,52 +59,68 @@ export default function Appointments() {
     setLoading(true);
     setError(null);
 
-    const end = diag.time("query", "appointments.list", { clinic_id: cid, from: filterDateStr });
-    const { data, error: qErr } = await apiClient
-      .from("appointments")
-      .select("id, patient_id, appointment_date, appointment_time, reason, status, source, clinic_id")
-      .eq("clinic_id", cid)
-      .gte("appointment_date", filterDateStr)
-      .order("appointment_date", { ascending: true })
-      .order("appointment_time", { ascending: true })
-      .limit(500);
-    end({ status: qErr ? "error" : "ok", count: data?.length ?? 0 });
-
-    if (signal?.aborted) return;
-
-    if (qErr) {
-      diag.error("query", "appointments.list failed", qErr, { clinic_id: cid });
-      setError(qErr.message || "Failed to load appointments");
-      setAppointments([]);
+    const cacheKey = `appointments:${cid}`;
+    const loadFromCache = () => {
+      const cached = offlineStore.get<Appointment[]>(cacheKey);
+      if (cached) setAppointments(cached.filter(a => a.appointment_date >= filterDateStr));
       setLoading(false);
+    };
+
+    if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
+      loadFromCache();
       return;
     }
 
-    const rows = (data ?? []) as Appointment[];
-
-    // Patient name enrichment — best-effort, never blocks render.
-    let nameMap = new Map<string, string>();
-    const patientIds = Array.from(new Set(rows.map(r => r.patient_id).filter((x): x is string => !!x)));
-    if (patientIds.length > 0) {
-      const { data: pats, error: pErr } = await apiClient
-        .from("patients")
-        .select("id, full_name")
+    try {
+      const end = diag.time("query", "appointments.list", { clinic_id: cid, from: filterDateStr });
+      const { data, error: qErr } = await apiClient
+        .from("appointments")
+        .select("id, patient_id, appointment_date, appointment_time, reason, status, source, clinic_id")
         .eq("clinic_id", cid)
-        .in("id", patientIds);
-      if (pErr) {
-        diag.warn("query", "patient name lookup failed", { message: pErr.message, code: pErr.code });
-      } else if (pats) {
-        nameMap = new Map((pats as PatientLite[]).map(p => [p.id, p.full_name]));
-      }
-    }
+        .gte("appointment_date", filterDateStr)
+        .order("appointment_date", { ascending: true })
+        .order("appointment_time", { ascending: true })
+        .limit(500);
+      end({ status: qErr ? "error" : "ok", count: data?.length ?? 0 });
 
-    if (signal?.aborted) return;
-    setAppointments(rows.map(r => ({
-      ...r,
-      patient_name: r.patient_id ? (nameMap.get(r.patient_id) ?? "Unknown patient") : "Walk-in",
-    })));
-    setLoading(false);
-  }, [cid, filterDateStr]);
+      if (signal?.aborted) return;
+
+      if (qErr) {
+        diag.error("query", "appointments.list failed", qErr, { clinic_id: cid });
+        loadFromCache();
+        return;
+      }
+
+      const rows = (data ?? []) as Appointment[];
+
+      let nameMap = new Map<string, string>();
+      const patientIds = Array.from(new Set(rows.map(r => r.patient_id).filter((x): x is string => !!x)));
+      if (patientIds.length > 0) {
+        const { data: pats, error: pErr } = await apiClient
+          .from("patients")
+          .select("id, full_name")
+          .eq("clinic_id", cid)
+          .in("id", patientIds);
+        if (pErr) {
+          diag.warn("query", "patient name lookup failed", { message: pErr.message, code: pErr.code });
+        } else if (pats) {
+          nameMap = new Map((pats as PatientLite[]).map(p => [p.id, p.full_name]));
+        }
+      }
+
+      if (signal?.aborted) return;
+      const enriched = rows.map(r => ({
+        ...r,
+        patient_name: r.patient_id ? (nameMap.get(r.patient_id) ?? "Unknown patient") : "Walk-in",
+      }));
+      setAppointments(enriched);
+      offlineStore.save(cacheKey, enriched);
+      setLoading(false);
+    } catch (e: any) {
+      diag.error("query", "appointments.list threw", e, { clinic_id: cid });
+      loadFromCache();
+    }
+  }, [cid, filterDateStr, isOffline]);
 
   useEffect(() => {
     if (hydrating) return;
@@ -113,24 +132,37 @@ export default function Appointments() {
   // ── Patient dropdown ───────────────────────────────────────────────────
   useEffect(() => {
     if (hydrating || !cid) { setPatients([]); return; }
+    const cacheKey = `patients-lite:${cid}`;
     let cancelled = false;
+    if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
+      const cached = offlineStore.get<PatientLite[]>(cacheKey);
+      if (cached) setPatients(cached);
+      return;
+    }
     (async () => {
-      const { data, error: pErr } = await apiClient
-        .from("patients")
-        .select("id, full_name")
-        .eq("clinic_id", cid)
-        .order("full_name")
-        .limit(500);
-      if (cancelled) return;
-      if (pErr) {
-        diag.warn("query", "patients dropdown failed", { message: pErr.message, code: pErr.code });
-        setPatients([]);
-      } else {
-        setPatients((data ?? []) as PatientLite[]);
+      try {
+        const { data, error: pErr } = await apiClient
+          .from("patients")
+          .select("id, full_name")
+          .eq("clinic_id", cid)
+          .order("full_name")
+          .limit(500);
+        if (cancelled) return;
+        if (pErr || !data) {
+          const cached = offlineStore.get<PatientLite[]>(cacheKey);
+          if (cached) setPatients(cached);
+          return;
+        }
+        const rows = data as PatientLite[];
+        setPatients(rows);
+        offlineStore.save(cacheKey, rows);
+      } catch {
+        const cached = offlineStore.get<PatientLite[]>(cacheKey);
+        if (cached) setPatients(cached);
       }
     })();
     return () => { cancelled = true; };
-  }, [hydrating, cid]);
+  }, [hydrating, cid, isOffline]);
 
   // ── Mutations ──────────────────────────────────────────────────────────
   const handleSubmit = async () => {
