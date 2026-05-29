@@ -10,6 +10,8 @@ import { Package, Plus, X, Search, AlertTriangle, ShoppingCart, Trash2, Edit2, B
 import { useAuth } from "@/hooks/useAuth";
 import { useAccess } from "@/hooks/useAccess";
 import { offlineStore } from "@/lib/offlineStore";
+import { useOffline } from "@/hooks/useOffline";
+
 
 const CATEGORIES = ["Frames", "Lenses", "Contact Lenses", "Accessories", "Drugs"];
 const DRUG_CATEGORIES = ["Antibiotics", "Anti-inflammatory", "Lubricants", "Anti-glaucoma", "Mydriatics", "Others"];
