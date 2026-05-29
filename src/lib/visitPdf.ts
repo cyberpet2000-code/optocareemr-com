@@ -8,8 +8,9 @@ export function generateVisitPdf(patient: any, visit: any) {
 
 lines.push("===============================================");
 lines.push(`           ${clinicName.toUpperCase()} — VISIT RECORD`);
-lines.push("           Powered by OptoCare EMR");
 lines.push("===============================================");
+
+
   lines.push(`Patient: ${patient.full_name}`);
   add("Age", patient.age);
   add("Gender", patient.gender);
