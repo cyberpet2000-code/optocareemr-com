@@ -4,10 +4,25 @@ import { Users, ChevronRight, AlertTriangle, DollarSign, TrendingUp, Clock, Shop
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
+import { offlineStore } from "@/lib/offlineStore";
+import { useOffline } from "@/hooks/useOffline";
+
+interface DashboardSnapshot {
+  totalCount: number;
+  todayVisits: number;
+  todayAppointments: number;
+  pendingBills: number;
+  totalRevenue: number;
+  lowStockCount: number;
+  drugAlerts: number;
+  recentPatients: any[];
+  upcomingAppts: any[];
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { effectiveClinicId } = useClinic();
+  const { isOffline } = useOffline();
   const [totalCount, setTotalCount] = useState(0);
   const [todayVisits, setTodayVisits] = useState(0);
   const [todayAppointments, setTodayAppointments] = useState(0);
@@ -29,61 +44,105 @@ export default function Dashboard() {
   const displayName = user?.user_metadata?.full_name || "Doctor";
 
   useEffect(() => {
-    (async () => {
-      // Strict tenant isolation: do not fetch anything until we know the active clinic.
-      if (!effectiveClinicId) {
-        console.debug("[dashboard] no active clinic, skipping fetch");
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      const cid = effectiveClinicId;
-      const today = new Date().toISOString().split("T")[0];
-
-      const [patientsRes, countRes, visitsRes, apptRes, pendingApptRes, invRes, billRes] = await Promise.all([
-        apiClient.from("patients").select("id, full_name, age, gender, phone, payment_type, queue_number").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(5),
-        apiClient.from("patients").select("*", { count: "exact", head: true }).eq("clinic_id", cid),
-        apiClient.from("visits").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", `${today}T00:00:00`),
-        apiClient.from("appointments").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]),
-        apiClient.from("appointments").select("id, appointment_date, appointment_time, reason, patient_id").eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]).order("appointment_date").order("appointment_time").limit(5),
-        apiClient.from("inventory").select("id, stock_quantity, low_stock_threshold, expiry_date, category").eq("clinic_id", cid),
-        apiClient.from("billing").select("total_amount, amount_paid, status").eq("clinic_id", cid),
-      ]);
-      console.debug("[dashboard]", { clinic_id: cid, patients: countRes.count, recent: patientsRes.data?.length });
-
-      if (patientsRes.data) setRecentPatients(patientsRes.data);
-      setTotalCount(countRes.count ?? 0);
-      setTodayVisits(visitsRes.count ?? 0);
-      setTodayAppointments(apptRes.count ?? 0);
-
-      if (invRes.data) {
-        const thirtyDays = new Date();
-        thirtyDays.setDate(thirtyDays.getDate() + 30);
-        setLowStockCount(invRes.data.filter((i: any) => (i.stock_quantity ?? 0) <= (i.low_stock_threshold ?? 5)).length);
-        setDrugAlerts(invRes.data.filter((i: any) => i.category === "Drugs" && i.expiry_date && new Date(i.expiry_date) <= thirtyDays).length);
-      }
-
-      if (billRes.data) {
-        setTotalRevenue(billRes.data.reduce((s: number, b: any) => s + Number(b.amount_paid || 0), 0));
-        setPendingBills(billRes.data.filter((b: any) => b.status === "pending" || b.status === "partial").length);
-      }
-
-      if (pendingApptRes.data && pendingApptRes.data.length > 0) {
-        const patIds = [...new Set(pendingApptRes.data.map((a: any) => a.patient_id).filter(Boolean))] as string[];
-        let patMap = new Map<string, string>();
-        if (patIds.length > 0) {
-          const { data: pats } = await apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).in("id", patIds);
-          patMap = new Map((pats || []).map((p: any) => [p.id, p.full_name]));
-        }
-        setUpcomingAppts(pendingApptRes.data.map((a: any) => ({
-          ...a,
-          patient_name: a.patient_id ? patMap.get(a.patient_id) || "Walk-in" : "Walk-in",
-        })));
-      }
-
+    if (!effectiveClinicId) {
+      console.debug("[dashboard] no active clinic, skipping fetch");
       setLoading(false);
+      return;
+    }
+    const cid = effectiveClinicId;
+    const cacheKey = `dashboard:${cid}`;
+
+    const hydrateFromCache = () => {
+      const snap = offlineStore.get<DashboardSnapshot>(cacheKey);
+      if (snap) {
+        setTotalCount(snap.totalCount ?? 0);
+        setTodayVisits(snap.todayVisits ?? 0);
+        setTodayAppointments(snap.todayAppointments ?? 0);
+        setPendingBills(snap.pendingBills ?? 0);
+        setTotalRevenue(snap.totalRevenue ?? 0);
+        setLowStockCount(snap.lowStockCount ?? 0);
+        setDrugAlerts(snap.drugAlerts ?? 0);
+        setRecentPatients(snap.recentPatients ?? []);
+        setUpcomingAppts(snap.upcomingAppts ?? []);
+      }
+      setLoading(false);
+    };
+
+    // Offline: skip network entirely.
+    if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
+      hydrateFromCache();
+      return;
+    }
+
+    (async () => {
+      setLoading(true);
+      const today = new Date().toISOString().split("T")[0];
+      try {
+        const [patientsRes, countRes, visitsRes, apptRes, pendingApptRes, invRes, billRes] = await Promise.all([
+          apiClient.from("patients").select("id, full_name, age, gender, phone, payment_type, queue_number").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(5),
+          apiClient.from("patients").select("*", { count: "exact", head: true }).eq("clinic_id", cid),
+          apiClient.from("visits").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", `${today}T00:00:00`),
+          apiClient.from("appointments").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]),
+          apiClient.from("appointments").select("id, appointment_date, appointment_time, reason, patient_id").eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]).order("appointment_date").order("appointment_time").limit(5),
+          apiClient.from("inventory").select("id, stock_quantity, low_stock_threshold, expiry_date, category").eq("clinic_id", cid),
+          apiClient.from("billing").select("total_amount, amount_paid, status").eq("clinic_id", cid),
+        ]);
+
+        const snap: DashboardSnapshot = {
+          totalCount: countRes.count ?? 0,
+          todayVisits: visitsRes.count ?? 0,
+          todayAppointments: apptRes.count ?? 0,
+          pendingBills: 0,
+          totalRevenue: 0,
+          lowStockCount: 0,
+          drugAlerts: 0,
+          recentPatients: patientsRes.data ?? [],
+          upcomingAppts: [],
+        };
+
+        if (invRes.data) {
+          const thirtyDays = new Date();
+          thirtyDays.setDate(thirtyDays.getDate() + 30);
+          snap.lowStockCount = invRes.data.filter((i: any) => (i.stock_quantity ?? 0) <= (i.low_stock_threshold ?? 5)).length;
+          snap.drugAlerts = invRes.data.filter((i: any) => i.category === "Drugs" && i.expiry_date && new Date(i.expiry_date) <= thirtyDays).length;
+        }
+
+        if (billRes.data) {
+          snap.totalRevenue = billRes.data.reduce((s: number, b: any) => s + Number(b.amount_paid || 0), 0);
+          snap.pendingBills = billRes.data.filter((b: any) => b.status === "pending" || b.status === "partial").length;
+        }
+
+        if (pendingApptRes.data && pendingApptRes.data.length > 0) {
+          const patIds = [...new Set(pendingApptRes.data.map((a: any) => a.patient_id).filter(Boolean))] as string[];
+          let patMap = new Map<string, string>();
+          if (patIds.length > 0) {
+            const { data: pats } = await apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).in("id", patIds);
+            patMap = new Map((pats || []).map((p: any) => [p.id, p.full_name]));
+          }
+          snap.upcomingAppts = pendingApptRes.data.map((a: any) => ({
+            ...a,
+            patient_name: a.patient_id ? patMap.get(a.patient_id) || "Walk-in" : "Walk-in",
+          }));
+        }
+
+        setTotalCount(snap.totalCount);
+        setTodayVisits(snap.todayVisits);
+        setTodayAppointments(snap.todayAppointments);
+        setPendingBills(snap.pendingBills);
+        setTotalRevenue(snap.totalRevenue);
+        setLowStockCount(snap.lowStockCount);
+        setDrugAlerts(snap.drugAlerts);
+        setRecentPatients(snap.recentPatients);
+        setUpcomingAppts(snap.upcomingAppts);
+        offlineStore.save(cacheKey, snap);
+        setLoading(false);
+      } catch (e) {
+        console.warn("[dashboard] load failed, using cache", e);
+        hydrateFromCache();
+      }
     })();
-  }, [effectiveClinicId]);
+  }, [effectiveClinicId, isOffline]);
+
 
   const Metric = ({ icon: Icon, label, value, color, to }: any) => (
     <Link to={to} className="stat-card group">
