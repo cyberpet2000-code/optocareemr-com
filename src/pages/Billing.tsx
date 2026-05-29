@@ -8,7 +8,8 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DollarSign, FileText, Plus, X, Printer, Trash2 } from "lucide-react";
 import { useAccess } from "@/hooks/useAccess";
-
+import { offlineStore } from "@/lib/offlineStore";
+import { useOffline } from "@/hooks/useOffline";
 const PAYMENT_METHODS = ["Cash", "Card", "Transfer", "HMO"];
 const ITEM_TYPES = ["Lens", "Frame", "Contact Lens", "Eye Drop", "Drugs", "Accessories", "Others"];
 
@@ -47,6 +48,7 @@ interface Patient {
 
 export default function Billing() {
   const { effectiveClinicId: cid } = useAccess();
+  const { isOffline } = useOffline();
   const [bills, setBills] = useState<BillingRow[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [hmoMap, setHmoMap] = useState<Map<string, string>>(new Map());
@@ -67,32 +69,63 @@ export default function Billing() {
   useEffect(() => { loadData(); }, [cid]);
 
   const loadData = async () => {
+  const loadData = async () => {
     if (!cid) { setBills([]); setPatients([]); setLoading(false); return; }
-    const [billRes, patRes, hmoRes] = await Promise.all([
-      apiClient.from("billing").select("*").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(100),
-      apiClient.from("patients").select("id, full_name, payment_type, active_hmo_id").eq("clinic_id", cid).order("full_name"),
-      apiClient.from("hmos").select("id, name").eq("clinic_id", cid),
-    ]);
-    console.debug("[billing]", { clinic_id: cid, bills: billRes.data?.length ?? 0 });
-    const hmap = new Map((hmoRes.data || []).map((h: any) => [h.id, h.name]));
-    setHmoMap(hmap);
-    setPatients((patRes.data || []) as any);
-    if (billRes.data) {
-      const pIds = [...new Set(billRes.data.map((b: any) => b.patient_id).filter(Boolean))] as string[];
-      let pMap = new Map<string, string>();
-      if (pIds.length) {
-        const { data: pats } = await apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).in("id", pIds);
-        pMap = new Map((pats || []).map((p: any) => [p.id, p.full_name]));
-      }
-      setBills(billRes.data.map((b: any) => ({
-        ...b,
-        patient_name: b.patient_id ? pMap.get(b.patient_id) || "Unknown" : "Walk-in",
-        hmo_name: b.hmo_id ? hmap.get(b.hmo_id) : undefined,
-      })) as BillingRow[]);
-    }
-    setLoading(false);
-  };
+    const billsKey = `bills:${cid}`;
+    const patientsKey = `billing-patients:${cid}`;
+    const hmosKey = `billing-hmos:${cid}`;
 
+    const hydrateFromCache = () => {
+      const cBills = offlineStore.get<BillingRow[]>(billsKey);
+      const cPats = offlineStore.get<Patient[]>(patientsKey);
+      const cHmos = offlineStore.get<Array<{ id: string; name: string }>>(hmosKey);
+      if (cBills) setBills(cBills);
+      if (cPats) setPatients(cPats);
+      if (cHmos) setHmoMap(new Map(cHmos.map(h => [h.id, h.name])));
+      setLoading(false);
+    };
+
+    if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
+      hydrateFromCache();
+      return;
+    }
+
+    try {
+      const [billRes, patRes, hmoRes] = await Promise.all([
+        apiClient.from("billing").select("*").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(100),
+        apiClient.from("patients").select("id, full_name, payment_type, active_hmo_id").eq("clinic_id", cid).order("full_name"),
+        apiClient.from("hmos").select("id, name").eq("clinic_id", cid),
+      ]);
+      if (billRes.error && patRes.error) { hydrateFromCache(); return; }
+      console.debug("[billing]", { clinic_id: cid, bills: billRes.data?.length ?? 0 });
+      const hmosList = (hmoRes.data || []) as Array<{ id: string; name: string }>;
+      const hmap = new Map(hmosList.map((h: any) => [h.id, h.name]));
+      setHmoMap(hmap);
+      const pats = (patRes.data || []) as Patient[];
+      setPatients(pats);
+      offlineStore.save(patientsKey, pats);
+      offlineStore.save(hmosKey, hmosList);
+      if (billRes.data) {
+        const pIds = [...new Set(billRes.data.map((b: any) => b.patient_id).filter(Boolean))] as string[];
+        let pMap = new Map<string, string>();
+        if (pIds.length) {
+          const { data: pn } = await apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).in("id", pIds);
+          pMap = new Map((pn || []).map((p: any) => [p.id, p.full_name]));
+        }
+        const enriched = billRes.data.map((b: any) => ({
+          ...b,
+          patient_name: b.patient_id ? pMap.get(b.patient_id) || "Unknown" : "Walk-in",
+          hmo_name: b.hmo_id ? hmap.get(b.hmo_id) : undefined,
+        })) as BillingRow[];
+        setBills(enriched);
+        offlineStore.save(billsKey, enriched);
+      }
+      setLoading(false);
+    } catch (e) {
+      console.warn("[billing] load failed, using cache", e);
+      hydrateFromCache();
+    }
+  };
   const selectedPatient = patients.find(p => p.id === form.patientId);
 
   const addItem = () => setItems([...items, { item_type: "Lens", item_name: "", quantity: 1, unit_price: 0, total_price: 0 }]);
