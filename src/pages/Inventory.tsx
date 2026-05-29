@@ -10,6 +10,8 @@ import { Package, Plus, X, Search, AlertTriangle, ShoppingCart, Trash2, Edit2, B
 import { useAuth } from "@/hooks/useAuth";
 import { useAccess } from "@/hooks/useAccess";
 import { offlineStore } from "@/lib/offlineStore";
+import { useOffline } from "@/hooks/useOffline";
+
 
 const CATEGORIES = ["Frames", "Lenses", "Contact Lenses", "Accessories", "Drugs"];
 const DRUG_CATEGORIES = ["Antibiotics", "Anti-inflammatory", "Lubricants", "Anti-glaucoma", "Mydriatics", "Others"];
@@ -28,7 +30,9 @@ const emptyProduct = { name: "", category: "Frames", price: "", stock: "", drugC
 export default function Inventory() {
   const { user } = useAuth();
   const { effectiveClinicId: cid } = useAccess();
+  const { isOffline } = useOffline();
   const [items, setItems] = useState<InventoryItem[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -61,13 +65,26 @@ export default function Inventory() {
     }
   };
 
-  useEffect(() => { loadItems(); }, [cid]);
+  useEffect(() => { loadItems(); }, [cid, isOffline]);
   useEffect(() => {
     if (!cid) { setPatients([]); return; }
-    apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data }) => {
-      if (data) setPatients(data as any);
-    });
-  }, [cid]);
+    const cacheKey = `inventory-patients:${cid}`;
+    const loadCachedPats = () => {
+      const cached = offlineStore.get<{ id: string; full_name: string }[]>(cacheKey);
+      if (cached) setPatients(cached);
+    };
+    if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
+      loadCachedPats();
+      return;
+    }
+    apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data, error }) => {
+      if (error || !data) { loadCachedPats(); return; }
+      setPatients(data as any);
+      offlineStore.save(cacheKey, data);
+    }, loadCachedPats);
+
+  }, [cid, isOffline]);
+
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
