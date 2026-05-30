@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
-import { enableNotifications } from "@/lib/notifications";
+import {
+  enableNotifications,
+  showNotification,
+} from "@/lib/notifications";
 import { Link } from "react-router-dom";
 import { Users, ChevronRight, AlertTriangle, DollarSign, TrendingUp, Clock, ShoppingBag } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
