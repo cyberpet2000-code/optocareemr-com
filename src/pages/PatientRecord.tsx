@@ -98,12 +98,18 @@ export default function PatientRecord() {
 ]);
         
       console.debug("[patient-record]", { clinic_id: cid, patient_id: patientId, visits: visRes.data?.length ?? 0 });
-      if (patRes.data) {
+  if (patRes.data) {
+  const activeHmo =
+    hmoRes.data?.find(
+      (h: any) => h.id === patRes.data.active_hmo_id
+    );
+
   setPatient({
     ...patRes.data,
     clinic_name: clinicRes.data?.name || "",
+    hmo_name: activeHmo?.name || "",
   } as any);
-      }
+  }
       if (visRes.data) setVisits(visRes.data);
       if (hmoRes.data) {
         setHmos(hmoRes.data as any);
