@@ -593,8 +593,10 @@ const nearVaOptions = [
     ))}
   </div>
 </div>
-            </div>
-          </div>
+           
+</div>
+
+</div>
         </TabsContent>
 
         <TabsContent value="refraction" className="space-y-4">
