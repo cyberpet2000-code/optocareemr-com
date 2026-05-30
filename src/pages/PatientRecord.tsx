@@ -338,13 +338,6 @@ const nearVaOptions = [
 
               <Label className="text-xs flex items-center font-semibold">Distance</Label>
 
-<div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaUnaidedOd}
-    onChange={e => set("vaUnaidedOd", e.target.value)}
-    placeholder="6/6"
-  />
 
   <div className="flex flex-wrap gap-1">
     {vaOptions.map((v) => (
