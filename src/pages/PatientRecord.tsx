@@ -456,7 +456,10 @@ export default function PatientRecord() {
                       {v.chief_complaint && <div><strong>CC:</strong> {v.chief_complaint}</div>}
                       {v.history && (
   <div>
-    <strong>History:</strong> {v.history}
+    <strong>History:</strong>
+    <div className="whitespace-pre-line mt-1">
+      {v.history}
+    </div>
   </div>
 )}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
