@@ -346,7 +346,12 @@ const nearVaOptions = [
   />
 
 
-  <div className="flex flex-wrap gap-1">
+  <details className="mt-2">
+  <summary className="cursor-pointer text-xs text-primary">
+    Quick Pick ▼
+  </summary>
+
+  <div className="flex flex-wrap gap-1 mt-2">
     {vaOptions.map((v) => (
       <Button
         key={v}
@@ -360,6 +365,7 @@ const nearVaOptions = [
       </Button>
     ))}
   </div>
+</details>
 </div>
  <div className="space-y-2">
   <Input
