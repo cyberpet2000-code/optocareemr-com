@@ -29,6 +29,32 @@ export default function Dashboard() {
 }, []);
   const { user } = useAuth();
   const { effectiveClinicId } = useClinic();
+  useEffect(() => {
+  if (!effectiveClinicId) return;
+
+  const channel = apiClient
+    .channel(`patients-${effectiveClinicId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "patients",
+        filter: `clinic_id=eq.${effectiveClinicId}`,
+      },
+      (payload) => {
+        showNotification(
+          "🔔 New Patient Added",
+          payload.new.full_name || "New patient"
+        );
+      }
+    )
+    .subscribe();
+
+  return () => {
+    apiClient.removeChannel(channel);
+  };
+}, [effectiveClinicId]);
   const { isOffline } = useOffline();
   const [totalCount, setTotalCount] = useState(0);
   const [todayVisits, setTodayVisits] = useState(0);
