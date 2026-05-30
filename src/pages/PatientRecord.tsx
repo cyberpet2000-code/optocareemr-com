@@ -454,6 +454,11 @@ export default function PatientRecord() {
                     </summary>
                     <div className="px-4 pb-4 text-xs space-y-2 border-t border-border/60 pt-3">
                       {v.chief_complaint && <div><strong>CC:</strong> {v.chief_complaint}</div>}
+                      {v.history && (
+  <div>
+    <strong>History:</strong> {v.history}
+  </div>
+)}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
   <div>
     <strong>VA UA OD:</strong>{" "}
