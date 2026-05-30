@@ -120,6 +120,32 @@ export default function PatientRecord() {
   }, [patientId, cid]);
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+  const vaOptions = [
+  "6/4",
+  "6/5",
+  "6/6",
+  "6/9",
+  "6/12",
+  "6/18",
+  "6/24",
+  "6/36",
+  "6/60",
+  "CF",
+  "HM",
+  "LP",
+  "NLP",
+];
+
+const nearVaOptions = [
+  "N5",
+  "N6",
+  "N8",
+  "N10",
+  "N12",
+  "N18",
+  "N24",
+  "N36",
+];
 
   const handleSaveVisit = async (markCompleted: boolean) => {
     if (!patient) return;
