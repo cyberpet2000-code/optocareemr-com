@@ -376,9 +376,10 @@ export default function PatientRecord() {
               </>
             );
           })()}
-
+        </TabsContent>
 
         <TabsContent value="refraction" className="space-y-4">
+
           <div className="form-section">
             <h2 className="section-title text-sm"><Eye size={16} /> Auto Refraction</h2>
             <div className="grid grid-cols-5 gap-2">
