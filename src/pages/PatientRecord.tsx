@@ -69,7 +69,33 @@ export default function PatientRecord() {
   useEffect(() => {
     if (!patientId || !cid) { setLoading(false); return; }
     (async () => {
-      const [patRes, visRes, hmoRes] = await Promise.all([
+      const [patRes, visRes, hmoRes, clinicRes] = await Promise.all([
+  apiClient
+    .from("patients")
+    .select("*")
+    .eq("clinic_id", cid)
+    .eq("id", patientId)
+    .maybeSingle(),
+
+  apiClient
+    .from("visits")
+    .select("*")
+    .eq("clinic_id", cid)
+    .eq("patient_id", patientId)
+    .order("created_at", { ascending: false }),
+
+  apiClient
+    .from("hmos")
+    .select("id, name")
+    .eq("clinic_id", cid)
+    .eq("status", "active"),
+
+  apiClient
+    .from("clinics")
+    .select("name")
+    .eq("id", cid)
+    .maybeSingle(),
+]);
         apiClient
   .from("patients")
   .select("*")
