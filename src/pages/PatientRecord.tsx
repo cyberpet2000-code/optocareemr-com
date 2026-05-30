@@ -38,7 +38,6 @@ const emptyVisitForm = () => ({
   vaUnaidedNearOu: "",
   // Aided VA
   vaAidedOd: "", vaAidedOs: "", vaAidedOu: "",
-  vaAidedOdPh: "", vaAidedOsPh: "",
   vaAidedNearOu: "",
   // Auto refraction
   autoOdSphere: "", autoOdCyl: "", autoOdAxis: "", autoVaOd: "",
@@ -163,7 +162,6 @@ const nearVaOptions = [
       va_unaided_od_ph: form.vaUnaidedOdPh || null, va_unaided_os_ph: form.vaUnaidedOsPh || null,
       va_unaided_near_ou: form.vaUnaidedNearOu || null,
       va_aided_od: form.vaAidedOd || null, va_aided_os: form.vaAidedOs || null, va_aided_ou: form.vaAidedOu || null,
-      va_aided_od_ph: form.vaAidedOdPh || null, va_aided_os_ph: form.vaAidedOsPh || null,
       va_aided_near_ou: form.vaAidedNearOu || null,
       auto_od_sphere: form.autoOdSphere || null, auto_od_cyl: form.autoOdCyl || null, auto_od_axis: form.autoOdAxis || null, auto_va_od: form.autoVaOd || null,
       auto_os_sphere: form.autoOsSphere || null, auto_os_cyl: form.autoOsCyl || null, auto_os_axis: form.autoOsAxis || null, auto_va_os: form.autoVaOs || null,
