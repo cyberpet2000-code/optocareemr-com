@@ -382,8 +382,8 @@ const nearVaOptions = [
               <div className="space-y-2">
   <Input
     className="rounded-xl text-center"
-    value={form.vaUnaidedOd}
-    onChange={e => set("vaUnaidedOd", e.target.value)}
+    value={form.vaUnaidedOdPh}
+    onChange={e => set("vaUnaidedOdPh", e.target.value)}
     placeholder="6/6"
   />
 
@@ -395,7 +395,7 @@ const nearVaOptions = [
         size="sm"
         variant="outline"
         className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaUnaidedOd", v)}
+        onClick={() => set("vaUnaidedOdPh", v)}
       >
         {v}
       </Button>
@@ -425,21 +425,6 @@ const nearVaOptions = [
 
               <Label className="text-xs flex items-center font-semibold">Pinhole</Label>
 
-<Input
-  className="rounded-xl text-center"
-  value={form.vaUnaidedOdPh}
-  onChange={e => set("vaUnaidedOdPh", e.target.value)}
-  placeholder="6/6"
-/>
-
-<Input
-  className="rounded-xl text-center"
-  value={form.vaUnaidedOsPh}
-  onChange={e => set("vaUnaidedOsPh", e.target.value)}
-  placeholder="6/6"
-/>
-
-<div />
 
               <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
               <Input className="rounded-xl text-center col-span-3" value={form.vaAidedNearOu} onChange={e => set("vaAidedNearOu", e.target.value)} placeholder="N6" />
