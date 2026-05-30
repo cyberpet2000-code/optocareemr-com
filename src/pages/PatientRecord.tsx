@@ -379,57 +379,112 @@ export default function PatientRecord() {
         </TabsContent>
 
         <TabsContent value="refraction" className="space-y-4">
+          {(() => {
+            type Kind = "sphere" | "cyl" | "axis" | "add";
+            const optsFor = (k: Kind) =>
+              k === "sphere" ? SPHERE_OPTIONS :
+              k === "cyl" ? CYL_OPTIONS :
+              k === "axis" ? AXIS_OPTIONS :
+              ADD_OPTIONS;
 
-          <div className="form-section">
-            <h2 className="section-title text-sm"><Eye size={16} /> Auto Refraction</h2>
-            <div className="grid grid-cols-5 gap-2">
-              <div />
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">Sphere</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">Cyl</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">Axis</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">VA</Label>
+            const PowerCell = ({ field, kind, placeholder }: { field: keyof ReturnType<typeof emptyVisitForm>; kind: Kind; placeholder: string }) => (
+              <div className="flex items-center gap-1">
+                <Input
+                  className="rounded-xl text-center flex-1 min-w-0"
+                  value={(form as any)[field]}
+                  onChange={e => set(field as string, e.target.value)}
+                  placeholder={placeholder}
+                />
+                <QuickPicker
+                  options={optsFor(kind)}
+                  searchable
+                  triggerLabel="▾"
+                  onSelect={v => set(field as string, v)}
+                  popoverWidthClassName="w-40"
+                />
+              </div>
+            );
 
-              <Label className="text-xs flex items-center font-semibold">OD</Label>
-              <Input className="rounded-xl text-center" value={form.autoOdSphere} onChange={e => set("autoOdSphere", e.target.value)} placeholder="-1.00" />
-              <Input className="rounded-xl text-center" value={form.autoOdCyl} onChange={e => set("autoOdCyl", e.target.value)} placeholder="-0.50" />
-              <Input className="rounded-xl text-center" value={form.autoOdAxis} onChange={e => set("autoOdAxis", e.target.value)} placeholder="180" />
-              <Input className="rounded-xl text-center" value={form.autoVaOd} onChange={e => set("autoVaOd", e.target.value)} placeholder="6/6" />
+            return (
+              <>
+                <div className="form-section">
+                  <h2 className="section-title text-sm"><Eye size={16} /> Auto Refraction</h2>
+                  <div className="grid grid-cols-5 gap-2 items-center">
+                    <div />
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">Sphere</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">Cyl</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">Axis</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">VA</Label>
 
-              <Label className="text-xs flex items-center font-semibold">OS</Label>
-              <Input className="rounded-xl text-center" value={form.autoOsSphere} onChange={e => set("autoOsSphere", e.target.value)} placeholder="-1.00" />
-              <Input className="rounded-xl text-center" value={form.autoOsCyl} onChange={e => set("autoOsCyl", e.target.value)} placeholder="-0.50" />
-              <Input className="rounded-xl text-center" value={form.autoOsAxis} onChange={e => set("autoOsAxis", e.target.value)} placeholder="180" />
-              <Input className="rounded-xl text-center" value={form.autoVaOs} onChange={e => set("autoVaOs", e.target.value)} placeholder="6/6" />
-            </div>
-          </div>
+                    <Label className="text-xs flex items-center font-semibold">OD</Label>
+                    <PowerCell field="autoOdSphere" kind="sphere" placeholder="-1.00" />
+                    <PowerCell field="autoOdCyl" kind="cyl" placeholder="-0.50" />
+                    <PowerCell field="autoOdAxis" kind="axis" placeholder="180" />
+                    <div className="flex items-center gap-1">
+                      <Input className="rounded-xl text-center flex-1 min-w-0" value={form.autoVaOd} onChange={e => set("autoVaOd", e.target.value)} placeholder="6/6" />
+                      <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("autoVaOd", v)} popoverWidthClassName="w-40" />
+                    </div>
 
-          <div className="form-section">
-            <h2 className="section-title text-sm"><Eye size={16} /> Subjective Refraction</h2>
-            <div className="grid grid-cols-5 gap-2">
-              <div />
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">Sphere</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">Cyl</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">Axis</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">VA</Label>
+                    <Label className="text-xs flex items-center font-semibold">OS</Label>
+                    <PowerCell field="autoOsSphere" kind="sphere" placeholder="-1.00" />
+                    <PowerCell field="autoOsCyl" kind="cyl" placeholder="-0.50" />
+                    <PowerCell field="autoOsAxis" kind="axis" placeholder="180" />
+                    <div className="flex items-center gap-1">
+                      <Input className="rounded-xl text-center flex-1 min-w-0" value={form.autoVaOs} onChange={e => set("autoVaOs", e.target.value)} placeholder="6/6" />
+                      <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("autoVaOs", v)} popoverWidthClassName="w-40" />
+                    </div>
+                  </div>
+                </div>
 
-              <Label className="text-xs flex items-center font-semibold">OD</Label>
-              <Input className="rounded-xl text-center" value={form.subOdSphere} onChange={e => set("subOdSphere", e.target.value)} placeholder="-1.00" />
-              <Input className="rounded-xl text-center" value={form.subOdCyl} onChange={e => set("subOdCyl", e.target.value)} placeholder="-0.50" />
-              <Input className="rounded-xl text-center" value={form.subOdAxis} onChange={e => set("subOdAxis", e.target.value)} placeholder="180" />
-              <Input className="rounded-xl text-center" value={form.subVaOd} onChange={e => set("subVaOd", e.target.value)} placeholder="6/6" />
+                <div className="form-section">
+                  <h2 className="section-title text-sm"><Eye size={16} /> Subjective Refraction</h2>
+                  <div className="grid grid-cols-5 gap-2 items-center">
+                    <div />
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">Sphere</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">Cyl</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">Axis</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">VA</Label>
 
-              <Label className="text-xs flex items-center font-semibold">OS</Label>
-              <Input className="rounded-xl text-center" value={form.subOsSphere} onChange={e => set("subOsSphere", e.target.value)} placeholder="-1.00" />
-              <Input className="rounded-xl text-center" value={form.subOsCyl} onChange={e => set("subOsCyl", e.target.value)} placeholder="-0.50" />
-              <Input className="rounded-xl text-center" value={form.subOsAxis} onChange={e => set("subOsAxis", e.target.value)} placeholder="180" />
-              <Input className="rounded-xl text-center" value={form.subVaOs} onChange={e => set("subVaOs", e.target.value)} placeholder="6/6" />
-            </div>
-            <div className="grid grid-cols-2 gap-3 mt-3">
-              <div className="space-y-1"><Label className="text-xs">Reading ADD</Label><Input className="rounded-xl" value={form.subReadingAdd} onChange={e => set("subReadingAdd", e.target.value)} placeholder="+1.50" /></div>
-              <div className="space-y-1"><Label className="text-xs">VA Outcome</Label><Input className="rounded-xl" value={form.subVaOutcome} onChange={e => set("subVaOutcome", e.target.value)} placeholder="6/6" /></div>
-            </div>
-          </div>
+                    <Label className="text-xs flex items-center font-semibold">OD</Label>
+                    <PowerCell field="subOdSphere" kind="sphere" placeholder="-1.00" />
+                    <PowerCell field="subOdCyl" kind="cyl" placeholder="-0.50" />
+                    <PowerCell field="subOdAxis" kind="axis" placeholder="180" />
+                    <div className="flex items-center gap-1">
+                      <Input className="rounded-xl text-center flex-1 min-w-0" value={form.subVaOd} onChange={e => set("subVaOd", e.target.value)} placeholder="6/6" />
+                      <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("subVaOd", v)} popoverWidthClassName="w-40" />
+                    </div>
+
+                    <Label className="text-xs flex items-center font-semibold">OS</Label>
+                    <PowerCell field="subOsSphere" kind="sphere" placeholder="-1.00" />
+                    <PowerCell field="subOsCyl" kind="cyl" placeholder="-0.50" />
+                    <PowerCell field="subOsAxis" kind="axis" placeholder="180" />
+                    <div className="flex items-center gap-1">
+                      <Input className="rounded-xl text-center flex-1 min-w-0" value={form.subVaOs} onChange={e => set("subVaOs", e.target.value)} placeholder="6/6" />
+                      <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("subVaOs", v)} popoverWidthClassName="w-40" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Reading ADD</Label>
+                      <div className="flex items-center gap-1">
+                        <Input className="rounded-xl flex-1" value={form.subReadingAdd} onChange={e => set("subReadingAdd", e.target.value)} placeholder="+1.50" />
+                        <QuickPicker options={ADD_OPTIONS} searchable triggerLabel="▾" onSelect={v => set("subReadingAdd", v)} popoverWidthClassName="w-40" />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">VA Outcome</Label>
+                      <div className="flex items-center gap-1">
+                        <Input className="rounded-xl flex-1" value={form.subVaOutcome} onChange={e => set("subVaOutcome", e.target.value)} placeholder="6/6" />
+                        <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("subVaOutcome", v)} popoverWidthClassName="w-40" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </TabsContent>
+
 
         <TabsContent value="exam" className="space-y-4">
           <div className="form-section">
