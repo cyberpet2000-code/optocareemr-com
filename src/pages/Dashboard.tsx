@@ -75,6 +75,34 @@ export default function Dashboard() {
   };
 
   const displayName = user?.user_metadata?.full_name || "Doctor";
+  useEffect(() => {
+  if (!effectiveClinicId) return;
+
+  const channel = apiClient
+    .channel(`visits-${effectiveClinicId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "visits",
+        filter: `clinic_id=eq.${effectiveClinicId}`,
+      },
+      (payload) => {
+        if (payload.new.status === "completed") {
+          showNotification(
+            "✅ Visit Completed",
+            "A patient visit was completed"
+          );
+        }
+      }
+    )
+    .subscribe();
+
+  return () => {
+    apiClient.removeChannel(channel);
+  };
+}, [effectiveClinicId]);
 
   useEffect(() => {
     if (!effectiveClinicId) {
