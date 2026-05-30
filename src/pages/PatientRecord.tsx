@@ -422,11 +422,10 @@ const nearVaOptions = [
               <Input className="rounded-xl text-center" value={form.vaAidedOd} onChange={e => set("vaAidedOd", e.target.value)} placeholder="6/6" />
               <Input className="rounded-xl text-center" value={form.vaAidedOs} onChange={e => set("vaAidedOs", e.target.value)} placeholder="6/6" />
               <Input className="rounded-xl text-center" value={form.vaAidedOu} onChange={e => set("vaAidedOu", e.target.value)} placeholder="6/6" />
+              
 
-              <Label className="text-xs flex items-center font-semibold">Pinhole</Label>
 
-
-              <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
+          <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
               <Input className="rounded-xl text-center col-span-3" value={form.vaAidedNearOu} onChange={e => set("vaAidedNearOu", e.target.value)} placeholder="N6" />
             </div>
           </div>
