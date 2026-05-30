@@ -12,6 +12,13 @@ import { ArrowLeft, Eye, Stethoscope, ClipboardList, History, Pencil, Gauge, Dow
 import { generateVisitPdf } from "@/lib/visitPdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAccess } from "@/hooks/useAccess";
+import {
+  QuickPicker, PickerChips, appendUnique,
+  VA_DISTANCE_OPTIONS, VA_NEAR_OPTIONS,
+  SPHERE_OPTIONS, CYL_OPTIONS, ADD_OPTIONS, AXIS_OPTIONS,
+  REFRACTIVE_ERROR_OPTIONS, LENS_RECOMMENDATION_OPTIONS,
+  ADVICE_OPTIONS, REFERRAL_OPTIONS, DIAGNOSIS_GROUPS,
+} from "@/components/QuickPicker";
 
 interface PatientData {
   id: string;
