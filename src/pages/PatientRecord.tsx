@@ -80,7 +80,15 @@ export default function PatientRecord() {
         apiClient.from("hmos").select("id, name").eq("clinic_id", cid).eq("status", "active"),
       ]);
       console.debug("[patient-record]", { clinic_id: cid, patient_id: patientId, visits: visRes.data?.length ?? 0 });
-      if (patRes.data) setPatient(patRes.data as unknown as PatientData);
+      if (patRes.data) {
+  const clinicName =
+    localStorage.getItem("activeClinicName") || "";
+
+  setPatient({
+    ...patRes.data,
+    clinic_name: clinicName,
+  } as any);
+      }
       if (visRes.data) setVisits(visRes.data);
       if (hmoRes.data) {
         setHmos(hmoRes.data as any);
