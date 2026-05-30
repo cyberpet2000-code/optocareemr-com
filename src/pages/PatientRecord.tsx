@@ -449,11 +449,31 @@ export default function PatientRecord() {
                     <div className="px-4 pb-4 text-xs space-y-2 border-t border-border/60 pt-3">
                       {v.chief_complaint && <div><strong>CC:</strong> {v.chief_complaint}</div>}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                        <div><strong>VA UA OD:</strong> {v.va_unaided_od || "—"}</div>
-                        <div><strong>VA UA OS:</strong> {v.va_unaided_os || "—"}</div>
-                        <div><strong>VA Aided OD:</strong> {v.va_aided_od || "—"}</div>
-                        <div><strong>VA Aided OS:</strong> {v.va_aided_os || "—"}</div>
-                      </div>
+  <div>
+    <strong>VA UA OD:</strong>{" "}
+    {v.va_unaided_od || "—"}
+    {v.va_unaided_od_ph ? ` (PH: ${v.va_unaided_od_ph})` : ""}
+  </div>
+
+  <div>
+    <strong>VA UA OS:</strong>{" "}
+    {v.va_unaided_os || "—"}
+    {v.va_unaided_os_ph ? ` (PH: ${v.va_unaided_os_ph})` : ""}
+  </div>
+
+  <div>
+    <strong>VA Aided OD:</strong>{" "}
+    {v.va_aided_od || "—"}
+    {v.va_aided_od_ph ? ` (PH: ${v.va_aided_od_ph})` : ""}
+  </div>
+
+  <div>
+    <strong>VA Aided OS:</strong>{" "}
+    {v.va_aided_os || "—"}
+    {v.va_aided_os_ph ? ` (PH: ${v.va_aided_os_ph})` : ""}
+  </div>
+</div>
+                    
                       {(v.iop_od || v.iop_os) && (
                         <div>
                           <strong>IOP:</strong>{" "}
