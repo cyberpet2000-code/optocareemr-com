@@ -4,7 +4,10 @@ export function generateVisitPdf(patient: any, visit: any) {
   const lines: string[] = [];
   const add = (label: string, value: any) => { if (value !== null && value !== undefined && value !== "") lines.push(`${label}: ${value}`); };
 
-  const clinicName = patient.clinic_name || "Clinic";
+  const clinicName =
+  patient?.clinic?.name ||
+  patient?.clinic_name ||
+  "Clinic";
 
 lines.push("===============================================");
 lines.push(`           ${clinicName.toUpperCase()} — VISIT RECORD`);
