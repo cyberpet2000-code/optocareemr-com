@@ -31,6 +31,8 @@ interface PatientData {
 }
 
 const emptyVisitForm = () => ({
+  const [vaPickerOpen, setVaPickerOpen] = useState(false);
+const [activeVaField, setActiveVaField] = useState("");
   chiefComplaint: "", history: "", oldLensPrescription: "",
   // Unaided VA
   vaUnaidedOd: "", vaUnaidedOs: "", vaUnaidedOu: "",
@@ -119,6 +121,12 @@ export default function PatientRecord() {
   }, [patientId, cid]);
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+  const pickVa = (value: string) => {
+  if (!activeVaField) return;
+
+  set(activeVaField, value);
+  setVaPickerOpen(false);
+};
   const vaOptions = [
   "6/4",
   "6/5",
@@ -346,26 +354,18 @@ const nearVaOptions = [
   />
 
 
-  <details className="mt-2">
-  <summary className="cursor-pointer text-xs text-primary">
-    Quick Pick ▼
-  </summary>
-
-  <div className="flex flex-wrap gap-1 mt-2">
-    {vaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaUnaidedOd", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</details>
+  <Button
+  type="button"
+  size="sm"
+  variant="outline"
+  className="h-7 text-[10px] rounded-md w-full"
+  onClick={() => {
+    setActiveVaField("vaUnaidedOd");
+    setVaPickerOpen(true);
+  }}
+>
+  Pick VA ▼
+</Button>
 </div>
  <div className="space-y-2">
   <Input
