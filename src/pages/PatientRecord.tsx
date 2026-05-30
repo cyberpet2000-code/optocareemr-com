@@ -107,12 +107,9 @@ export default function PatientRecord() {
       ]);
       console.debug("[patient-record]", { clinic_id: cid, patient_id: patientId, visits: visRes.data?.length ?? 0 });
       if (patRes.data) {
-  const clinicName =
-    localStorage.getItem("activeClinicName") || "";
-
   setPatient({
     ...patRes.data,
-    clinic_name: clinicName,
+    clinic_name: clinicRes.data?.name || "",
   } as any);
       }
       if (visRes.data) setVisits(visRes.data);
