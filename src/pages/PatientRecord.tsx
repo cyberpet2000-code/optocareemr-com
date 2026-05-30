@@ -31,8 +31,6 @@ interface PatientData {
 }
 
 const emptyVisitForm = () => ({
-  const [vaPickerOpen, setVaPickerOpen] = useState(false);
-const [activeVaField, setActiveVaField] = useState("");
   chiefComplaint: "", history: "", oldLensPrescription: "",
   // Unaided VA
   vaUnaidedOd: "", vaUnaidedOs: "", vaUnaidedOu: "",
