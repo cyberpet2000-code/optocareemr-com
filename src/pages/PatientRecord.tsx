@@ -70,7 +70,15 @@ export default function PatientRecord() {
     if (!patientId || !cid) { setLoading(false); return; }
     (async () => {
       const [patRes, visRes, hmoRes] = await Promise.all([
-        apiClient.from("patients").select("*").eq("clinic_id", cid).eq("id", patientId).maybeSingle(),
+        apiClient
+  .from("patients")
+  .select(`
+    *,
+    clinics(name)
+  `)
+  .eq("clinic_id", cid)
+  .eq("id", patientId)
+  .maybeSingle(),
         apiClient.from("visits").select("*").eq("clinic_id", cid).eq("patient_id", patientId).order("created_at", { ascending: false }),
         apiClient.from("hmos").select("id, name").eq("clinic_id", cid).eq("status", "active"),
       ]);
