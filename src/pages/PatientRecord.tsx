@@ -457,10 +457,34 @@ const nearVaOptions = [
   </div>
 </div>
 
-              <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
-              <Input className="rounded-xl text-center col-span-3" value={form.vaUnaidedNearOu} onChange={e => set("vaUnaidedNearOu", e.target.value)} placeholder="N6" />
-            </div>
-          </div>
+              <Label className="text-xs flex items-center font-semibold">
+  Near VA (OU)
+</Label>
+
+<div className="col-span-3 space-y-2">
+  <Input
+    className="rounded-xl text-center"
+    value={form.vaUnaidedNearOu}
+    onChange={e => set("vaUnaidedNearOu", e.target.value)}
+    placeholder="N6"
+  />
+
+  <div className="flex flex-wrap gap-1">
+    {nearVaOptions.map((v) => (
+      <Button
+        key={v}
+        type="button"
+        size="sm"
+        variant="outline"
+        className="h-7 px-2 rounded-lg text-[10px]"
+        onClick={() => set("vaUnaidedNearOu", v)}
+      >
+        {v}
+      </Button>
+    ))}
+  </div>
+</div>
+          
 
           <div className="form-section">
             <h2 className="section-title text-sm"><Eye size={16} /> Visual Acuity — Aided</h2>
