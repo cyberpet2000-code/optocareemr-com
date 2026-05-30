@@ -72,14 +72,10 @@ export default function PatientRecord() {
       const [patRes, visRes, hmoRes] = await Promise.all([
         apiClient
   .from("patients")
-  .select(`
-    *,
-    clinics(name)
-  `)
+  .select("*")
   .eq("clinic_id", cid)
   .eq("id", patientId)
-  .maybeSingle(),
-        apiClient.from("visits").select("*").eq("clinic_id", cid).eq("patient_id", patientId).order("created_at", { ascending: false }),
+  .maybeSingle(),        apiClient.from("visits").select("*").eq("clinic_id", cid).eq("patient_id", patientId).order("created_at", { ascending: false }),
         apiClient.from("hmos").select("id, name").eq("clinic_id", cid).eq("status", "active"),
       ]);
       console.debug("[patient-record]", { clinic_id: cid, patient_id: patientId, visits: visRes.data?.length ?? 0 });
