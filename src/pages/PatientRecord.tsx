@@ -12,6 +12,13 @@ import { ArrowLeft, Eye, Stethoscope, ClipboardList, History, Pencil, Gauge, Dow
 import { generateVisitPdf } from "@/lib/visitPdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAccess } from "@/hooks/useAccess";
+import {
+  QuickPicker, PickerChips, appendUnique,
+  VA_DISTANCE_OPTIONS, VA_NEAR_OPTIONS,
+  SPHERE_OPTIONS, CYL_OPTIONS, ADD_OPTIONS, AXIS_OPTIONS,
+  REFRACTIVE_ERROR_OPTIONS, LENS_RECOMMENDATION_OPTIONS,
+  ADVICE_OPTIONS, REFERRAL_OPTIONS, DIAGNOSIS_GROUPS,
+} from "@/components/QuickPicker";
 
 interface PatientData {
   id: string;
@@ -64,8 +71,6 @@ export default function PatientRecord() {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<PatientData>>({});
   const [form, setForm] = useState(emptyVisitForm());
-  const [vaPickerOpen, setVaPickerOpen] = useState(false);
-  const [activeVaField, setActiveVaField] = useState("");
 
   useEffect(() => {
     if (!patientId || !cid) { setLoading(false); return; }
@@ -121,38 +126,11 @@ export default function PatientRecord() {
   }, [patientId, cid]);
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
-  const pickVa = (value: string) => {
-  if (!activeVaField) return;
+  const appendTo = (k: keyof ReturnType<typeof emptyVisitForm>, additions: string | string[]) => {
+    const arr = Array.isArray(additions) ? additions : [additions];
+    setForm(f => ({ ...f, [k]: appendUnique((f as any)[k] || "", arr) } as any));
+  };
 
-  set(activeVaField, value);
-  setVaPickerOpen(false);
-};
-  const vaOptions = [
-  "6/4",
-  "6/5",
-  "6/6",
-  "6/9",
-  "6/12",
-  "6/18",
-  "6/24",
-  "6/36",
-  "6/60",
-  "CF",
-  "HM",
-  "LP",
-  "NLP",
-];
-
-const nearVaOptions = [
-  "N5",
-  "N6",
-  "N8",
-  "N10",
-  "N12",
-  "N18",
-  "N24",
-  "N36",
-];
 
   const handleSaveVisit = async (markCompleted: boolean) => {
     if (!patient) return;
@@ -334,328 +312,179 @@ const nearVaOptions = [
         </TabsContent>
 
         <TabsContent value="va" className="space-y-4">
-          <div className="form-section">
-            <h2 className="section-title text-sm"><Eye size={16} /> Visual Acuity — Unaided</h2>
-            <div className="grid grid-cols-4 gap-2">
-              <div />
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">OD</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">OS</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">OU</Label>
+          {(() => {
+            const VaCell = ({ field, near = false, placeholder = "6/6" }: { field: keyof ReturnType<typeof emptyVisitForm>; near?: boolean; placeholder?: string }) => (
+              <div className="space-y-1">
+                <div className="flex items-center gap-1">
+                  <Input
+                    className="rounded-xl text-center flex-1"
+                    value={(form as any)[field]}
+                    onChange={e => set(field as string, e.target.value)}
+                    placeholder={placeholder}
+                  />
+                  <QuickPicker
+                    options={near ? VA_NEAR_OPTIONS : VA_DISTANCE_OPTIONS}
+                    triggerLabel="VA"
+                    onSelect={v => set(field as string, v)}
+                    popoverWidthClassName="w-44"
+                  />
+                </div>
+              </div>
+            );
+            return (
+              <>
+                <div className="form-section">
+                  <h2 className="section-title text-sm"><Eye size={16} /> Visual Acuity — Unaided</h2>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div />
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">OD</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">OS</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">OU</Label>
 
-              <Label className="text-xs flex items-center font-semibold">Distance</Label>
+                    <Label className="text-xs flex items-center font-semibold">Distance</Label>
+                    <VaCell field="vaUnaidedOd" />
+                    <VaCell field="vaUnaidedOs" />
+                    <VaCell field="vaUnaidedOu" />
 
-              
-<div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaUnaidedOd}
-    onChange={e => set("vaUnaidedOd", e.target.value)}
-    placeholder="6/6"
-  />
+                    <Label className="text-xs flex items-center font-semibold">Pinhole</Label>
+                    <VaCell field="vaUnaidedOdPh" />
+                    <VaCell field="vaUnaidedOsPh" />
+                    <div />
 
+                    <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
+                    <div className="col-span-3"><VaCell field="vaUnaidedNearOu" near placeholder="N6" /></div>
+                  </div>
+                </div>
 
-  <Button
-  type="button"
-  size="sm"
-  variant="outline"
-  className="h-7 text-[10px] rounded-md w-full"
-  onClick={() => {
-    setActiveVaField("vaUnaidedOd");
-    setVaPickerOpen(true);
-  }}
->
-  Pick VA ▼
-</Button>
-</div>
- <div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaUnaidedOs}
-    onChange={e => set("vaUnaidedOs", e.target.value)}
-    placeholder="6/6"
-  />
+                <div className="form-section">
+                  <h2 className="section-title text-sm"><Eye size={16} /> Visual Acuity — Aided</h2>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div />
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">OD</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">OS</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">OU</Label>
 
-  <div className="flex flex-wrap gap-1">
-    {vaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaUnaidedOs", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
+                    <Label className="text-xs flex items-center font-semibold">Distance</Label>
+                    <VaCell field="vaAidedOd" />
+                    <VaCell field="vaAidedOs" />
+                    <VaCell field="vaAidedOu" />
 
-<div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaUnaidedOu}
-    onChange={e => set("vaUnaidedOu", e.target.value)}
-    placeholder="6/6"
-  />
-
-  <div className="flex flex-wrap gap-1">
-    {vaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaUnaidedOu", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
-
-              <Label className="text-xs flex items-center font-semibold">Pinhole</Label>
-              <div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaUnaidedOdPh}
-    onChange={e => set("vaUnaidedOdPh", e.target.value)}
-    placeholder="6/6"
-  />
-
-  <div className="flex flex-wrap gap-1">
-    {vaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaUnaidedOdPh", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
-              <div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaUnaidedOsPh}
-    onChange={e => set("vaUnaidedOsPh", e.target.value)}
-    placeholder="6/6"
-  />
-
-  <div className="flex flex-wrap gap-1">
-    {vaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaUnaidedOsPh", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
-
-              <Label className="text-xs flex items-center font-semibold">
-  Near VA (OU)
-</Label>
-
-<div className="col-span-3 space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaUnaidedNearOu}
-    onChange={e => set("vaUnaidedNearOu", e.target.value)}
-    placeholder="N6"
-  />
-
-  <div className="flex flex-wrap gap-1">
-    {nearVaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaUnaidedNearOu", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
-          
-</div> 
-
-</div> 
-          <div className="form-section">
-            <h2 className="section-title text-sm"><Eye size={16} /> Visual Acuity — Aided</h2>
-            <div className="grid grid-cols-4 gap-2">
-              <div />
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">OD</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">OS</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">OU</Label>
-
-              <Label className="text-xs flex items-center font-semibold">Distance</Label>
-              <div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaAidedOd}
-    onChange={e => set("vaAidedOd", e.target.value)}
-    placeholder="6/6"
-  />
-
-  <div className="flex flex-wrap gap-1">
-    {vaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaAidedOd", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
-              <div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaAidedOs}
-    onChange={e => set("vaAidedOs", e.target.value)}
-    placeholder="6/6"
-  />
-
-  <div className="flex flex-wrap gap-1">
-    {vaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaAidedOs", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
-              <div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaAidedOu}
-    onChange={e => set("vaAidedOu", e.target.value)}
-    placeholder="6/6"
-  />
-
-  <div className="flex flex-wrap gap-1">
-    {vaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaAidedOu", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
-              
-
-
-          <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
-              <div className="col-span-3 space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaAidedNearOu}
-    onChange={e => set("vaAidedNearOu", e.target.value)}
-    placeholder="N6"
-  />
-
-  <div className="flex flex-wrap gap-1">
-    {nearVaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaAidedNearOu", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
-           
-</div>
-
-</div>
+                    <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
+                    <div className="col-span-3"><VaCell field="vaAidedNearOu" near placeholder="N6" /></div>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="refraction" className="space-y-4">
-          <div className="form-section">
-            <h2 className="section-title text-sm"><Eye size={16} /> Auto Refraction</h2>
-            <div className="grid grid-cols-5 gap-2">
-              <div />
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">Sphere</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">Cyl</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">Axis</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">VA</Label>
+          {(() => {
+            type Kind = "sphere" | "cyl" | "axis" | "add";
+            const optsFor = (k: Kind) =>
+              k === "sphere" ? SPHERE_OPTIONS :
+              k === "cyl" ? CYL_OPTIONS :
+              k === "axis" ? AXIS_OPTIONS :
+              ADD_OPTIONS;
 
-              <Label className="text-xs flex items-center font-semibold">OD</Label>
-              <Input className="rounded-xl text-center" value={form.autoOdSphere} onChange={e => set("autoOdSphere", e.target.value)} placeholder="-1.00" />
-              <Input className="rounded-xl text-center" value={form.autoOdCyl} onChange={e => set("autoOdCyl", e.target.value)} placeholder="-0.50" />
-              <Input className="rounded-xl text-center" value={form.autoOdAxis} onChange={e => set("autoOdAxis", e.target.value)} placeholder="180" />
-              <Input className="rounded-xl text-center" value={form.autoVaOd} onChange={e => set("autoVaOd", e.target.value)} placeholder="6/6" />
+            const PowerCell = ({ field, kind, placeholder }: { field: keyof ReturnType<typeof emptyVisitForm>; kind: Kind; placeholder: string }) => (
+              <div className="flex items-center gap-1">
+                <Input
+                  className="rounded-xl text-center flex-1 min-w-0"
+                  value={(form as any)[field]}
+                  onChange={e => set(field as string, e.target.value)}
+                  placeholder={placeholder}
+                />
+                <QuickPicker
+                  options={optsFor(kind)}
+                  searchable
+                  triggerLabel="▾"
+                  onSelect={v => set(field as string, v)}
+                  popoverWidthClassName="w-40"
+                />
+              </div>
+            );
 
-              <Label className="text-xs flex items-center font-semibold">OS</Label>
-              <Input className="rounded-xl text-center" value={form.autoOsSphere} onChange={e => set("autoOsSphere", e.target.value)} placeholder="-1.00" />
-              <Input className="rounded-xl text-center" value={form.autoOsCyl} onChange={e => set("autoOsCyl", e.target.value)} placeholder="-0.50" />
-              <Input className="rounded-xl text-center" value={form.autoOsAxis} onChange={e => set("autoOsAxis", e.target.value)} placeholder="180" />
-              <Input className="rounded-xl text-center" value={form.autoVaOs} onChange={e => set("autoVaOs", e.target.value)} placeholder="6/6" />
-            </div>
-          </div>
+            return (
+              <>
+                <div className="form-section">
+                  <h2 className="section-title text-sm"><Eye size={16} /> Auto Refraction</h2>
+                  <div className="grid grid-cols-5 gap-2 items-center">
+                    <div />
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">Sphere</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">Cyl</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">Axis</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">VA</Label>
 
-          <div className="form-section">
-            <h2 className="section-title text-sm"><Eye size={16} /> Subjective Refraction</h2>
-            <div className="grid grid-cols-5 gap-2">
-              <div />
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">Sphere</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">Cyl</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">Axis</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">VA</Label>
+                    <Label className="text-xs flex items-center font-semibold">OD</Label>
+                    <PowerCell field="autoOdSphere" kind="sphere" placeholder="-1.00" />
+                    <PowerCell field="autoOdCyl" kind="cyl" placeholder="-0.50" />
+                    <PowerCell field="autoOdAxis" kind="axis" placeholder="180" />
+                    <div className="flex items-center gap-1">
+                      <Input className="rounded-xl text-center flex-1 min-w-0" value={form.autoVaOd} onChange={e => set("autoVaOd", e.target.value)} placeholder="6/6" />
+                      <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("autoVaOd", v)} popoverWidthClassName="w-40" />
+                    </div>
 
-              <Label className="text-xs flex items-center font-semibold">OD</Label>
-              <Input className="rounded-xl text-center" value={form.subOdSphere} onChange={e => set("subOdSphere", e.target.value)} placeholder="-1.00" />
-              <Input className="rounded-xl text-center" value={form.subOdCyl} onChange={e => set("subOdCyl", e.target.value)} placeholder="-0.50" />
-              <Input className="rounded-xl text-center" value={form.subOdAxis} onChange={e => set("subOdAxis", e.target.value)} placeholder="180" />
-              <Input className="rounded-xl text-center" value={form.subVaOd} onChange={e => set("subVaOd", e.target.value)} placeholder="6/6" />
+                    <Label className="text-xs flex items-center font-semibold">OS</Label>
+                    <PowerCell field="autoOsSphere" kind="sphere" placeholder="-1.00" />
+                    <PowerCell field="autoOsCyl" kind="cyl" placeholder="-0.50" />
+                    <PowerCell field="autoOsAxis" kind="axis" placeholder="180" />
+                    <div className="flex items-center gap-1">
+                      <Input className="rounded-xl text-center flex-1 min-w-0" value={form.autoVaOs} onChange={e => set("autoVaOs", e.target.value)} placeholder="6/6" />
+                      <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("autoVaOs", v)} popoverWidthClassName="w-40" />
+                    </div>
+                  </div>
+                </div>
 
-              <Label className="text-xs flex items-center font-semibold">OS</Label>
-              <Input className="rounded-xl text-center" value={form.subOsSphere} onChange={e => set("subOsSphere", e.target.value)} placeholder="-1.00" />
-              <Input className="rounded-xl text-center" value={form.subOsCyl} onChange={e => set("subOsCyl", e.target.value)} placeholder="-0.50" />
-              <Input className="rounded-xl text-center" value={form.subOsAxis} onChange={e => set("subOsAxis", e.target.value)} placeholder="180" />
-              <Input className="rounded-xl text-center" value={form.subVaOs} onChange={e => set("subVaOs", e.target.value)} placeholder="6/6" />
-            </div>
-            <div className="grid grid-cols-2 gap-3 mt-3">
-              <div className="space-y-1"><Label className="text-xs">Reading ADD</Label><Input className="rounded-xl" value={form.subReadingAdd} onChange={e => set("subReadingAdd", e.target.value)} placeholder="+1.50" /></div>
-              <div className="space-y-1"><Label className="text-xs">VA Outcome</Label><Input className="rounded-xl" value={form.subVaOutcome} onChange={e => set("subVaOutcome", e.target.value)} placeholder="6/6" /></div>
-            </div>
-          </div>
+                <div className="form-section">
+                  <h2 className="section-title text-sm"><Eye size={16} /> Subjective Refraction</h2>
+                  <div className="grid grid-cols-5 gap-2 items-center">
+                    <div />
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">Sphere</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">Cyl</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">Axis</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">VA</Label>
+
+                    <Label className="text-xs flex items-center font-semibold">OD</Label>
+                    <PowerCell field="subOdSphere" kind="sphere" placeholder="-1.00" />
+                    <PowerCell field="subOdCyl" kind="cyl" placeholder="-0.50" />
+                    <PowerCell field="subOdAxis" kind="axis" placeholder="180" />
+                    <div className="flex items-center gap-1">
+                      <Input className="rounded-xl text-center flex-1 min-w-0" value={form.subVaOd} onChange={e => set("subVaOd", e.target.value)} placeholder="6/6" />
+                      <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("subVaOd", v)} popoverWidthClassName="w-40" />
+                    </div>
+
+                    <Label className="text-xs flex items-center font-semibold">OS</Label>
+                    <PowerCell field="subOsSphere" kind="sphere" placeholder="-1.00" />
+                    <PowerCell field="subOsCyl" kind="cyl" placeholder="-0.50" />
+                    <PowerCell field="subOsAxis" kind="axis" placeholder="180" />
+                    <div className="flex items-center gap-1">
+                      <Input className="rounded-xl text-center flex-1 min-w-0" value={form.subVaOs} onChange={e => set("subVaOs", e.target.value)} placeholder="6/6" />
+                      <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("subVaOs", v)} popoverWidthClassName="w-40" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Reading ADD</Label>
+                      <div className="flex items-center gap-1">
+                        <Input className="rounded-xl flex-1" value={form.subReadingAdd} onChange={e => set("subReadingAdd", e.target.value)} placeholder="+1.50" />
+                        <QuickPicker options={ADD_OPTIONS} searchable triggerLabel="▾" onSelect={v => set("subReadingAdd", v)} popoverWidthClassName="w-40" />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">VA Outcome</Label>
+                      <div className="flex items-center gap-1">
+                        <Input className="rounded-xl flex-1" value={form.subVaOutcome} onChange={e => set("subVaOutcome", e.target.value)} placeholder="6/6" />
+                        <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("subVaOutcome", v)} popoverWidthClassName="w-40" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </TabsContent>
+
 
         <TabsContent value="exam" className="space-y-4">
           <div className="form-section">
@@ -716,12 +545,84 @@ const nearVaOptions = [
           <div className="form-section">
             <h2 className="section-title text-sm"><Stethoscope size={16} /> Diagnosis & Treatment</h2>
             <div className="space-y-3">
-              <div className="space-y-1"><Label className="text-xs">Diagnosis</Label><Textarea className="rounded-xl" value={form.diagnosis} onChange={e => set("diagnosis", e.target.value)} rows={2} /></div>
-              <div className="space-y-1"><Label className="text-xs">Treatment Plan</Label><Textarea className="rounded-xl" value={form.treatment} onChange={e => set("treatment", e.target.value)} rows={3} /></div>
-              <div className="space-y-1"><Label className="text-xs">Notes</Label><Textarea className="rounded-xl" value={form.notes} onChange={e => set("notes", e.target.value)} rows={2} /></div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <Label className="text-xs">Diagnosis</Label>
+                  <div className="flex items-center gap-1">
+                    <QuickPicker
+                      options={REFRACTIVE_ERROR_OPTIONS}
+                      multi
+                      triggerLabel="+ Refractive Error"
+                      currentValue={form.diagnosis}
+                      onSelect={merged => set("diagnosis", merged)}
+                      popoverWidthClassName="w-64"
+                      align="end"
+                    />
+                    <QuickPicker
+                      options={DIAGNOSIS_GROUPS}
+                      multi
+                      searchable
+                      triggerLabel="+ Diagnosis"
+                      currentValue={form.diagnosis}
+                      onSelect={merged => set("diagnosis", merged)}
+                      popoverWidthClassName="w-72"
+                      align="end"
+                    />
+                  </div>
+                </div>
+                <Textarea className="rounded-xl" value={form.diagnosis} onChange={e => set("diagnosis", e.target.value)} rows={3} />
+                <PickerChips value={form.diagnosis} onChange={v => set("diagnosis", v)} />
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <Label className="text-xs">Treatment Plan</Label>
+                  <QuickPicker
+                    options={LENS_RECOMMENDATION_OPTIONS}
+                    multi
+                    searchable
+                    triggerLabel="+ Lens Recommendation"
+                    currentValue={form.treatment}
+                    onSelect={merged => set("treatment", merged)}
+                    popoverWidthClassName="w-72"
+                    align="end"
+                  />
+                </div>
+                <Textarea className="rounded-xl" value={form.treatment} onChange={e => set("treatment", e.target.value)} rows={3} />
+                <PickerChips value={form.treatment} onChange={v => set("treatment", v)} />
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <Label className="text-xs">Notes / Advice / Referral</Label>
+                  <div className="flex items-center gap-1">
+                    <QuickPicker
+                      options={ADVICE_OPTIONS}
+                      multi
+                      triggerLabel="+ Advice"
+                      currentValue={form.notes}
+                      onSelect={merged => set("notes", merged)}
+                      popoverWidthClassName="w-64"
+                      align="end"
+                    />
+                    <QuickPicker
+                      options={REFERRAL_OPTIONS}
+                      multi
+                      triggerLabel="+ Referral"
+                      currentValue={form.notes}
+                      onSelect={merged => set("notes", merged)}
+                      popoverWidthClassName="w-64"
+                      align="end"
+                    />
+                  </div>
+                </div>
+                <Textarea className="rounded-xl" value={form.notes} onChange={e => set("notes", e.target.value)} rows={3} placeholder="Advice, counselling, referrals, follow-up..." />
+                <PickerChips value={form.notes} onChange={v => set("notes", v)} />
+              </div>
             </div>
           </div>
         </TabsContent>
+
 
         <TabsContent value="visits">
           <div className="medical-card">
