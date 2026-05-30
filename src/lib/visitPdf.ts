@@ -5,7 +5,7 @@ export function generateVisitPdf(patient: any, visit: any) {
   const add = (label: string, value: any) => { if (value !== null && value !== undefined && value !== "") lines.push(`${label}: ${value}`); };
 
   const clinicName =
-  patient?.clinics?.name ||
+  localStorage.getItem("activeClinicName") ||
   patient?.clinic_name ||
   "Clinic";
 
