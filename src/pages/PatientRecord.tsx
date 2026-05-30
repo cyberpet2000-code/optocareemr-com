@@ -64,6 +64,8 @@ export default function PatientRecord() {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<PatientData>>({});
   const [form, setForm] = useState(emptyVisitForm());
+  const [vaPickerOpen, setVaPickerOpen] = useState(false);
+  const [activeVaField, setActiveVaField] = useState("");
 
   useEffect(() => {
     if (!patientId || !cid) { setLoading(false); return; }
