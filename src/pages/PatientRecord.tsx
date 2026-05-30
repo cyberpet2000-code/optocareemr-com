@@ -485,7 +485,9 @@ const nearVaOptions = [
   </div>
 </div>
           
+</div> 
 
+</div> 
           <div className="form-section">
             <h2 className="section-title text-sm"><Eye size={16} /> Visual Acuity — Aided</h2>
             <div className="grid grid-cols-4 gap-2">
