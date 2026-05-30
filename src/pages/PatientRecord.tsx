@@ -545,12 +545,84 @@ export default function PatientRecord() {
           <div className="form-section">
             <h2 className="section-title text-sm"><Stethoscope size={16} /> Diagnosis & Treatment</h2>
             <div className="space-y-3">
-              <div className="space-y-1"><Label className="text-xs">Diagnosis</Label><Textarea className="rounded-xl" value={form.diagnosis} onChange={e => set("diagnosis", e.target.value)} rows={2} /></div>
-              <div className="space-y-1"><Label className="text-xs">Treatment Plan</Label><Textarea className="rounded-xl" value={form.treatment} onChange={e => set("treatment", e.target.value)} rows={3} /></div>
-              <div className="space-y-1"><Label className="text-xs">Notes</Label><Textarea className="rounded-xl" value={form.notes} onChange={e => set("notes", e.target.value)} rows={2} /></div>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <Label className="text-xs">Diagnosis</Label>
+                  <div className="flex items-center gap-1">
+                    <QuickPicker
+                      options={REFRACTIVE_ERROR_OPTIONS}
+                      multi
+                      triggerLabel="+ Refractive Error"
+                      currentValue={form.diagnosis}
+                      onSelect={merged => set("diagnosis", merged)}
+                      popoverWidthClassName="w-64"
+                      align="end"
+                    />
+                    <QuickPicker
+                      options={DIAGNOSIS_GROUPS}
+                      multi
+                      searchable
+                      triggerLabel="+ Diagnosis"
+                      currentValue={form.diagnosis}
+                      onSelect={merged => set("diagnosis", merged)}
+                      popoverWidthClassName="w-72"
+                      align="end"
+                    />
+                  </div>
+                </div>
+                <Textarea className="rounded-xl" value={form.diagnosis} onChange={e => set("diagnosis", e.target.value)} rows={3} />
+                <PickerChips value={form.diagnosis} onChange={v => set("diagnosis", v)} />
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <Label className="text-xs">Treatment Plan</Label>
+                  <QuickPicker
+                    options={LENS_RECOMMENDATION_OPTIONS}
+                    multi
+                    searchable
+                    triggerLabel="+ Lens Recommendation"
+                    currentValue={form.treatment}
+                    onSelect={merged => set("treatment", merged)}
+                    popoverWidthClassName="w-72"
+                    align="end"
+                  />
+                </div>
+                <Textarea className="rounded-xl" value={form.treatment} onChange={e => set("treatment", e.target.value)} rows={3} />
+                <PickerChips value={form.treatment} onChange={v => set("treatment", v)} />
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <Label className="text-xs">Notes / Advice / Referral</Label>
+                  <div className="flex items-center gap-1">
+                    <QuickPicker
+                      options={ADVICE_OPTIONS}
+                      multi
+                      triggerLabel="+ Advice"
+                      currentValue={form.notes}
+                      onSelect={merged => set("notes", merged)}
+                      popoverWidthClassName="w-64"
+                      align="end"
+                    />
+                    <QuickPicker
+                      options={REFERRAL_OPTIONS}
+                      multi
+                      triggerLabel="+ Referral"
+                      currentValue={form.notes}
+                      onSelect={merged => set("notes", merged)}
+                      popoverWidthClassName="w-64"
+                      align="end"
+                    />
+                  </div>
+                </div>
+                <Textarea className="rounded-xl" value={form.notes} onChange={e => set("notes", e.target.value)} rows={3} placeholder="Advice, counselling, referrals, follow-up..." />
+                <PickerChips value={form.notes} onChange={v => set("notes", v)} />
+              </div>
             </div>
           </div>
         </TabsContent>
+
 
         <TabsContent value="visits">
           <div className="medical-card">
