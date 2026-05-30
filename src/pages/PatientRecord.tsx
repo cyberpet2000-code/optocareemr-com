@@ -180,8 +180,14 @@ export default function PatientRecord() {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {patient.gender}, {patient.age} yrs • {patient.phone}
-              </p>
+  {patient.gender}, {patient.age} yrs • {patient.phone}
+</p>
+
+{isHmo && patient.enrollee_number && (
+  <p className="text-xs text-accent font-medium mt-1">
+    Enrollee No: {patient.enrollee_number}
+  </p>
+)}
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
