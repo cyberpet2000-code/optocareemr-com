@@ -592,13 +592,11 @@ const nearVaOptions = [
   <div>
     <strong>VA Aided OD:</strong>{" "}
     {v.va_aided_od || "—"}
-    {v.va_aided_od_ph ? ` (PH: ${v.va_aided_od_ph})` : ""}
   </div>
 
   <div>
     <strong>VA Aided OS:</strong>{" "}
     {v.va_aided_os || "—"}
-    {v.va_aided_os_ph ? ` (PH: ${v.va_aided_os_ph})` : ""}
   </div>
 </div>
                     
