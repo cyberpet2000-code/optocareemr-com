@@ -15,14 +15,14 @@ lines.push("");
 
  
  lines.push(`Patient: ${patient.full_name}`);
-  if (patient.payment_type === "hmo") {
-  add("HMO Provider", patient.hmo_name);
-  add("Enrollee No", patient.enrollee_number);
-  }
   add("Age", patient.age);
   add("Gender", patient.gender);
   add("Phone", patient.phone);
   add("Payment Type", patient.payment_type);
+  if (patient.payment_type === "hmo") {
+  add("HMO Provider", patient.hmo_name);
+  add("Enrollee No", patient.enrollee_number);
+  }
   lines.push(`Visit Date: ${date}`);
   lines.push("");
   lines.push("---- VISUAL ACUITY ----");
