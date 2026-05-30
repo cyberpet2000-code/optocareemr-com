@@ -342,7 +342,29 @@ const nearVaOptions = [
               <Input className="rounded-xl text-center" value={form.vaUnaidedOu} onChange={e => set("vaUnaidedOu", e.target.value)} placeholder="6/6" />
 
               <Label className="text-xs flex items-center font-semibold">Pinhole</Label>
-              <Input className="rounded-xl text-center" value={form.vaUnaidedOdPh} onChange={e => set("vaUnaidedOdPh", e.target.value)} placeholder="6/6" />
+              <div className="space-y-2">
+  <Input
+    className="rounded-xl text-center"
+    value={form.vaUnaidedOd}
+    onChange={e => set("vaUnaidedOd", e.target.value)}
+    placeholder="6/6"
+  />
+
+  <div className="flex flex-wrap gap-1">
+    {vaOptions.map((v) => (
+      <Button
+        key={v}
+        type="button"
+        size="sm"
+        variant="outline"
+        className="h-7 px-2 rounded-lg text-[10px]"
+        onClick={() => set("vaUnaidedOd", v)}
+      >
+        {v}
+      </Button>
+    ))}
+  </div>
+</div>
               <Input className="rounded-xl text-center" value={form.vaUnaidedOsPh} onChange={e => set("vaUnaidedOsPh", e.target.value)} placeholder="6/6" />
               <div />
 
