@@ -21,6 +21,9 @@ interface DashboardSnapshot {
 }
 
 export default function Dashboard() {
+  useEffect(() => {
+  enableNotifications();
+}, []);
   const { user } = useAuth();
   const { effectiveClinicId } = useClinic();
   const { isOffline } = useOffline();
