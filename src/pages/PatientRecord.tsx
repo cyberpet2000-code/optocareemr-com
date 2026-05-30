@@ -312,276 +312,71 @@ export default function PatientRecord() {
         </TabsContent>
 
         <TabsContent value="va" className="space-y-4">
-          <div className="form-section">
-            <h2 className="section-title text-sm"><Eye size={16} /> Visual Acuity — Unaided</h2>
-            <div className="grid grid-cols-4 gap-2">
-              <div />
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">OD</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">OS</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">OU</Label>
+          {(() => {
+            const VaCell = ({ field, near = false, placeholder = "6/6" }: { field: keyof ReturnType<typeof emptyVisitForm>; near?: boolean; placeholder?: string }) => (
+              <div className="space-y-1">
+                <div className="flex items-center gap-1">
+                  <Input
+                    className="rounded-xl text-center flex-1"
+                    value={(form as any)[field]}
+                    onChange={e => set(field as string, e.target.value)}
+                    placeholder={placeholder}
+                  />
+                  <QuickPicker
+                    options={near ? VA_NEAR_OPTIONS : VA_DISTANCE_OPTIONS}
+                    triggerLabel="VA"
+                    onSelect={v => set(field as string, v)}
+                    popoverWidthClassName="w-44"
+                  />
+                </div>
+              </div>
+            );
+            return (
+              <>
+                <div className="form-section">
+                  <h2 className="section-title text-sm"><Eye size={16} /> Visual Acuity — Unaided</h2>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div />
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">OD</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">OS</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">OU</Label>
 
-              <Label className="text-xs flex items-center font-semibold">Distance</Label>
+                    <Label className="text-xs flex items-center font-semibold">Distance</Label>
+                    <VaCell field="vaUnaidedOd" />
+                    <VaCell field="vaUnaidedOs" />
+                    <VaCell field="vaUnaidedOu" />
 
-              
-<div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaUnaidedOd}
-    onChange={e => set("vaUnaidedOd", e.target.value)}
-    placeholder="6/6"
-  />
+                    <Label className="text-xs flex items-center font-semibold">Pinhole</Label>
+                    <VaCell field="vaUnaidedOdPh" />
+                    <VaCell field="vaUnaidedOsPh" />
+                    <div />
 
+                    <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
+                    <div className="col-span-3"><VaCell field="vaUnaidedNearOu" near placeholder="N6" /></div>
+                  </div>
+                </div>
 
-  <Button
-  type="button"
-  size="sm"
-  variant="outline"
-  className="h-7 text-[10px] rounded-md w-full"
-  onClick={() => {
-    setActiveVaField("vaUnaidedOd");
-    setVaPickerOpen(true);
-  }}
->
-  Pick VA ▼
-</Button>
-</div>
- <div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaUnaidedOs}
-    onChange={e => set("vaUnaidedOs", e.target.value)}
-    placeholder="6/6"
-  />
+                <div className="form-section">
+                  <h2 className="section-title text-sm"><Eye size={16} /> Visual Acuity — Aided</h2>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div />
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">OD</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">OS</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">OU</Label>
 
-  <div className="flex flex-wrap gap-1">
-    {vaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaUnaidedOs", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
+                    <Label className="text-xs flex items-center font-semibold">Distance</Label>
+                    <VaCell field="vaAidedOd" />
+                    <VaCell field="vaAidedOs" />
+                    <VaCell field="vaAidedOu" />
 
-<div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaUnaidedOu}
-    onChange={e => set("vaUnaidedOu", e.target.value)}
-    placeholder="6/6"
-  />
+                    <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
+                    <div className="col-span-3"><VaCell field="vaAidedNearOu" near placeholder="N6" /></div>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
 
-  <div className="flex flex-wrap gap-1">
-    {vaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaUnaidedOu", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
-
-              <Label className="text-xs flex items-center font-semibold">Pinhole</Label>
-              <div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaUnaidedOdPh}
-    onChange={e => set("vaUnaidedOdPh", e.target.value)}
-    placeholder="6/6"
-  />
-
-  <div className="flex flex-wrap gap-1">
-    {vaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaUnaidedOdPh", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
-              <div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaUnaidedOsPh}
-    onChange={e => set("vaUnaidedOsPh", e.target.value)}
-    placeholder="6/6"
-  />
-
-  <div className="flex flex-wrap gap-1">
-    {vaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaUnaidedOsPh", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
-
-              <Label className="text-xs flex items-center font-semibold">
-  Near VA (OU)
-</Label>
-
-<div className="col-span-3 space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaUnaidedNearOu}
-    onChange={e => set("vaUnaidedNearOu", e.target.value)}
-    placeholder="N6"
-  />
-
-  <div className="flex flex-wrap gap-1">
-    {nearVaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaUnaidedNearOu", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
-          
-</div> 
-
-</div> 
-          <div className="form-section">
-            <h2 className="section-title text-sm"><Eye size={16} /> Visual Acuity — Aided</h2>
-            <div className="grid grid-cols-4 gap-2">
-              <div />
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">OD</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">OS</Label>
-              <Label className="text-[10px] text-center text-muted-foreground font-semibold">OU</Label>
-
-              <Label className="text-xs flex items-center font-semibold">Distance</Label>
-              <div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaAidedOd}
-    onChange={e => set("vaAidedOd", e.target.value)}
-    placeholder="6/6"
-  />
-
-  <div className="flex flex-wrap gap-1">
-    {vaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaAidedOd", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
-              <div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaAidedOs}
-    onChange={e => set("vaAidedOs", e.target.value)}
-    placeholder="6/6"
-  />
-
-  <div className="flex flex-wrap gap-1">
-    {vaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaAidedOs", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
-              <div className="space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaAidedOu}
-    onChange={e => set("vaAidedOu", e.target.value)}
-    placeholder="6/6"
-  />
-
-  <div className="flex flex-wrap gap-1">
-    {vaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaAidedOu", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
-              
-
-
-          <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
-              <div className="col-span-3 space-y-2">
-  <Input
-    className="rounded-xl text-center"
-    value={form.vaAidedNearOu}
-    onChange={e => set("vaAidedNearOu", e.target.value)}
-    placeholder="N6"
-  />
-
-  <div className="flex flex-wrap gap-1">
-    {nearVaOptions.map((v) => (
-      <Button
-        key={v}
-        type="button"
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 rounded-lg text-[10px]"
-        onClick={() => set("vaAidedNearOu", v)}
-      >
-        {v}
-      </Button>
-    ))}
-  </div>
-</div>
-           
-</div>
-
-</div>
-        </TabsContent>
 
         <TabsContent value="refraction" className="space-y-4">
           <div className="form-section">
