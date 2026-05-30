@@ -18,7 +18,12 @@ lines.push("");
   add("Age", patient.age);
   add("Gender", patient.gender);
   add("Phone", patient.phone);
-  add("Payment Type", patient.payment_type);
+  add(
+  "Payment Type",
+  patient.payment_type === "hmo"
+    ? "HMO"
+    : patient.payment_type
+);
   if (patient.payment_type === "hmo") {
   add("HMO Provider", patient.hmo_name);
   add("Enrollee No", patient.enrollee_number);
