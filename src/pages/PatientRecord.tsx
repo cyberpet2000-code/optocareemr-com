@@ -497,14 +497,102 @@ const nearVaOptions = [
               <Label className="text-[10px] text-center text-muted-foreground font-semibold">OU</Label>
 
               <Label className="text-xs flex items-center font-semibold">Distance</Label>
-              <Input className="rounded-xl text-center" value={form.vaAidedOd} onChange={e => set("vaAidedOd", e.target.value)} placeholder="6/6" />
-              <Input className="rounded-xl text-center" value={form.vaAidedOs} onChange={e => set("vaAidedOs", e.target.value)} placeholder="6/6" />
-              <Input className="rounded-xl text-center" value={form.vaAidedOu} onChange={e => set("vaAidedOu", e.target.value)} placeholder="6/6" />
+              <div className="space-y-2">
+  <Input
+    className="rounded-xl text-center"
+    value={form.vaAidedOd}
+    onChange={e => set("vaAidedOd", e.target.value)}
+    placeholder="6/6"
+  />
+
+  <div className="flex flex-wrap gap-1">
+    {vaOptions.map((v) => (
+      <Button
+        key={v}
+        type="button"
+        size="sm"
+        variant="outline"
+        className="h-7 px-2 rounded-lg text-[10px]"
+        onClick={() => set("vaAidedOd", v)}
+      >
+        {v}
+      </Button>
+    ))}
+  </div>
+</div>
+              <div className="space-y-2">
+  <Input
+    className="rounded-xl text-center"
+    value={form.vaAidedOs}
+    onChange={e => set("vaAidedOs", e.target.value)}
+    placeholder="6/6"
+  />
+
+  <div className="flex flex-wrap gap-1">
+    {vaOptions.map((v) => (
+      <Button
+        key={v}
+        type="button"
+        size="sm"
+        variant="outline"
+        className="h-7 px-2 rounded-lg text-[10px]"
+        onClick={() => set("vaAidedOs", v)}
+      >
+        {v}
+      </Button>
+    ))}
+  </div>
+</div>
+              <div className="space-y-2">
+  <Input
+    className="rounded-xl text-center"
+    value={form.vaAidedOu}
+    onChange={e => set("vaAidedOu", e.target.value)}
+    placeholder="6/6"
+  />
+
+  <div className="flex flex-wrap gap-1">
+    {vaOptions.map((v) => (
+      <Button
+        key={v}
+        type="button"
+        size="sm"
+        variant="outline"
+        className="h-7 px-2 rounded-lg text-[10px]"
+        onClick={() => set("vaAidedOu", v)}
+      >
+        {v}
+      </Button>
+    ))}
+  </div>
+</div>
               
 
 
           <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
-              <Input className="rounded-xl text-center col-span-3" value={form.vaAidedNearOu} onChange={e => set("vaAidedNearOu", e.target.value)} placeholder="N6" />
+              <div className="col-span-3 space-y-2">
+  <Input
+    className="rounded-xl text-center"
+    value={form.vaAidedNearOu}
+    onChange={e => set("vaAidedNearOu", e.target.value)}
+    placeholder="N6"
+  />
+
+  <div className="flex flex-wrap gap-1">
+    {nearVaOptions.map((v) => (
+      <Button
+        key={v}
+        type="button"
+        size="sm"
+        variant="outline"
+        className="h-7 px-2 rounded-lg text-[10px]"
+        onClick={() => set("vaAidedNearOu", v)}
+      >
+        {v}
+      </Button>
+    ))}
+  </div>
+</div>
             </div>
           </div>
         </TabsContent>
