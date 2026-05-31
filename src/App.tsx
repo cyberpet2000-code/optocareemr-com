@@ -86,6 +86,8 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
       payload => {
         const p: any = payload.new;
 
+        if (p.clinic_id !== effectiveClinicId) return;
+
         toast(
           `🔔 New patient added — ${p.full_name || "Patient"} (#${p.queue_number || ""})`
         );
