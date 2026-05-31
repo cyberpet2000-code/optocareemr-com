@@ -374,8 +374,64 @@ if (medRes) {
           <div className="form-section">
             <h2 className="section-title text-sm"><ClipboardList size={16} /> Case History</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1 sm:col-span-2"><Label className="text-xs">Chief Complaint</Label><Textarea className="rounded-xl" value={form.chiefComplaint} onChange={e => setField("chiefComplaint", e.target.value)} rows={2} /></div>
-              <div className="space-y-1 sm:col-span-2"><Label className="text-xs">History (ocular, medical, family)</Label><Textarea className="rounded-xl" value={form.history} onChange={e => setField("history", e.target.value)} rows={3} /></div>
+              <div className="space-y-1 sm:col-span-2">
+  <div className="flex items-center justify-between gap-2 flex-wrap">
+    <Label className="text-xs">Chief Complaint</Label>
+
+    <QuickPicker
+      options={CHIEF_COMPLAINT_OPTIONS}
+      multi
+      searchable
+      triggerLabel="+ Quick Phrases"
+      currentValue={form.chiefComplaint}
+      onSelect={v => setField("chiefComplaint", v)}
+      popoverWidthClassName="w-72"
+      align="end"
+    />
+  </div>
+
+  <Textarea
+    className="rounded-xl"
+    value={form.chiefComplaint}
+    onChange={e => setField("chiefComplaint", e.target.value)}
+    rows={2}
+  />
+
+  <PickerChips
+    value={form.chiefComplaint}
+    onChange={v => setField("chiefComplaint", v)}
+  />
+</div>
+              <div className="space-y-1 sm:col-span-2">
+  <div className="flex items-center justify-between gap-2 flex-wrap">
+    <Label className="text-xs">
+      History (ocular, medical, family)
+    </Label>
+
+    <QuickPicker
+      options={HISTORY_OPTIONS}
+      multi
+      searchable
+      triggerLabel="+ Quick Phrases"
+      currentValue={form.history}
+      onSelect={v => setField("history", v)}
+      popoverWidthClassName="w-72"
+      align="end"
+    />
+  </div>
+
+  <Textarea
+    className="rounded-xl"
+    value={form.history}
+    onChange={e => setField("history", e.target.value)}
+    rows={3}
+  />
+
+  <PickerChips
+    value={form.history}
+    onChange={v => setField("history", v)}
+  />
+</div>
               <div className="space-y-1 sm:col-span-2"><Label className="text-xs">Old Lens Prescription</Label><Textarea className="rounded-xl" value={form.oldLensPrescription} onChange={e => setField("oldLensPrescription", e.target.value)} rows={2} placeholder="e.g. OD -2.00/-0.50x180  OS -1.75/-0.75x10" /></div>
             </div>
           </div>
