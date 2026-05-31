@@ -445,19 +445,37 @@ export default function PatientRecord() {
               k === "axis" ? AXIS_OPTIONS :
               ADD_OPTIONS;
 
-            const PowerCell = ({ field, kind, placeholder }: { field: keyof ReturnType<typeof emptyVisitForm>; kind: Kind; placeholder: string }) => (
-              <div className="flex items-center gap-1">
+            const powerCell = (field: keyof ReturnType<typeof emptyVisitForm>, kind: Kind, placeholder: string) => (
+              <div className="flex items-center gap-1" key={field as string}>
                 <Input
                   className="rounded-xl text-center flex-1 min-w-0"
-                  value={(form as any)[field]}
+                  value={(form as any)[field] || ""}
                   onChange={e => set(field as string, e.target.value)}
                   placeholder={placeholder}
+                  aria-label={field as string}
                 />
                 <QuickPicker
                   options={optsFor(kind)}
                   searchable
                   triggerLabel="▾"
                   onSelect={v => set(field as string, v)}
+                  popoverWidthClassName="w-40"
+                />
+              </div>
+            );
+            const vaInline = (field: string, near = false) => (
+              <div className="flex items-center gap-1">
+                <Input
+                  className="rounded-xl text-center flex-1 min-w-0"
+                  value={(form as any)[field] || ""}
+                  onChange={e => set(field, e.target.value)}
+                  placeholder={near ? "N6" : "6/6"}
+                  aria-label={field}
+                />
+                <QuickPicker
+                  options={near ? VA_NEAR_OPTIONS : VA_DISTANCE_OPTIONS}
+                  triggerLabel="▾"
+                  onSelect={v => set(field, v)}
                   popoverWidthClassName="w-40"
                 />
               </div>
@@ -475,22 +493,16 @@ export default function PatientRecord() {
                     <Label className="text-[10px] text-center text-muted-foreground font-semibold">VA</Label>
 
                     <Label className="text-xs flex items-center font-semibold">OD</Label>
-                    <PowerCell field="autoOdSphere" kind="sphere" placeholder="-1.00" />
-                    <PowerCell field="autoOdCyl" kind="cyl" placeholder="-0.50" />
-                    <PowerCell field="autoOdAxis" kind="axis" placeholder="180" />
-                    <div className="flex items-center gap-1">
-                      <Input className="rounded-xl text-center flex-1 min-w-0" value={form.autoVaOd} onChange={e => set("autoVaOd", e.target.value)} placeholder="6/6" />
-                      <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("autoVaOd", v)} popoverWidthClassName="w-40" />
-                    </div>
+                    {powerCell("autoOdSphere", "sphere", "-1.00")}
+                    {powerCell("autoOdCyl", "cyl", "-0.50")}
+                    {powerCell("autoOdAxis", "axis", "180")}
+                    {vaInline("autoVaOd")}
 
                     <Label className="text-xs flex items-center font-semibold">OS</Label>
-                    <PowerCell field="autoOsSphere" kind="sphere" placeholder="-1.00" />
-                    <PowerCell field="autoOsCyl" kind="cyl" placeholder="-0.50" />
-                    <PowerCell field="autoOsAxis" kind="axis" placeholder="180" />
-                    <div className="flex items-center gap-1">
-                      <Input className="rounded-xl text-center flex-1 min-w-0" value={form.autoVaOs} onChange={e => set("autoVaOs", e.target.value)} placeholder="6/6" />
-                      <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("autoVaOs", v)} popoverWidthClassName="w-40" />
-                    </div>
+                    {powerCell("autoOsSphere", "sphere", "-1.00")}
+                    {powerCell("autoOsCyl", "cyl", "-0.50")}
+                    {powerCell("autoOsAxis", "axis", "180")}
+                    {vaInline("autoVaOs")}
                   </div>
                 </div>
 
@@ -504,22 +516,16 @@ export default function PatientRecord() {
                     <Label className="text-[10px] text-center text-muted-foreground font-semibold">VA</Label>
 
                     <Label className="text-xs flex items-center font-semibold">OD</Label>
-                    <PowerCell field="subOdSphere" kind="sphere" placeholder="-1.00" />
-                    <PowerCell field="subOdCyl" kind="cyl" placeholder="-0.50" />
-                    <PowerCell field="subOdAxis" kind="axis" placeholder="180" />
-                    <div className="flex items-center gap-1">
-                      <Input className="rounded-xl text-center flex-1 min-w-0" value={form.subVaOd} onChange={e => set("subVaOd", e.target.value)} placeholder="6/6" />
-                      <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("subVaOd", v)} popoverWidthClassName="w-40" />
-                    </div>
+                    {powerCell("subOdSphere", "sphere", "-1.00")}
+                    {powerCell("subOdCyl", "cyl", "-0.50")}
+                    {powerCell("subOdAxis", "axis", "180")}
+                    {vaInline("subVaOd")}
 
                     <Label className="text-xs flex items-center font-semibold">OS</Label>
-                    <PowerCell field="subOsSphere" kind="sphere" placeholder="-1.00" />
-                    <PowerCell field="subOsCyl" kind="cyl" placeholder="-0.50" />
-                    <PowerCell field="subOsAxis" kind="axis" placeholder="180" />
-                    <div className="flex items-center gap-1">
-                      <Input className="rounded-xl text-center flex-1 min-w-0" value={form.subVaOs} onChange={e => set("subVaOs", e.target.value)} placeholder="6/6" />
-                      <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("subVaOs", v)} popoverWidthClassName="w-40" />
-                    </div>
+                    {powerCell("subOsSphere", "sphere", "-1.00")}
+                    {powerCell("subOsCyl", "cyl", "-0.50")}
+                    {powerCell("subOsAxis", "axis", "180")}
+                    {vaInline("subVaOs")}
                   </div>
                   <div className="grid grid-cols-2 gap-3 mt-3">
                     <div className="space-y-1">
@@ -530,11 +536,8 @@ export default function PatientRecord() {
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">VA Outcome</Label>
-                      <div className="flex items-center gap-1">
-                        <Input className="rounded-xl flex-1" value={form.subVaOutcome} onChange={e => set("subVaOutcome", e.target.value)} placeholder="6/6" />
-                        <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("subVaOutcome", v)} popoverWidthClassName="w-40" />
-                      </div>
+                      <Label className="text-xs">VA Outcome (Near)</Label>
+                      {vaInline("subVaOutcome", true)}
                     </div>
                   </div>
                 </div>
@@ -542,6 +545,7 @@ export default function PatientRecord() {
             );
           })()}
         </TabsContent>
+
 
 
         <TabsContent value="exam" className="space-y-4">
