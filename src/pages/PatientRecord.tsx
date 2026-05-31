@@ -506,32 +506,6 @@ if (medRes) {
 <Label className="text-[10px] text-center text-muted-foreground font-semibold">OS</Label>
 
                     <Label className="text-xs font-semibold">Sphere</Label>
-{powerCell("subOdSphere", "sphere", "-1.00")}
-{powerCell("subOsSphere", "sphere", "-1.00")}
-
-<Label className="text-xs font-semibold">Cyl</Label>
-{powerCell("subOdCyl", "cyl", "-0.50")}
-{powerCell("subOsCyl", "cyl", "-0.50")}
-
-<Label className="text-xs font-semibold">Axis</Label>
-{powerCell("subOdAxis", "axis", "180")}
-{powerCell("subOsAxis", "axis", "180")}
-
-<Label className="text-xs font-semibold">VA</Label>
-{vaInline("subVaOd")}
-{vaInline("subVaOs")}
-                  </div>
-                </div>
-
-                <div className="form-section">
-                  <h2 className="section-title text-sm"><Eye size={16} /> Subjective Refraction</h2>
-                  <div className="grid grid-cols-3 gap-2 items-center">
-                    <div />
-                    <div />
-<Label className="text-[10px] text-center text-muted-foreground font-semibold">OD</Label>
-<Label className="text-[10px] text-center text-muted-foreground font-semibold">OS</Label>
-
-                    <Label className="text-xs font-semibold">Sphere</Label>
 {powerCell("autoOdSphere", "sphere", "-1.00")}
 {powerCell("autoOsSphere", "sphere", "-1.00")}
 
@@ -546,6 +520,30 @@ if (medRes) {
 <Label className="text-xs font-semibold">VA</Label>
 {vaInline("autoVaOd")}
 {vaInline("autoVaOs")}
+                </div>
+
+                <div className="form-section">
+                  <h2 className="section-title text-sm"><Eye size={16} /> Subjective Refraction</h2>
+                  <div className="grid grid-cols-3 gap-2 items-center">
+                    <div />
+                    <div />
+<Label className="text-[10px] text-center text-muted-foreground font-semibold">OD</Label>
+<Label className="text-[10px] text-center text-muted-foreground font-semibold">OS</Label>
+                    <Label className="text-xs font-semibold">Sphere</Label>
+{powerCell("subOdSphere", "sphere", "-1.00")}
+{powerCell("subOsSphere", "sphere", "-1.00")}
+
+<Label className="text-xs font-semibold">Cyl</Label>
+{powerCell("subOdCyl", "cyl", "-0.50")}
+{powerCell("subOsCyl", "cyl", "-0.50")}
+
+<Label className="text-xs font-semibold">Axis</Label>
+{powerCell("subOdAxis", "axis", "180")}
+{powerCell("subOsAxis", "axis", "180")}
+
+<Label className="text-xs font-semibold">VA</Label>
+{vaInline("subVaOd")}
+{vaInline("subVaOs")}
                   </div>
                   <div className="grid grid-cols-2 gap-3 mt-3">
                     <div className="space-y-1">
