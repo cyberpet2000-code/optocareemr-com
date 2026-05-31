@@ -143,10 +143,7 @@ if (medRes) {
 
   setMedications(meds);
 }
-          .map(m => ({ id: m.id, name: m.name }))
-          .sort((a, b) => a.name.localeCompare(b.name));
-        setMedications(meds);
-      }
+      
       setLoading(false);
     })();
   }, [patientId, cid]);
