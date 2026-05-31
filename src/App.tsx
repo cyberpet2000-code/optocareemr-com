@@ -135,7 +135,7 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
     apiClient.removeChannel(patientsChannel);
     apiClient.removeChannel(visitsChannel);
   };
-}, [user]);
+}, [user,effectiveClinicId]);
   const { clinic, effectiveClinicId, memberships, profile } = useAccessClinic();
   const { role, roleMissing } = useAccessRole();
   const location = useLocation();
