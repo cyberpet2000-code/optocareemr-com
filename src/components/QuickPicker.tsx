@@ -269,6 +269,13 @@ export const REFRACTIVE_ERROR_OPTIONS = [
 ];
 
 export const LENS_RECOMMENDATION_OPTIONS = [
+  "Glasses",
+  "Spectacles",
+  "Prescription spectacles",
+  "Reading glasses",
+  "Distance glasses",
+  "Bifocal spectacles",
+  "Progressive spectacles",
   "Photochromic Blue Cut (Photo BC)",
   "Photochromic AR",
   "Varilux (PAL)",
@@ -286,6 +293,7 @@ export const LENS_RECOMMENDATION_OPTIONS = [
   "Plano Protective Glasses",
   "High Index Lens",
 ];
+
 
 export const ADVICE_OPTIONS = [
   "Use glasses full time",
