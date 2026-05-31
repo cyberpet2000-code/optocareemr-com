@@ -639,20 +639,63 @@ export default function PatientRecord() {
               <div className="space-y-1">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <Label className="text-xs">Treatment Plan</Label>
-                  <QuickPicker
-                    options={LENS_RECOMMENDATION_OPTIONS}
-                    multi
-                    searchable
-                    triggerLabel="+ Lens Recommendation"
-                    currentValue={form.treatment}
-                    onSelect={merged => set("treatment", merged)}
-                    popoverWidthClassName="w-72"
-                    align="end"
-                  />
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {(() => {
+                      // Build subjective-Rx-derived quick options for THIS visit only
+                      const fmt = (s: string, c: string, a: string) => {
+                        const parts: string[] = [];
+                        if (s) parts.push(s);
+                        if (c) parts.push(`/${c}`);
+                        if (a) parts.push(`x${a}`);
+                        return parts.join("");
+                      };
+                      const od = fmt(form.subOdSphere, form.subOdCyl, form.subOdAxis);
+                      const os = fmt(form.subOsSphere, form.subOsCyl, form.subOsAxis);
+                      const subOptions: string[] = [];
+                      if (od || os) {
+                        const va = (form.subVaOd || form.subVaOs)
+                          ? ` (VA OD ${form.subVaOd || "—"} / OS ${form.subVaOs || "—"})`
+                          : "";
+                        subOptions.push(`Spectacles: OD ${od || "Plano"} / OS ${os || "Plano"}${va}`);
+                        subOptions.push(`Current subjective Rx: OD ${od || "Plano"} / OS ${os || "Plano"}`);
+                      }
+                      if (form.subReadingAdd) {
+                        subOptions.push(`Spectacles + Reading Add ${form.subReadingAdd}`);
+                      }
+                      if (subOptions.length === 0) return null;
+                      return (
+                        <QuickPicker
+                          options={subOptions}
+                          multi
+                          triggerLabel="+ From Subjective Rx"
+                          currentValue={form.treatment}
+                          onSelect={merged => set("treatment", merged)}
+                          popoverWidthClassName="w-80"
+                          align="end"
+                        />
+                      );
+                    })()}
+                    <QuickPicker
+                      options={LENS_RECOMMENDATION_OPTIONS}
+                      multi
+                      searchable
+                      triggerLabel="+ Glasses / Lens"
+                      currentValue={form.treatment}
+                      onSelect={merged => set("treatment", merged)}
+                      popoverWidthClassName="w-72"
+                      align="end"
+                    />
+                    <MedicationPicker
+                      items={medications}
+                      onAdd={line => set("treatment", appendUnique(form.treatment, [line]))}
+                      triggerLabel="+ Medication"
+                    />
+                  </div>
                 </div>
                 <Textarea className="rounded-xl" value={form.treatment} onChange={e => set("treatment", e.target.value)} rows={3} />
                 <PickerChips value={form.treatment} onChange={v => set("treatment", v)} />
               </div>
+
 
               <div className="space-y-1">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
