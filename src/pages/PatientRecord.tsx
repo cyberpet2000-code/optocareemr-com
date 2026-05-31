@@ -190,7 +190,9 @@ export default function PatientRecord() {
       if (!isValidAxis(val)) { toast.error(`${label} must be 1–180: "${val}"`); return; }
     }
 
+    setSaving(true);
     const { data, error } = await apiClient.from("visits").insert({
+
       clinic_id: cid,
       patient_id: patient.id,
       payment_type: patient.payment_type,
