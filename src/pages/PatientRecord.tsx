@@ -457,9 +457,9 @@ if (medRes) {
               ADD_OPTIONS;
 
             const powerCell = (field: keyof ReturnType<typeof emptyVisitForm>, kind: Kind, placeholder: string) => (
-              <div className="flex items-center gap-1" key={field as string}>
+              <div className="flex items-center gap-0.5" key={field as string}>
                 <Input
-                  className="rounded-xl text-center flex-1 min-w-[80px] text-sm"
+                  className="rounded-xl text-center flex-1 min-w-[64px] text-sm px-2"
                   value={(form as any)[field] || ""}
                   onChange={e => setField(field as string, e.target.value)}
                   placeholder={placeholder}
@@ -477,9 +477,9 @@ if (medRes) {
               </div>
             );
             const vaInline = (field: string, near = false) => (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <Input
-                  className="rounded-xl text-center flex-1 min-w-[80px] text-sm"
+                  className="rounded-xl text-center flex-1 min-w-[64px] text-sm px-2"
                   value={(form as any)[field] || ""}
                   onChange={e => setField(field, e.target.value)}
                   placeholder={near ? "N6" : "6/6"}
@@ -654,7 +654,7 @@ if (medRes) {
               <div className="space-y-1">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <Label className="text-xs">Treatment Plan</Label>
-                  <div className="grid grid-cols-1 sm:flex gap-2 w-full sm:w-auto">
+                  <div className="grid grid-cols-2 gap-2 w-full">
                     {(() => {
                       // Build subjective-Rx-derived quick options for THIS visit only
                       const fmt = (s: string, c: string, a: string) => {
