@@ -405,3 +405,27 @@ export const DIAGNOSIS_GROUPS: PickerGroup[] = [
     ],
   },
 ];
+
+// ---------- Validators ----------
+
+const POWER_RE = /^[+-]?\d+(\.\d{1,2})?$/;
+export function isValidPower(v: string): boolean {
+  if (!v) return true;
+  if (!POWER_RE.test(v)) return false;
+  const n = Math.round(parseFloat(v) * 100);
+  return n % 25 === 0;
+}
+export function isValidAxis(v: string): boolean {
+  if (!v) return true;
+  if (!/^\d{1,3}$/.test(v)) return false;
+  const n = parseInt(v, 10);
+  return n >= 1 && n <= 180;
+}
+export function isValidVaDistance(v: string): boolean {
+  if (!v) return true;
+  return VA_DISTANCE_OPTIONS.includes(v);
+}
+export function isValidVaNear(v: string): boolean {
+  if (!v) return true;
+  return VA_NEAR_OPTIONS.includes(v);
+}
