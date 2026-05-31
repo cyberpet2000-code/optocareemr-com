@@ -132,8 +132,22 @@ export default function PatientRecord() {
         .select("id, name, drug_category, category")
         .eq("clinic_id", cid);
       if (medRes) {
-        const meds = (medRes as any[])
-          .filter(m => m.drug_category || /drug|medic/i.test(m.category || ""))
+        const { data: medRes } = await apiClient
+  .from("inventory")
+  .select("id, name, drug_category, category")
+  .eq("clinic_id", cid);
+
+if (medRes) {
+  const meds = (medRes as any[])
+    .filter(m => m.name)
+    .map(m => ({
+      id: m.id,
+      name: m.name,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  setMedications(meds);
+}
           .map(m => ({ id: m.id, name: m.name }))
           .sort((a, b) => a.name.localeCompare(b.name));
         setMedications(meds);
