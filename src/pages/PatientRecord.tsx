@@ -154,10 +154,6 @@ if (medRes) {
     ...prev,
     [k]: v,
   }));
-  const appendTo = (k: keyof ReturnType<typeof emptyVisitForm>, additions: string | string[]) => {
-    const arr = Array.isArray(additions) ? additions : [additions];
-    setForm(f => ({ ...f, [k]: appendUnique((f as any)[k] || "", arr) } as any));
-  };
 
 
   const handleSaveVisit = async (markCompleted: boolean) => {
@@ -392,6 +388,7 @@ if (medRes) {
                   <QuickPicker
                     options={near ? VA_NEAR_OPTIONS : VA_DISTANCE_OPTIONS}
                     triggerLabel="VA"
+                    currentValue={(form as any)[field] || ""}
                     onSelect={v => setField(field as string, v)}
                     popoverWidthClassName="w-44"
                   />
@@ -468,6 +465,7 @@ if (medRes) {
                   options={optsFor(kind)}
                   searchable
                   triggerLabel="▾"
+                  onSelect={v => setField(field, v)}
                   onSelect={v => setField(field as string, v)}
                   popoverWidthClassName="w-40"
                 />
@@ -485,6 +483,7 @@ if (medRes) {
                 <QuickPicker
                   options={near ? VA_NEAR_OPTIONS : VA_DISTANCE_OPTIONS}
                   triggerLabel="▾"
+                  currentValue={(form as any)[field] || ""}
                   onSelect={v => setField(field, v)}
                   popoverWidthClassName="w-40"
                 />
