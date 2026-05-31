@@ -126,9 +126,22 @@ export default function PatientRecord() {
         setHmos(hmoRes.data as any);
         setHmoMap(new Map((hmoRes.data as any[]).map(h => [h.id, h.name])));
       }
+      // Load clinic medications (drug inventory)
+      const { data: medRes } = await apiClient
+        .from("inventory")
+        .select("id, name, drug_category, category")
+        .eq("clinic_id", cid);
+      if (medRes) {
+        const meds = (medRes as any[])
+          .filter(m => m.drug_category || /drug|medic/i.test(m.category || ""))
+          .map(m => ({ id: m.id, name: m.name }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        setMedications(meds);
+      }
       setLoading(false);
     })();
   }, [patientId, cid]);
+
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
   const appendTo = (k: keyof ReturnType<typeof emptyVisitForm>, additions: string | string[]) => {
