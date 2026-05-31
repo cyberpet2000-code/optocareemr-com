@@ -153,7 +153,43 @@ export default function PatientRecord() {
   const handleSaveVisit = async (markCompleted: boolean) => {
     if (!patient) return;
     if (!cid) { toast.error("No active clinic"); return; }
-    setSaving(true);
+
+    // Validation
+    const vaDistFields: [string, string][] = [
+      ["Unaided OD", form.vaUnaidedOd], ["Unaided OS", form.vaUnaidedOs], ["Unaided OU", form.vaUnaidedOu],
+      ["Pinhole OD", form.vaUnaidedOdPh], ["Pinhole OS", form.vaUnaidedOsPh],
+      ["Aided OD", form.vaAidedOd], ["Aided OS", form.vaAidedOs], ["Aided OU", form.vaAidedOu],
+      ["Auto VA OD", form.autoVaOd], ["Auto VA OS", form.autoVaOs],
+      ["Sub VA OD", form.subVaOd], ["Sub VA OS", form.subVaOs],
+    ];
+    for (const [label, val] of vaDistFields) {
+      if (!isValidVaDistance(val)) { toast.error(`Invalid VA value for ${label}: "${val}"`); return; }
+    }
+    const vaNearFields: [string, string][] = [
+      ["Near Unaided", form.vaUnaidedNearOu], ["Near Aided", form.vaAidedNearOu],
+      ["VA Outcome", form.subVaOutcome],
+    ];
+    for (const [label, val] of vaNearFields) {
+      if (!isValidVaNear(val)) { toast.error(`Invalid Near VA for ${label}: "${val}"`); return; }
+    }
+    const powerFields: [string, string][] = [
+      ["Auto OD Sphere", form.autoOdSphere], ["Auto OD Cyl", form.autoOdCyl],
+      ["Auto OS Sphere", form.autoOsSphere], ["Auto OS Cyl", form.autoOsCyl],
+      ["Sub OD Sphere", form.subOdSphere], ["Sub OD Cyl", form.subOdCyl],
+      ["Sub OS Sphere", form.subOsSphere], ["Sub OS Cyl", form.subOsCyl],
+      ["Reading ADD", form.subReadingAdd],
+    ];
+    for (const [label, val] of powerFields) {
+      if (!isValidPower(val)) { toast.error(`${label} must be in 0.25 steps (e.g. -1.25): "${val}"`); return; }
+    }
+    const axisFields: [string, string][] = [
+      ["Auto OD Axis", form.autoOdAxis], ["Auto OS Axis", form.autoOsAxis],
+      ["Sub OD Axis", form.subOdAxis], ["Sub OS Axis", form.subOsAxis],
+    ];
+    for (const [label, val] of axisFields) {
+      if (!isValidAxis(val)) { toast.error(`${label} must be 1–180: "${val}"`); return; }
+    }
+
     const { data, error } = await apiClient.from("visits").insert({
       clinic_id: cid,
       patient_id: patient.id,
