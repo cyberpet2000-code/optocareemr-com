@@ -67,6 +67,9 @@ function SuperAdminOnly({ children }: { children: React.ReactNode }) {
 
 function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
   const { user, isAuthReady } = useAccessAuth();
+  const { clinic, effectiveClinicId, memberships, profile } = useAccessClinic();
+  const { role, roleMissing } = useAccessRole();
+  
   useEffect(() => {
   if (!user) return;
 
