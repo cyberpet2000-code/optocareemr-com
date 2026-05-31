@@ -631,7 +631,35 @@ if (medRes) {
           <div className="form-section">
             <h2 className="section-title text-sm"><Gauge size={16} /> Examination</h2>
             <div className="space-y-3">
-              <div className="space-y-1"><Label className="text-xs">Examination findings</Label><Textarea className="rounded-xl" value={form.examination} onChange={e => setField("examination", e.target.value)} rows={4} placeholder="External, anterior segment, posterior segment..." /></div>
+              <div className="space-y-1">
+  <div className="flex items-center justify-between gap-2 flex-wrap">
+    <Label className="text-xs">Examination findings</Label>
+
+    <QuickPicker
+      options={EXAM_OPTIONS}
+      multi
+      searchable
+      triggerLabel="+ Quick Phrases"
+      currentValue={form.examination}
+      onSelect={v => setField("examination", v)}
+      popoverWidthClassName="w-72"
+      align="end"
+    />
+  </div>
+
+  <Textarea
+    className="rounded-xl"
+    value={form.examination}
+    onChange={e => setField("examination", e.target.value)}
+    rows={4}
+    placeholder="External, anterior segment, posterior segment..."
+  />
+
+  <PickerChips
+    value={form.examination}
+    onChange={v => setField("examination", v)}
+  />
+</div>
               <div className="space-y-3">
                 <div className="space-y-1 max-w-xs">
                   <Label className="text-xs">IOP — Time</Label>
