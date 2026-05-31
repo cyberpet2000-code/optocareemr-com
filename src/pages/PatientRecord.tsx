@@ -465,7 +465,7 @@ if (medRes) {
                   options={optsFor(kind)}
                   searchable
                   triggerLabel="▾"
-                  onSelect={v => setField(field, v)}
+                  currentValue={(form as any)[field] || ""}
                   onSelect={v => setField(field as string, v)}
                   popoverWidthClassName="w-40"
                 />
