@@ -459,7 +459,7 @@ if (medRes) {
             const powerCell = (field: keyof ReturnType<typeof emptyVisitForm>, kind: Kind, placeholder: string) => (
               <div className="flex items-center gap-1" key={field as string}>
                 <Input
-                  className="rounded-xl text-center flex-1 min-w-[120px]"
+                  className="rounded-xl text-center flex-1 min-w-[80px] text-sm"
                   value={(form as any)[field] || ""}
                   onChange={e => setField(field as string, e.target.value)}
                   placeholder={placeholder}
@@ -479,7 +479,7 @@ if (medRes) {
             const vaInline = (field: string, near = false) => (
               <div className="flex items-center gap-1">
                 <Input
-                  className="rounded-xl text-center flex-1 min-w-[120px]"
+                  className="rounded-xl text-center flex-1 min-w-[80px] text-sm"
                   value={(form as any)[field] || ""}
                   onChange={e => setField(field, e.target.value)}
                   placeholder={near ? "N6" : "6/6"}
