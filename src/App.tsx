@@ -30,10 +30,16 @@ import AcceptInvite from "./pages/AcceptInvite";
 import NoAccess from "./pages/NoAccess";
 import NotFound from "./pages/NotFound";
 import { diag, isDiagEnabled, installDiagFetchPatch, DiagOverlay } from "@/lib/diag";
+import { apiClient } from "@/lib/apiClient";
+import { toast } from "sonner";
 
 installDiagFetchPatch();
 
 const queryClient = new QueryClient();
+function playAlert() {
+  const audio = new Audio("/notify.mp3");
+  audio.play().catch(() => {});
+}
 
 function FullScreenLoader({ label = "Loading…" }: { label?: string }) {
   return (
