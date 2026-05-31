@@ -525,7 +525,7 @@ if (medRes) {
                 <div className="form-section">
                   <h2 className="section-title text-sm"><Eye size={16} /> Subjective Refraction</h2>
                   <div className="grid grid-cols-3 gap-2 items-center">
-                    <div />
+                    
                     <div />
 <Label className="text-[10px] text-center text-muted-foreground font-semibold">OD</Label>
 <Label className="text-[10px] text-center text-muted-foreground font-semibold">OS</Label>
