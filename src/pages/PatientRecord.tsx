@@ -459,7 +459,7 @@ if (medRes) {
             const powerCell = (field: keyof ReturnType<typeof emptyVisitForm>, kind: Kind, placeholder: string) => (
               <div className="flex items-center gap-1" key={field as string}>
                 <Input
-                  className="rounded-xl text-center flex-1 min-w-[92px]"
+                  className="rounded-xl text-center flex-1 min-w-[120px]"
                   value={(form as any)[field] || ""}
                   onChange={e => setField(field as string, e.target.value)}
                   placeholder={placeholder}
@@ -469,6 +469,7 @@ if (medRes) {
                   options={optsFor(kind)}
                   searchable
                   triggerLabel="▾"
+                  triggerClassName="px-1 h-9"
                   currentValue={(form as any)[field] || ""}
                   onSelect={v => setField(field as string, v)}
                   popoverWidthClassName="w-40"
@@ -478,7 +479,7 @@ if (medRes) {
             const vaInline = (field: string, near = false) => (
               <div className="flex items-center gap-1">
                 <Input
-                  className="rounded-xl text-center flex-1 min-w-[92px]"
+                  className="rounded-xl text-center flex-1 min-w-[120px]"
                   value={(form as any)[field] || ""}
                   onChange={e => setField(field, e.target.value)}
                   placeholder={near ? "N6" : "6/6"}
@@ -487,6 +488,7 @@ if (medRes) {
                 <QuickPicker
                   options={near ? VA_NEAR_OPTIONS : VA_DISTANCE_OPTIONS}
                   triggerLabel="▾"
+                  triggerClassName="px-1 h-9"
                   currentValue={(form as any)[field] || ""}
                   onSelect={v => setField(field, v)}
                   popoverWidthClassName="w-40"
@@ -498,7 +500,7 @@ if (medRes) {
               <>
                 <div className="form-section">
                   <h2 className="section-title text-sm"><Eye size={16} /> Auto Refraction</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-center">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 items-center">
                     <div />
                     <Label className="text-[10px] text-center text-muted-foreground font-semibold">Sphere</Label>
                     <Label className="text-[10px] text-center text-muted-foreground font-semibold">Cyl</Label>
@@ -521,7 +523,7 @@ if (medRes) {
 
                 <div className="form-section">
                   <h2 className="section-title text-sm"><Eye size={16} /> Subjective Refraction</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 items-center">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 items-center">
                     <div />
                     <Label className="text-[10px] text-center text-muted-foreground font-semibold">Sphere</Label>
                     <Label className="text-[10px] text-center text-muted-foreground font-semibold">Cyl</Label>
