@@ -128,11 +128,11 @@ export default function PatientRecord() {
       }
       // Load clinic medications (drug inventory)
       const { data: medRes } = await apiClient
-        console.log("inventory meds:", medRes);
-        console.log("mapped meds:", meds);
         .from("inventory")
         .select("id, name, drug_category, category")
         .eq("clinic_id", cid);
+
+    console.log("inventory meds:", medRes);
 
 if (medRes) {
   const meds = (medRes as any[])
@@ -142,6 +142,8 @@ if (medRes) {
       name: m.name,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
+
+  console.log("mapped meds:", meds);
 
   setMedications(meds);
 }
