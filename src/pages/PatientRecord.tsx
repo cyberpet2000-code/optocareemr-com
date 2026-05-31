@@ -381,9 +381,9 @@ if (medRes) {
           {(() => {
             const vaCell = (field: keyof ReturnType<typeof emptyVisitForm>, near = false, placeholder = "6/6") => (
               <div className="space-y-1" key={field as string}>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 min-w-0">
                   <Input
-                    className="rounded-xl text-center flex-1"
+                    className="rounded-xl text-center flex-1 min-w-[56px] text-sm px-2"
                     value={(form as any)[field] || ""}
                     onChange={e => setField(field as string, e.target.value)}
                     placeholder={placeholder}
@@ -403,7 +403,7 @@ if (medRes) {
               <>
                 <div className="form-section">
                   <h2 className="section-title text-sm"><Eye size={16} /> Visual Acuity — Unaided</h2>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-4 gap-2 items-center">
                     <div />
                     <Label className="text-[10px] text-center text-muted-foreground font-semibold">OD</Label>
                     <Label className="text-[10px] text-center text-muted-foreground font-semibold">OS</Label>
@@ -426,7 +426,7 @@ if (medRes) {
 
                 <div className="form-section">
                   <h2 className="section-title text-sm"><Eye size={16} /> Visual Acuity — Aided</h2>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-4 gap-2 items-center">
                     <div />
                     <Label className="text-[10px] text-center text-muted-foreground font-semibold">OD</Label>
                     <Label className="text-[10px] text-center text-muted-foreground font-semibold">OS</Label>
