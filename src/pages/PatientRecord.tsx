@@ -370,9 +370,9 @@ if (medRes) {
           <div className="form-section">
             <h2 className="section-title text-sm"><ClipboardList size={16} /> Case History</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1 sm:col-span-2"><Label className="text-xs">Chief Complaint</Label><Textarea className="rounded-xl" value={form.chiefComplaint} onChange={e => set("chiefComplaint", e.target.value)} rows={2} /></div>
-              <div className="space-y-1 sm:col-span-2"><Label className="text-xs">History (ocular, medical, family)</Label><Textarea className="rounded-xl" value={form.history} onChange={e => set("history", e.target.value)} rows={3} /></div>
-              <div className="space-y-1 sm:col-span-2"><Label className="text-xs">Old Lens Prescription</Label><Textarea className="rounded-xl" value={form.oldLensPrescription} onChange={e => set("oldLensPrescription", e.target.value)} rows={2} placeholder="e.g. OD -2.00/-0.50x180  OS -1.75/-0.75x10" /></div>
+              <div className="space-y-1 sm:col-span-2"><Label className="text-xs">Chief Complaint</Label><Textarea className="rounded-xl" value={form.chiefComplaint} onChange={e => setField("chiefComplaint", e.target.value)} rows={2} /></div>
+              <div className="space-y-1 sm:col-span-2"><Label className="text-xs">History (ocular, medical, family)</Label><Textarea className="rounded-xl" value={form.history} onChange={e => setField("history", e.target.value)} rows={3} /></div>
+              <div className="space-y-1 sm:col-span-2"><Label className="text-xs">Old Lens Prescription</Label><Textarea className="rounded-xl" value={form.oldLensPrescription} onChange={e => setField("oldLensPrescription", e.target.value)} rows={2} placeholder="e.g. OD -2.00/-0.50x180  OS -1.75/-0.75x10" /></div>
             </div>
           </div>
         </TabsContent>
@@ -541,8 +541,8 @@ if (medRes) {
                     <div className="space-y-1">
                       <Label className="text-xs">Reading ADD</Label>
                       <div className="flex items-center gap-1">
-                        <Input className="rounded-xl flex-1" value={form.subReadingAdd} onChange={e => set("subReadingAdd", e.target.value)} placeholder="+1.50" />
-                        <QuickPicker options={ADD_OPTIONS} searchable triggerLabel="▾" onSelect={v => set("subReadingAdd", v)} popoverWidthClassName="w-40" />
+                        <Input className="rounded-xl flex-1" value={form.subReadingAdd} onChange={e => setField("subReadingAdd", e.target.value)} placeholder="+1.50" />
+                        <QuickPicker options={ADD_OPTIONS} searchable triggerLabel="▾" onSelect={v => setField("subReadingAdd", v)} popoverWidthClassName="w-40" />
                       </div>
                     </div>
                     <div className="space-y-1">
@@ -562,11 +562,11 @@ if (medRes) {
           <div className="form-section">
             <h2 className="section-title text-sm"><Gauge size={16} /> Examination</h2>
             <div className="space-y-3">
-              <div className="space-y-1"><Label className="text-xs">Examination findings</Label><Textarea className="rounded-xl" value={form.examination} onChange={e => set("examination", e.target.value)} rows={4} placeholder="External, anterior segment, posterior segment..." /></div>
+              <div className="space-y-1"><Label className="text-xs">Examination findings</Label><Textarea className="rounded-xl" value={form.examination} onChange={e => setField("examination", e.target.value)} rows={4} placeholder="External, anterior segment, posterior segment..." /></div>
               <div className="space-y-3">
                 <div className="space-y-1 max-w-xs">
                   <Label className="text-xs">IOP — Time</Label>
-                  <Input className="rounded-xl" type="time" value={form.iopTime} onChange={e => set("iopTime", e.target.value)} aria-label="IOP time (shared)" />
+                  <Input className="rounded-xl" type="time" value={form.iopTime} onChange={e => setField("iopTime", e.target.value)} aria-label="IOP time (shared)" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
@@ -642,8 +642,8 @@ if (medRes) {
                     />
                   </div>
                 </div>
-                <Textarea className="rounded-xl" value={form.diagnosis} onChange={e => set("diagnosis", e.target.value)} rows={3} />
-                <PickerChips value={form.diagnosis} onChange={v => set("diagnosis", v)} />
+                <Textarea className="rounded-xl" value={form.diagnosis} onChange={e => setField("diagnosis", e.target.value)} rows={3} />
+                <PickerChips value={form.diagnosis} onChange={v => setField("diagnosis", v)} />
               </div>
 
               <div className="space-y-1">
@@ -702,8 +702,8 @@ if (medRes) {
                     />
                   </div>
                 </div>
-                <Textarea className="rounded-xl" value={form.treatment} onChange={e => set("treatment", e.target.value)} rows={3} />
-                <PickerChips value={form.treatment} onChange={v => set("treatment", v)} />
+                <Textarea className="rounded-xl" value={form.treatment} onChange={e => setField("treatment", e.target.value)} rows={3} />
+                <PickerChips value={form.treatment} onChange={v => setField("treatment", v)} />
               </div>
 
 
@@ -731,7 +731,7 @@ if (medRes) {
                     />
                   </div>
                 </div>
-                <Textarea className="rounded-xl" value={form.notes} onChange={e => set("notes", e.target.value)} rows={3} placeholder="Advice, counselling, referrals, follow-up..." />
+                <Textarea className="rounded-xl" value={form.notes} onChange={e => setField("notes", e.target.value)} rows={3} placeholder="Advice, counselling, referrals, follow-up..." />
                 <PickerChips value={form.notes} onChange={v => set("notes", v)} />
               </div>
             </div>
