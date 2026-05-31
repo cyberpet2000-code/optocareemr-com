@@ -114,6 +114,7 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
       },
       payload => {
         const v: any = payload.new;
+        if (v.clinic_id !== effectiveClinicId) return;
 
         if (v.status === "completed") {
           toast("✅ Visit completed");
@@ -148,6 +149,7 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
       setTimedOut(false);
       return;
     }
+    
     const timer = window.setTimeout(() => setTimedOut(true), ACCESS_TIMEOUT_MS);
     return () => window.clearTimeout(timer);
   }, [isAuthReady, user]);
