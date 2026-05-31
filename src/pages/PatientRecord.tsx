@@ -131,11 +131,6 @@ export default function PatientRecord() {
         .from("inventory")
         .select("id, name, drug_category, category")
         .eq("clinic_id", cid);
-      if (medRes) {
-        const { data: medRes } = await apiClient
-  .from("inventory")
-  .select("id, name, drug_category, category")
-  .eq("clinic_id", cid);
 
 if (medRes) {
   const meds = (medRes as any[])
@@ -634,7 +629,7 @@ if (medRes) {
                       multi
                       triggerLabel="+ Refractive Error"
                       currentValue={form.diagnosis}
-                      onSelect={merged => set("diagnosis", merged)}
+                      onSelect={merged => setField("diagnosis", merged)}
                       popoverWidthClassName="w-64"
                       align="end"
                     />
@@ -644,7 +639,7 @@ if (medRes) {
                       searchable
                       triggerLabel="+ Diagnosis"
                       currentValue={form.diagnosis}
-                      onSelect={merged => set("diagnosis", merged)}
+                      onSelect={merged => setField("diagnosis", merged)}
                       popoverWidthClassName="w-72"
                       align="end"
                     />
@@ -687,7 +682,7 @@ if (medRes) {
                           multi
                           triggerLabel="+ From Subjective Rx"
                           currentValue={form.treatment}
-                          onSelect={merged => set("treatment", merged)}
+                          onSelect={merged => setField("treatment", merged)}
                           popoverWidthClassName="w-80"
                           align="end"
                         />
@@ -699,13 +694,13 @@ if (medRes) {
                       searchable
                       triggerLabel="+ Glasses / Lens"
                       currentValue={form.treatment}
-                      onSelect={merged => set("treatment", merged)}
+                      onSelect={merged => setField("treatment", merged)}
                       popoverWidthClassName="w-72"
                       align="end"
                     />
                     <MedicationPicker
                       items={medications}
-                      onAdd={line => set("treatment", appendUnique(form.treatment, [line]))}
+                      onAdd={line => setField("treatment", appendUnique(form.treatment, [line]))}
                       triggerLabel="+ Medication"
                     />
                   </div>
@@ -724,7 +719,7 @@ if (medRes) {
                       multi
                       triggerLabel="+ Advice"
                       currentValue={form.notes}
-                      onSelect={merged => set("notes", merged)}
+                      onSelect={merged => setField("notes", merged)}
                       popoverWidthClassName="w-64"
                       align="end"
                     />
@@ -733,7 +728,7 @@ if (medRes) {
                       multi
                       triggerLabel="+ Referral"
                       currentValue={form.notes}
-                      onSelect={merged => set("notes", merged)}
+                      onSelect={merged => setField("notes", merged)}
                       popoverWidthClassName="w-64"
                       align="end"
                     />
