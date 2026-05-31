@@ -732,7 +732,7 @@ if (medRes) {
                   </div>
                 </div>
                 <Textarea className="rounded-xl" value={form.notes} onChange={e => setField("notes", e.target.value)} rows={3} placeholder="Advice, counselling, referrals, follow-up..." />
-                <PickerChips value={form.notes} onChange={v => set("notes", v)} />
+                <PickerChips value={form.notes} onChange={v => setField("notes", v)} />
               </div>
             </div>
           </div>
