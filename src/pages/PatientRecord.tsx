@@ -14,6 +14,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAccess } from "@/hooks/useAccess";
 import {
   QuickPicker, PickerChips, appendUnique,
+
+  CHIEF_COMPLAINT_OPTIONS,
+  HISTORY_OPTIONS,
+  EXAM_OPTIONS,
   VA_DISTANCE_OPTIONS, VA_NEAR_OPTIONS,
   SPHERE_OPTIONS, CYL_OPTIONS, ADD_OPTIONS, AXIS_OPTIONS,
   REFRACTIVE_ERROR_OPTIONS, LENS_RECOMMENDATION_OPTIONS,
