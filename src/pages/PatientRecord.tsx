@@ -18,7 +18,10 @@ import {
   SPHERE_OPTIONS, CYL_OPTIONS, ADD_OPTIONS, AXIS_OPTIONS,
   REFRACTIVE_ERROR_OPTIONS, LENS_RECOMMENDATION_OPTIONS,
   ADVICE_OPTIONS, REFERRAL_OPTIONS, DIAGNOSIS_GROUPS,
+  isValidPower, isValidAxis, isValidVaDistance, isValidVaNear,
 } from "@/components/QuickPicker";
+import { MedicationPicker, type MedItem } from "@/components/MedicationPicker";
+
 
 interface PatientData {
   id: string;
