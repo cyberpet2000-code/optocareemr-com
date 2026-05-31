@@ -137,11 +137,22 @@ export function QuickPicker({
               autoFocus
               value={query}
               onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const first = filteredGroups[0]?.items[0];
+                  if (first) toggle(first);
+                } else if (e.key === "Escape") {
+                  setOpen(false);
+                }
+              }}
               placeholder="Search..."
+              aria-label="Search options"
               className="h-8 text-xs rounded-lg"
             />
           </div>
         )}
+
         <div className="max-h-72 overflow-y-auto p-1">
           {filteredGroups.length === 0 && (
             <div className="text-xs text-muted-foreground px-3 py-4 text-center">No matches</div>
@@ -221,11 +232,12 @@ export function PickerChips({ value, onChange }: ChipsProps) {
 // ---------- Option presets ----------
 
 export const VA_DISTANCE_OPTIONS = [
-  "NLP", "LP", "HM", "CF",
-  "6/60", "6/36", "6/24", "6/18", "6/12", "6/9", "6/6",
+  "6/4", "6/5", "6/6", "6/9", "6/12", "6/18", "6/24", "6/36", "6/60",
+  "3/60", "CF", "HM", "LP", "NLP",
 ];
 
-export const VA_NEAR_OPTIONS = ["N24", "N18", "N12", "N10", "N8", "N6", "N5"];
+export const VA_NEAR_OPTIONS = ["N5", "N6", "N8", "N10", "N12", "N18", "N24", "N36"];
+
 
 function buildSphereOptions(): string[] {
   const opts: string[] = [];
@@ -268,6 +280,13 @@ export const REFRACTIVE_ERROR_OPTIONS = [
 ];
 
 export const LENS_RECOMMENDATION_OPTIONS = [
+  "Glasses",
+  "Spectacles",
+  "Prescription spectacles",
+  "Reading glasses",
+  "Distance glasses",
+  "Bifocal spectacles",
+  "Progressive spectacles",
   "Photochromic Blue Cut (Photo BC)",
   "Photochromic AR",
   "Varilux (PAL)",
@@ -285,6 +304,7 @@ export const LENS_RECOMMENDATION_OPTIONS = [
   "Plano Protective Glasses",
   "High Index Lens",
 ];
+
 
 export const ADVICE_OPTIONS = [
   "Use glasses full time",
@@ -385,3 +405,27 @@ export const DIAGNOSIS_GROUPS: PickerGroup[] = [
     ],
   },
 ];
+
+// ---------- Validators ----------
+
+const POWER_RE = /^[+-]?\d+(\.\d{1,2})?$/;
+export function isValidPower(v: string): boolean {
+  if (!v) return true;
+  if (!POWER_RE.test(v)) return false;
+  const n = Math.round(parseFloat(v) * 100);
+  return n % 25 === 0;
+}
+export function isValidAxis(v: string): boolean {
+  if (!v) return true;
+  if (!/^\d{1,3}$/.test(v)) return false;
+  const n = parseInt(v, 10);
+  return n >= 1 && n <= 180;
+}
+export function isValidVaDistance(v: string): boolean {
+  if (!v) return true;
+  return VA_DISTANCE_OPTIONS.includes(v);
+}
+export function isValidVaNear(v: string): boolean {
+  if (!v) return true;
+  return VA_NEAR_OPTIONS.includes(v);
+}

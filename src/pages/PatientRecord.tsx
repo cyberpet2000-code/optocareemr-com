@@ -18,7 +18,10 @@ import {
   SPHERE_OPTIONS, CYL_OPTIONS, ADD_OPTIONS, AXIS_OPTIONS,
   REFRACTIVE_ERROR_OPTIONS, LENS_RECOMMENDATION_OPTIONS,
   ADVICE_OPTIONS, REFERRAL_OPTIONS, DIAGNOSIS_GROUPS,
+  isValidPower, isValidAxis, isValidVaDistance, isValidVaNear,
 } from "@/components/QuickPicker";
+import { MedicationPicker, type MedItem } from "@/components/MedicationPicker";
+
 
 interface PatientData {
   id: string;
@@ -71,6 +74,8 @@ export default function PatientRecord() {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<PatientData>>({});
   const [form, setForm] = useState(emptyVisitForm());
+  const [medications, setMedications] = useState<MedItem[]>([]);
+
 
   useEffect(() => {
     if (!patientId || !cid) { setLoading(false); return; }
@@ -121,9 +126,22 @@ export default function PatientRecord() {
         setHmos(hmoRes.data as any);
         setHmoMap(new Map((hmoRes.data as any[]).map(h => [h.id, h.name])));
       }
+      // Load clinic medications (drug inventory)
+      const { data: medRes } = await apiClient
+        .from("inventory")
+        .select("id, name, drug_category, category")
+        .eq("clinic_id", cid);
+      if (medRes) {
+        const meds = (medRes as any[])
+          .filter(m => m.drug_category || /drug|medic/i.test(m.category || ""))
+          .map(m => ({ id: m.id, name: m.name }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        setMedications(meds);
+      }
       setLoading(false);
     })();
   }, [patientId, cid]);
+
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
   const appendTo = (k: keyof ReturnType<typeof emptyVisitForm>, additions: string | string[]) => {
@@ -135,8 +153,46 @@ export default function PatientRecord() {
   const handleSaveVisit = async (markCompleted: boolean) => {
     if (!patient) return;
     if (!cid) { toast.error("No active clinic"); return; }
+
+    // Validation
+    const vaDistFields: [string, string][] = [
+      ["Unaided OD", form.vaUnaidedOd], ["Unaided OS", form.vaUnaidedOs], ["Unaided OU", form.vaUnaidedOu],
+      ["Pinhole OD", form.vaUnaidedOdPh], ["Pinhole OS", form.vaUnaidedOsPh],
+      ["Aided OD", form.vaAidedOd], ["Aided OS", form.vaAidedOs], ["Aided OU", form.vaAidedOu],
+      ["Auto VA OD", form.autoVaOd], ["Auto VA OS", form.autoVaOs],
+      ["Sub VA OD", form.subVaOd], ["Sub VA OS", form.subVaOs],
+    ];
+    for (const [label, val] of vaDistFields) {
+      if (!isValidVaDistance(val)) { toast.error(`Invalid VA value for ${label}: "${val}"`); return; }
+    }
+    const vaNearFields: [string, string][] = [
+      ["Near Unaided", form.vaUnaidedNearOu], ["Near Aided", form.vaAidedNearOu],
+      ["VA Outcome", form.subVaOutcome],
+    ];
+    for (const [label, val] of vaNearFields) {
+      if (!isValidVaNear(val)) { toast.error(`Invalid Near VA for ${label}: "${val}"`); return; }
+    }
+    const powerFields: [string, string][] = [
+      ["Auto OD Sphere", form.autoOdSphere], ["Auto OD Cyl", form.autoOdCyl],
+      ["Auto OS Sphere", form.autoOsSphere], ["Auto OS Cyl", form.autoOsCyl],
+      ["Sub OD Sphere", form.subOdSphere], ["Sub OD Cyl", form.subOdCyl],
+      ["Sub OS Sphere", form.subOsSphere], ["Sub OS Cyl", form.subOsCyl],
+      ["Reading ADD", form.subReadingAdd],
+    ];
+    for (const [label, val] of powerFields) {
+      if (!isValidPower(val)) { toast.error(`${label} must be in 0.25 steps (e.g. -1.25): "${val}"`); return; }
+    }
+    const axisFields: [string, string][] = [
+      ["Auto OD Axis", form.autoOdAxis], ["Auto OS Axis", form.autoOsAxis],
+      ["Sub OD Axis", form.subOdAxis], ["Sub OS Axis", form.subOsAxis],
+    ];
+    for (const [label, val] of axisFields) {
+      if (!isValidAxis(val)) { toast.error(`${label} must be 1–180: "${val}"`); return; }
+    }
+
     setSaving(true);
     const { data, error } = await apiClient.from("visits").insert({
+
       clinic_id: cid,
       patient_id: patient.id,
       payment_type: patient.payment_type,
@@ -313,14 +369,15 @@ export default function PatientRecord() {
 
         <TabsContent value="va" className="space-y-4">
           {(() => {
-            const VaCell = ({ field, near = false, placeholder = "6/6" }: { field: keyof ReturnType<typeof emptyVisitForm>; near?: boolean; placeholder?: string }) => (
-              <div className="space-y-1">
+            const vaCell = (field: keyof ReturnType<typeof emptyVisitForm>, near = false, placeholder = "6/6") => (
+              <div className="space-y-1" key={field as string}>
                 <div className="flex items-center gap-1">
                   <Input
                     className="rounded-xl text-center flex-1"
-                    value={(form as any)[field]}
+                    value={(form as any)[field] || ""}
                     onChange={e => set(field as string, e.target.value)}
                     placeholder={placeholder}
+                    aria-label={field as string}
                   />
                   <QuickPicker
                     options={near ? VA_NEAR_OPTIONS : VA_DISTANCE_OPTIONS}
@@ -342,17 +399,17 @@ export default function PatientRecord() {
                     <Label className="text-[10px] text-center text-muted-foreground font-semibold">OU</Label>
 
                     <Label className="text-xs flex items-center font-semibold">Distance</Label>
-                    <VaCell field="vaUnaidedOd" />
-                    <VaCell field="vaUnaidedOs" />
-                    <VaCell field="vaUnaidedOu" />
+                    {vaCell("vaUnaidedOd")}
+                    {vaCell("vaUnaidedOs")}
+                    {vaCell("vaUnaidedOu")}
 
                     <Label className="text-xs flex items-center font-semibold">Pinhole</Label>
-                    <VaCell field="vaUnaidedOdPh" />
-                    <VaCell field="vaUnaidedOsPh" />
+                    {vaCell("vaUnaidedOdPh")}
+                    {vaCell("vaUnaidedOsPh")}
                     <div />
 
                     <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
-                    <div className="col-span-3"><VaCell field="vaUnaidedNearOu" near placeholder="N6" /></div>
+                    <div className="col-span-3">{vaCell("vaUnaidedNearOu", true, "N6")}</div>
                   </div>
                 </div>
 
@@ -365,18 +422,19 @@ export default function PatientRecord() {
                     <Label className="text-[10px] text-center text-muted-foreground font-semibold">OU</Label>
 
                     <Label className="text-xs flex items-center font-semibold">Distance</Label>
-                    <VaCell field="vaAidedOd" />
-                    <VaCell field="vaAidedOs" />
-                    <VaCell field="vaAidedOu" />
+                    {vaCell("vaAidedOd")}
+                    {vaCell("vaAidedOs")}
+                    {vaCell("vaAidedOu")}
 
                     <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
-                    <div className="col-span-3"><VaCell field="vaAidedNearOu" near placeholder="N6" /></div>
+                    <div className="col-span-3">{vaCell("vaAidedNearOu", true, "N6")}</div>
                   </div>
                 </div>
               </>
             );
           })()}
         </TabsContent>
+
 
         <TabsContent value="refraction" className="space-y-4">
           {(() => {
@@ -387,19 +445,37 @@ export default function PatientRecord() {
               k === "axis" ? AXIS_OPTIONS :
               ADD_OPTIONS;
 
-            const PowerCell = ({ field, kind, placeholder }: { field: keyof ReturnType<typeof emptyVisitForm>; kind: Kind; placeholder: string }) => (
-              <div className="flex items-center gap-1">
+            const powerCell = (field: keyof ReturnType<typeof emptyVisitForm>, kind: Kind, placeholder: string) => (
+              <div className="flex items-center gap-1" key={field as string}>
                 <Input
                   className="rounded-xl text-center flex-1 min-w-0"
-                  value={(form as any)[field]}
+                  value={(form as any)[field] || ""}
                   onChange={e => set(field as string, e.target.value)}
                   placeholder={placeholder}
+                  aria-label={field as string}
                 />
                 <QuickPicker
                   options={optsFor(kind)}
                   searchable
                   triggerLabel="▾"
                   onSelect={v => set(field as string, v)}
+                  popoverWidthClassName="w-40"
+                />
+              </div>
+            );
+            const vaInline = (field: string, near = false) => (
+              <div className="flex items-center gap-1">
+                <Input
+                  className="rounded-xl text-center flex-1 min-w-0"
+                  value={(form as any)[field] || ""}
+                  onChange={e => set(field, e.target.value)}
+                  placeholder={near ? "N6" : "6/6"}
+                  aria-label={field}
+                />
+                <QuickPicker
+                  options={near ? VA_NEAR_OPTIONS : VA_DISTANCE_OPTIONS}
+                  triggerLabel="▾"
+                  onSelect={v => set(field, v)}
                   popoverWidthClassName="w-40"
                 />
               </div>
@@ -417,22 +493,16 @@ export default function PatientRecord() {
                     <Label className="text-[10px] text-center text-muted-foreground font-semibold">VA</Label>
 
                     <Label className="text-xs flex items-center font-semibold">OD</Label>
-                    <PowerCell field="autoOdSphere" kind="sphere" placeholder="-1.00" />
-                    <PowerCell field="autoOdCyl" kind="cyl" placeholder="-0.50" />
-                    <PowerCell field="autoOdAxis" kind="axis" placeholder="180" />
-                    <div className="flex items-center gap-1">
-                      <Input className="rounded-xl text-center flex-1 min-w-0" value={form.autoVaOd} onChange={e => set("autoVaOd", e.target.value)} placeholder="6/6" />
-                      <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("autoVaOd", v)} popoverWidthClassName="w-40" />
-                    </div>
+                    {powerCell("autoOdSphere", "sphere", "-1.00")}
+                    {powerCell("autoOdCyl", "cyl", "-0.50")}
+                    {powerCell("autoOdAxis", "axis", "180")}
+                    {vaInline("autoVaOd")}
 
                     <Label className="text-xs flex items-center font-semibold">OS</Label>
-                    <PowerCell field="autoOsSphere" kind="sphere" placeholder="-1.00" />
-                    <PowerCell field="autoOsCyl" kind="cyl" placeholder="-0.50" />
-                    <PowerCell field="autoOsAxis" kind="axis" placeholder="180" />
-                    <div className="flex items-center gap-1">
-                      <Input className="rounded-xl text-center flex-1 min-w-0" value={form.autoVaOs} onChange={e => set("autoVaOs", e.target.value)} placeholder="6/6" />
-                      <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("autoVaOs", v)} popoverWidthClassName="w-40" />
-                    </div>
+                    {powerCell("autoOsSphere", "sphere", "-1.00")}
+                    {powerCell("autoOsCyl", "cyl", "-0.50")}
+                    {powerCell("autoOsAxis", "axis", "180")}
+                    {vaInline("autoVaOs")}
                   </div>
                 </div>
 
@@ -446,22 +516,16 @@ export default function PatientRecord() {
                     <Label className="text-[10px] text-center text-muted-foreground font-semibold">VA</Label>
 
                     <Label className="text-xs flex items-center font-semibold">OD</Label>
-                    <PowerCell field="subOdSphere" kind="sphere" placeholder="-1.00" />
-                    <PowerCell field="subOdCyl" kind="cyl" placeholder="-0.50" />
-                    <PowerCell field="subOdAxis" kind="axis" placeholder="180" />
-                    <div className="flex items-center gap-1">
-                      <Input className="rounded-xl text-center flex-1 min-w-0" value={form.subVaOd} onChange={e => set("subVaOd", e.target.value)} placeholder="6/6" />
-                      <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("subVaOd", v)} popoverWidthClassName="w-40" />
-                    </div>
+                    {powerCell("subOdSphere", "sphere", "-1.00")}
+                    {powerCell("subOdCyl", "cyl", "-0.50")}
+                    {powerCell("subOdAxis", "axis", "180")}
+                    {vaInline("subVaOd")}
 
                     <Label className="text-xs flex items-center font-semibold">OS</Label>
-                    <PowerCell field="subOsSphere" kind="sphere" placeholder="-1.00" />
-                    <PowerCell field="subOsCyl" kind="cyl" placeholder="-0.50" />
-                    <PowerCell field="subOsAxis" kind="axis" placeholder="180" />
-                    <div className="flex items-center gap-1">
-                      <Input className="rounded-xl text-center flex-1 min-w-0" value={form.subVaOs} onChange={e => set("subVaOs", e.target.value)} placeholder="6/6" />
-                      <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("subVaOs", v)} popoverWidthClassName="w-40" />
-                    </div>
+                    {powerCell("subOsSphere", "sphere", "-1.00")}
+                    {powerCell("subOsCyl", "cyl", "-0.50")}
+                    {powerCell("subOsAxis", "axis", "180")}
+                    {vaInline("subVaOs")}
                   </div>
                   <div className="grid grid-cols-2 gap-3 mt-3">
                     <div className="space-y-1">
@@ -472,11 +536,8 @@ export default function PatientRecord() {
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">VA Outcome</Label>
-                      <div className="flex items-center gap-1">
-                        <Input className="rounded-xl flex-1" value={form.subVaOutcome} onChange={e => set("subVaOutcome", e.target.value)} placeholder="6/6" />
-                        <QuickPicker options={VA_DISTANCE_OPTIONS} triggerLabel="▾" onSelect={v => set("subVaOutcome", v)} popoverWidthClassName="w-40" />
-                      </div>
+                      <Label className="text-xs">VA Outcome (Near)</Label>
+                      {vaInline("subVaOutcome", true)}
                     </div>
                   </div>
                 </div>
@@ -484,6 +545,7 @@ export default function PatientRecord() {
             );
           })()}
         </TabsContent>
+
 
 
         <TabsContent value="exam" className="space-y-4">
@@ -577,20 +639,63 @@ export default function PatientRecord() {
               <div className="space-y-1">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <Label className="text-xs">Treatment Plan</Label>
-                  <QuickPicker
-                    options={LENS_RECOMMENDATION_OPTIONS}
-                    multi
-                    searchable
-                    triggerLabel="+ Lens Recommendation"
-                    currentValue={form.treatment}
-                    onSelect={merged => set("treatment", merged)}
-                    popoverWidthClassName="w-72"
-                    align="end"
-                  />
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {(() => {
+                      // Build subjective-Rx-derived quick options for THIS visit only
+                      const fmt = (s: string, c: string, a: string) => {
+                        const parts: string[] = [];
+                        if (s) parts.push(s);
+                        if (c) parts.push(`/${c}`);
+                        if (a) parts.push(`x${a}`);
+                        return parts.join("");
+                      };
+                      const od = fmt(form.subOdSphere, form.subOdCyl, form.subOdAxis);
+                      const os = fmt(form.subOsSphere, form.subOsCyl, form.subOsAxis);
+                      const subOptions: string[] = [];
+                      if (od || os) {
+                        const va = (form.subVaOd || form.subVaOs)
+                          ? ` (VA OD ${form.subVaOd || "—"} / OS ${form.subVaOs || "—"})`
+                          : "";
+                        subOptions.push(`Spectacles: OD ${od || "Plano"} / OS ${os || "Plano"}${va}`);
+                        subOptions.push(`Current subjective Rx: OD ${od || "Plano"} / OS ${os || "Plano"}`);
+                      }
+                      if (form.subReadingAdd) {
+                        subOptions.push(`Spectacles + Reading Add ${form.subReadingAdd}`);
+                      }
+                      if (subOptions.length === 0) return null;
+                      return (
+                        <QuickPicker
+                          options={subOptions}
+                          multi
+                          triggerLabel="+ From Subjective Rx"
+                          currentValue={form.treatment}
+                          onSelect={merged => set("treatment", merged)}
+                          popoverWidthClassName="w-80"
+                          align="end"
+                        />
+                      );
+                    })()}
+                    <QuickPicker
+                      options={LENS_RECOMMENDATION_OPTIONS}
+                      multi
+                      searchable
+                      triggerLabel="+ Glasses / Lens"
+                      currentValue={form.treatment}
+                      onSelect={merged => set("treatment", merged)}
+                      popoverWidthClassName="w-72"
+                      align="end"
+                    />
+                    <MedicationPicker
+                      items={medications}
+                      onAdd={line => set("treatment", appendUnique(form.treatment, [line]))}
+                      triggerLabel="+ Medication"
+                    />
+                  </div>
                 </div>
                 <Textarea className="rounded-xl" value={form.treatment} onChange={e => set("treatment", e.target.value)} rows={3} />
                 <PickerChips value={form.treatment} onChange={v => set("treatment", v)} />
               </div>
+
 
               <div className="space-y-1">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
