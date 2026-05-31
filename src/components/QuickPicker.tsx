@@ -137,11 +137,22 @@ export function QuickPicker({
               autoFocus
               value={query}
               onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const first = filteredGroups[0]?.items[0];
+                  if (first) toggle(first);
+                } else if (e.key === "Escape") {
+                  setOpen(false);
+                }
+              }}
               placeholder="Search..."
+              aria-label="Search options"
               className="h-8 text-xs rounded-lg"
             />
           </div>
         )}
+
         <div className="max-h-72 overflow-y-auto p-1">
           {filteredGroups.length === 0 && (
             <div className="text-xs text-muted-foreground px-3 py-4 text-center">No matches</div>
