@@ -231,6 +231,55 @@ export function PickerChips({ value, onChange }: ChipsProps) {
 
 // ---------- Option presets ----------
 
+export const CHIEF_COMPLAINT_OPTIONS = [
+   "Routine eye check",
+  "Blurred distance vision",
+  "Blurred near vision",
+  "Blurry  vision",
+  "Eye pain",
+  "Red eye",
+  "Itching eyes",
+  "Watering eyes",
+  "Headache ",
+  "Discharge",
+];
+
+export const HISTORY_OPTIONS = [
+  "No previous ocular surgery",
+  "No history of trauma",
+  "Uses spectacles",
+  "Diabetic",
+  "Hypertensive",
+  "Family history of glaucoma",
+ "No known ocular history ",
+ "No known medical history ",
+ "No known family history",
+ "No known history",
+ "Family history of cataract ",
+];
+
+export const EXAM_OPTIONS = [
+  "Anterior segment normal ",
+  "Cornea clear ",
+  "Lens clear ",
+  "Fundus normal ",
+  "Dry eye signs present",
+ "Pterygium ",
+ "Arcus senilis",
+ "Conjunctival injection",
+ "Hyperemia",
+ "Pinguecula",
+ "Corneal opacity/scar",
+ "Round/reactive pupils",
+ "C/D ratio ",
+ "Non-reactive pupil",
+ "Sluggish reaction",
+ "Mid dilated pupil",
+ "Miotic pupil",
+ "Anisocoria",
+ "Lens not clear",
+];
+
 export const VA_DISTANCE_OPTIONS = [
   "6/4", "6/5", "6/6", "6/9", "6/12", "6/18", "6/24", "6/36", "6/60",
   "3/60", "CF", "HM", "LP", "NLP",
