@@ -208,11 +208,11 @@ export function PickerChips({ value, onChange }: ChipsProps) {
   const items = splitValues(value);
   if (items.length === 0) return null;
   return (
-    <div className="flex flex-wrap gap-1 mt-1">
+    <div className="flex flex-wrap gap-2 mt-2">
       {items.map(item => (
         <span
           key={item}
-          className="inline-flex items-center gap-1 bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full"
+          className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs px-3 py-1 rounded-full"
         >
           {item}
           <button
