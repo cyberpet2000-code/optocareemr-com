@@ -369,14 +369,15 @@ export default function PatientRecord() {
 
         <TabsContent value="va" className="space-y-4">
           {(() => {
-            const VaCell = ({ field, near = false, placeholder = "6/6" }: { field: keyof ReturnType<typeof emptyVisitForm>; near?: boolean; placeholder?: string }) => (
-              <div className="space-y-1">
+            const vaCell = (field: keyof ReturnType<typeof emptyVisitForm>, near = false, placeholder = "6/6") => (
+              <div className="space-y-1" key={field as string}>
                 <div className="flex items-center gap-1">
                   <Input
                     className="rounded-xl text-center flex-1"
-                    value={(form as any)[field]}
+                    value={(form as any)[field] || ""}
                     onChange={e => set(field as string, e.target.value)}
                     placeholder={placeholder}
+                    aria-label={field as string}
                   />
                   <QuickPicker
                     options={near ? VA_NEAR_OPTIONS : VA_DISTANCE_OPTIONS}
@@ -398,17 +399,17 @@ export default function PatientRecord() {
                     <Label className="text-[10px] text-center text-muted-foreground font-semibold">OU</Label>
 
                     <Label className="text-xs flex items-center font-semibold">Distance</Label>
-                    <VaCell field="vaUnaidedOd" />
-                    <VaCell field="vaUnaidedOs" />
-                    <VaCell field="vaUnaidedOu" />
+                    {vaCell("vaUnaidedOd")}
+                    {vaCell("vaUnaidedOs")}
+                    {vaCell("vaUnaidedOu")}
 
                     <Label className="text-xs flex items-center font-semibold">Pinhole</Label>
-                    <VaCell field="vaUnaidedOdPh" />
-                    <VaCell field="vaUnaidedOsPh" />
+                    {vaCell("vaUnaidedOdPh")}
+                    {vaCell("vaUnaidedOsPh")}
                     <div />
 
                     <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
-                    <div className="col-span-3"><VaCell field="vaUnaidedNearOu" near placeholder="N6" /></div>
+                    <div className="col-span-3">{vaCell("vaUnaidedNearOu", true, "N6")}</div>
                   </div>
                 </div>
 
@@ -421,18 +422,19 @@ export default function PatientRecord() {
                     <Label className="text-[10px] text-center text-muted-foreground font-semibold">OU</Label>
 
                     <Label className="text-xs flex items-center font-semibold">Distance</Label>
-                    <VaCell field="vaAidedOd" />
-                    <VaCell field="vaAidedOs" />
-                    <VaCell field="vaAidedOu" />
+                    {vaCell("vaAidedOd")}
+                    {vaCell("vaAidedOs")}
+                    {vaCell("vaAidedOu")}
 
                     <Label className="text-xs flex items-center font-semibold">Near VA (OU)</Label>
-                    <div className="col-span-3"><VaCell field="vaAidedNearOu" near placeholder="N6" /></div>
+                    <div className="col-span-3">{vaCell("vaAidedNearOu", true, "N6")}</div>
                   </div>
                 </div>
               </>
             );
           })()}
         </TabsContent>
+
 
         <TabsContent value="refraction" className="space-y-4">
           {(() => {
