@@ -139,8 +139,6 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
     apiClient.removeChannel(visitsChannel);
   };
 }, [user,effectiveClinicId]);
-  const { clinic, effectiveClinicId, memberships, profile } = useAccessClinic();
-  const { role, roleMissing } = useAccessRole();
   const location = useLocation();
   const [timedOut, setTimedOut] = useState(false);
   const setupCompleted = clinic?.setup_completed ?? null;
