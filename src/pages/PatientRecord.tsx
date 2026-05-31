@@ -393,14 +393,14 @@ if (medRes) {
                   <Input
                     className="rounded-xl text-center flex-1"
                     value={(form as any)[field] || ""}
-                    onChange={e => set(field as string, e.target.value)}
+                    onChange={e => setField(field as string, e.target.value)}
                     placeholder={placeholder}
                     aria-label={field as string}
                   />
                   <QuickPicker
                     options={near ? VA_NEAR_OPTIONS : VA_DISTANCE_OPTIONS}
                     triggerLabel="VA"
-                    onSelect={v => set(field as string, v)}
+                    onSelect={v => setField(field as string, v)}
                     popoverWidthClassName="w-44"
                   />
                 </div>
@@ -468,7 +468,7 @@ if (medRes) {
                 <Input
                   className="rounded-xl text-center flex-1 min-w-0"
                   value={(form as any)[field] || ""}
-                  onChange={e => set(field as string, e.target.value)}
+                  onChange={e => setField(field as string, e.target.value)}
                   placeholder={placeholder}
                   aria-label={field as string}
                 />
@@ -476,7 +476,7 @@ if (medRes) {
                   options={optsFor(kind)}
                   searchable
                   triggerLabel="▾"
-                  onSelect={v => set(field as string, v)}
+                  onSelect={v => setField(field as string, v)}
                   popoverWidthClassName="w-40"
                 />
               </div>
@@ -486,14 +486,14 @@ if (medRes) {
                 <Input
                   className="rounded-xl text-center flex-1 min-w-0"
                   value={(form as any)[field] || ""}
-                  onChange={e => set(field, e.target.value)}
+                  onChange={e => setField(field, e.target.value)}
                   placeholder={near ? "N6" : "6/6"}
                   aria-label={field}
                 />
                 <QuickPicker
                   options={near ? VA_NEAR_OPTIONS : VA_DISTANCE_OPTIONS}
                   triggerLabel="▾"
-                  onSelect={v => set(field, v)}
+                  onSelect={v => setField(field, v)}
                   popoverWidthClassName="w-40"
                 />
               </div>
