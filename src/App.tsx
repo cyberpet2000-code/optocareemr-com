@@ -67,6 +67,72 @@ function SuperAdminOnly({ children }: { children: React.ReactNode }) {
 
 function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
   const { user, isAuthReady } = useAccessAuth();
+  useEffect(() => {
+  if (!user) return;
+
+  if ("Notification" in window) {
+    Notification.requestPermission();
+  }
+
+  const patientsChannel = apiClient
+    .channel("patients-live")
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "patients",
+      },
+      payload => {
+        const p: any = payload.new;
+
+        toast(
+          `🔔 New patient added — ${p.full_name || "Patient"} (#${p.queue_number || ""})`
+        );
+
+        playAlert();
+
+        if (Notification.permission === "granted") {
+          new Notification("OptoCare EMR", {
+            body: `New patient added — ${p.full_name || "Patient"}`,
+          });
+        }
+      }
+    )
+    .subscribe();
+
+  const visitsChannel = apiClient
+    .channel("visits-live")
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "visits",
+      },
+      payload => {
+        const v: any = payload.new;
+
+        if (v.status === "completed") {
+          toast("✅ Visit completed");
+
+          playAlert();
+
+          if (Notification.permission === "granted") {
+            new Notification("OptoCare EMR", {
+              body: "Visit completed",
+            });
+          }
+        }
+      }
+    )
+    .subscribe();
+
+  return () => {
+    apiClient.removeChannel(patientsChannel);
+    apiClient.removeChannel(visitsChannel);
+  };
+}, [user]);
   const { clinic, effectiveClinicId, memberships, profile } = useAccessClinic();
   const { role, roleMissing } = useAccessRole();
   const location = useLocation();
