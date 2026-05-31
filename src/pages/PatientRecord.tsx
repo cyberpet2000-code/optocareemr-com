@@ -128,6 +128,8 @@ export default function PatientRecord() {
       }
       // Load clinic medications (drug inventory)
       const { data: medRes } = await apiClient
+        console.log("inventory meds:", medRes);
+        console.log("mapped meds:", meds);
         .from("inventory")
         .select("id, name, drug_category, category")
         .eq("clinic_id", cid);
