@@ -221,11 +221,12 @@ export function PickerChips({ value, onChange }: ChipsProps) {
 // ---------- Option presets ----------
 
 export const VA_DISTANCE_OPTIONS = [
-  "NLP", "LP", "HM", "CF",
-  "6/60", "6/36", "6/24", "6/18", "6/12", "6/9", "6/6",
+  "6/4", "6/5", "6/6", "6/9", "6/12", "6/18", "6/24", "6/36", "6/60",
+  "3/60", "CF", "HM", "LP", "NLP",
 ];
 
-export const VA_NEAR_OPTIONS = ["N24", "N18", "N12", "N10", "N8", "N6", "N5"];
+export const VA_NEAR_OPTIONS = ["N5", "N6", "N8", "N10", "N12", "N18", "N24", "N36"];
+
 
 function buildSphereOptions(): string[] {
   const opts: string[] = [];
