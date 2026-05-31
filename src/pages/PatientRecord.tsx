@@ -157,7 +157,11 @@ if (medRes) {
   }, [patientId, cid]);
 
 
-  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+  const setField = (k: string, v: string) =>
+  setForm(prev => ({
+    ...prev,
+    [k]: v,
+  }));
   const appendTo = (k: keyof ReturnType<typeof emptyVisitForm>, additions: string | string[]) => {
     const arr = Array.isArray(additions) ? additions : [additions];
     setForm(f => ({ ...f, [k]: appendUnique((f as any)[k] || "", arr) } as any));
