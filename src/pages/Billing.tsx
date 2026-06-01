@@ -495,7 +495,9 @@ const lookupBalance =
     </div>
     
 {selectedLookupPatient && (
-  <div className="form-section mb-5">
+  <div className="space-y-4 mb-5">
+    
+  <div className="form-section">
     <p className="font-semibold text-sm">
       {selectedLookupPatient.full_name}
     </p>
