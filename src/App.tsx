@@ -71,7 +71,7 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
   const { role, roleMissing } = useAccessRole();
   
   useEffect(() => {
-  if (!user) return;
+  if (!user || !effectiveClinicId) return;
 
   if ("Notification" in window) {
     Notification.requestPermission();
