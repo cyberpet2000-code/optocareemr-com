@@ -508,6 +508,22 @@ const lookupBalance =
       {selectedLookupPatient.payment_type}
     </p>
 
+    <Button
+  size="sm"
+  className="rounded-xl mt-3"
+  onClick={() => {
+    setForm((f) => ({
+      ...f,
+      patientId: selectedLookupPatient.id,
+    }));
+
+    setShowForm(true);
+  }}
+>
+  <Plus size={12} className="mr-1" />
+  Create Bill for this Patient
+</Button>
+
     <div className="grid grid-cols-3 gap-3 mt-3">
       <div className="bg-muted/50 rounded-xl p-3 text-center">
         <p className="text-[10px] text-muted-foreground">
