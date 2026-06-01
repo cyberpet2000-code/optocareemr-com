@@ -142,6 +142,13 @@ const [lookupPayments, setLookupPayments] =
 
   setSelectedLookupPatient(patient);
 
+    setForm((f) => ({
+  ...f,
+  patientId: patient.id,
+}));
+
+setShowForm(true);
+
   const { data: billsRes } =
     await apiClient
       .from("billing")
