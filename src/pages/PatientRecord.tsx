@@ -1019,7 +1019,7 @@ hmo_relationship:
         
     
                     
-                      {(v.iop_od || v.iop_os) && (
+                     {(v.iop_od || v.iop_os) && (
                         <div>
                           <strong>IOP:</strong>{" "}
                           OD {v.iop_od ?? "—"} / OS {v.iop_os ?? "—"} mmHg
