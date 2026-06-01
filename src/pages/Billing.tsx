@@ -156,7 +156,10 @@ const [lookupPayments, setLookupPayments] =
     await apiClient
       .from("payments")
       .select("*")
-      .eq("billing_id", patient.id);
+      .in(
+  "billing_id",
+  (billsRes || []).map((b) => b.id)
+)
 
   setLookupBills(
     (billsRes || []) as BillingRow[]
