@@ -388,6 +388,7 @@ hmo_relationship:
               <p className="text-[10px] text-muted-foreground">Changes are tracked in HMO history.</p>
             </div>
             {editForm.payment_type === "hmo" && (
+          <>
               <div className="space-y-1"><Label className="text-xs">HMO Provider</Label>
                 <Select value={editForm.active_hmo_id || ""} onValueChange={v => setEditForm(f => ({ ...f, active_hmo_id: v }))}>
                   <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select HMO" /></SelectTrigger>
@@ -428,6 +429,8 @@ hmo_relationship:
   </Select>
 </div>
 
+       </>
+          
             )}
           </div>
           <div className="flex gap-2 pt-2">
