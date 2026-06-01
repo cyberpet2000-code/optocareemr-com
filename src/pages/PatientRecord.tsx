@@ -38,6 +38,7 @@ interface PatientData {
   payment_type: string;
   active_hmo_id: string | null;
   enrollee_number: string;
+  hmo_coverage_type?: string | null;
   queue_number: number;
   queue_status: string;
   priority: string;
@@ -301,6 +302,13 @@ if (medRes) {
   <p className="text-xs text-accent font-medium mt-1">
     Enrollee No: {patient.enrollee_number}
   </p>
+)}
+              {isHmo &&
+  patient.hmo_coverage_type ===
+    "dependent" && (
+    <p className="text-[11px] text-muted-foreground mt-1">
+      Dependent HMO
+    </p>
 )}
             </div>
           </div>
