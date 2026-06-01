@@ -994,19 +994,25 @@ hmo_relationship:
     {v.va_unaided_os_ph ? ` (PH: ${v.va_unaided_os_ph})` : ""}
   </div>
 
-  {v.va_aided_od && (
+  {v.va_aided_od ? (
   <div>
     <strong>VA Aided OD:</strong>{" "}
     {v.va_aided_od}
   </div>
-)}
+) : null}
 
-{v.va_aided_os && (
+{v.va_aided_os ? (
   <div>
     <strong>VA Aided OS:</strong>{" "}
     {v.va_aided_os}
   </div>
-)}
+) : null}
+  
+    
+   
+    
+  
+
   
     
       
