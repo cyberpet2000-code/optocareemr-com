@@ -65,6 +65,15 @@ export default function Billing() {
     notes: "",
   });
   const [items, setItems] = useState<BillItem[]>([]);
+  const [patientSearch, setPatientSearch] = useState("");
+const [selectedLookupPatient, setSelectedLookupPatient] =
+  useState<Patient | null>(null);
+
+const [lookupBills, setLookupBills] =
+  useState<BillingRow[]>([]);
+
+const [lookupPayments, setLookupPayments] =
+  useState<any[]>([]);
 
   useEffect(() => { loadData(); }, [cid]);
 
@@ -126,6 +135,71 @@ export default function Billing() {
     }
   };
   const selectedPatient = patients.find(p => p.id === form.patientId);
+  const loadPatientBilling = async (
+  patient: Patient
+) => {
+  if (!cid) return;
+
+  setSelectedLookupPatient(patient);
+
+  const { data: billsRes } =
+    await apiClient
+      .from("billing")
+      .select("*")
+      .eq("clinic_id", cid)
+      .eq("patient_id", patient.id)
+      .order("created_at", {
+        ascending: false,
+      });
+
+  const { data: paymentsRes } =
+    await apiClient
+      .from("payments")
+      .select("*")
+      .eq("billing_id", patient.id);
+
+  setLookupBills(
+    (billsRes || []) as BillingRow[]
+  );
+
+  setLookupPayments(
+    paymentsRes || []
+  );
+};
+
+const filteredPatients =
+  patientSearch.trim() === ""
+    ? []
+    : patients.filter((p) =>
+        p.full_name
+          .toLowerCase()
+          .includes(
+            patientSearch.toLowerCase()
+          )
+      );
+
+const lookupTotal =
+  lookupBills.reduce(
+    (sum, b) =>
+      sum +
+      Number(
+        b.total_amount || 0
+      ),
+    0
+  );
+
+const lookupPaid =
+  lookupBills.reduce(
+    (sum, b) =>
+      sum +
+      Number(
+        b.amount_paid || 0
+      ),
+    0
+  );
+
+const lookupBalance =
+  lookupTotal - lookupPaid;
 
   const addItem = () => setItems([...items, { item_type: "Lens", item_name: "", quantity: 1, unit_price: 0, total_price: 0 }]);
   const removeItem = (idx: number) => setItems(items.filter((_, i) => i !== idx));
@@ -357,6 +431,67 @@ export default function Billing() {
   return (
     <>
       <div className="flex items-center justify-between mb-5">
+          <h1 className="page-header">Billing</h1>
+
+      <Button
+        onClick={() => setShowForm(!showForm)}
+        size="sm"
+        className="rounded-xl gap-1.5"
+      >
+        {showForm ? (
+          <>
+            <X size={14} /> Cancel
+          </>
+        ) : (
+          <>
+            <Plus size={14} /> New Bill
+          </>
+        )}
+      </Button>
+    </div>
+
+    {/* PASTE SEARCH HERE */}
+    <div className="form-section mb-5">
+      <Label className="text-xs">
+        Search Patient Billing
+      </Label>
+
+      <Input
+        className="rounded-xl mt-1"
+        placeholder="Search patient..."
+        value={patientSearch}
+        onChange={(e) =>
+          setPatientSearch(e.target.value)
+        }
+      />
+
+      {filteredPatients.length > 0 && (
+        <div className="mt-2 border rounded-xl divide-y">
+          {filteredPatients
+            .slice(0, 8)
+            .map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() =>
+                  loadPatientBilling(p)
+                }
+                className="w-full text-left px-3 py-3 hover:bg-muted"
+              >
+                <div className="font-medium">
+                  {p.full_name}
+                </div>
+
+                <div className="text-xs text-muted-foreground">
+                  {p.payment_type}
+                </div>
+              </button>
+            ))}
+        </div>
+      )}
+    </div>
+
+    {showForm && (
         <h1 className="page-header">Billing</h1>
         <Button onClick={() => setShowForm(!showForm)} size="sm" className="rounded-xl gap-1.5">
           {showForm ? <><X size={14} /> Cancel</> : <><Plus size={14} /> New Bill</>}
