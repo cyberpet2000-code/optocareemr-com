@@ -148,6 +148,8 @@ const [lookupPayments, setLookupPayments] =
 }));
 
 setShowForm(true);
+    
+    setPatientSearch("");
 
   const { data: billsRes } =
     await apiClient
