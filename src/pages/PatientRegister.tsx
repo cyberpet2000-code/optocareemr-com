@@ -17,10 +17,17 @@ export default function PatientRegister() {
   const [form, setForm] = useState({
     fullName: "", age: "", gender: "", phone: "",
     address: "", nextOfKin: "",
+    
     paymentType: "private" as "private" | "hmo",
-    activeHmoId: "", enrolleeNumber: "",
-    priority: "normal" as "normal" | "follow_up" | "emergency",
-  });
+    
+    activeHmoId: "", 
+    enrolleeNumber: "",
+    hmoCoverageType: "principal" as "principal" | "dependent",
+  hmoPrincipalName: "",
+  hmoRelationship: "",
+
+  priority: "normal" as "normal" | "follow_up" | "emergency",
+});
 
   useEffect(() => {
     if (!cid) return;
@@ -41,6 +48,14 @@ export default function PatientRegister() {
       toast.error("Select HMO provider");
       return;
     }
+    if (
+  form.paymentType === "hmo" &&
+  form.hmoCoverageType === "dependent" &&
+  !form.hmoPrincipalName.trim()
+) {
+  toast.error("Enter principal name");
+  return;
+    }
     if (!cid) { toast.error("No active clinic"); return; }
     setLoading(true);
     const { data, error } = await apiClient.from("patients").insert({
@@ -54,6 +69,22 @@ export default function PatientRegister() {
       payment_type: form.paymentType,
       active_hmo_id: form.paymentType === "hmo" ? form.activeHmoId : null,
       enrollee_number: form.paymentType === "hmo" ? form.enrolleeNumber.trim() : "",
+      hmo_coverage_type:
+  form.paymentType === "hmo"
+    ? form.hmoCoverageType
+    : null,
+
+hmo_principal_name:
+  form.paymentType === "hmo" &&
+  form.hmoCoverageType === "dependent"
+    ? form.hmoPrincipalName.trim()
+    : null,
+
+hmo_relationship:
+  form.paymentType === "hmo" &&
+  form.hmoCoverageType === "dependent"
+    ? form.hmoRelationship
+    : null,
       priority: form.priority,
       queue_status: "waiting",
     } as any).select().single();
@@ -112,8 +143,84 @@ export default function PatientRegister() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1"><Label className="text-xs">Enrollee Number</Label><Input className="rounded-xl" value={form.enrolleeNumber} onChange={e => set("enrolleeNumber", e.target.value)} /></div>
+             <div className="space-y-1"><Label className="text-xs">Enrollee Number</Label><Input className="rounded-xl" value={form.enrolleeNumber} onChange={e => set("enrolleeNumber", e.target.value)} /></div>
+              <div className="space-y-1">
+  <Label className="text-xs">Coverage *</Label>
+
+  <Select
+    value={form.hmoCoverageType}
+    onValueChange={v => set("hmoCoverageType", v)}
+  >
+    <SelectTrigger className="rounded-xl">
+      <SelectValue />
+    </SelectTrigger>
+
+    <SelectContent>
+      <SelectItem value="principal">
+        Principal
+      </SelectItem>
+
+      <SelectItem value="dependent">
+        Dependent
+      </SelectItem>
+    </SelectContent>
+  </Select>
+</div>
+
+{form.hmoCoverageType === "dependent" && (
+  <>
+    <div className="space-y-1">
+      <Label className="text-xs">
+        Principal Name
+      </Label>
+
+      <Input
+        className="rounded-xl"
+        value={form.hmoPrincipalName}
+        onChange={e =>
+          set("hmoPrincipalName", e.target.value)
+        }
+      />
+    </div>
+
+    <div className="space-y-1">
+      <Label className="text-xs">
+        Relationship
+      </Label>
+
+      <Select
+        value={form.hmoRelationship}
+        onValueChange={v =>
+          set("hmoRelationship", v)
+        }
+      >
+        <SelectTrigger className="rounded-xl">
+          <SelectValue placeholder="Select" />
+        </SelectTrigger>
+
+        <SelectContent>
+          <SelectItem value="spouse">
+            Spouse
+          </SelectItem>
+          <SelectItem value="child">
+            Child
+          </SelectItem>
+          <SelectItem value="parent">
+            Parent
+          </SelectItem>
+          <SelectItem value="sibling">
+            Sibling
+          </SelectItem>
+          <SelectItem value="other">
+            Other
+          </SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  </>
+)}
             </>
+      
           )}
         </div>
         <div className="flex gap-3 pt-2">
