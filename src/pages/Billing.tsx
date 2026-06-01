@@ -159,7 +159,7 @@ const [lookupPayments, setLookupPayments] =
       .in(
   "billing_id",
   (billsRes || []).map((b) => b.id)
-)
+);
 
   setLookupBills(
     (billsRes || []) as BillingRow[]
@@ -493,8 +493,7 @@ const lookupBalance =
         </div>
       )}
     </div>
-      </div>
-
+    
 {selectedLookupPatient && (
   <div className="form-section mb-5">
     <p className="font-semibold text-sm">
@@ -540,8 +539,6 @@ const lookupBalance =
     </div>
   </div>
 )}
-
-{showForm && (
 
       {showForm && (
         <div className="form-section mb-5 max-w-2xl animate-fade-in">
