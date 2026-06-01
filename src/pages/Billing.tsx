@@ -491,13 +491,6 @@ const lookupBalance =
       )}
     </div>
 
-    {showForm && (
-        <h1 className="page-header">Billing</h1>
-        <Button onClick={() => setShowForm(!showForm)} size="sm" className="rounded-xl gap-1.5">
-          {showForm ? <><X size={14} /> Cancel</> : <><Plus size={14} /> New Bill</>}
-        </Button>
-      </div>
-
       {showForm && (
         <div className="form-section mb-5 max-w-2xl animate-fade-in">
           <h2 className="section-title text-sm">Create Bill</h2>
