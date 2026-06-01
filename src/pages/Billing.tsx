@@ -367,6 +367,12 @@ const lookupBalance =
     setSaving(false);
     toast.success("Bill created" + (isHmo ? " & HMO claim filed" : ""));
     setShowForm(false);
+    setSelectedLookupPatient(null);
+
+setLookupBills([]);
+
+setLookupPayments([]);
+
     setForm({ patientId: "", consultationFee: "", notes: "" });
     setItems([]);
     loadData();
