@@ -393,6 +393,40 @@ hmo_relationship:
                   <SelectContent>{hmos.map(h => <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+          
+              <div className="space-y-1">
+  <Label className="text-xs">
+    Using another person's HMO?
+  </Label>
+
+  <Select
+    value={
+      editForm.hmo_coverage_type ||
+      "principal"
+    }
+    onValueChange={v =>
+      setEditForm(f => ({
+        ...f,
+        hmo_coverage_type: v,
+      }))
+    }
+  >
+    <SelectTrigger className="rounded-xl">
+      <SelectValue />
+    </SelectTrigger>
+
+    <SelectContent>
+      <SelectItem value="principal">
+        No
+      </SelectItem>
+
+      <SelectItem value="dependent">
+        Yes
+      </SelectItem>
+    </SelectContent>
+  </Select>
+</div>
+
             )}
           </div>
           <div className="flex gap-2 pt-2">
