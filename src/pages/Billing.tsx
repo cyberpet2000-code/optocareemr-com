@@ -538,6 +538,70 @@ const lookupBalance =
       </div>
     </div>
   </div>
+  {lookupBills.length > 0 && (
+      <div className="mt-4 space-y-2">
+        <p className="text-xs font-semibold">
+          Previous Bills
+        </p>
+
+        {lookupBills.map((b) => (
+          <div
+            key={b.id}
+            className="border rounded-xl p-3"
+          >
+            <div className="flex justify-between text-sm">
+              <span>
+                ₦
+                {Number(
+                  b.total_amount
+                ).toLocaleString()}
+              </span>
+
+              <span>
+                {b.status}
+              </span>
+            </div>
+
+            <p className="text-xs text-muted-foreground mt-1">
+              Paid: ₦
+              {Number(
+                b.amount_paid
+              ).toLocaleString()}
+              {" • "}
+              Balance: ₦
+              {Number(
+                b.balance
+              ).toLocaleString()}
+            </p>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {lookupPayments.length > 0 && (
+      <div className="mt-4 space-y-2">
+        <p className="text-xs font-semibold">
+          Payments
+        </p>
+
+        {lookupPayments.map(
+          (p: any) => (
+            <div
+              key={p.id}
+              className="border rounded-xl p-3 text-sm"
+            >
+              ₦
+              {Number(
+                p.amount
+              ).toLocaleString()}
+              {" • "}
+              {p.method}
+            </div>
+          )
+        )}
+      </div>
+    )}
+  </div>
 )}
 
       {showForm && (
