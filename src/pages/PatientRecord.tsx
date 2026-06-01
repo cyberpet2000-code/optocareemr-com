@@ -335,7 +335,25 @@ hmo_relationship:
                 <a href={`https://wa.me/${patient.phone.replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl hover:bg-muted transition-colors"><MessageCircle size={14} className="text-success" /></a>
               </>
             )}
-            <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => { setEditing(true); setEditForm(patient); }}>
+            <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => {
+  setEditing(true);
+
+  setEditForm({
+    ...patient,
+
+    hmo_coverage_type:
+      patient.hmo_coverage_type ||
+      "principal",
+
+    hmo_principal_name:
+      (patient as any)
+        .hmo_principal_name || "",
+
+    hmo_relationship:
+      (patient as any)
+        .hmo_relationship || "",
+  });
+}}
               <Pencil size={12} />
             </Button>
           </div>
