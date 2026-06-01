@@ -493,6 +493,55 @@ const lookupBalance =
         </div>
       )}
     </div>
+      </div>
+
+{selectedLookupPatient && (
+  <div className="form-section mb-5">
+    <p className="font-semibold text-sm">
+      {selectedLookupPatient.full_name}
+    </p>
+
+    <p className="text-xs text-muted-foreground">
+      Payment type:
+      {" "}
+      {selectedLookupPatient.payment_type}
+    </p>
+
+    <div className="grid grid-cols-3 gap-3 mt-3">
+      <div className="bg-muted/50 rounded-xl p-3 text-center">
+        <p className="text-[10px] text-muted-foreground">
+          Total
+        </p>
+
+        <p className="font-bold">
+          ₦{lookupTotal.toLocaleString()}
+        </p>
+      </div>
+
+      <div className="bg-muted/50 rounded-xl p-3 text-center">
+        <p className="text-[10px] text-muted-foreground">
+          Paid
+        </p>
+
+        <p className="font-bold">
+          ₦{lookupPaid.toLocaleString()}
+        </p>
+      </div>
+
+      <div className="bg-muted/50 rounded-xl p-3 text-center">
+        <p className="text-[10px] text-muted-foreground">
+          Balance
+        </p>
+
+        <p className="font-bold text-destructive">
+          ₦{lookupBalance.toLocaleString()}
+        </p>
+      </div>
+    </div>
+  </div>
+)}
+
+{showForm && (
 
       {showForm && (
         <div className="form-section mb-5 max-w-2xl animate-fade-in">
