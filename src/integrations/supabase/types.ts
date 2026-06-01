@@ -1911,6 +1911,12 @@ export type Database = {
           enrollee_number: string | null
           full_name: string
           gender: string | null
+          hmo_coverage_type: string | null
+          hmo_enrollee_number: string | null
+          hmo_notes: string | null
+          hmo_principal_name: string | null
+          hmo_provider: string | null
+          hmo_relationship: string | null
           id: string
           next_of_kin: string | null
           patient_number: string | null
@@ -1935,6 +1941,12 @@ export type Database = {
           enrollee_number?: string | null
           full_name?: string
           gender?: string | null
+          hmo_coverage_type?: string | null
+          hmo_enrollee_number?: string | null
+          hmo_notes?: string | null
+          hmo_principal_name?: string | null
+          hmo_provider?: string | null
+          hmo_relationship?: string | null
           id?: string
           next_of_kin?: string | null
           patient_number?: string | null
@@ -1959,6 +1971,12 @@ export type Database = {
           enrollee_number?: string | null
           full_name?: string
           gender?: string | null
+          hmo_coverage_type?: string | null
+          hmo_enrollee_number?: string | null
+          hmo_notes?: string | null
+          hmo_principal_name?: string | null
+          hmo_provider?: string | null
+          hmo_relationship?: string | null
           id?: string
           next_of_kin?: string | null
           patient_number?: string | null
