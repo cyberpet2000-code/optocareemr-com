@@ -629,7 +629,26 @@ const lookupBalance =
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Patient *</Label>
-                <Select value={form.patientId} onValueChange={v => setForm(f => ({ ...f, patientId: v }))}>
+                {selectedLookupPatient &&
+form.patientId === selectedLookupPatient.id ? (
+
+  <div className="rounded-xl border px-3 py-2 text-sm bg-muted/40">
+    {selectedLookupPatient.full_name}
+    {" • "}
+    {selectedLookupPatient.payment_type}
+  </div>
+
+) : (
+
+  <Select
+    value={form.patientId}
+    onValueChange={(v) =>
+      setForm((f) => ({
+        ...f,
+        patientId: v,
+      }))
+    }
+  >
                   <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select patient" /></SelectTrigger>
                   <SelectContent>{patients.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name} ({p.payment_type})</SelectItem>)}</SelectContent>
                 </Select>
