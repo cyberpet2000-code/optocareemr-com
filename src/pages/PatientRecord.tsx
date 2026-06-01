@@ -39,6 +39,8 @@ interface PatientData {
   active_hmo_id: string | null;
   enrollee_number: string;
   hmo_coverage_type?: string | null;
+  hmo_principal_name?: string | null;
+  hmo_relationship?: string | null;
   queue_number: number;
   queue_status: string;
   priority: string;
@@ -260,6 +262,20 @@ if (medRes) {
       payment_type: editForm.payment_type,
       active_hmo_id: editForm.payment_type === "hmo" ? editForm.active_hmo_id : null,
       enrollee_number: editForm.enrollee_number || "",
+      hmo_coverage_type:
+      editForm.payment_type === "hmo"
+    ? editForm.hmo_coverage_type
+    : null,
+
+hmo_principal_name:
+  editForm.payment_type === "hmo"
+    ? editForm.hmo_principal_name
+    : null,
+
+hmo_relationship:
+  editForm.payment_type === "hmo"
+    ? editForm.hmo_relationship
+    : null,
     } as any).eq("clinic_id", cid).eq("id", patient.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Patient info updated");
