@@ -428,7 +428,43 @@ hmo_relationship:
     </SelectContent>
   </Select>
 </div>
+{editForm.hmo_coverage_type === "dependent" && (
+  <>
+    <div className="space-y-1">
+      <Label className="text-xs">
+        Principal Name
+      </Label>
 
+      <Input
+        className="rounded-xl"
+        value={editForm.hmo_principal_name || ""}
+        onChange={e =>
+          setEditForm(f => ({
+            ...f,
+            hmo_principal_name: e.target.value,
+          }))
+        }
+      />
+    </div>
+
+    <div className="space-y-1">
+      <Label className="text-xs">
+        Relationship
+      </Label>
+
+      <Input
+        className="rounded-xl"
+        value={editForm.hmo_relationship || ""}
+        onChange={e =>
+          setEditForm(f => ({
+            ...f,
+            hmo_relationship: e.target.value,
+          }))
+        }
+      />
+    </div>
+  </>
+)}
        </>
           
             )}
