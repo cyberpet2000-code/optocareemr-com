@@ -652,6 +652,7 @@ form.patientId === selectedLookupPatient.id ? (
                   <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select patient" /></SelectTrigger>
                   <SelectContent>{patients.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name} ({p.payment_type})</SelectItem>)}</SelectContent>
                 </Select>
+  )}
                 {selectedPatient?.payment_type === "hmo" && (
                   <p className="text-[10px] text-accent font-medium">HMO claim will be auto-created</p>
                 )}
