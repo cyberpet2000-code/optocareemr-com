@@ -145,7 +145,9 @@ hmo_relationship:
               </div>
              <div className="space-y-1"><Label className="text-xs">Enrollee Number</Label><Input className="rounded-xl" value={form.enrolleeNumber} onChange={e => set("enrolleeNumber", e.target.value)} /></div>
               <div className="space-y-1">
-  <Label className="text-xs">Coverage *</Label>
+  <Label className="text-xs">
+  Using another person's HMO?
+</Label>
 
   <Select
     value={form.hmoCoverageType}
@@ -157,11 +159,11 @@ hmo_relationship:
 
     <SelectContent>
       <SelectItem value="principal">
-        Principal
+        No
       </SelectItem>
 
       <SelectItem value="dependent">
-        Dependent
+        Yes
       </SelectItem>
     </SelectContent>
   </Select>
