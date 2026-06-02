@@ -1103,11 +1103,6 @@ hmo_relationship:
   </div>
 )}
 
-{v.medication && (
-  <div>
-    <strong>Medication:</strong> {v.medication}
-  </div>
-)}
                     </div>
                   </details>
                 ))}
