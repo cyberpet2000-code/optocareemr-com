@@ -1009,11 +1009,63 @@ hmo_relationship:
                           {v.iop_time ? ` @ ${String(v.iop_time).slice(0,5)}` : ""}
                         </div>
                       )}
-                      {v.examination && <div><strong>Exam:</strong> {v.examination}</div>}
-                      {v.diagnosis && <div><strong>Diagnosis:</strong> {v.diagnosis}</div>}
-                      {v.lens_type && (
+                      {v.examination && (
   <div>
-    <strong>Lens Type:</strong> {v.lens_type}
+    <strong>Exam:</strong> {v.examination}
+  </div>
+)}
+
+{v.diagnosis && (
+  <div>
+    <strong>Diagnosis:</strong> {v.diagnosis}
+  </div>
+)}
+
+{(v.sub_od_sphere || v.sub_os_sphere) && (
+  <div className="mt-2">
+    <strong>Subjective Refraction</strong>
+
+    <div>
+      OD:
+      {" "}
+      {v.sub_od_sphere || "Plano"}
+      {v.sub_od_cyl ? ` ${v.sub_od_cyl}` : ""}
+      {v.sub_od_axis ? ` x${v.sub_od_axis}` : ""}
+      {v.sub_va_od ? ` VA ${v.sub_va_od}` : ""}
+    </div>
+
+    <div>
+      OS:
+      {" "}
+      {v.sub_os_sphere || "Plano"}
+      {v.sub_os_cyl ? ` ${v.sub_os_cyl}` : ""}
+      {v.sub_os_axis ? ` x${v.sub_os_axis}` : ""}
+      {v.sub_va_os ? ` VA ${v.sub_va_os}` : ""}
+    </div>
+
+    {v.sub_reading_add && (
+      <div>
+        ADD: {v.sub_reading_add}
+      </div>
+    )}
+  </div>
+)}
+
+{v.lens_type && (
+  <div>
+    <strong>Treatment:</strong> {v.lens_type}
+  </div>
+)}
+
+{v.medication && (
+  <div>
+    <strong>Medication:</strong> {v.medication}
+  </div>
+)}
+
+{v.notes && (
+  <div>
+    <strong>Notes:</strong> {v.notes}
   </div>
 )}
 
