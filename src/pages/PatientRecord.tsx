@@ -1035,9 +1035,17 @@ hmo_relationship:
     </div>
   </div>
 )}
-                      {v.examination && (
-  <div>
-    <strong>Exam:</strong> {v.examination}
+  {v.examination && (
+  <div className="flex gap-2 items-start">
+    <ScanEye
+      size={14}
+      className="text-blue-500 mt-0.5 shrink-0"
+    />
+
+    <div>
+      <strong>Examination:</strong>
+      <div>{v.examination}</div>
+    </div>
   </div>
 )}
 
