@@ -914,10 +914,11 @@ hmo_relationship:
                      popoverWidthClassName="w-72"
                      align="end"
                    />
-                  </div>
-                </div>
-                <Textarea className="rounded-xl" value={form.notes} onChange={e => setField("notes", e.target.value)} rows={3} placeholder="Advice, counselling, referrals, follow-up..." />
-                <PickerChips value={form.notes} onChange={v => setField("notes", v)} />
+                  <MedicationPicker
+  items={medications}
+  onAdd={line => setField("medication", line)}
+  triggerLabel="+ Medication"
+/>
               </div>
             </div>
           </div>
