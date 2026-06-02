@@ -1050,8 +1050,16 @@ hmo_relationship:
 )}
 
 {v.diagnosis && (
-  <div>
-    <strong>Diagnosis:</strong> {v.diagnosis}
+  <div className="flex gap-2 items-start">
+    <Stethoscope
+      size={14}
+      className="text-red-500 mt-0.5 shrink-0"
+    />
+
+    <div>
+      <strong>Diagnosis:</strong>
+      <div>{v.diagnosis}</div>
+    </div>
   </div>
 )}
 
@@ -1086,11 +1094,18 @@ hmo_relationship:
 )}
 
 {(v.lens_type || v.treatment) && (
-  <div>
-    <strong>Management Plan:</strong>
+  <div className="flex gap-2 items-start">
+    <FileText
+      size={14}
+      className="text-green-600 mt-0.5 shrink-0"
+    />
 
-    <div className="whitespace-pre-line">
-      {v.lens_type || v.treatment}
+    <div>
+      <strong>Management Plan:</strong>
+
+      <div className="whitespace-pre-line">
+        {v.lens_type || v.treatment}
+      </div>
     </div>
   </div>
 )}
