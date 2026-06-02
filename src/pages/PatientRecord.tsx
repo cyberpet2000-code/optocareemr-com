@@ -13,7 +13,7 @@ import { generateVisitPdf } from "@/lib/visitPdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAccess } from "@/hooks/useAccess";
 import {
-  QuickPicker, PickerChips, appendUnique,
+  QuickPicker, PickerChips,
 
   CHIEF_COMPLAINT_OPTIONS,
   HISTORY_OPTIONS,
