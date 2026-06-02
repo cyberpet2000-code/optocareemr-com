@@ -1111,8 +1111,17 @@ hmo_relationship:
 )}
 
 {v.medication && (
-  <div>
-    <strong>Medication:</strong> {v.medication}
+  <div className="flex gap-2 items-start">
+    <Pill
+      size={14}
+      className="text-purple-600 mt-0.5 shrink-0"
+    />
+
+    <div>
+      <strong>Medication:</strong>
+
+      <div>{v.medication}</div>
+    </div>
   </div>
 )}
 
