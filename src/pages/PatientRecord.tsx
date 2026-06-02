@@ -895,25 +895,48 @@ hmo_relationship:
 
 
               <div className="space-y-1">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <Label className="text-xs">Notes / Advice / Referral</Label>
-                  <div className="flex items-center gap-1">
-                    <QuickPicker
-                      options={ADVICE_OPTIONS}
-                      multi
-                      triggerLabel="+ Advice"
-                      currentValue={form.notes}
-                      onSelect={merged => setField("notes", merged)}
-                      popoverWidthClassName="w-64"
-                      align="end"
-                      
-              </div>
-            </div>
-          </div>
-        </TabsContent>
+  <div className="flex items-center justify-between gap-2 flex-wrap">
+    <Label className="text-xs">Notes / Advice / Referral</Label>
 
+    <div className="flex items-center gap-1">
+      <QuickPicker
+        options={ADVICE_OPTIONS}
+        multi
+        triggerLabel="+ Advice"
+        currentValue={form.notes}
+        onSelect={merged => setField("notes", merged)}
+        popoverWidthClassName="w-64"
+        align="end"
+      />
 
-        <TabsContent value="visits">
+      <QuickPicker
+        options={REFERRAL_OPTIONS}
+        multi
+        triggerLabel="+ Referral"
+        currentValue={form.notes}
+        onSelect={merged => setField("notes", merged)}
+        popoverWidthClassName="w-64"
+        align="end"
+      />
+    </div>
+  </div>
+
+  <Textarea
+    className="rounded-xl"
+    value={form.notes}
+    onChange={e => setField("notes", e.target.value)}
+    rows={3}
+  />
+
+  <PickerChips
+    value={form.notes}
+    onChange={v => setField("notes", v)}
+  />
+</div>
+
+</div>
+</div>
+</TabsContent>
           <div className="medical-card">
             <h2 className="section-title text-sm mb-4"><History size={16} /> Visit History</h2>
             {visits.length === 0 ? (
