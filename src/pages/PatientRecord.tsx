@@ -22,7 +22,6 @@ import {
   CheckCircle2,
   Pill,
   FileText,
-  Eye
 } from "lucide-react";
 import { generateVisitPdf } from "@/lib/visitPdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1108,7 +1107,6 @@ hmo_relationship:
 
     <div>
       OD:
-      {" "}
       {v.sub_od_sphere || "Plano"}
       {v.sub_od_cyl ? ` ${v.sub_od_cyl}` : ""}
       {v.sub_od_axis ? ` x${v.sub_od_axis}` : ""}
@@ -1117,7 +1115,6 @@ hmo_relationship:
 
     <div>
       OS:
-      {" "}
       {v.sub_os_sphere || "Plano"}
       {v.sub_os_cyl ? ` ${v.sub_os_cyl}` : ""}
       {v.sub_os_axis ? ` x${v.sub_os_axis}` : ""}
