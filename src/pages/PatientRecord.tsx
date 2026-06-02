@@ -1064,7 +1064,7 @@ hmo_relationship:
 
 {(v.lens_type || v.treatment) && (
   <div>
-    <strong>Optical Rx:</strong>
+    <strong>Management Plan:</strong>
 
     <div className="whitespace-pre-line">
       {v.lens_type || v.treatment}
