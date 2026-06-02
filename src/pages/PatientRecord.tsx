@@ -904,16 +904,16 @@ hmo_relationship:
                       onSelect={merged => setField("notes", merged)}
                       popoverWidthClassName="w-64"
                       align="end"
-                    />
+                      
                     <QuickPicker
-                      options={REFERRAL_OPTIONS}
-                      multi
-                      triggerLabel="+ Referral"
-                      currentValue={form.notes}
-                      onSelect={merged => setField("notes", merged)}
-                      popoverWidthClassName="w-64"
-                      align="end"
-                    />
+                     options={LENS_RECOMMENDATION_OPTIONS}
+                     searchable
+                     triggerLabel="+ Lens Type"
+                     currentValue={form.lensType}
+                     onSelect={v => setField("lensType", v)}
+                     popoverWidthClassName="w-72"
+                     align="end"
+                   />
                   </div>
                 </div>
                 <Textarea className="rounded-xl" value={form.notes} onChange={e => setField("notes", e.target.value)} rows={3} placeholder="Advice, counselling, referrals, follow-up..." />
