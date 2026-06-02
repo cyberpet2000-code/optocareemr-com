@@ -909,20 +909,6 @@ hmo_relationship:
                       popoverWidthClassName="w-64"
                       align="end"
                       
-                    <QuickPicker
-                     options={LENS_RECOMMENDATION_OPTIONS}
-                     searchable
-                     triggerLabel="+ Lens Type"
-                     currentValue={form.lensType}
-                     onSelect={v => setField("lensType", v)}
-                     popoverWidthClassName="w-72"
-                     align="end"
-                   />
-                  <MedicationPicker
-  items={medications}
-  onAdd={line => setField("medication", line)}
-  triggerLabel="+ Medication"
-/>
               </div>
             </div>
           </div>
