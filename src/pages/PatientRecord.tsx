@@ -65,7 +65,10 @@ const emptyVisitForm = () => ({
   subReadingAdd: "", subVaOutcome: "",
   examination: "",
   iopOd: "", iopOs: "", iopTime: "",
-  diagnosis: "", treatment: "", notes: "",
+  diagnosis: "",
+lensType: "",
+medication: "",
+notes: "",
 });
 
 export default function PatientRecord() {
