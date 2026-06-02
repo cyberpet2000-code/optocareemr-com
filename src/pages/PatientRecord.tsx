@@ -944,6 +944,8 @@ hmo_relationship:
 </div>
 </div>
 </TabsContent>
+        
+         <TabsContent value="visits">
           <div className="medical-card">
             <h2 className="section-title text-sm mb-4"><History size={16} /> Visit History</h2>
             {visits.length === 0 ? (
