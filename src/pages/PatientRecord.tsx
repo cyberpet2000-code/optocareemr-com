@@ -979,7 +979,17 @@ hmo_relationship:
                       )}
                       {v.examination && <div><strong>Exam:</strong> {v.examination}</div>}
                       {v.diagnosis && <div><strong>Diagnosis:</strong> {v.diagnosis}</div>}
-                      {v.treatment && <div><strong>Tx:</strong> {v.treatment}</div>}
+                      {v.lens_type && (
+  <div>
+    <strong>Lens Type:</strong> {v.lens_type}
+  </div>
+)}
+
+{v.medication && (
+  <div>
+    <strong>Medication:</strong> {v.medication}
+  </div>
+)}
                     </div>
                   </details>
                 ))}
