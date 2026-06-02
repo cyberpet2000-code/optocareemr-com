@@ -974,7 +974,27 @@ hmo_relationship:
     </div>
   </div>
 )}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                      <div>
+  <strong>Visual Acuity</strong>
+
+  <div className="mt-1">
+    <div>
+      OD: {v.va_unaided_od || "—"}
+      {v.va_unaided_od_ph ? ` (PH ${v.va_unaided_od_ph})` : ""}
+    </div>
+
+    <div>
+      OS: {v.va_unaided_os || "—"}
+      {v.va_unaided_os_ph ? ` (PH ${v.va_unaided_os_ph})` : ""}
+    </div>
+
+    {v.va_unaided_ou && (
+      <div>
+        OU: {v.va_unaided_ou}
+      </div>
+    )}
+  </div>
+</div>
                         <div>
                           <strong>VA UA OD:</strong>{" "}
                           {v.va_unaided_od || "—"}
@@ -1003,12 +1023,22 @@ hmo_relationship:
                       </div>
 
                      {(v.iop_od || v.iop_os) && (
-                        <div>
-                          <strong>IOP:</strong>{" "}
-                          OD {v.iop_od ?? "—"} / OS {v.iop_os ?? "—"} mmHg
-                          {v.iop_time ? ` @ ${String(v.iop_time).slice(0,5)}` : ""}
-                        </div>
-                      )}
+  <div>
+    <strong>IOP</strong>
+
+    <div className="mt-1">
+      <div>OD: {v.iop_od ?? "—"} mmHg</div>
+
+      <div>OS: {v.iop_os ?? "—"} mmHg</div>
+
+      {v.iop_time && (
+        <div>
+          Time: {String(v.iop_time).slice(0,5)}
+        </div>
+      )}
+    </div>
+  </div>
+)}
                       {v.examination && (
   <div>
     <strong>Exam:</strong> {v.examination}
