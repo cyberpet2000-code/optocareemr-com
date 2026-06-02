@@ -1002,24 +1002,32 @@ hmo_relationship:
                         </div>
 
                         <div>
-                          <strong>VA UA OS:</strong>{" "}
-                          {v.va_unaided_os || "—"}
-                          {v.va_unaided_os_ph ? ` (PH: ${v.va_unaided_os_ph})` : ""}
-                        </div>
+  <strong>Visual Acuity</strong>
 
-                        {v.va_aided_od ? (
-                          <div>
-                            <strong>VA Aided OD:</strong>{" "}
-                            {v.va_aided_od}
-                          </div>
-                        ) : null}
+  <div className="mt-1">
+    <div>
+      UA OD: {v.va_unaided_od || "—"}
+      {v.va_unaided_od_ph ? ` (PH ${v.va_unaided_od_ph})` : ""}
+    </div>
 
-                        {v.va_aided_os ? (
-                          <div>
-                            <strong>VA Aided OS:</strong>{" "}
-                            {v.va_aided_os}
-                          </div>
-                        ) : null}
+    <div>
+      UA OS: {v.va_unaided_os || "—"}
+      {v.va_unaided_os_ph ? ` (PH ${v.va_unaided_os_ph})` : ""}
+    </div>
+
+    {v.va_aided_od && (
+      <div>
+        Aided OD: {v.va_aided_od}
+      </div>
+    )}
+
+    {v.va_aided_os && (
+      <div>
+        Aided OS: {v.va_aided_os}
+      </div>
+    )}
+  </div>
+</div>
                       </div>
 
                      {(v.iop_od || v.iop_os) && (
