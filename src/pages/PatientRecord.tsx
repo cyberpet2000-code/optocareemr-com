@@ -868,8 +868,6 @@ hmo_relationship:
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <Label className="text-xs">Treatment Plan</Label>
                   <div className="grid grid-cols-2 gap-2 w-full">
-                    {(() => {
-                      
                     <QuickPicker
                       options={LENS_RECOMMENDATION_OPTIONS}
                       multi
