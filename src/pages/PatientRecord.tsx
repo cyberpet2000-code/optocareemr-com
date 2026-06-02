@@ -891,6 +891,13 @@ hmo_relationship:
                 onChange={e => setField("lensType", e.target.value)}
                 rows={2}
               />
+                <Textarea
+  className="rounded-xl mt-2"
+  value={form.medication}
+  onChange={e => setField("medication", e.target.value)}
+  rows={2}
+  placeholder="Medication"
+/>
               </div>
 
 
