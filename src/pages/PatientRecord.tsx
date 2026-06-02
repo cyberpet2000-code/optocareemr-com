@@ -980,15 +980,40 @@ hmo_relationship:
                       </Button>
                     </summary>
                     <div className="px-4 pb-4 text-xs space-y-2 border-t border-border/60 pt-3">
-                      {v.chief_complaint && <div><strong>CC:</strong> {v.chief_complaint}</div>}
-                      {v.history && (
-  <div>
-    <strong>History:</strong>
-    <div className="whitespace-pre-line mt-1">
-      {v.history}
+                      {v.chief_complaint && (
+  <div className="flex gap-2 items-start">
+    <ClipboardList
+      size={14}
+      className="text-blue-600 mt-0.5 shrink-0"
+    />
+
+    <div>
+      <strong>CC:</strong>
+      <div>{v.chief_complaint}</div>
+    </div>
+  </div>
+                    
+      {v.history && (
+  <div className="flex gap-2 items-start">
+    <History
+      size={14}
+      className="text-amber-600 mt-0.5 shrink-0"
+    />
+
+    <div>
+      <strong>History:</strong>
+
+      <div className="whitespace-pre-line mt-1">
+        {v.history}
+      </div>
     </div>
   </div>
 )}
+    <div className="flex gap-2 items-start">
+  <Eye
+    size={14}
+    className="text-indigo-600 mt-0.5 shrink-0"
+  />  
       
    <div>
   <strong>Visual Acuity</strong>
@@ -1018,7 +1043,13 @@ hmo_relationship:
   </div>
 </div>
 
-                     {(v.iop_od || v.iop_os) && (
+   {(v.iop_od || v.iop_os) && (
+  <div className="flex gap-2 items-start">
+    <Gauge
+      size={14}
+      className="text-orange-600 mt-0.5 shrink-0"
+    />   
+    
   <div>
     <strong>IOP</strong>
 
@@ -1034,6 +1065,7 @@ hmo_relationship:
       )}
     </div>
   </div>
+</div>
 )}
   {v.examination && (
   <div className="flex gap-2 items-start">
@@ -1064,7 +1096,13 @@ hmo_relationship:
 )}
 
 {(v.sub_od_sphere || v.sub_os_sphere) && (
-  <div className="mt-2">
+  <div className="flex gap-2 items-start">
+    <Eye
+      size={14}
+      className="text-cyan-600 mt-0.5 shrink-0"
+    />
+    
+  </div>
     <strong>Subjective Refraction</strong>
 
     <div>
@@ -1126,8 +1164,17 @@ hmo_relationship:
 )}
 
 {v.notes && (
-  <div>
-    <strong>Notes:</strong> {v.notes}
+  <div className="flex gap-2 items-start">
+    <FileText
+      size={14}
+      className="text-slate-600 mt-0.5 shrink-0"
+    />
+
+    <div>
+      <strong>Notes:</strong>
+
+      <div>{v.notes}</div>
+    </div>
   </div>
 )}
 
