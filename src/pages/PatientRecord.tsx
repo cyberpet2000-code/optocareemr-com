@@ -237,8 +237,6 @@ if (medRes) {
       diagnosis: form.diagnosis || null,
       lens_type: form.lensType || null,
       medication: form.medication || null,
-      lens_type: form.lensType || null,
-      medication: form.medication || null,
       notes: form.notes || null,
       
       status: markCompleted ? "completed" : "open",
