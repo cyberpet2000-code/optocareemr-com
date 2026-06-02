@@ -22,7 +22,7 @@ import {
   CheckCircle2,
   Pill,
   FileText,
-  ScanEye
+  Eye
 } from "lucide-react";
 import { generateVisitPdf } from "@/lib/visitPdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -992,6 +992,7 @@ hmo_relationship:
       <div>{v.chief_complaint}</div>
     </div>
   </div>
+     )}               
                     
       {v.history && (
   <div className="flex gap-2 items-start">
@@ -1069,7 +1070,7 @@ hmo_relationship:
 )}
   {v.examination && (
   <div className="flex gap-2 items-start">
-    <ScanEye
+    <Eye
       size={14}
       className="text-blue-500 mt-0.5 shrink-0"
     />
@@ -1128,6 +1129,7 @@ hmo_relationship:
         ADD: {v.sub_reading_add}
       </div>
     )}
+    </div>                   
   </div>
 )}
 
