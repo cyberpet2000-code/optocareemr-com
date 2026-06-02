@@ -893,7 +893,6 @@ hmo_relationship:
   onChange={e => setField("lensType", e.target.value)}
   rows={2}
 />
-                <PickerChips value={form.treatment} onChange={v => setField("treatment", v)} />
               </div>
 
 
