@@ -235,8 +235,10 @@ if (medRes) {
       iop_os: form.iopOs ? Number(form.iopOs) : null,
       iop_time: form.iopTime || null,
       diagnosis: form.diagnosis || null,
-      treatment: form.treatment || null,
+      lens_type: form.lensType || null,
+      medication: form.medication || null,
       notes: form.notes || null,
+      
       status: markCompleted ? "completed" : "open",
       completed_at: markCompleted ? new Date().toISOString() : null,
     } as any).select().single();
