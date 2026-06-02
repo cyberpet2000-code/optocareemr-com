@@ -875,14 +875,14 @@ hmo_relationship:
                       multi
                       searchable
                       triggerLabel="+ Glasses / Lens"
-                      currentValue={form.treatment}
-                      onSelect={merged => setField("treatment", merged)}
+                      currentValue={form.lensType}
+                      onSelect={v => setField("lensType", v)}
                       popoverWidthClassName="w-72"
                       align="end"
                     />
                     <MedicationPicker
                       items={medications}
-                      onAdd={line => setField("treatment", appendUnique(form.treatment, [line]))}
+                      onAdd={line => setField("medication", line)}
                       triggerLabel="+ Medication"
                     />
                   </div>
