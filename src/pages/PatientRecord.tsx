@@ -8,7 +8,22 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Eye, Stethoscope, ClipboardList, History, Pencil, Gauge, Download, Phone, MessageCircle, CheckCircle2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Eye,
+  Stethoscope,
+  ClipboardList,
+  History,
+  Pencil,
+  Gauge,
+  Download,
+  Phone,
+  MessageCircle,
+  CheckCircle2,
+  Pill,
+  FileText,
+  ScanEye
+} from "lucide-react";
 import { generateVisitPdf } from "@/lib/visitPdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAccess } from "@/hooks/useAccess";
