@@ -974,34 +974,8 @@ hmo_relationship:
     </div>
   </div>
 )}
-                      <div>
-  <strong>Visual Acuity</strong>
-
-  <div className="mt-1">
-    <div>
-      OD: {v.va_unaided_od || "—"}
-      {v.va_unaided_od_ph ? ` (PH ${v.va_unaided_od_ph})` : ""}
-    </div>
-
-    <div>
-      OS: {v.va_unaided_os || "—"}
-      {v.va_unaided_os_ph ? ` (PH ${v.va_unaided_os_ph})` : ""}
-    </div>
-
-    {v.va_unaided_ou && (
-      <div>
-        OU: {v.va_unaided_ou}
-      </div>
-    )}
-  </div>
-</div>
-                        <div>
-                          <strong>VA UA OD:</strong>{" "}
-                          {v.va_unaided_od || "—"}
-                          {v.va_unaided_od_ph ? ` (PH: ${v.va_unaided_od_ph})` : ""}
-                        </div>
-
-                        <div>
+      
+   <div>
   <strong>Visual Acuity</strong>
 
   <div className="mt-1">
