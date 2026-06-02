@@ -887,7 +887,12 @@ hmo_relationship:
                     />
                   </div>
                 </div>
-                <Textarea className="rounded-xl" value={form.treatment} onChange={e => setField("treatment", e.target.value)} rows={3} />
+                <Textarea
+  className="rounded-xl"
+  value={form.lensType}
+  onChange={e => setField("lensType", e.target.value)}
+  rows={2}
+/>
                 <PickerChips value={form.treatment} onChange={v => setField("treatment", v)} />
               </div>
 
