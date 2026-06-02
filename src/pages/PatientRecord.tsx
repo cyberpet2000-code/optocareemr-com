@@ -833,7 +833,7 @@ hmo_relationship:
 
         <TabsContent value="dx" className="space-y-4">
           <div className="form-section">
-            <h2 className="section-title text-sm"><Stethoscope size={16} /> Diagnosis & Treatment</h2>
+            <h2 className="section-title text-sm"><Stethoscope size={16} /> Diagnosis & Management</h2>
             <div className="space-y-3">
               <div className="space-y-1">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
