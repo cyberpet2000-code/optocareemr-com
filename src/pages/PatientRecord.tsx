@@ -1106,16 +1106,14 @@ hmo_relationship:
     <strong>Subjective Refraction</strong>
 
     <div>
-      OD:
-      {v.sub_od_sphere || "Plano"}
+      OD:{v.sub_od_sphere || "Plano"}
       {v.sub_od_cyl ? ` ${v.sub_od_cyl}` : ""}
       {v.sub_od_axis ? ` x${v.sub_od_axis}` : ""}
       {v.sub_va_od ? ` VA ${v.sub_va_od}` : ""}
     </div>
 
     <div>
-      OS:
-      {v.sub_os_sphere || "Plano"}
+      OS:{v.sub_os_sphere || "Plano"}
       {v.sub_os_cyl ? ` ${v.sub_os_cyl}` : ""}
       {v.sub_os_axis ? ` x${v.sub_os_axis}` : ""}
       {v.sub_va_os ? ` VA ${v.sub_va_os}` : ""}
