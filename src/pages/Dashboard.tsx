@@ -286,10 +286,16 @@ snap.previousMonthRevenue =
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <Metric icon={Users} label="Total Patients" value={totalCount} color="bg-primary/10 text-primary" to="/patients" />
-        <Metric icon={TrendingUp} label="Revenue" value={`₦${totalRevenue.toLocaleString()}`} color="bg-success/10 text-success" to="/billing" />
-        <Metric icon={DollarSign} label="Pending Bills" value={pendingBills} color="bg-warning/10 text-warning" to="/billing" />
-        <Metric icon={ShoppingBag} label="Stock Alerts" value={lowStockCount} color="bg-destructive/10 text-destructive" to="/inventory" />
+        <Metric icon={Users} label="Patients This Month" value={monthPatients} color="bg-primary/10 text-primary" to="/patients" />
+        <Metric icon={TrendingUp} label="Current Revenue" value={`₦${monthlyRevenue.toLocaleString.toLocaleString()}`} color="bg-success/10 text-success" to="/billing" />
+        <Metric icon={NairaSign} label="Pending Bills" value={pendingBills} color="bg-warning/10 text-warning" to="/billing" />
+        <Metric
+  icon={DollarSign}
+  label="Previous Revenue"
+  value={`₦${previousMonthRevenue.toLocaleString()}`}
+  color="bg-accent/10 text-accent"
+  to="/billing"
+/> value={lowStockCount} color="bg-destructive/10 text-destructive" to="/inventory" />
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-6">
