@@ -56,10 +56,12 @@ export default function Dashboard() {
   };
 }, [effectiveClinicId]);
   const { isOffline } = useOffline();
-  const [totalCount, setTotalCount] = useState(0);
+  const [monthPatients, setMonthPatients] = useState(0);
   const [todayVisits, setTodayVisits] = useState(0);
   const [todayAppointments, setTodayAppointments] = useState(0);
   const [pendingBills, setPendingBills] = useState(0);
+  const [monthlyRevenue, setMonthlyRevenue] = useState(0);
+  const [previousMonthRevenue, setPreviousMonthRevenue] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [recentPatients, setRecentPatients] = useState<any[]>([]);
@@ -137,9 +139,32 @@ export default function Dashboard() {
 
     (async () => {
       setLoading(true);
-      const today = new Date().toISOString().split("T")[0];
+      const today 
+      const now = new Date();
+
+const monthStart = new Date(
+  now.getFullYear(),
+  now.getMonth(),
+  1
+).toISOString();
+
+const previousMonthStart = new Date(
+  now.getFullYear(),
+  now.getMonth() - 1,
+  1
+).toISOString();
       try {
-        const [patientsRes, countRes, visitsRes, apptRes, pendingApptRes, invRes, billRes] = await Promise.all([
+        const [
+  patientsRes,
+  monthPatientsRes,
+  visitsRes,
+  apptRes,
+  pendingApptRes,
+  invRes,
+  billRes,
+  currentRevenueRes,
+  previousRevenueRes
+] = await Promise.all([
           apiClient.from("patients").select("id, full_name, age, gender, phone, payment_type, queue_number").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(5),
           apiClient.from("patients").select("*", { count: "exact", head: true }).eq("clinic_id", cid),
           apiClient.from("visits").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", `${today}T00:00:00`),
