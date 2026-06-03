@@ -13,6 +13,8 @@ import { useOffline } from "@/hooks/useOffline";
 
 interface DashboardSnapshot {
   todayVisits: number;
+  monthPatients: number;
+  totalRevenue: number;
   todayAppointments: number;
   pendingBills: number;
   lowStockCount: number;
@@ -60,7 +62,6 @@ export default function Dashboard() {
   const [pendingBills, setPendingBills] = useState(0);
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
   const [previousMonthRevenue, setPreviousMonthRevenue] = useState(0);
-  const [totalRevenue, setTotalRevenue] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [recentPatients, setRecentPatients] = useState<any[]>([]);
   const [upcomingAppts, setUpcomingAppts] = useState<any[]>([]);
@@ -120,7 +121,10 @@ export default function Dashboard() {
         setTodayVisits(snap.todayVisits ?? 0);
         setTodayAppointments(snap.todayAppointments ?? 0);
         setPendingBills(snap.pendingBills ?? 0);
-        setTotalRevenue(snap.totalRevenue ?? 0);
+        setMonthlyRevenue(snap.monthlyRevenue ?? 0);
+        setPreviousMonthRevenue(
+        snap.previousMonthRevenue ?? 0
+      );
         setLowStockCount(snap.lowStockCount ?? 0);
         setDrugAlerts(snap.drugAlerts ?? 0);
         setRecentPatients(snap.recentPatients ?? []);
@@ -196,6 +200,8 @@ apiClient
           monthPatients: monthPatientsRes.count ?? 0,
           todayVisits: visitsRes.count ?? 0,
           todayAppointments: apptRes.count ?? 0,
+          previousMonthRevenue: 0,
+          monthlyRevenue: 0,
           pendingBills: 0,
           totalRevenue: 0,
           lowStockCount: 0,
