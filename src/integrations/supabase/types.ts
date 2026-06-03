@@ -2796,6 +2796,8 @@ export type Database = {
           iop_od: number | null
           iop_os: number | null
           iop_time: string | null
+          lens_type: string | null
+          medication: string | null
           notes: string | null
           old_lens_prescription: string | null
           patient_id: string
@@ -2851,6 +2853,8 @@ export type Database = {
           iop_od?: number | null
           iop_os?: number | null
           iop_time?: string | null
+          lens_type?: string | null
+          medication?: string | null
           notes?: string | null
           old_lens_prescription?: string | null
           patient_id: string
@@ -2906,6 +2910,8 @@ export type Database = {
           iop_od?: number | null
           iop_os?: number | null
           iop_time?: string | null
+          lens_type?: string | null
+          medication?: string | null
           notes?: string | null
           old_lens_prescription?: string | null
           patient_id?: string

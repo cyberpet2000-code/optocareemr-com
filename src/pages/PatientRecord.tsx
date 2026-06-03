@@ -1042,6 +1042,9 @@ hmo_relationship:
     )}
   </div>
 </div>
+</div>
+
+
 
    {(v.iop_od || v.iop_os) && (
   <div className="flex gap-2 items-start">
@@ -1101,8 +1104,7 @@ hmo_relationship:
       size={14}
       className="text-cyan-600 mt-0.5 shrink-0"
     />
-    
-  </div>
+    <div>
     <strong>Subjective Refraction</strong>
 
     <div>
