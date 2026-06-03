@@ -171,19 +171,30 @@ const previousMonthStart = new Date(
           apiClient.from("appointments").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]),
           apiClient.from("appointments").select("id, appointment_date, appointment_time, reason, patient_id").eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]).order("appointment_date").order("appointment_time").limit(5),
           apiClient.from("inventory").select("id, stock_quantity, low_stock_threshold, expiry_date, category").eq("clinic_id", cid),
-          apiClient
+          apiClient.from("inventory")
+  .select("id, stock_quantity, low_stock_threshold, expiry_date, category")
+  .eq("clinic_id", cid),
+
+// Pending bills
+apiClient
+  .from("billing")
+  .select("status")
+  .eq("clinic_id", cid),
+
+// Current month revenue
+apiClient
   .from("billing")
   .select("total_amount")
   .eq("clinic_id", cid)
   .gte("created_at", monthStart),
 
+// Previous month revenue
 apiClient
   .from("billing")
   .select("total_amount")
   .eq("clinic_id", cid)
   .gte("created_at", previousMonthStart)
   .lt("created_at", monthStart),
-        ]);
 
         const snap: any = {
           monthPatients: monthPatientsRes.count ?? 0,
@@ -247,7 +258,7 @@ snap.previousMonthRevenue =
 
         setMonthlyRevenue(snap.monthlyRevenue);
         setPreviousMonthRevenue(
-        snap.previousMonthRevenu); 
+        snap.previousMonthRevenue); 
         setLowStockCount(snap.lowStockCount);
         setDrugAlerts(snap.drugAlerts);
         setRecentPatients(snap.recentPatients);
@@ -287,7 +298,7 @@ snap.previousMonthRevenue =
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <Metric icon={Users} label="Patients This Month" value={monthPatients} color="bg-primary/10 text-primary" to="/patients" />
-        <Metric icon={TrendingUp} label="Current Revenue" value={`₦${monthlyRevenue.toLocaleString.toLocaleString()}`} color="bg-success/10 text-success" to="/billing" />
+        <Metric icon={TrendingUp} label="Current Revenue" value={`₦${monthlyRevenue.toLocaleString()}`} color="bg-success/10 text-success" to="/billing" />
         <Metric icon={NairaSign} label="Pending Bills" value={pendingBills} color="bg-warning/10 text-warning" to="/billing" />
         <Metric
   icon={NairaSign}
