@@ -4,7 +4,7 @@ import {
   showNotification,
 } from "@/lib/notifications";
 import { Link } from "react-router-dom";
-import { Users, ChevronRight, AlertTriangle, NairaSign, TrendingUp, Clock, ShoppingBag } from "lucide-react";
+import { Users, ChevronRight, AlertTriangle, NairaSign, TrendingUp, Clock } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
