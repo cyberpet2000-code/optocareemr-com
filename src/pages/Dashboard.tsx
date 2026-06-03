@@ -118,7 +118,7 @@ export default function Dashboard() {
     const hydrateFromCache = () => {
       const snap = offlineStore.get<DashboardSnapshot>(cacheKey);
       if (snap) {
-        setTotalCount(snap.totalCount ?? 0);
+        setMonthPatients(snap.monthPatients ?? 0);
         setTodayVisits(snap.todayVisits ?? 0);
         setTodayAppointments(snap.todayAppointments ?? 0);
         setPendingBills(snap.pendingBills ?? 0);
@@ -139,7 +139,7 @@ export default function Dashboard() {
 
     (async () => {
       setLoading(true);
-      const today 
+      const today = new Date().toISOString().split("T")[0];
       const now = new Date();
 
 const monthStart = new Date(
