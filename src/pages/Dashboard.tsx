@@ -4,7 +4,7 @@ import {
   showNotification,
 } from "@/lib/notifications";
 import { Link } from "react-router-dom";
-import { Users, ChevronRight, AlertTriangle, DollarSign, TrendingUp, Clock, ShoppingBag } from "lucide-react";
+import { Users, ChevronRight, AlertTriangle, NairaSign, TrendingUp, Clock, ShoppingBag } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useClinic } from "@/hooks/useClinic";
@@ -290,12 +290,12 @@ snap.previousMonthRevenue =
         <Metric icon={TrendingUp} label="Current Revenue" value={`₦${monthlyRevenue.toLocaleString.toLocaleString()}`} color="bg-success/10 text-success" to="/billing" />
         <Metric icon={NairaSign} label="Pending Bills" value={pendingBills} color="bg-warning/10 text-warning" to="/billing" />
         <Metric
-  icon={DollarSign}
+  icon={NairaSign}
   label="Previous Revenue"
   value={`₦${previousMonthRevenue.toLocaleString()}`}
   color="bg-accent/10 text-accent"
   to="/billing"
-/> value={lowStockCount} color="bg-destructive/10 text-destructive" to="/inventory" />
+/> 
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-6">
