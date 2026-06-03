@@ -14,7 +14,8 @@ import { useOffline } from "@/hooks/useOffline";
 interface DashboardSnapshot {
   todayVisits: number;
   monthPatients: number;
-  totalRevenue: number;
+  previousMonthRevenue: number;
+  monthlyRevenue: number;
   todayAppointments: number;
   pendingBills: number;
   lowStockCount: number;
@@ -203,7 +204,6 @@ apiClient
           previousMonthRevenue: 0,
           monthlyRevenue: 0,
           pendingBills: 0,
-          totalRevenue: 0,
           lowStockCount: 0,
           drugAlerts: 0,
           recentPatients: patientsRes.data ?? [],
