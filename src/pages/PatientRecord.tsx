@@ -1101,8 +1101,7 @@ hmo_relationship:
       size={14}
       className="text-cyan-600 mt-0.5 shrink-0"
     />
-    
-  </div>
+    <div>
     <strong>Subjective Refraction</strong>
 
     <div>
