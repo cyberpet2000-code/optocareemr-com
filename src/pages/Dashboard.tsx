@@ -185,8 +185,8 @@ apiClient
   .lt("created_at", monthStart),
         ]);
 
-        const snap: DashboardSnapshot = {
-          totalCount: countRes.count ?? 0,
+        const snap: any = {
+          monthPatients: monthPatientsRes.count ?? 0,
           todayVisits: visitsRes.count ?? 0,
           todayAppointments: apptRes.count ?? 0,
           pendingBills: 0,
@@ -205,9 +205,27 @@ apiClient
         }
 
         if (billRes.data) {
-          snap.totalRevenue = billRes.data.reduce((s: number, b: any) => s + Number(b.amount_paid || 0), 0);
-          snap.pendingBills = billRes.data.filter((b: any) => b.status === "pending" || b.status === "partial").length;
-        }
+  snap.pendingBills =
+    billRes.data.filter(
+      (b: any) =>
+        b.status === "pending" ||
+        b.status === "partial"
+    ).length;
+}
+
+snap.monthlyRevenue =
+  currentRevenueRes.data?.reduce(
+    (sum: number, b: any) =>
+      sum + Number(b.total_amount || 0),
+    0
+  ) || 0;
+
+snap.previousMonthRevenue =
+  previousRevenueRes.data?.reduce(
+    (sum: number, b: any) =>
+      sum + Number(b.total_amount || 0),
+    0
+  ) || 0;
 
         if (pendingApptRes.data && pendingApptRes.data.length > 0) {
           const patIds = [...new Set(pendingApptRes.data.map((a: any) => a.patient_id).filter(Boolean))] as string[];
@@ -222,11 +240,14 @@ apiClient
           }));
         }
 
-        setTotalCount(snap.totalCount);
+        setMonthPatients(snap.monthPatients);
         setTodayVisits(snap.todayVisits);
         setTodayAppointments(snap.todayAppointments);
         setPendingBills(snap.pendingBills);
-        setTotalRevenue(snap.totalRevenue);
+
+        setMonthlyRevenue(snap.monthlyRevenue);
+        setPreviousMonthRevenue(
+        snap.previousMonthRevenu); 
         setLowStockCount(snap.lowStockCount);
         setDrugAlerts(snap.drugAlerts);
         setRecentPatients(snap.recentPatients);
