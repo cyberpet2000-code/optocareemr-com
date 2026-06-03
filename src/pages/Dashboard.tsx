@@ -12,11 +12,9 @@ import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
 
 interface DashboardSnapshot {
-  totalCount: number;
   todayVisits: number;
   todayAppointments: number;
   pendingBills: number;
-  totalRevenue: number;
   lowStockCount: number;
   drugAlerts: number;
   recentPatients: any[];
@@ -171,9 +169,6 @@ const previousMonthStart = new Date(
           apiClient.from("appointments").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]),
           apiClient.from("appointments").select("id, appointment_date, appointment_time, reason, patient_id").eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]).order("appointment_date").order("appointment_time").limit(5),
           apiClient.from("inventory").select("id, stock_quantity, low_stock_threshold, expiry_date, category").eq("clinic_id", cid),
-          apiClient.from("inventory")
-  .select("id, stock_quantity, low_stock_threshold, expiry_date, category")
-  .eq("clinic_id", cid),
 
 // Pending bills
 apiClient
@@ -195,6 +190,7 @@ apiClient
   .eq("clinic_id", cid)
   .gte("created_at", previousMonthStart)
   .lt("created_at", monthStart),
+    ]);
 
         const snap: any = {
           monthPatients: monthPatientsRes.count ?? 0,
