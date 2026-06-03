@@ -166,12 +166,23 @@ const previousMonthStart = new Date(
   previousRevenueRes
 ] = await Promise.all([
           apiClient.from("patients").select("id, full_name, age, gender, phone, payment_type, queue_number").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(5),
-          apiClient.from("patients").select("*", { count: "exact", head: true }).eq("clinic_id", cid),
+          apiClient.from("patients").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", monthStart),
           apiClient.from("visits").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", `${today}T00:00:00`),
           apiClient.from("appointments").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]),
           apiClient.from("appointments").select("id, appointment_date, appointment_time, reason, patient_id").eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]).order("appointment_date").order("appointment_time").limit(5),
           apiClient.from("inventory").select("id, stock_quantity, low_stock_threshold, expiry_date, category").eq("clinic_id", cid),
-          apiClient.from("billing").select("total_amount, amount_paid, status").eq("clinic_id", cid),
+          apiClient
+  .from("billing")
+  .select("total_amount")
+  .eq("clinic_id", cid)
+  .gte("created_at", monthStart),
+
+apiClient
+  .from("billing")
+  .select("total_amount")
+  .eq("clinic_id", cid)
+  .gte("created_at", previousMonthStart)
+  .lt("created_at", monthStart),
         ]);
 
         const snap: DashboardSnapshot = {
