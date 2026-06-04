@@ -611,21 +611,36 @@ hmo_relationship:
 
       {editingVisitId && (
   <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3">
-    <p className="font-semibold text-amber-900">
-      Editing Visit •{" "}
-      {new Date(
-        visits.find(v => v.id === editingVisitId)?.created_at || ""
-      ).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })}
-    </p>
+  <div className="flex items-start justify-between gap-3">
+    <div>
+      <p className="font-semibold text-amber-900">
+        Editing Visit •{" "}
+        {new Date(
+          visits.find(v => v.id === editingVisitId)?.created_at || ""
+        ).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })}
+      </p>
 
-    <p className="text-sm text-amber-700">
-      Changes will update the existing visit record.
-    </p>
+      <p className="text-sm text-amber-700">
+        Changes will update the existing visit record.
+      </p>
+    </div>
+
+    <Button
+      size="sm"
+      variant="ghost"
+      onClick={() => {
+        setEditingVisitId(null);
+        setForm(emptyVisitForm());
+      }}
+    >
+      Cancel
+    </Button>
   </div>
+</div>
 )}
 
       <Tabs defaultValue="history" className="space-y-4">
