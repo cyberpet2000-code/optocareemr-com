@@ -1344,17 +1344,39 @@ hmo_relationship:
       </Tabs>
 
       <div className="sticky bottom-20 lg:bottom-4 mt-6 flex justify-end gap-2">
+        
+      {editingVisitId ? (
+  <>
+    <Button
+      variant="destructive"
+      size="lg"
+      className="rounded-2xl"
+      onClick={async () => {
+        const confirmed = window.confirm(
+          "Delete this visit permanently?"
+        );
 
-  {editingVisitId ? (
-    <>
-      <Button
-        variant="outline"
-        size="lg"
-        className="rounded-2xl"
-        onClick={() => {
-          setEditingVisitId(null);
-          setForm(emptyVisitForm());
-        }}
+        if (!confirmed) return;
+
+        const { error } = await apiClient
+          .from("visits")
+          .delete()
+          .eq("id", editingVisitId);
+
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+
+        toast.success("Visit deleted");
+
+        setVisits(prev =>
+          prev.filter(v => v.id !== editingVisitId)
+        );
+
+        setEditingVisitId(null);
+        setForm(emptyVisitForm());
+      }}
       >
         Cancel Edit
       </Button>
