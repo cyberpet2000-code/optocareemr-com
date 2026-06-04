@@ -769,7 +769,10 @@ form.patientId === selectedLookupPatient.id ? (
         </div>
       )}
 
-      <Tabs defaultValue="pending" className="space-y-4">
+      <Tabs
+  defaultValue={monthFilter ? "all" : "pending"}
+  className="space-y-4"
+>
         <TabsList className="bg-muted/50 rounded-2xl p-1">
           <TabsTrigger value="pending" className="rounded-xl text-xs gap-1"><DollarSign size={12} /> Pending ({pendingBills.length})</TabsTrigger>
           <TabsTrigger value="all" className="rounded-xl text-xs gap-1"><FileText size={12} /> All ({bills.length})</TabsTrigger>
