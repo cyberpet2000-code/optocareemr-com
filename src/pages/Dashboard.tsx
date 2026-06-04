@@ -200,6 +200,9 @@ apiClient
   .select("total_amount, visit_id")
   .eq("clinic_id", cid)
   .not("visit_id", "is", null),
+        ]);
+
+
 
         const snap: any = {
           monthPatients: monthPatientsRes.count ?? 0,
