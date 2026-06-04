@@ -260,6 +260,7 @@ const lookupBalance =
       return;
     }
     setSaving(true);
+    const isHmo = selectedPatient?.payment_type === "hmo";
     const { data: latestVisit } = await apiClient
   .from("visits")
   .select("id")
