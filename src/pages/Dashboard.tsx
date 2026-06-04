@@ -204,7 +204,12 @@ const nextMonthStart = new Date(
 
 apiClient
   .from("billing")
-  .select("total_amount")
+  .select(`
+  total_amount,
+  visits!inner(
+    created_at
+  )
+`)
   .eq("clinic_id", cid)
   .gte("created_at", monthStart)
   .lt("created_at", nextMonthStart)
@@ -212,7 +217,12 @@ apiClient
 // Previous month revenue
 apiClient
   .from("billing")
-  .select("total_amount")
+  .select(`
+  total_amount,
+  visits!inner(
+    created_at
+  )
+`)
   .eq("clinic_id", cid)
   .gte("created_at", previousMonthStart)
   .lt("created_at", monthStart)
