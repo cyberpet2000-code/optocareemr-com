@@ -1000,9 +1000,33 @@ hmo_relationship:
                         {v.diagnosis && <span className="text-muted-foreground ml-2 font-normal">— {String(v.diagnosis).slice(0, 50)}</span>}
                         <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-md ${v.status === "completed" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>{v.status}</span>
                       </span>
-                      <Button variant="ghost" size="sm" className="rounded-xl" onClick={(e) => { e.preventDefault(); generateVisitPdf(patient, v); }}>
-                        <Download size={12} className="mr-1" /> Export
-                      </Button>
+                      <div className="flex gap-1">
+  <Button
+    variant="ghost"
+    size="sm"
+    className="rounded-xl"
+    onClick={(e) => {
+      e.preventDefault();
+      startEditVisit(v);
+    }}
+  >
+    <Pencil size={12} className="mr-1" />
+    Edit
+  </Button>
+
+  <Button
+    variant="ghost"
+    size="sm"
+    className="rounded-xl"
+    onClick={(e) => {
+      e.preventDefault();
+      generateVisitPdf(patient, v);
+    }}
+  >
+    <Download size={12} className="mr-1" />
+    Export
+  </Button>
+</div>
                     </summary>
                     <div className="px-4 pb-4 text-xs space-y-2 border-t border-border/60 pt-3">
                       {v.chief_complaint && (
