@@ -186,6 +186,7 @@ if (medRes) {
   }));
   const startEditVisit = (v: any) => {
   setEditingVisitId(v.id);
+    console.log("Editing visit:", v.id);
 
   setForm({
     ...emptyVisitForm(),
@@ -418,6 +419,8 @@ hmo_relationship:
 
   const isHmo = patient.payment_type === "hmo";
   const hmoName = patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : null;
+
+  console.log("Current editingVisitId:", editingVisitId);
 
   return (
     <>
@@ -1370,13 +1373,8 @@ hmo_relationship:
       </Button>
     </>
   )}
-
+        
 </div>
-        </Button>
-        <Button onClick={() => handleSaveVisit(true)} size="lg" className="shadow-lg rounded-2xl px-6" disabled={saving}>
-          <CheckCircle2 size={16} className="mr-1" /> Complete Visit
-        </Button>
-      </div>
     </>
   );
 }
