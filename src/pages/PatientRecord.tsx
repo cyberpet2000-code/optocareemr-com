@@ -96,6 +96,8 @@ export default function PatientRecord() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [editingVisitId, setEditingVisitId] =
+  useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<PatientData>>({});
   const [form, setForm] = useState(emptyVisitForm());
   const [medications, setMedications] = useState<MedItem[]>([]);
@@ -182,6 +184,30 @@ if (medRes) {
     ...prev,
     [k]: v,
   }));
+  const startEditVisit = (v: any) => {
+  setEditingVisitId(v.id);
+
+  setForm({
+    ...emptyVisitForm(),
+
+    chiefComplaint: v.chief_complaint || "",
+    history: v.history || "",
+    examination: v.examination || "",
+    diagnosis: v.diagnosis || "",
+    lensType: v.lens_type || "",
+    medication: v.medication || "",
+    notes: v.notes || "",
+
+    iopOd: v.iop_od?.toString() || "",
+    iopOs: v.iop_os?.toString() || "",
+    iopTime: v.iop_time || "",
+  });
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+};
 
 
   const handleSaveVisit = async (markCompleted: boolean) => {
