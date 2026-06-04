@@ -1322,8 +1322,56 @@ hmo_relationship:
       </Tabs>
 
       <div className="sticky bottom-20 lg:bottom-4 mt-6 flex justify-end gap-2">
-        <Button onClick={() => handleSaveVisit(false)} variant="outline" size="lg" className="rounded-2xl" disabled={saving}>
-          {saving ? "..." : "Save Draft"}
+
+  {editingVisitId ? (
+    <>
+      <Button
+        variant="outline"
+        size="lg"
+        className="rounded-2xl"
+        onClick={() => {
+          setEditingVisitId(null);
+          setForm(emptyVisitForm());
+        }}
+      >
+        Cancel Edit
+      </Button>
+
+      <Button
+        size="lg"
+        className="shadow-lg rounded-2xl px-6"
+        onClick={() => handleSaveVisit(true)}
+        disabled={saving}
+      >
+        <Pencil size={16} className="mr-1" />
+        Update Visit
+      </Button>
+    </>
+  ) : (
+    <>
+      <Button
+        onClick={() => handleSaveVisit(false)}
+        variant="outline"
+        size="lg"
+        className="rounded-2xl"
+        disabled={saving}
+      >
+        {saving ? "..." : "Save Draft"}
+      </Button>
+
+      <Button
+        onClick={() => handleSaveVisit(true)}
+        size="lg"
+        className="shadow-lg rounded-2xl px-6"
+        disabled={saving}
+      >
+        <CheckCircle2 size={16} className="mr-1" />
+        Complete Visit
+      </Button>
+    </>
+  )}
+
+</div>
         </Button>
         <Button onClick={() => handleSaveVisit(true)} size="lg" className="shadow-lg rounded-2xl px-6" disabled={saving}>
           <CheckCircle2 size={16} className="mr-1" /> Complete Visit
