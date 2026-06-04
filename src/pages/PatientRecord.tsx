@@ -1410,7 +1410,7 @@ hmo_relationship:
     <>
       <Button
         onClick={() => handleSaveVisit(false)}
-        variant="outline"
+        variant="destructive"
         size="lg"
         className="rounded-2xl"
         disabled={saving}
