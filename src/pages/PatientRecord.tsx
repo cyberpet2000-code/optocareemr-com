@@ -198,6 +198,43 @@ if (medRes) {
     medication: v.medication || "",
     notes: v.notes || "",
 
+    vaUnaidedOd: v.va_unaided_od || "",
+vaUnaidedOs: v.va_unaided_os || "",
+vaUnaidedOu: v.va_unaided_ou || "",
+
+vaUnaidedOdPh: v.va_unaided_od_ph || "",
+vaUnaidedOsPh: v.va_unaided_os_ph || "",
+
+vaUnaidedNearOu: v.va_unaided_near_ou || "",
+
+vaAidedOd: v.va_aided_od || "",
+vaAidedOs: v.va_aided_os || "",
+vaAidedOu: v.va_aided_ou || "",
+vaAidedNearOu: v.va_aided_near_ou || "",
+
+autoOdSphere: v.auto_od_sphere || "",
+autoOdCyl: v.auto_od_cyl || "",
+autoOdAxis: v.auto_od_axis || "",
+autoVaOd: v.auto_va_od || "",
+
+autoOsSphere: v.auto_os_sphere || "",
+autoOsCyl: v.auto_os_cyl || "",
+autoOsAxis: v.auto_os_axis || "",
+autoVaOs: v.auto_va_os || "",
+
+subOdSphere: v.sub_od_sphere || "",
+subOdCyl: v.sub_od_cyl || "",
+subOdAxis: v.sub_od_axis || "",
+subVaOd: v.sub_va_od || "",
+
+subOsSphere: v.sub_os_sphere || "",
+subOsCyl: v.sub_os_cyl || "",
+subOsAxis: v.sub_os_axis || "",
+subVaOs: v.sub_va_os || "",
+
+subReadingAdd: v.sub_reading_add || "",
+subVaOutcome: v.sub_va_outcome || "",
+
     iopOd: v.iop_od?.toString() || "",
     iopOs: v.iop_os?.toString() || "",
     iopTime: v.iop_time || "",
@@ -332,6 +369,7 @@ const { data, error } = editingVisitId
     setSaving(false);
     if (error) { toast.error("Failed to save visit: " + error.message); return; }
     toast.success(markCompleted ? "Visit completed — bill auto-created" : "Visit saved");
+    setEditingVisitId(null);
     setForm(emptyVisitForm());
     // Re-sync visit history from DB so Past tab always reflects server state
     const { data: fresh } = await apiClient
