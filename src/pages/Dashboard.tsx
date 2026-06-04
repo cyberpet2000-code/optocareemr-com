@@ -77,6 +77,19 @@ export default function Dashboard() {
   };
 
   const displayName = user?.user_metadata?.full_name || "Doctor";
+  const now = new Date();
+
+const currentMonthName = now.toLocaleString("en-US", {
+  month: "long",
+});
+
+const previousMonthName = new Date(
+  now.getFullYear(),
+  now.getMonth() - 1,
+  1
+).toLocaleString("en-US", {
+  month: "long",
+});
   useEffect(() => {
   if (!effectiveClinicId) return;
 
@@ -311,11 +324,11 @@ snap.previousMonthRevenue =
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <Metric icon={Users} label="Patients This Month" value={monthPatients} color="bg-primary/10 text-primary" to="/patients" />
-        <Metric icon={TrendingUp} label="Current Revenue" value={`₦${monthlyRevenue.toLocaleString()}`} color="bg-success/10 text-success" to="/billing" />
+        <Metric icon={TrendingUp} label={`${currentMonthName} Revenue`} value={`₦${monthlyRevenue.toLocaleString()}`} color="bg-success/10 text-success" to="/billing" />
         <Metric icon={DollarSign} label="Pending Bills" value={pendingBills} color="bg-warning/10 text-warning" to="/billing" />
         <Metric
   icon={DollarSign}
-  label="Previous Revenue"
+  label={`${previousMonthName} Revenue`}
   value={`₦${previousMonthRevenue.toLocaleString()}`}
   color="bg-accent/10 text-accent"
   to="/billing"
