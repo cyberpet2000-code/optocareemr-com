@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Search, ChevronRight, UserPlus, Phone, MessageCircle } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { Input } from "@/components/ui/input";
