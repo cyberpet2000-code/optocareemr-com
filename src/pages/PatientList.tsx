@@ -92,7 +92,11 @@ const { data, error } =
   return (
     <>
       <div className="flex items-center justify-between gap-3 mb-5">
-        <h1 className="page-header">Patients</h1>
+        <h1 className="page-header">
+  {filter === "thismonth"
+    ? "Patients This Month"
+    : "Patients"}
+</h1>
         <Link to="/register">
           <Button size="sm" className="rounded-xl gap-1.5">
             <UserPlus size={14} /> New
