@@ -614,21 +614,11 @@ hmo_relationship:
     <div className="flex items-center justify-between">
       <div>
         <p className="font-semibold text-amber-900">
-          Editing Visit • {
-            visits.find(v => v.id === editingVisitId)
-              ? new Date(
-                  visits.find(v => v.id === editingVisitId).created_at
-                ).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })
-              : ""
-          }
+          Editing Visit
         </p>
 
         <p className="text-sm text-amber-700">
-          Changes will update this visit record.
+          Changes will update the existing visit record.
         </p>
       </div>
 
