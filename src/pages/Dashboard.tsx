@@ -381,7 +381,7 @@ const previousYear =
 
       <div className="grid grid-cols-2 gap-3 mb-6">
         <Link
-  to="/visits?filter=today"
+  to="/appointments?filter=today"
   className="stat-card"
 >
           <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
