@@ -326,7 +326,10 @@ snap.previousMonthRevenue =
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="stat-card">
+        <Link
+  to="/visits?filter=today"
+  className="stat-card"
+>
           <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
             <Clock className="text-accent" size={18} />
           </div>
@@ -334,7 +337,7 @@ snap.previousMonthRevenue =
             <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Today's Visits</p>
             <p className="text-lg font-bold">{loading ? "—" : todayVisits}</p>
           </div>
-        </div>
+        </Link>
         <div className="stat-card">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
             <Clock className="text-primary" size={18} />
