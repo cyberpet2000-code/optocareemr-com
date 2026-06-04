@@ -49,6 +49,10 @@ interface Patient {
 
 export default function Billing() {
   const { effectiveClinicId: cid } = useAccess();
+  const [searchParams] = useSearchParams();
+
+const monthFilter =
+  searchParams.get("month");
   const { isOffline } = useOffline();
   const [bills, setBills] = useState<BillingRow[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -446,6 +450,43 @@ setLookupPayments([]);
   };
 
   const pendingBills = bills.filter(b => b.status !== "paid");
+  let displayBills = bills;
+
+if (monthFilter === "current") {
+  const now = new Date();
+
+  displayBills = bills.filter((b) => {
+    const d = new Date(b.created_at);
+
+    return (
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear()
+    );
+  });
+}
+
+if (monthFilter === "previous") {
+  const now = new Date();
+
+  const prevMonth =
+    now.getMonth() === 0
+      ? 11
+      : now.getMonth() - 1;
+
+  const year =
+    now.getMonth() === 0
+      ? now.getFullYear() - 1
+      : now.getFullYear();
+
+  displayBills = bills.filter((b) => {
+    const d = new Date(b.created_at);
+
+    return (
+      d.getMonth() === prevMonth &&
+      d.getFullYear() === year
+    );
+  });
+}
 
   return (
     <>
