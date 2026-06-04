@@ -194,37 +194,12 @@ apiClient
   .select("status")
   .eq("clinic_id", cid),
 
-// Current month revenue
-const nextMonthStart = new Date(
-  now.getFullYear(),
-  now.getMonth() + 1,
-  1
-).toISOString();
-
+// Revenue by linked visits
 apiClient
   .from("billing")
-  .select(`
-  total_amount,
-  visits!inner(
-    created_at
-  )
-`)
+  .select("total_amount, visit_id")
   .eq("clinic_id", cid)
-  .gte("created_at", monthStart)
-  .lt("created_at", nextMonthStart)
-
-// Previous month revenue
-apiClient
-  .from("billing")
-  .select(`
-  total_amount,
-  visits!inner(
-    created_at
-  )
-`)
-  .eq("clinic_id", cid)
-  .gte("created_at", previousMonthStart)
-  .lt("created_at", monthStart)
+  .not("visit_id", "is", null),
 
         const snap: any = {
           monthPatients: monthPatientsRes.count ?? 0,
