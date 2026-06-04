@@ -1393,7 +1393,7 @@ hmo_relationship:
         setForm(emptyVisitForm());
       }}
       >
-        Cancel Edit
+        Delete Visit
       </Button>
 
       <Button
