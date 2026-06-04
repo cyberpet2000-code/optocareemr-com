@@ -179,8 +179,7 @@ const previousMonthStart = new Date(
   pendingApptRes,
   invRes,
   billRes,
-  currentRevenueRes,
-  previousRevenueRes
+  revenueRes
 ] = await Promise.all([
           apiClient.from("patients").select("id, full_name, age, gender, phone, payment_type, queue_number").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(5),
           apiClient.from("patients").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", monthStart),
