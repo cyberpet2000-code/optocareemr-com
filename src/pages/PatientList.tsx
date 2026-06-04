@@ -27,6 +27,8 @@ export default function PatientList() {
   const [patients, setPatients] = useState<PatientRow[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [searchParams] = useSearchParams();
+const filter = searchParams.get("filter");
 
   useEffect(() => {
     if (!cid) { setPatients([]); setLoading(false); return; }
@@ -42,11 +44,29 @@ export default function PatientList() {
 
     (async () => {
       try {
-        const { data, error } = await apiClient
-          .from("patients")
-          .select("id, full_name, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number")
-          .eq("clinic_id", cid)
-          .order("created_at", { ascending: false });
+        let query = apiClient
+  .from("patients")
+  .select("id, full_name, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number")
+  .eq("clinic_id", cid);
+
+if (filter === "thismonth") {
+  const monthStart = new Date(
+    new Date().getFullYear(),
+    new Date().getMonth(),
+    1
+  ).toISOString();
+
+  query = query.gte(
+    "created_at",
+    monthStart
+  );
+}
+
+const { data, error } =
+  await query.order(
+    "created_at",
+    { ascending: false }
+  );
         if (error || !data) { loadFromCache(); return; }
         const hmoIds = [...new Set(data.map((p: any) => p.active_hmo_id).filter(Boolean))];
         let hmoMap = new Map<string, string>();
