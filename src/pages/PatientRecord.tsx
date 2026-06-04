@@ -609,6 +609,43 @@ hmo_relationship:
         </div>
       )}
 
+      {editingVisitId && (
+  <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="font-semibold text-amber-900">
+          Editing Visit • {
+            visits.find(v => v.id === editingVisitId)
+              ? new Date(
+                  visits.find(v => v.id === editingVisitId).created_at
+                ).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })
+              : ""
+          }
+        </p>
+
+        <p className="text-sm text-amber-700">
+          Changes will update this visit record.
+        </p>
+      </div>
+
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          setEditingVisitId(null);
+          setForm(emptyVisitForm());
+        }}
+      >
+        Cancel
+      </Button>
+    </div>
+  </div>
+)}
+
       <Tabs defaultValue="history" className="space-y-4">
         <TabsList className="w-full flex overflow-x-auto bg-muted/50 rounded-2xl p-1">
           <TabsTrigger value="history" className="flex items-center gap-1 text-[11px] rounded-xl"><ClipboardList size={12} /> History</TabsTrigger>
