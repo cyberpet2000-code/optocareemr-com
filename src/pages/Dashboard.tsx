@@ -169,17 +169,7 @@ const previousMonthStart = new Date(
   now.getMonth() - 1,
   1
 ).toISOString();
-      const currentMonthName = now.toLocaleString("en-US", {
-  month: "long",
-});
-
-const previousMonthName = new Date(
-  now.getFullYear(),
-  now.getMonth() - 1,
-  1
-).toLocaleString("en-US", {
-  month: "long",
-});
+      
       try {
         const [
   patientsRes,
