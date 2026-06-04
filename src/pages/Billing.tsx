@@ -777,7 +777,7 @@ form.patientId === selectedLookupPatient.id ? (
 
         {[
           { value: "pending", list: pendingBills },
-          { value: "all", list: displaybills },
+          { value: "all", list: displayBills },
         ].map(tab => (
           <TabsContent key={tab.value} value={tab.value}>
             {loading ? (
