@@ -251,37 +251,84 @@ if (medRes) {
     }
 
     setSaving(true);
-    const { data, error } = await apiClient.from("visits").insert({
 
-      clinic_id: cid,
-      patient_id: patient.id,
-      payment_type: patient.payment_type,
-      active_hmo_id: patient.active_hmo_id,
-      chief_complaint: form.chiefComplaint || null,
-      history: form.history || null,
-      old_lens_prescription: form.oldLensPrescription || null,
-      va_unaided_od: form.vaUnaidedOd || null, va_unaided_os: form.vaUnaidedOs || null, va_unaided_ou: form.vaUnaidedOu || null,
-      va_unaided_od_ph: form.vaUnaidedOdPh || null, va_unaided_os_ph: form.vaUnaidedOsPh || null,
-      va_unaided_near_ou: form.vaUnaidedNearOu || null,
-      va_aided_od: form.vaAidedOd || null, va_aided_os: form.vaAidedOs || null, va_aided_ou: form.vaAidedOu || null,
-      va_aided_near_ou: form.vaAidedNearOu || null,
-      auto_od_sphere: form.autoOdSphere || null, auto_od_cyl: form.autoOdCyl || null, auto_od_axis: form.autoOdAxis || null, auto_va_od: form.autoVaOd || null,
-      auto_os_sphere: form.autoOsSphere || null, auto_os_cyl: form.autoOsCyl || null, auto_os_axis: form.autoOsAxis || null, auto_va_os: form.autoVaOs || null,
-      sub_od_sphere: form.subOdSphere || null, sub_od_cyl: form.subOdCyl || null, sub_od_axis: form.subOdAxis || null, sub_va_od: form.subVaOd || null,
-      sub_os_sphere: form.subOsSphere || null, sub_os_cyl: form.subOsCyl || null, sub_os_axis: form.subOsAxis || null, sub_va_os: form.subVaOs || null,
-      sub_reading_add: form.subReadingAdd || null, sub_va_outcome: form.subVaOutcome || null,
-      examination: form.examination || null,
-      iop_od: form.iopOd ? Number(form.iopOd) : null,
-      iop_os: form.iopOs ? Number(form.iopOs) : null,
-      iop_time: form.iopTime || null,
-      diagnosis: form.diagnosis || null,
-      lens_type: form.lensType || null,
-      medication: form.medication || null,
-      notes: form.notes || null,
-      
-      status: markCompleted ? "completed" : "open",
-      completed_at: markCompleted ? new Date().toISOString() : null,
-    } as any).select().single();
+const visitPayload = {
+  clinic_id: cid,
+  patient_id: patient.id,
+  payment_type: patient.payment_type,
+  active_hmo_id: patient.active_hmo_id,
+
+  chief_complaint: form.chiefComplaint || null,
+  history: form.history || null,
+  old_lens_prescription: form.oldLensPrescription || null,
+
+  va_unaided_od: form.vaUnaidedOd || null,
+  va_unaided_os: form.vaUnaidedOs || null,
+  va_unaided_ou: form.vaUnaidedOu || null,
+
+  va_unaided_od_ph: form.vaUnaidedOdPh || null,
+  va_unaided_os_ph: form.vaUnaidedOsPh || null,
+
+  va_unaided_near_ou: form.vaUnaidedNearOu || null,
+
+  va_aided_od: form.vaAidedOd || null,
+  va_aided_os: form.vaAidedOs || null,
+  va_aided_ou: form.vaAidedOu || null,
+
+  va_aided_near_ou: form.vaAidedNearOu || null,
+
+  auto_od_sphere: form.autoOdSphere || null,
+  auto_od_cyl: form.autoOdCyl || null,
+  auto_od_axis: form.autoOdAxis || null,
+  auto_va_od: form.autoVaOd || null,
+
+  auto_os_sphere: form.autoOsSphere || null,
+  auto_os_cyl: form.autoOsCyl || null,
+  auto_os_axis: form.autoOsAxis || null,
+  auto_va_os: form.autoVaOs || null,
+
+  sub_od_sphere: form.subOdSphere || null,
+  sub_od_cyl: form.subOdCyl || null,
+  sub_od_axis: form.subOdAxis || null,
+  sub_va_od: form.subVaOd || null,
+
+  sub_os_sphere: form.subOsSphere || null,
+  sub_os_cyl: form.subOsCyl || null,
+  sub_os_axis: form.subOsAxis || null,
+  sub_va_os: form.subVaOs || null,
+
+  sub_reading_add: form.subReadingAdd || null,
+  sub_va_outcome: form.subVaOutcome || null,
+
+  examination: form.examination || null,
+
+  iop_od: form.iopOd ? Number(form.iopOd) : null,
+  iop_os: form.iopOs ? Number(form.iopOs) : null,
+  iop_time: form.iopTime || null,
+
+  diagnosis: form.diagnosis || null,
+  lens_type: form.lensType || null,
+  medication: form.medication || null,
+  notes: form.notes || null,
+
+  status: markCompleted ? "completed" : "open",
+  completed_at: markCompleted
+    ? new Date().toISOString()
+    : null,
+};
+
+const { data, error } = editingVisitId
+  ? await apiClient
+      .from("visits")
+      .update(visitPayload)
+      .eq("id", editingVisitId)
+      .select()
+      .single()
+  : await apiClient
+      .from("visits")
+      .insert(visitPayload)
+      .select()
+      .single();
     setSaving(false);
     if (error) { toast.error("Failed to save visit: " + error.message); return; }
     toast.success(markCompleted ? "Visit completed — bill auto-created" : "Visit saved");
