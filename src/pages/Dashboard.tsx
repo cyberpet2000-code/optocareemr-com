@@ -230,19 +230,80 @@ apiClient
     ).length;
 }
 
-snap.monthlyRevenue =
-  currentRevenueRes.data?.reduce(
-    (sum: number, b: any) =>
-      sum + Number(b.total_amount || 0),
-    0
-  ) || 0;
+const visitIds =
+  revenueRes.data?.map(
+    (b: any) => b.visit_id
+  ) || [];
 
-snap.previousMonthRevenue =
-  previousRevenueRes.data?.reduce(
-    (sum: number, b: any) =>
-      sum + Number(b.total_amount || 0),
-    0
-  ) || 0;
+const { data: visitsData } =
+  await apiClient
+    .from("visits")
+    .select("id, created_at")
+    .in("id", visitIds);
+
+const visitMap = new Map(
+  (visitsData || []).map(
+    (v: any) => [v.id, v.created_at]
+  )
+);
+
+snap.monthlyRevenue = 0;
+snap.previousMonthRevenue = 0;
+
+const currentMonth =
+  now.getMonth();
+
+const currentYear =
+  now.getFullYear();
+
+const previousMonth =
+  currentMonth === 0
+    ? 11
+    : currentMonth - 1;
+
+const previousYear =
+  currentMonth === 0
+    ? currentYear - 1
+    : currentYear;
+
+(revenueRes.data || []).forEach(
+  (bill: any) => {
+    const visitDate =
+      visitMap.get(
+        bill.visit_id
+      );
+
+    if (!visitDate) return;
+
+    const d = new Date(
+      visitDate
+    );
+
+    if (
+      d.getMonth() ===
+        currentMonth &&
+      d.getFullYear() ===
+        currentYear
+    ) {
+      snap.monthlyRevenue +=
+        Number(
+          bill.total_amount || 0
+        );
+    }
+
+    if (
+      d.getMonth() ===
+        previousMonth &&
+      d.getFullYear() ===
+        previousYear
+    ) {
+      snap.previousMonthRevenue +=
+        Number(
+          bill.total_amount || 0
+        );
+    }
+  }
+);
 
         if (pendingApptRes.data && pendingApptRes.data.length > 0) {
           const patIds = [...new Set(pendingApptRes.data.map((a: any) => a.patient_id).filter(Boolean))] as string[];
