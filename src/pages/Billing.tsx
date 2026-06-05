@@ -318,9 +318,8 @@ const lookupBalance =
           .maybeSingle();
 
       if (!stock) {
-  console.log(
-    "[inventory deduct] no match",
-    name
+  toast.error(
+    `Inventory item not found: ${name}`
   );
   continue;
       }
@@ -357,10 +356,9 @@ const lookupBalance =
 
 
       if (stockErr) {
-        console.error(
-          "[inventory deduct]",
-          stockErr
-        );
+  toast.error(
+    stockErr.message
+  );
       }
     }
   }
