@@ -388,7 +388,7 @@ const previousYear =
             <Clock className="text-accent" size={18} />
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Today's Visits</p>
+            <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Today's Appointments</p>
             <p className="text-lg font-bold">{loading ? "—" : todayVisits}</p>
           </div>
         </Link>
