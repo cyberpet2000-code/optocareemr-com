@@ -27,6 +27,35 @@ const filter = searchParams.get("filter");
       }
 
       const { data } = await query.order("created_at", { ascending: false });
+      const patientIds = [
+  ...new Set(
+    (data || [])
+      .map((v: any) => v.patient_id)
+      .filter(Boolean)
+  )
+];
+
+const { data: patients } = await apiClient
+  .from("patients")
+  .select("id, full_name")
+  .in("id", patientIds);
+
+const patientMap = new Map(
+  (patients || []).map((p: any) => [
+    p.id,
+    p.full_name,
+  ])
+);
+
+const visitsWithNames = (data || []).map(
+  (visit: any) => ({
+    ...visit,
+    patient_name:
+      patientMap.get(visit.patient_id) ||
+      "Unknown Patient",
+  })
+);
+
 
       setVisits(data || []);
       setLoading(false);
@@ -54,6 +83,7 @@ const filter = searchParams.get("filter");
 
               <p className="text-xs text-muted-foreground">
                 {visit.created_at}
+                 ).toLocaleString()}
               </p>
             </div>
           ))}
