@@ -198,11 +198,11 @@ apiClient
 apiClient
   .from("billing")
   .select(
-    "total_amount,status,created_at"
+    "total_amount,visit_id"
   )
   .eq("clinic_id", cid)
   .eq("status", "paid")
-    ]);
+  .not("visit_id", "is", null)
 
      const snap: any = {
           monthPatients: monthPatientsRes.count ?? 0,
@@ -252,10 +252,34 @@ const previousYear =
     ? currentYear - 1
     : currentYear;
 
+const visitIds =
+  revenueRes.data?.map(
+    (b: any) => b.visit_id
+  ) || [];
+
+const { data: visitsData } =
+  await apiClient
+    .from("visits")
+    .select("id, created_at")
+    .in("id", visitIds);
+
+const visitMap = new Map(
+  (visitsData || []).map(
+    (v: any) => [v.id, v.created_at]
+  )
+);
+
 (revenueRes.data || []).forEach(
   (bill: any) => {
+    const visitDate =
+      visitMap.get(
+        bill.visit_id
+      );
+
+    if (!visitDate) return;
+
     const d = new Date(
-      bill.created_at
+      visitDate
     );
 
     if (
