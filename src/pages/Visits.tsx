@@ -109,6 +109,10 @@ const visitsWithNames = (data || []).map(
       )}
 
       <p className="text-xs text-muted-foreground mt-1">
+  {visit.diagnosis} • IOP {visit.iop_od || "-"} / {visit.iop_os || "-"}
+</p>
+
+      <p className="text-xs text-muted-foreground mt-1">
         {new Date(
           visit.created_at
         ).toLocaleString()}
