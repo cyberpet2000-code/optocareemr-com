@@ -10,6 +10,7 @@ import { useAccessAuth, useAccessClinic, useAccessRole, AccessProvider } from "@
 import AppLayout from "@/components/AppLayout";
 import { ACCESS_TIMEOUT_MS, resolveDefaultRoute, resolveProtectedRoute } from "@/lib/route-access";
 import Dashboard from "./pages/Dashboard";
+import Visits from "@/pages/Visits";
 import PatientRegister from "./pages/PatientRegister";
 import PatientList from "./pages/PatientList";
 import PatientRecord from "./pages/PatientRecord";
