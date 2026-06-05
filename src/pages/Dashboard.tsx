@@ -202,7 +202,8 @@ apiClient
   )
   .eq("clinic_id", cid)
   .eq("status", "paid")
-  .not("visit_id", "is", null)
+  .not("visit_id", "is", null),
+      ]);  
 
      const snap: any = {
           monthPatients: monthPatientsRes.count ?? 0,
