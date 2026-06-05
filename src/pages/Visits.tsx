@@ -64,11 +64,6 @@ const visitsWithNames = (data || []).map(
 
   return (
     <>
-      <h1 className="page-header mb-5">
-  {filter === "today"
-    ? `Today's Visits (${visits.length})`
-    : `All Visits (${visits.length})`}
-</h1>
 <h1 className="page-header mb-5">
   {filter === "today"
     ? `Today's Visits (${visits.length})`
@@ -94,10 +89,14 @@ const visitsWithNames = (data || []).map(
 
         <span
           className={`text-[10px] px-2 py-1 rounded-md font-medium ${
-            visit.status === "completed"
-              ? "bg-success/10 text-success"
-              : "bg-warning/10 text-warning"
-          }`}
+  visit.status === "completed"
+    ? "bg-success/10 text-success"
+    : visit.status === "in_progress"
+    ? "bg-primary/10 text-primary"
+    : visit.status === "cancelled"
+    ? "bg-destructive/10 text-destructive"
+    : "bg-warning/10 text-warning"
+}`}
         >
           {visit.status}
         </span>
