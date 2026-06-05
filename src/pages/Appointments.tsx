@@ -129,6 +129,18 @@ export default function Appointments() {
     return () => ctrl.abort();
   }, [hydrating, loadAppointments]);
 
+  // Refresh appointments after offline sync completes for this clinic
+  useEffect(() => {
+    function onSync(e: Event) {
+      const ev = e as CustomEvent<{ clinicId: string }>;
+      const clinicFromEvent = ev?.detail?.clinicId;
+      if (!clinicFromEvent || clinicFromEvent !== cid) return;
+      loadAppointments();
+    }
+    window.addEventListener("optocare:sync:done", onSync as EventListener);
+    return () => window.removeEventListener("optocare:sync:done", onSync as EventListener);
+  }, [cid, loadAppointments]);
+
   // ── Patient dropdown ───────────────────────────────────────────────────
   useEffect(() => {
     if (hydrating || !cid) { setPatients([]); return; }
@@ -164,7 +176,7 @@ export default function Appointments() {
     return () => { cancelled = true; };
   }, [hydrating, cid, isOffline]);
 
-  // ── Mutations ──────────────────────────────────────────────────────────
+  // ── Mutations ─────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!cid) { toast.error("No active clinic selected"); return; }
     if (!form.time?.trim()) { toast.error("Set a time"); return; }
@@ -224,7 +236,7 @@ export default function Appointments() {
     return "bg-primary/10 text-primary";
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────────────────────
   const showHydrating = hydrating;
   const showNoClinic = !hydrating && !cid;
 
