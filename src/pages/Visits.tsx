@@ -57,7 +57,7 @@ const visitsWithNames = (data || []).map(
 );
 
 
-      setVisits(data || []);
+      setVisits(visitsWithNames);
       setLoading(false);
     })();
   }, [cid, filter]);
@@ -78,10 +78,11 @@ const visitsWithNames = (data || []).map(
               className="medical-card p-3"
             >
               <p className="font-medium">
-                Visit #{visit.id.slice(0, 8)}
+                  {visit.patient_name}
               </p>
 
               <p className="text-xs text-muted-foreground">
+                  {new Date(
                 {visit.created_at}
                  ).toLocaleString()}
               </p>
