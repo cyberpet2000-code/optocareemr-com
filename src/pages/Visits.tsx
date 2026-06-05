@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
 import { useAccessClinic } from "@/hooks/useAccess";
 
@@ -64,8 +64,16 @@ const visitsWithNames = (data || []).map(
 
   return (
     <>
-      <h1 className="page-header mb-5">Visits</h1>
-
+      <h1 className="page-header mb-5">
+  {filter === "today"
+    ? `Today's Visits (${visits.length})`
+    : `All Visits (${visits.length})`}
+</h1>
+<h1 className="page-header mb-5">
+  {filter === "today"
+    ? `Today's Visits (${visits.length})`
+    : `All Visits (${visits.length})`}
+</h1>
       {loading ? (
         <p>Loading...</p>
       ) : visits.length === 0 ? (
@@ -73,22 +81,42 @@ const visitsWithNames = (data || []).map(
       ) : (
         <div className="space-y-2">
           {visits.map((visit) => (
-            <div
-              key={visit.id}
-              className="medical-card p-3"
-            >
-              <p className="font-medium">
-                  {visit.patient_name}
-              </p>
+  <Link
+    key={visit.id}
+    to={`/patient/${visit.patient_id}`}
+    className="block"
+  >
+    <div className="medical-card p-3 hover:bg-muted/50 transition-all">
+      <div className="flex items-center justify-between">
+        <p className="font-semibold">
+          {visit.patient_name}
+        </p>
 
-              <p className="text-xs text-muted-foreground">
-                  {new Date(
-                visit.created_at
-                 ).toLocaleString()}
-              </p>
-            </div>
-          ))}
-        </div>
+        <span
+          className={`text-[10px] px-2 py-1 rounded-md font-medium ${
+            visit.status === "completed"
+              ? "bg-success/10 text-success"
+              : "bg-warning/10 text-warning"
+          }`}
+        >
+          {visit.status}
+        </span>
+      </div>
+
+      {visit.diagnosis && (
+        <p className="text-sm mt-1">
+          Diagnosis: {visit.diagnosis}
+        </p>
+      )}
+
+      <p className="text-xs text-muted-foreground mt-1">
+        {new Date(
+          visit.created_at
+        ).toLocaleString()}
+      </p>
+    </div>
+  </Link>
+))}
       )}
     </>
   );
