@@ -83,7 +83,7 @@ const visitsWithNames = (data || []).map(
 
               <p className="text-xs text-muted-foreground">
                   {new Date(
-                visit.created_at}
+                visit.created_at
                  ).toLocaleString()}
               </p>
             </div>
