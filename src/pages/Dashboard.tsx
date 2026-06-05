@@ -197,14 +197,14 @@ apiClient
 // Revenue by linked visits
 apiClient
   .from("billing")
-  .select("total_amount, visit_id")
+  .select(
+    "total_amount,status,created_at"
+  )
   .eq("clinic_id", cid)
-  .not("visit_id", "is", null),
+  .eq("status", "paid");
         ]);
 
-
-
-        const snap: any = {
+     const snap: any = {
           monthPatients: monthPatientsRes.count ?? 0,
           todayVisits: visitsRes.count ?? 0,
           todayAppointments: apptRes.count ?? 0,
@@ -233,23 +233,6 @@ apiClient
     ).length;
 }
 
-const visitIds =
-  revenueRes.data?.map(
-    (b: any) => b.visit_id
-  ) || [];
-
-const { data: visitsData } =
-  await apiClient
-    .from("visits")
-    .select("id, created_at")
-    .in("id", visitIds);
-
-const visitMap = new Map(
-  (visitsData || []).map(
-    (v: any) => [v.id, v.created_at]
-  )
-);
-
 snap.monthlyRevenue = 0;
 snap.previousMonthRevenue = 0;
 
@@ -271,22 +254,13 @@ const previousYear =
 
 (revenueRes.data || []).forEach(
   (bill: any) => {
-    const visitDate =
-      visitMap.get(
-        bill.visit_id
-      );
-
-    if (!visitDate) return;
-
     const d = new Date(
-      visitDate
+      bill.created_at
     );
 
     if (
-      d.getMonth() ===
-        currentMonth &&
-      d.getFullYear() ===
-        currentYear
+      d.getMonth() === currentMonth &&
+      d.getFullYear() === currentYear
     ) {
       snap.monthlyRevenue +=
         Number(
@@ -295,10 +269,8 @@ const previousYear =
     }
 
     if (
-      d.getMonth() ===
-        previousMonth &&
-      d.getFullYear() ===
-        previousYear
+      d.getMonth() === previousMonth &&
+      d.getFullYear() === previousYear
     ) {
       snap.previousMonthRevenue +=
         Number(
