@@ -420,7 +420,7 @@ const previousYear =
         <div className="medical-card mb-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="section-title"><Clock size={16} /> Today's Schedule</h2>
-            <Link to="/appointments" className="text-xs text-primary font-medium hover:underline">View all</Link>
+            <Link to="/visits" className="text-xs text-primary font-medium hover:underline">View all</Link>
           </div>
           <div className="space-y-2">
             {upcomingAppts.map((a: any) => (
