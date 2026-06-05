@@ -485,6 +485,14 @@ setLookupPayments([]);
   };
 
   const pendingBills = bills.filter(b => b.status !== "paid");
+
+  const medicationItems =
+  inventoryItems.filter(
+    (item) =>
+      item.category === "Eye Drop" ||
+      item.category === "Drugs"
+  );
+  
   let displayBills = bills;
 
   const medicationItems =
@@ -797,7 +805,7 @@ form.patientId === selectedLookupPatient.id ? (
       updateItem(idx, {
         item_name: value,
         unit_price:
-          Number(selected?.selling_price) || 0,
+          Number(selected?.price) || 0,
       });
 
     }}
