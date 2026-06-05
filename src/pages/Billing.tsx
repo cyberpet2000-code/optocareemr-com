@@ -132,10 +132,6 @@ const [lookupPayments, setLookupPayments] =
     .select("*")
     .eq("clinic_id", cid)
 ]);
-        apiClient.from("billing").select("*").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(100),
-        apiClient.from("patients").select("id, full_name, payment_type, active_hmo_id").eq("clinic_id", cid).order("full_name"),
-        apiClient.from("hmos").select("id, name").eq("clinic_id", cid),
-      ]);
       if (billRes.error && patRes.error) { hydrateFromCache(); return; }
       console.debug("[billing]", { clinic_id: cid, bills: billRes.data?.length ?? 0 });
       const hmosList = (hmoRes.data || []) as Array<{ id: string; name: string }>;
