@@ -15,31 +15,23 @@ const filter = searchParams.get("filter");
   useEffect(() => {
     if (!cid) return;
 
-    let query = apiClient
-  .from("visits")
-  .select("*")
-  .eq("clinic_id", cid);
+    (async () => {
+      let query = apiClient
+        .from("visits")
+        .select("*")
+        .eq("clinic_id", cid);
 
-if (filter === "today") {
-  const today = new Date()
-    .toISOString()
-    .split("T")[0];
+      if (filter === "today") {
+        const today = new Date().toISOString().split("T")[0];
+        query = query.gte("created_at", `${today}T00:00:00`);
+      }
 
-  query = query.gte(
-    "created_at",
-    `${today}T00:00:00`
-  );
-}
-
-const { data } = await query.order(
-  "created_at",
-  { ascending: false }
-);
+      const { data } = await query.order("created_at", { ascending: false });
 
       setVisits(data || []);
       setLoading(false);
     })();
-  }, [cid]);
+  }, [cid, filter]);
 
   return (
     <>
