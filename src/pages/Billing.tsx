@@ -80,6 +80,9 @@ const [lookupBills, setLookupBills] =
 const [lookupPayments, setLookupPayments] =
   useState<any[]>([]);
 
+  const [inventoryItems, setInventoryItems] =
+  useState<any[]>([]);
+
   useEffect(() => { loadData(); }, [cid]);
 
   const loadData = async () => {
@@ -104,7 +107,31 @@ const [lookupPayments, setLookupPayments] =
     }
 
     try {
-      const [billRes, patRes, hmoRes] = await Promise.all([
+      const [
+  billRes,
+  patRes,
+  hmoRes,
+  inventoryRes
+] = await Promise.all([
+  apiClient.from("billing")
+    .select("*")
+    .eq("clinic_id", cid)
+    .order("created_at", { ascending:false })
+    .limit(100),
+
+  apiClient.from("patients")
+    .select("id, full_name, payment_type, active_hmo_id")
+    .eq("clinic_id", cid)
+    .order("full_name"),
+
+  apiClient.from("hmos")
+    .select("id, name")
+    .eq("clinic_id", cid),
+
+  apiClient.from("inventory")
+    .select("*")
+    .eq("clinic_id", cid)
+]);
         apiClient.from("billing").select("*").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(100),
         apiClient.from("patients").select("id, full_name, payment_type, active_hmo_id").eq("clinic_id", cid).order("full_name"),
         apiClient.from("hmos").select("id, name").eq("clinic_id", cid),
@@ -116,6 +143,9 @@ const [lookupPayments, setLookupPayments] =
       setHmoMap(hmap);
       const pats = (patRes.data || []) as Patient[];
       setPatients(pats);
+      setInventoryItems(
+  inventoryRes.data || []
+);
       offlineStore.save(patientsKey, pats);
       offlineStore.save(hmosKey, hmosList);
       if (billRes.data) {
@@ -461,6 +491,13 @@ setLookupPayments([]);
   const pendingBills = bills.filter(b => b.status !== "paid");
   let displayBills = bills;
 
+  const medicationItems =
+  inventoryItems.filter(
+    (item) =>
+      item.category === "Eye Drop" ||
+      item.category === "Drugs"
+  );
+
 if (monthFilter === "current") {
   const now = new Date();
 
@@ -749,7 +786,56 @@ form.patientId === selectedLookupPatient.id ? (
                       </div>
                       <div className="col-span-4">
                         <Label className="text-[10px]">Name</Label>
-                        <Input className="rounded-lg h-8 text-xs" value={it.item_name} onChange={e => updateItem(idx, { item_name: e.target.value })} placeholder="Item name" />
+                        {it.item_type === "Eye Drop" ||
+ it.item_type === "Drugs" ? (
+
+  <Select
+    value={it.item_name}
+    onValueChange={(value) => {
+
+      const selected =
+        medicationItems.find(
+          (m) => m.name === value
+        );
+
+      updateItem(idx, {
+        item_name: value,
+        unit_price:
+          Number(selected?.selling_price) || 0,
+      });
+
+    }}
+  >
+    <SelectTrigger className="rounded-lg h-8 text-xs">
+      <SelectValue placeholder="Select medication" />
+    </SelectTrigger>
+
+    <SelectContent>
+      {medicationItems.map((m) => (
+        <SelectItem
+          key={m.id}
+          value={m.name}
+        >
+          {m.name}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+
+) : (
+
+  <Input
+    className="rounded-lg h-8 text-xs"
+    value={it.item_name}
+    onChange={(e) =>
+      updateItem(idx, {
+        item_name: e.target.value,
+      })
+    }
+    placeholder="Item name"
+  />
+
+)}
                       </div>
                       <div className="col-span-2">
                         <Label className="text-[10px]">Qty</Label>
