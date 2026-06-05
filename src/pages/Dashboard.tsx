@@ -201,8 +201,8 @@ apiClient
     "total_amount,status,created_at"
   )
   .eq("clinic_id", cid)
-  .eq("status", "paid");
-        ]);
+  .eq("status", "paid")
+    ]);
 
      const snap: any = {
           monthPatients: monthPatientsRes.count ?? 0,
