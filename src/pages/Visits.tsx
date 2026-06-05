@@ -57,7 +57,7 @@ const { data } = await query.order(
               className="medical-card p-3"
             >
               <p className="font-medium">
-                Visit #{visit.id.slice(0, 8)}
+                 {visit.patient_id}
               </p>
 
               <p className="text-xs text-muted-foreground">
