@@ -243,6 +243,7 @@ export function AppRoutes() {
           <Route path="/super-admin/users" element={<SuperAdminOnly><AdminRoles embedded /></SuperAdminOnly>} />
 
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/visits" element={<Visits />} />
           <Route path="/register" element={<PatientRegister />} />
           <Route path="/patients" element={<PatientList />} />
           <Route path="/patient/:id" element={<PatientRecord />} />
