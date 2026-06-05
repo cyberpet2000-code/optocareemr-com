@@ -294,13 +294,20 @@ const lookupBalance =
   .eq("patient_id", form.patientId)
   .order("created_at", { ascending: false })
   .limit(1)
-  .maybeSingle();
+  .single();
+    if (!latestVisit) {
+  toast.error(
+    "Complete patient visit before billing"
+  );
+  setSaving(false);
+  return;
+    }
     const { data: bill, error } = await apiClient
   .from("billing")
   .insert({
     clinic_id: cid,
     patient_id: form.patientId,
-    visit_id: latestVisit?.id || null,
+    visit_id: latestVisit?.id,
       payer_type: isHmo ? "hmo" : "private",
       hmo_id: isHmo ? selectedPatient?.active_hmo_id : null,
       consultation_fee: consult,
