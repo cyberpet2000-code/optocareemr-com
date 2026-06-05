@@ -1,21 +1,40 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
 import { useAccessClinic } from "@/hooks/useAccess";
 
 export default function Visits() {
   const { effectiveClinicId: cid } = useAccessClinic();
+
+  const [searchParams] = useSearchParams();
+const filter = searchParams.get("filter");
+
   const [visits, setVisits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!cid) return;
 
-    (async () => {
-      const { data } = await apiClient
-        .from("visits")
-        .select("*")
-        .eq("clinic_id", cid)
-        .order("created_at", { ascending: false });
+    let query = apiClient
+  .from("visits")
+  .select("*")
+  .eq("clinic_id", cid);
+
+if (filter === "today") {
+  const today = new Date()
+    .toISOString()
+    .split("T")[0];
+
+  query = query.gte(
+    "created_at",
+    `${today}T00:00:00`
+  );
+}
+
+const { data } = await query.order(
+  "created_at",
+  { ascending: false }
+);
 
       setVisits(data || []);
       setLoading(false);
