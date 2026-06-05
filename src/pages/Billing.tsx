@@ -495,12 +495,6 @@ setLookupPayments([]);
   
   let displayBills = bills;
 
-  const medicationItems =
-  inventoryItems.filter(
-    (item) =>
-      item.category === "Eye Drop" ||
-      item.category === "Drugs"
-  );
 
 if (monthFilter === "current") {
   const now = new Date();
