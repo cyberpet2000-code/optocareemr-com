@@ -120,6 +120,7 @@ const visitsWithNames = (data || []).map(
     </div>
   </Link>
 ))}
+        </div>
       )}
     </>
   );
