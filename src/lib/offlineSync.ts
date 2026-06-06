@@ -83,7 +83,7 @@ export async function processBillsQueue(clinicId: string): Promise<{ success:num
         const isHmo = (item.payer_type === 'hmo') || Boolean(item.hmo_id);
         const consult = Number(item.consultation_fee || 0);
         const itemsList = item.items ?? [];
-        const itemsTotal = itemsList.reduce((s:any, it:any) => s + Number(it.total_price ?? (Number(it.quantity||0) * Number(it.unit_price||0)) || 0), 0);
+        const itemsTotal = itemsList.reduce((s:any, it:any) => s + Number((it.total_price ?? (Number(it.quantity||0) * Number(it.unit_price||0))) || 0), 0);
         const grandTotal = itemsTotal + consult;
 
         const { data: bill, error: billErr } = await apiClient.from('billing').insert({
