@@ -7,6 +7,8 @@ import { getFixRecommendation } from "@/lib/diag/fixRecommendations";
 export default function DiagFeed() {
   const entries = getEntries();
 
+  const healthScore = getHealthScore();
+
   const issues = Array.from(
   new Map(
     entries
@@ -32,6 +34,16 @@ export default function DiagFeed() {
 
   return (
     <div className="space-y-3">
+      
+      <div className="rounded-xl border p-4 mb-3">
+  <div className="text-sm text-muted-foreground">
+    System Health Score
+  </div>
+
+  <div className="text-2xl font-bold">
+    {healthScore}%
+  </div>
+</div>
       {issues
         .slice()
         .reverse()
