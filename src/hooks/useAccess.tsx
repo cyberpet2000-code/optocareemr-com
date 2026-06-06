@@ -419,6 +419,15 @@ console.debug("[access:clinic_fetch_complete]", {
 
         nextAccessState.clinic = clinicResult.data || null;
         commitAccessState(nextAccessState);
+
+        if (clinicResult.data) {
+  checkClinicSubscription(
+    clinicResult.data.subscription_status
+  );
+}
+
+commitAccessState(nextAccessState);
+completedLoadKeyRef.current = loadKey;
         completedLoadKeyRef.current = loadKey;
 
         console.debug("[access:load:total]", {
