@@ -237,7 +237,7 @@ export default function Dashboard() {
         todayVisits: visitsRes.count ?? 0,
         todayAppointments: apptRes.count ?? 0,
         pendingBills: billRes.count ?? 0,
-        monthlyRevenue: currentMonthRevenue,
+        monthlyRevenue: sumAmount(revenueRes.data),
         previousMonthRevenue: sumAmount(prevRevenueRes.data),
         lowStockCount: invRes.count ?? 0,
         drugAlerts: drugRes.count ?? 0,
