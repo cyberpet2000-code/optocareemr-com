@@ -190,7 +190,16 @@ export default function Dashboard() {
         apiClient.from("appointments").select("id, appointment_date, appointment_time, reason, patient_id").eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]).order("appointment_date", { ascending: true }).limit(5),
         apiClient.from("inventory").select("*", { count: "exact", head: true }).eq("clinic_id", cid).lte("quantity", 5),
         apiClient.from("billing").select("*", { count: "exact", head: true }).eq("clinic_id", cid).eq("status", "pending"),
-        apiClient.from("billing").select("total_amount").eq("clinic_id", cid).eq("status", "paid").gte("created_at", monthStart),
+        apiClient
+  .from("billing")
+  .select(`
+    total_amount,
+    visit:visits!billing_visit_id_fkey(
+      created_at
+    )
+  `)
+  .eq("clinic_id", cid)
+  .eq("status", "paid");
         apiClient.from("billing").select("total_amount").eq("clinic_id", cid).eq("status", "paid").gte("created_at", previousMonthStart).lt("created_at", monthStart),
         apiClient.from("drugs").select("*", { count: "exact", head: true }).eq("clinic_id", cid).lte("quantity", 5),
       ]);
