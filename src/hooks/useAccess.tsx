@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Session, User } from "@supabase/supabase-js";
 import { apiClient } from "@/lib/apiClient";
 import { assertClinicAccess } from "@/lib/route-access";
+import { checkClinicSubscription } from "@/lib/diag/healthChecks";
 import { safeSupabaseStorage, setKnownSupabaseSession } from "@/lib/supabase-auth";
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
