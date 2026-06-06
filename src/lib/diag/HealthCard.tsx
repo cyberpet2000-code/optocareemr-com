@@ -1,4 +1,4 @@
-import StatusBadge from "./StatusBadge";
+import StatusBadge from "@/components/diag/StatusBadge";
 
 export default function HealthCard({
   title,
@@ -12,18 +12,10 @@ export default function HealthCard({
   return (
     <div className="rounded-xl border p-4 space-y-2">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold">
-          {title}
-        </h3>
-
-        <StatusBadge variant={severity}>
-          {severity}
-        </StatusBadge>
+        <h3 className="font-semibold">{title}</h3>
+        <StatusBadge variant={severity}>{severity}</StatusBadge>
       </div>
-
-      <p className="text-sm text-muted-foreground">
-        {description}
-      </p>
+      <p className="text-sm text-muted-foreground">{description}</p>
     </div>
   );
 }
