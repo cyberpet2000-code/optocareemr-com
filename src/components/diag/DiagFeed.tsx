@@ -44,17 +44,14 @@ export default function DiagFeed() {
                 : "warn"
             }
             description={`${
-    healthHint(issue.name) ||
-    issue.hint ||
-    "Issue detected."
-  }
+              healthHint(issue.name) ||
+              issue.hint ||
+              "Issue detected."
+            }
 
 Recommended Fix:
-${
-  getFixRecommendation(
-    issue.name) || "No recommendation available."
-}}
-     />      
+${getFixRecommendation(issue.name) || "No recommendation available."}`}
+          />
         ))}
     </div>
   );
