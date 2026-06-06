@@ -21,9 +21,38 @@ const EVENT_HINTS: Record<string, string> = {
   "routing/redirect-loop": "Route guard keeps redirecting. Inspect resolveProtectedRoute inputs.",
 };
 
+const OPTOCARE_HINTS: Record<string, string> = {
+  "revenue/mismatch":
+    "Revenue calculated from visit dates does not match revenue calculated from billing dates.",
+
+  "query/missing-clinic-filter":
+    "Query may be returning records from multiple clinics. Verify clinic_id filter exists.",
+
+  "inventory/negative-stock":
+    "Inventory quantity is below zero. Stock adjustment required.",
+
+  "billing/stale-pending":
+    "Pending bill older than 30 days detected.",
+
+  "patient/orphaned-visit":
+    "Visit references a patient record that no longer exists.",
+
+  "appointment/orphaned":
+    "Appointment references a missing patient record.",
+
+  "sync/pending":
+    "Offline records are waiting to sync.",
+
+  "metric/anomaly":
+    "Dashboard metric appears inconsistent with underlying records."
+};
+
 export function hintFor(input: { code?: string | null; event?: string | null; status?: number | null }): string | null {
   if (input.code && PG_CODE_HINTS[input.code]) return PG_CODE_HINTS[input.code];
   if (input.event && EVENT_HINTS[input.event]) return EVENT_HINTS[input.event];
+  if (input.event && OPTOCARE_HINTS[input.event]) {
+  return OPTOCARE_HINTS[input.event];
+  }
   if (input.status === 401 || input.status === 403) {
     return "Auth rejected by PostgREST. Token missing/expired or RLS denies the request.";
   }
