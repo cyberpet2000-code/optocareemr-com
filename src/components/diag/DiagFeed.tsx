@@ -5,11 +5,20 @@ import { healthHint } from "@/lib/diag/healthHints";
 export default function DiagFeed() {
   const entries = getEntries();
 
-  const issues = entries.filter(
-    (e) =>
-      e.level === "error" ||
-      e.level === "warn"
-  );
+  const issues = Array.from(
+  new Map(
+    entries
+      .filter(
+        (e) =>
+          e.level === "error" ||
+          e.level === "warn"
+      )
+      .map((e) => [
+        `${e.area}-${e.name}`,
+        e,
+      ])
+  ).values()
+);
 
   if (issues.length === 0) {
     return (
