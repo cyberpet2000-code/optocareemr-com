@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { clearEntries, getEntries, subscribe, type DiagEntry } from "./diagSinks";
+import DiagFeed from "@/components/diag/DiagFeed";
 
 type Tab = "all" | "errors" | "perf";
 
