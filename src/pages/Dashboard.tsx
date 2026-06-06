@@ -205,13 +205,39 @@ export default function Dashboard() {
       ]);
 
       const sumAmount = (rows: any) => Array.isArray(rows) ? rows.reduce((s, r) => s + Number(r.total_amount || 0), 0) : 0;
+      const currentMonthRevenue =
+  (revenueRes.data || [])
+    .filter((bill: any) => {
+      const visitDate =
+        bill.visit?.created_at
+          ? new Date(
+              bill.visit.created_at
+            )
+          : null;
+
+      return (
+        visitDate &&
+        visitDate.getMonth() ===
+          now.getMonth() &&
+        visitDate.getFullYear() ===
+          now.getFullYear()
+      );
+    })
+    .reduce(
+      (sum: number, bill: any) =>
+        sum +
+        Number(
+          bill.total_amount || 0
+        ),
+      0
+    );
 
       const snap: DashboardSnapshot = {
         monthPatients: monthPatientsRes.count ?? 0,
         todayVisits: visitsRes.count ?? 0,
         todayAppointments: apptRes.count ?? 0,
         pendingBills: billRes.count ?? 0,
-        monthlyRevenue: sumAmount(revenueRes.data),
+        monthlyRevenue: currentMonthRevenue,
         previousMonthRevenue: sumAmount(prevRevenueRes.data),
         lowStockCount: invRes.count ?? 0,
         drugAlerts: drugRes.count ?? 0,
