@@ -84,23 +84,6 @@ export function checkClinicSubscription(
   }
 }
 
-export function checkClinicSubscription(
-  subscriptionStatus?: string | null
-) {
-  if (
-    !subscriptionStatus ||
-    subscriptionStatus === "inactive" ||
-    subscriptionStatus === "expired"
-  ) {
-    diag.warn(
-      "query",
-      "clinic subscription inactive",
-      {
-        subscriptionStatus,
-      }
-    );
-  }
-}
 
 export function getHealthScore(entries: any[]) {
   let score = 100;
