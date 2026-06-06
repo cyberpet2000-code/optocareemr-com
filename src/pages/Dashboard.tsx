@@ -214,6 +214,50 @@ export default function Dashboard() {
         apiClient.from("drugs").select("*", { count: "exact", head: true }).eq("clinic_id", cid).lte("quantity", 5),
       ]);
 
+      const { count: patientsMissing } = await apiClient
+  .from("patients")
+  .select("*", { count: "exact", head: true })
+  .is("clinic_id", null);
+
+const { count: visitsMissing } = await apiClient
+  .from("visits")
+  .select("*", { count: "exact", head: true })
+  .is("clinic_id", null);
+
+const { count: appointmentsMissing } = await apiClient
+  .from("appointments")
+  .select("*", { count: "exact", head: true })
+  .is("clinic_id", null);
+
+const { count: billingMissing } = await apiClient
+  .from("billing")
+  .select("*", { count: "exact", head: true })
+  .is("clinic_id", null);
+
+      if ((patientsMissing || 0) > 0) {
+  console.warn(
+    `[DIAG] patients missing clinic_id: ${patientsMissing}`
+  );
+}
+
+if ((visitsMissing || 0) > 0) {
+  console.warn(
+    `[DIAG] visits missing clinic_id: ${visitsMissing}`
+  );
+}
+
+if ((appointmentsMissing || 0) > 0) {
+  console.warn(
+    `[DIAG] appointments missing clinic_id: ${appointmentsMissing}`
+  );
+}
+
+if ((billingMissing || 0) > 0) {
+  console.warn(
+    `[DIAG] billing missing clinic_id: ${billingMissing}`
+  );
+}
+
       const sumAmount = (rows: any) => Array.isArray(rows) ? rows.reduce((s, r) => s + Number(r.total_amount || 0), 0) : 0;
       const currentMonthRevenue =
   (revenueRes.data || [])
