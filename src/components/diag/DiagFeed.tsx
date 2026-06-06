@@ -43,16 +43,18 @@ export default function DiagFeed() {
                 ? "critical"
                 : "warn"
             }
-            description={
-              healthHint(issue.name) ||
-              issue.hint ||
-              JSON.stringify(
-                issue.data,
-                null,
-                2
-              )
-            }
-          />
+            description={`${
+    healthHint(issue.name) ||
+    issue.hint ||
+    "Issue detected."
+  }
+
+Recommended Fix:
+${
+  getFixRecommendation(
+    issue.name) || "No recommendation available."
+}}
+     />      
         ))}
     </div>
   );
