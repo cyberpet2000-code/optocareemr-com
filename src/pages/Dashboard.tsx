@@ -240,7 +240,7 @@ console.log("Current month revenue", currentMonthRevenue);
         todayAppointments: apptRes.count ?? 0,
         pendingBills: billRes.count ?? 0,
         monthlyRevenue: currentMonthRevenue,
-        previousMonthRevenue: 1343350
+        previousMonthRevenue: 9999999,
         lowStockCount: invRes.count ?? 0,
         drugAlerts: drugRes.count ?? 0,
         recentPatients: (patientsRes.data as any[]) ?? [],
