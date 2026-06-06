@@ -23,7 +23,9 @@ export default function DiagFeed() {
       ])
   ).values()
 );
-
+  
+const score = getHealthScore(issues);
+  
   if (issues.length === 0) {
     return (
       <div className="p-4 text-sm text-muted-foreground">
