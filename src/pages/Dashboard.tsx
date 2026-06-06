@@ -200,7 +200,16 @@ export default function Dashboard() {
   `)
   .eq("clinic_id", cid)
   .eq("status", "paid"),
-        apiClient.from("billing").select("total_amount").eq("clinic_id", cid).eq("status", "paid").gte("created_at", previousMonthStart).lt("created_at", monthStart),
+        apiClient
+  .from("billing")
+  .select(`
+    total_amount,
+    visit:visits!billing_visit_id_fkey(
+      created_at
+    )
+  `)
+  .eq("clinic_id", cid)
+  .eq("status", "paid")
         apiClient.from("drugs").select("*", { count: "exact", head: true }).eq("clinic_id", cid).lte("quantity", 5),
       ]);
 
@@ -232,6 +241,36 @@ export default function Dashboard() {
       0
     );
 
+      const previousMonthRevenueCalc =
+  (prevRevenueRes.data || [])
+    .filter((bill: any) => {
+      const visitDate =
+        bill.visit?.created_at
+          ? new Date(bill.visit.created_at)
+          : null;
+
+      const prevMonth =
+        now.getMonth() === 0
+          ? 11
+          : now.getMonth() - 1;
+
+      const prevYear =
+        now.getMonth() === 0
+          ? now.getFullYear() - 1
+          : now.getFullYear();
+
+      return (
+        visitDate &&
+        visitDate.getMonth() === prevMonth &&
+        visitDate.getFullYear() === prevYear
+      );
+    })
+    .reduce(
+      (sum: number, bill: any) =>
+        sum + Number(bill.total_amount || 0),
+      0
+    );
+
       console.log("Revenue rows", revenueRes.data);
 console.log("Current month revenue", currentMonthRevenue);
       const snap: DashboardSnapshot = {
@@ -240,7 +279,7 @@ console.log("Current month revenue", currentMonthRevenue);
         todayAppointments: apptRes.count ?? 0,
         pendingBills: billRes.count ?? 0,
         monthlyRevenue: currentMonthRevenue,
-        previousMonthRevenue: 9999999,
+        previousMonthRevenue: previousMonthRevenueCalc,
         lowStockCount: invRes.count ?? 0,
         drugAlerts: drugRes.count ?? 0,
         recentPatients: (patientsRes.data as any[]) ?? [],
