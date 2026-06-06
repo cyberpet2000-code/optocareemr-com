@@ -73,7 +73,7 @@ export async function processBillsQueue(clinicId: string): Promise<{ success:num
           .from('visits')
           .select('id')
           .eq('clinic_id', clinicId)
-          .eq('patient_id', patientId)
+          .eq('patient_id', String(patientId))
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
