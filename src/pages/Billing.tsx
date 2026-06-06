@@ -447,10 +447,12 @@ export default function Billing() {
      const amt = parseFloat(paymentAmount);
      if (amt <= 0) { toast.error("Enter valid amount"); return; }
      const { error } = await apiClient.from("payments").insert({
-       billing_id: paymentBillingId,
-       amount: amt,
-       method: paymentMethod,
-     } as any);
+  billing_id: paymentBillingId,
+  clinic_id: cid,
+  amount: amt,
+  method: paymentMethod,
+  paid_by: "patient",
+} as any);
      if (error) { toast.error(error.message); return; }
      toast.success("Payment recorded");
      setPaymentBillingId(null);
