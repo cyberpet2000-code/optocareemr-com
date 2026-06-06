@@ -37,3 +37,20 @@ export function checkSlowQuery(
     );
   }
 }
+
+export function checkMissingClinicId(
+  table: string,
+  record: Record<string, any>
+) {
+  if (!record?.clinic_id) {
+    diag.error(
+      "rls",
+      "missing clinic_id",
+      new Error("Missing clinic_id"),
+      {
+        table,
+        recordId: record?.id,
+      }
+    );
+  }
+}
