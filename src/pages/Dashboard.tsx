@@ -199,7 +199,7 @@ export default function Dashboard() {
     )
   `)
   .eq("clinic_id", cid)
-  .eq("status", "paid");
+  .eq("status", "paid"),
         apiClient.from("billing").select("total_amount").eq("clinic_id", cid).eq("status", "paid").gte("created_at", previousMonthStart).lt("created_at", monthStart),
         apiClient.from("drugs").select("*", { count: "exact", head: true }).eq("clinic_id", cid).lte("quantity", 5),
       ]);
