@@ -101,3 +101,14 @@ export function checkClinicSubscription(
     );
   }
 }
+
+export function getHealthScore(entries: any[]) {
+  let score = 100;
+
+  entries.forEach((e) => {
+    if (e.level === "error") score -= 20;
+    if (e.level === "warn") score -= 5;
+  });
+
+  return Math.max(0, score);
+}
