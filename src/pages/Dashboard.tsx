@@ -176,24 +176,52 @@ export default function Dashboard() {
         monthPatientsRes,
         visitsRes,
         apptRes,
-        pendingApptRes,
+        upcomingApptRes,
         invRes,
         billRes,
-        revenueRes
+        revenueRes,
+        prevRevenueRes,
+        drugRes,
       ] = await Promise.all([
         apiClient.from("patients").select("id, full_name, age, gender, phone, payment_type, queue_number").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(5),
         apiClient.from("patients").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", monthStart),
         apiClient.from("visits").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", `${today}T00:00:00`),
         apiClient.from("appointments").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]),
-        apiClient.from("appointments").select("id, appointment_date, appointment_time, reason, patient_id").eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirm[...]")
+        apiClient.from("appointments").select("id, appointment_date, appointment_time, reason, patient_id").eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]).order("appointment_date", { ascending: true }).limit(5),
+        apiClient.from("inventory").select("*", { count: "exact", head: true }).eq("clinic_id", cid).lte("quantity", 5),
+        apiClient.from("billing").select("*", { count: "exact", head: true }).eq("clinic_id", cid).eq("status", "pending"),
+        apiClient.from("billing").select("total_amount").eq("clinic_id", cid).eq("status", "paid").gte("created_at", monthStart),
+        apiClient.from("billing").select("total_amount").eq("clinic_id", cid).eq("status", "paid").gte("created_at", previousMonthStart).lt("created_at", monthStart),
+        apiClient.from("drugs").select("*", { count: "exact", head: true }).eq("clinic_id", cid).lte("quantity", 5),
       ]);
 
-      // The original code contained more queries; to preserve exact logic, delegate
-      // remaining queries to the same code path below by reusing the original
-      // full Promise.all from the file. To avoid accidental truncation here,
-      // we'll re-run the original fetch block instead of duplicating it.
+      const sumAmount = (rows: any) => Array.isArray(rows) ? rows.reduce((s, r) => s + Number(r.total_amount || 0), 0) : 0;
 
-      // Copying the rest of the original effect's body to preserve behavior.
+      const snap: DashboardSnapshot = {
+        monthPatients: monthPatientsRes.count ?? 0,
+        todayVisits: visitsRes.count ?? 0,
+        todayAppointments: apptRes.count ?? 0,
+        pendingBills: billRes.count ?? 0,
+        monthlyRevenue: sumAmount(revenueRes.data),
+        previousMonthRevenue: sumAmount(prevRevenueRes.data),
+        lowStockCount: invRes.count ?? 0,
+        drugAlerts: drugRes.count ?? 0,
+        recentPatients: (patientsRes.data as any[]) ?? [],
+        upcomingAppts: (upcomingApptRes.data as any[]) ?? [],
+      };
+
+      setMonthPatients(snap.monthPatients);
+      setTodayVisits(snap.todayVisits);
+      setTodayAppointments(snap.todayAppointments);
+      setPendingBills(snap.pendingBills);
+      setMonthlyRevenue(snap.monthlyRevenue);
+      setPreviousMonthRevenue(snap.previousMonthRevenue);
+      setLowStockCount(snap.lowStockCount);
+      setDrugAlerts(snap.drugAlerts);
+      setRecentPatients(snap.recentPatients);
+      setUpcomingAppts(snap.upcomingAppts);
+      offlineStore.save(cacheKey, snap);
+      setLoading(false);
     } catch (e) {
       console.warn("[dashboard] load failed, using cache", e);
       // On failure use local cache.
