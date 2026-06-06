@@ -108,25 +108,27 @@ export default function DiagOverlay() {
       </div>
       <div style={{ overflow: "auto", padding: 6 }}>
         {tab === "health" ? (
-  <DiagFeed />
-) : (
-        {filtered.length === 0 && <div style={{ opacity: 0.6, padding: 8 }}>No entries.</div>}
-        {filtered.slice().reverse().map((e, i) => (
-          <div key={i} style={{
-            padding: "4px 6px", borderBottom: "1px solid #1a1a1a",
-            color: e.level === "error" ? "#fecaca" : e.level === "warn" ? "#fde68a" : "#d1d5db",
-          }}>
-            )}
-            <div>
-              <span style={{ opacity: 0.5 }}>{new Date(e.t).toLocaleTimeString()}</span>{" "}
-              <span style={{ color: "#60a5fa" }}>[{e.area}]</span>{" "}
-              <span>{e.name}</span>
-              {e.durationMs !== undefined && <span style={{ opacity: 0.7 }}> · {e.durationMs}ms</span>}
-            </div>
-            {e.data && <div style={{ opacity: 0.75, whiteSpace: "pre-wrap", marginLeft: 8 }}>{safeJson(e.data)}</div>}
-            {e.hint && <div style={{ color: "#fbbf24", marginLeft: 8 }}>↳ {e.hint}</div>}
-          </div>
-        ))}
+          <DiagFeed />
+        ) : (
+          <>
+            {filtered.length === 0 && <div style={{ opacity: 0.6, padding: 8 }}>No entries.</div>}
+            {filtered.slice().reverse().map((e, i) => (
+              <div key={i} style={{
+                padding: "4px 6px", borderBottom: "1px solid #1a1a1a",
+                color: e.level === "error" ? "#fecaca" : e.level === "warn" ? "#fde68a" : "#d1d5db",
+              }}>
+                <div>
+                  <span style={{ opacity: 0.5 }}>{new Date(e.t).toLocaleTimeString()}</span>{" "}
+                  <span style={{ color: "#60a5fa" }}>[{e.area}]</span>{" "}
+                  <span>{e.name}</span>
+                  {e.durationMs !== undefined && <span style={{ opacity: 0.7 }}> · {e.durationMs}ms</span>}
+                </div>
+                {e.data && <div style={{ opacity: 0.75, whiteSpace: "pre-wrap", marginLeft: 8 }}>{safeJson(e.data)}</div>}
+                {e.hint && <div style={{ color: "#fbbf24", marginLeft: 8 }}>↳ {e.hint}</div>}
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
