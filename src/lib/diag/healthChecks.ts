@@ -54,3 +54,32 @@ export function checkMissingClinicId(
     );
   }
 }
+
+export function checkPatientContext(
+  patientId?: string | null
+) {
+  if (!patientId) {
+    diag.warn(
+      "query",
+      "missing patient id"
+    );
+  }
+}
+
+export function checkClinicSubscription(
+  subscriptionStatus?: string | null
+) {
+  if (
+    !subscriptionStatus ||
+    subscriptionStatus === "inactive" ||
+    subscriptionStatus === "expired"
+  ) {
+    diag.warn(
+      "query",
+      "clinic subscription inactive",
+      {
+        subscriptionStatus,
+      }
+    );
+  }
+}
