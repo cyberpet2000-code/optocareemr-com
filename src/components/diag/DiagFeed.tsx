@@ -22,7 +22,7 @@ export default function DiagFeed() {
   ).values()
 );
   
-const score = getHealthScore(issues);
+const score = getHealthScore();
   
   if (issues.length === 0) {
     return (
