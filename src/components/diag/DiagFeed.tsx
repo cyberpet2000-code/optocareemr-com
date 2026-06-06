@@ -38,11 +38,32 @@ const score = getHealthScore(issues);
       <div className="rounded-xl border p-4 mb-3">
   <div className="text-sm text-muted-foreground">
     System Health Score
+    <div className="mt-2 h-2 w-full rounded bg-muted">
+  <div
+    className={`h-2 rounded ${
+      score >= 90
+        ? "bg-green-500"
+        : score >= 70
+        ? "bg-yellow-500"
+        : "bg-red-500"
+    }`}
+    style={{ width: `${score}%` }}
+  />
+</div>
   </div>
 
-  <div className="text-2xl font-bold">
-    {Score}%
-  </div>
+  <div
+  className={`text-2xl font-bold ${
+    score >= 90
+      ? "text-green-500"
+      : score >= 70
+      ? "text-yellow-500"
+      : "text-red-500"
+  }`}
+>
+  {score}%
+</div>
+        
 </div>
       {issues
         .slice()
