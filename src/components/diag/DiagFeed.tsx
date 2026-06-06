@@ -1,5 +1,6 @@
 import { getEntries } from "@/lib/diag/diagSinks";
 import HealthCard from "./HealthCard";
+import { healthHint } from "@/lib/diag/healthHints";
 
 export default function DiagFeed() {
   const entries = getEntries();
@@ -33,6 +34,7 @@ export default function DiagFeed() {
                 : "warn"
             }
             description={
+              healthHint(issue.name) ||
               issue.hint ||
               JSON.stringify(
                 issue.data,
