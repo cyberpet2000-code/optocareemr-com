@@ -232,6 +232,8 @@ export default function Dashboard() {
       0
     );
 
+      console.log("Revenue rows", revenueRes.data);
+console.log("Current month revenue", currentMonthRevenue);
       const snap: DashboardSnapshot = {
         monthPatients: monthPatientsRes.count ?? 0,
         todayVisits: visitsRes.count ?? 0,
