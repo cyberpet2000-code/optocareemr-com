@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { clearEntries, getEntries, subscribe, type DiagEntry } from "./diagSinks";
 import DiagFeed from "@/components/diag/DiagFeed";
 
-type Tab = "all" | "errors" | "perf";
+type Tab = "all" | "errors" | "perf" | "health";
 
 export default function DiagOverlay() {
   const [open, setOpen] = useState(false);
@@ -26,10 +26,31 @@ export default function DiagOverlay() {
   }, []);
 
   const filtered = useMemo(() => {
-    if (tab === "errors") return entries.filter((e) => e.level === "error" || e.level === "warn");
-    if (tab === "perf") return entries.filter((e) => e.durationMs !== undefined);
-    return entries;
-  }, [entries, tab]);
+  if (tab === "health") {
+    return entries.filter(
+      (e) =>
+        e.level === "error" ||
+        e.level === "warn"
+    );
+  }
+
+  if (tab === "errors") {
+    return entries.filter(
+      (e) =>
+        e.level === "error" ||
+        e.level === "warn"
+    );
+  }
+
+  if (tab === "perf") {
+    return entries.filter(
+      (e) =>
+        e.durationMs !== undefined
+    );
+  }
+
+  return entries;
+}, [entries, tab]);
 
   if (!open) {
     return (
@@ -69,7 +90,7 @@ export default function DiagOverlay() {
         <strong style={{ color: "#93c5fd" }}>OptoCare Diagnostics</strong>
         <span style={{ opacity: 0.6 }}>· {entries.length} events</span>
         <div style={{ flex: 1 }} />
-        {(["all", "errors", "perf"] as Tab[]).map((t) => (
+        {(["all", "errors", "perf", "health"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -86,12 +107,16 @@ export default function DiagOverlay() {
         <button onClick={() => setOpen(false)} style={btn}>×</button>
       </div>
       <div style={{ overflow: "auto", padding: 6 }}>
+        {tab === "health" ? (
+  <DiagFeed />
+) : (
         {filtered.length === 0 && <div style={{ opacity: 0.6, padding: 8 }}>No entries.</div>}
         {filtered.slice().reverse().map((e, i) => (
           <div key={i} style={{
             padding: "4px 6px", borderBottom: "1px solid #1a1a1a",
             color: e.level === "error" ? "#fecaca" : e.level === "warn" ? "#fde68a" : "#d1d5db",
           }}>
+            )}
             <div>
               <span style={{ opacity: 0.5 }}>{new Date(e.t).toLocaleTimeString()}</span>{" "}
               <span style={{ color: "#60a5fa" }}>[{e.area}]</span>{" "}
