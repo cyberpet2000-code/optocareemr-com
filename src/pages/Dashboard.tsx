@@ -128,6 +128,15 @@ export default function Dashboard() {
       return;
     }
     const cid = effectiveClinicId;
+    const { data: clinic } = await apiClient
+  .from("clinics")
+  .select("subscription_status")
+  .eq("id", cid)
+  .maybeSingle();
+
+checkClinicSubscription(
+  clinic?.subscription_status
+);
     const cacheKey = `dashboard:${cid}`;
 
     const hydrateFromCache = () => {
