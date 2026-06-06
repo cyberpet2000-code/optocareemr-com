@@ -4,6 +4,7 @@
 
 import { isDiagEnabled } from "./diagConfig";
 import { diag } from "./diag";
+import { checkSlowQuery } from "./healthChecks";
 
 const FLAG = "__optocareDiagFetchPatched";
 
@@ -28,7 +29,8 @@ export function installDiagFetchPatch() {
       || (typeof input !== "string" && !(input instanceof URL) ? (input as Request).method : "GET")
       || "GET";
 
-    const end = diag.time("query", "fetch", { url, method });
+    const start = Date.now();
+const end = diag.time("query", "fetch", { url, method });
     let res: Response;
     try {
       res = await orig(input as any, init);
@@ -38,6 +40,13 @@ export function installDiagFetchPatch() {
       throw err;
     }
     end({ status: res.status });
+    
+    const durationMs = Date.now() - start;
+
+checkSlowQuery(
+  url,
+  durationMs
+);
 
     if (!res.ok) {
       let body: any = null;
