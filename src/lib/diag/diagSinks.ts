@@ -1,6 +1,12 @@
 // Sinks: console + in-memory ring buffer. Overlay reads the buffer.
 
-export type DiagArea = "auth" | "routing" | "hydration" | "query" | "rls" | "perf";  | "perf"
+export type DiagArea =
+  | "auth"
+  | "routing"
+  | "hydration"
+  | "query"
+  | "rls"
+  | "perf"
   | "billing"
   | "inventory"
   | "appointments"
