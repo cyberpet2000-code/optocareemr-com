@@ -352,6 +352,12 @@ console.debug("[access:stage1_complete]", {
                 .eq("id", overrideClinicId)
                 .maybeSingle();
               nextAccessState.clinic = data || null;
+
+              if (data) {
+  checkClinicSubscription(
+    data.subscription_status
+  );
+              }
             } catch (error: any) {
               console.warn("[access:super_admin_clinic_override_failed]", { message: error?.message });
             }
