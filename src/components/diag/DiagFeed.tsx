@@ -1,5 +1,6 @@
 import { getEntries } from "@/lib/diag/diagSinks";
 import HealthCard from "./HealthCard";
+import { getHealthScore } from "@/lib/diag/healthScore";
 import { healthHint } from "@/lib/diag/healthHints";
 import { getFixRecommendation } from "@/lib/diag/fixRecommendations";
 
