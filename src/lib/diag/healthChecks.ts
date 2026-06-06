@@ -21,3 +21,19 @@ export function checkRevenueMismatch(
     );
   }
 }
+
+export function checkSlowQuery(
+  name: string,
+  durationMs: number
+) {
+  if (durationMs > 1500) {
+    diag.warn(
+      "perf",
+      "slow query",
+      {
+        query: name,
+        durationMs,
+      }
+    );
+  }
+}
