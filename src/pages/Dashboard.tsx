@@ -11,6 +11,10 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Users, ChevronRight, AlertTriangle, DollarSign, TrendingUp, Clock } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  startLoadingWatch,
+  stopLoadingWatch,
+} from "@/lib/diag";
 import { useClinic } from "@/hooks/useClinic";
 import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
@@ -158,9 +162,11 @@ checkClinicSubscription(
         setRecentPatients(snap.recentPatients ?? []);
         setUpcomingAppts(snap.upcomingAppts ?? []);
       }
+      stopLoadingWatch("dashboard");
       setLoading(false);
     };
-
+    stopLoadingWatch("dashboard");
+setLoading(false);
     // Offline: skip network entirely.
     if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
       hydrateFromCache();
@@ -168,6 +174,7 @@ checkClinicSubscription(
     }
 
     setLoading(true);
+    startLoadingWatch("dashboard");
     const today = new Date().toISOString().split("T")[0];
     const now = new Date();
 
