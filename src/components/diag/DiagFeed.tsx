@@ -109,7 +109,7 @@ export default function DiagFeed() {
   <button
     onClick={() => {
       const ok = window.confirm(
-    "Run AI Auto-Heal?\n\nOnly low-risk issues will be fixed automatically."
+    "Run AI Auto-Heal?\n\nOnly low-risk infrastructure issues will be fixed automatically."
   );
 
   if (!ok) return;
