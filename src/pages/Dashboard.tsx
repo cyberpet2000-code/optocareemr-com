@@ -15,6 +15,11 @@ import {
   startLoadingWatch,
   stopLoadingWatch,
 } from "@/lib/diag";
+import {
+  startLoadingWatch,
+  stopLoadingWatch,
+  checkQueryFailure,
+} from "@/lib/diag";
 import { useClinic } from "@/hooks/useClinic";
 import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
