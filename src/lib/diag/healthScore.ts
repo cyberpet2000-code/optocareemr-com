@@ -58,6 +58,5 @@ issues.forEach((issue) => {
   }
 });
 
-return Math.max(score, 0);
-  );
+  return Math.max(score, 0);
 }
