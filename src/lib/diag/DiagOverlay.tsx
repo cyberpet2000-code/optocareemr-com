@@ -91,7 +91,7 @@ export default function DiagOverlay() {
         <strong style={{ color: "#93c5fd" }}>OptoCare Diagnostics</strong>
         <span style={{ opacity: 0.6 }}>· {entries.length} events</span>
         <div style={{ flex: 1 }} />
-        {(["all", "errors", "perf", "health"] as Tab[]).map((t) => (
+        {(["all", "health", "perf"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
