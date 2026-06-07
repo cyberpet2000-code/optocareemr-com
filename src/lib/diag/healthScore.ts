@@ -1,4 +1,4 @@
-import { getIssueHistory } from "./history";
+import { getIssues } from "./issueTracker";
 
 export function getHealthScore() {
   const issues = getIssueHistory();
