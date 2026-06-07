@@ -7,11 +7,7 @@ export function analyzeRootCause(
 
   const url =
     data?.url?.toLowerCase?.() || "";
-
-  if (
-    issueName.includes("inventory") &&
-    url.includes("quantity")
-  ) {
+  
     return {
       cause:
         'Column "quantity" does not exist in inventory table.',
@@ -21,10 +17,6 @@ export function analyzeRootCause(
     };
   }
 
-  if (
-    issueName.includes("drugs") &&
-    url.includes("quantity")
-  ) {
     return {
       cause:
         'Column "quantity" does not exist in drugs table.',
