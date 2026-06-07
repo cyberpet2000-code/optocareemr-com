@@ -115,7 +115,11 @@ export default function DiagFeed() {
 
   if (!ok) return;
       
-      runSelfHealing();
+      const result = runSelfHealing();
+
+alert(
+  `AI resolved ${result.healedCount} issue(s).`
+);
       window.location.reload();
     }}
     className="w-full rounded-lg bg-green-600 text-white py-2 text-sm font-medium"
