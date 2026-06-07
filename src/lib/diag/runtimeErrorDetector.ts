@@ -3,7 +3,7 @@ import { diag } from "./diag";
 export function installRuntimeErrorDetector() {
   window.addEventListener("error", (event) => {
     diag.error(
-      "runtime",
+      "app",
       "window-error",
       event.error || event.message
     );
@@ -13,7 +13,7 @@ export function installRuntimeErrorDetector() {
     "unhandledrejection",
     (event) => {
       diag.error(
-        "runtime",
+        "app",
         "unhandled-promise",
         event.reason
       );

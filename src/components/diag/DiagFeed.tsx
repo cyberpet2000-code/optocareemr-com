@@ -1,15 +1,11 @@
-import { getEntries } from "@/lib/diag/diagSinks";
 import HealthCard from "./HealthCard";
 import { getHealthScore } from "@/lib/diag/healthScore";
-import { healthHint } from "@/lib/diag/healthHints";
 import { getIssues } from "@/lib/diag";
 import { getFixRecommendation } from "@/lib/diag/fixRecommendations";
 import { analyzeRootCause }
 from "@/lib/diag";
 
 export default function DiagFeed() {
-  const entries = getEntries();
-
   const issues = getIssues();
 
   const openIssues = issues.filter(
@@ -76,7 +72,7 @@ export default function DiagFeed() {
               <HealthCard
                 key={`open-${idx}`}
                 title={issue.name}
-                severity={issue.level === "warn" ? "warn" : "critical"}
+                severity="critical"
                 description={`Occurrences: ${issue.occurrences}
 
 Root Cause:
