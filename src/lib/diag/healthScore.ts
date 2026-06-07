@@ -1,19 +1,56 @@
-import { getEntries } from "./diagSinks";
-
 export function getHealthScore() {
-  const entries = getEntries();
+  const issues = getIssues();
 
   let score = 100;
 
-  entries.forEach((entry) => {
-    if (entry.level === "error") {
-      score -= 10;
+  issues.forEach((issue) => {
+    const name =
+      issue.name.toLowerCase();
+
+    if (
+      name.includes("runtime")
+    ) {
+      score -= 40;
+      return;
     }
 
-    if (entry.level === "warn") {
+    if (
+      name.includes("database")
+    ) {
+      score -= 30;
+      return;
+    }
+
+    if (
+      name.includes("sync")
+    ) {
+      score -= 20;
+      return;
+    }
+
+    if (
+      name.includes("query")
+    ) {
+      score -= 15;
+      return;
+    }
+
+    if (
+      name.includes("revenue")
+    ) {
+      score -= 10;
+      return;
+    }
+
+    if (
+      name.includes("performance")
+    ) {
       score -= 5;
     }
   });
 
-  return Math.max(score, 0);
+  return Math.max(
+    score,
+    0
+  );
 }
