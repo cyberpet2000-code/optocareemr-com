@@ -34,14 +34,13 @@ import {
   diag,
   isDiagEnabled,
   installDiagFetchPatch,
-  installRuntimeErrorDetector,
   DiagOverlay,
 } from "@/lib/diag";
 import { apiClient } from "@/lib/apiClient";
 import { toast } from "sonner";
 
 installDiagFetchPatch();
-installRuntimeErrorDetector();
+
 
 const queryClient = new QueryClient();
 function playAlert() {
