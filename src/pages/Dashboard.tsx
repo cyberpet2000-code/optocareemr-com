@@ -134,7 +134,7 @@ export default function Dashboard() {
       return;
     }
     const cid = effectiveClinicId;
-    const { data: clinic } = await apiClient
+    const clinicRes = await apiClient
   .from("clinics")
   .select("subscription_status")
   .eq("id", cid)
