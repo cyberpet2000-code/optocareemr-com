@@ -4,6 +4,8 @@ import { getHealthScore } from "@/lib/diag/healthScore";
 import { healthHint } from "@/lib/diag/healthHints";
 import { getIssues } from "@/lib/diag";
 import { getFixRecommendation } from "@/lib/diag/fixRecommendations";
+import { analyzeRootCause }
+from "@/lib/diag";
 
 export default function DiagFeed() {
   const entries = getEntries();
@@ -70,6 +72,10 @@ const score = getHealthScore();
     </div>
 
     {openIssues.map((issue, idx) => (
+    const rootCause = analyzeRootCause(
+  issue.name
+
+return (
       <HealthCard
         key={`open-${idx}`}
         title={issue.name}
@@ -79,6 +85,9 @@ const score = getHealthScore();
         }
         description={`
 Occurrences: ${issue.occurrences}
+
+Root Cause:
+${rootCause}
 
 Recommended Fix:
 ${getFixRecommendation(issue.name) || "No recommendation available."}
