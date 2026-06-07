@@ -70,6 +70,10 @@ export default function DiagFeed() {
           {openIssues.map((issue, idx) => {
             const rootCause = analyzeRootCause(issue.name);
           const analysis = classifyIssue(issue.name);
+          const trend = analyzeTrend(
+  issue.name,
+  issue.occurrences
+);
 
             return (
               <HealthCard
@@ -86,6 +90,12 @@ ${analysis.confidence}%
 
 Impact:
 ${analysis.impact}
+
+Trend:
+${trend.trend}
+
+Prediction:
+${trend.prediction}
 
 Root Cause:
 ${rootCause.cause}
