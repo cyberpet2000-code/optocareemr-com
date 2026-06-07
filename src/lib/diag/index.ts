@@ -7,3 +7,4 @@ export {
   startLoadingWatch,
   stopLoadingWatch,
 } from "./loadingDetector";
+export { checkQueryFailure } from "./queryFailureDetector";
