@@ -1,34 +1,32 @@
-<div className="space-y-2">
-  <div>
-    System Status:
-    {" "}
-    {openIssues.length === 0
-      ? "Healthy"
-      : "Warning"}
-  </div>
+import { getIssueHistory } from "./history";
+import { analyzePriority } from "./priorityAnalyzer";
 
-  <div>
-    Open Technical Issues:
-    {openIssues.length}
-  </div>
+export interface ExecutiveSummary {
+  openCount: number;
+  resolvedCount: number;
+  highestPriority: string;
+  status: "healthy" | "warning";
+}
 
-  <div>
-    Resolved Issues:
-    {resolvedIssues.length}
-  </div>
+export function getExecutiveSummary(): ExecutiveSummary {
+  const history = getIssueHistory();
+  const open = history.filter((h) => h.status === "open");
+  const resolved = history.filter((h) => h.status === "resolved");
 
-  <div>
-    Performance:
-    Stable
-  </div>
+  let highest = "None";
+  let topScore = -1;
+  for (const issue of open) {
+    const p = analyzePriority(issue.name);
+    if (p.score > topScore) {
+      topScore = p.score;
+      highest = issue.name;
+    }
+  }
 
-  <div>
-    Database:
-    Healthy
-  </div>
-
-  <div>
-    API Connectivity:
-    Healthy
-  </div>
-</div>
+  return {
+    openCount: open.length,
+    resolvedCount: resolved.length,
+    highestPriority: highest,
+    status: open.length === 0 ? "healthy" : "warning",
+  };
+}

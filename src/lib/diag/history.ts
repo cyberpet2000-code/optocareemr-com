@@ -7,6 +7,8 @@ export interface IssueHistoryEntry {
   resolvedAt?: number;
 }
 
-export const issueHistorySeed: IssueHistoryEntry[] = [
-  
-];
+export const issueHistorySeed: IssueHistoryEntry[] = [];
+
+export function getIssueHistory(): IssueHistoryEntry[] {
+  return issueHistorySeed;
+}
