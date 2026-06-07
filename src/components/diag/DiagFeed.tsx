@@ -7,17 +7,34 @@ from "@/lib/diag";
 import { classifyIssue } from "@/lib/diag";
 import { analyzeTrend } from "@/lib/diag";
 import { getExecutiveSummary } from "@/lib/diag";
+import { analyzePriority } from "@/lib/diag";
 
 export default function DiagFeed() {
   const issues = getIssues();
 
-  const openIssues = issues.filter(
-    (i) => i.status === "open"
-  );
+  const openIssues = issues
+  .filter((i) => i.status === "open")
+  .sort((a, b) => {
+    const aScore =
+      analyzePriority(a.name).score;
 
-  const resolvedIssues = issues.filter(
-    (i) => i.status === "resolved"
-  );
+    const bScore =
+      analyzePriority(b.name).score;
+
+    return bScore - aScore;
+  });
+
+  const resolvedIssues = issues
+  .filter((i) => i.status === "resolved")
+  .sort((a, b) => {
+    const aScore =
+      analyzePriority(a.name).score;
+
+    const bScore =
+      analyzePriority(b.name).score;
+
+    return bScore - aScore;
+  });
 
   const score = getHealthScore();
   const summary = getExecutiveSummary();
