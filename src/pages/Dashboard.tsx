@@ -3,7 +3,10 @@ import {
   enableNotifications,
   showNotification,
 } from "@/lib/notifications";
-import { checkRevenueMismatch } from "@/lib/diag/healthChecks";
+import {
+  checkRevenueMismatch,
+  checkClinicSubscription,
+} from "@/lib/diag/healthChecks";
 import { Link, useSearchParams } from "react-router-dom";
 import { Users, ChevronRight, AlertTriangle, DollarSign, TrendingUp, Clock } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
