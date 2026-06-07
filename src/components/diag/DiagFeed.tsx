@@ -21,17 +21,6 @@ const resolvedIssues =
   );
   
 const score = getHealthScore();
-  const issues = getIssues();
-
-const openIssues =
-  issues.filter(
-    (i) => i.status === "open"
-  );
-
-const resolvedIssues =
-  issues.filter(
-    (i) => i.status === "resolved"
-  );
   
   if (issues.length === 0) {
     return (
