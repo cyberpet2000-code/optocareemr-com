@@ -19,3 +19,5 @@ export { classifyIssue }
 from "./issueClassifier";
 export { analyzeTrend }
 from "./trendAnalyzer";
+export { analyzePriority }
+from "./priorityAnalyzer";
