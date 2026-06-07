@@ -1,4 +1,5 @@
 import { diag } from "./diag";
+import { reportIssue } from "./issueTracker";
 
 export function checkRevenueMismatch(
   billingRevenue: number,
@@ -9,6 +10,7 @@ export function checkRevenueMismatch(
   );
 
   if (difference > 1000) {
+    reportIssue("revenue mismatch");
     diag.error(
       "billing",
       "revenue mismatch",
