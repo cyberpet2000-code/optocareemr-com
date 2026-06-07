@@ -6,7 +6,7 @@ export default function HealthCard({
   description,
 }: {
   title: string;
-  severity: "healthy" | "warn" | "error" | "critical";
+  severity: "info" | "healthy" | "warn" | "error" | "critical";
   description: string;
 }) {
   return (
