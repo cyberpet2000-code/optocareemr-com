@@ -14,10 +14,6 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   startLoadingWatch,
   stopLoadingWatch,
-} from "@/lib/diag";
-import {
-  startLoadingWatch,
-  stopLoadingWatch,
   checkQueryFailure,
 } from "@/lib/diag";
 import { useClinic } from "@/hooks/useClinic";
@@ -170,8 +166,6 @@ checkClinicSubscription(
       stopLoadingWatch("dashboard");
       setLoading(false);
     };
-    stopLoadingWatch("dashboard");
-setLoading(false);
     // Offline: skip network entirely.
     if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
       hydrateFromCache();
@@ -237,6 +231,66 @@ setLoading(false);
   .eq("status", "paid"),
         apiClient.from("drugs").select("*", { count: "exact", head: true }).eq("clinic_id", cid).lte("quantity", 5),
       ]);
+      
+      checkQueryFailure(
+  "patients",
+  "recent patients",
+  patientsRes.error
+);
+
+checkQueryFailure(
+  "patients",
+  "monthly count",
+  monthPatientsRes.error
+);
+
+checkQueryFailure(
+  "visits",
+  "today visits",
+  visitsRes.error
+);
+
+checkQueryFailure(
+  "appointments",
+  "today appointments",
+  apptRes.error
+);
+
+checkQueryFailure(
+  "appointments",
+  "upcoming appointments",
+  upcomingApptRes.error
+);
+
+checkQueryFailure(
+  "inventory",
+  "low stock check",
+  invRes.error
+);
+
+checkQueryFailure(
+  "billing",
+  "pending bills",
+  billRes.error
+);
+
+checkQueryFailure(
+  "billing",
+  "current revenue",
+  revenueRes.error
+);
+
+checkQueryFailure(
+  "billing",
+  "previous revenue",
+  prevRevenueRes.error
+);
+
+checkQueryFailure(
+  "drugs",
+  "low stock drugs",
+  drugRes.error
+);
 
       const { count: patientsMissing } = await apiClient
   .from("patients")
@@ -374,6 +428,8 @@ console.log("Current month revenue", currentMonthRevenue);
       setRecentPatients(snap.recentPatients);
       setUpcomingAppts(snap.upcomingAppts);
       offlineStore.save(cacheKey, snap);
+
+      stopLoadingWatch("dashboard");
       setLoading(false);
     } catch (e) {
       console.warn("[dashboard] load failed, using cache", e);
