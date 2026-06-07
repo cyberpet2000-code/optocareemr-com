@@ -105,6 +105,24 @@ export default function DiagFeed() {
     </div>
   </div>
 </div>
+      <div className="mb-3">
+  <button
+    onClick={() => {
+      const ok = window.confirm(
+    "Run AI Auto-Heal?\n\nOnly low-risk issues will be fixed automatically."
+  );
+
+  if (!ok) return;
+      
+      runSelfHealing();
+      window.location.reload();
+    }}
+    className="w-full rounded-lg bg-green-600 text-white py-2 text-sm font-medium"
+  >
+    🤖 Auto Heal Issues
+  </button>
+</div>
+      
       {openIssues.length > 0 && (
         <>
           <div className="text-sm font-semibold text-red-500">
