@@ -6,6 +6,7 @@ import { analyzeRootCause }
 from "@/lib/diag";
 import { classifyIssue } from "@/lib/diag";
 import { analyzeTrend } from "@/lib/diag";
+import { getExecutiveSummary } from "@/lib/diag";
 
 export default function DiagFeed() {
   const issues = getIssues();
@@ -19,6 +20,7 @@ export default function DiagFeed() {
   );
 
   const score = getHealthScore();
+  const summary = getExecutiveSummary();
   
   if (issues.length === 0) {
     return (
@@ -60,6 +62,31 @@ export default function DiagFeed() {
   {score}%
 </div>
         
+</div>
+      <div className="rounded-xl border p-4 mb-3">
+  <div className="text-sm text-muted-foreground">
+    AI Executive Summary
+  </div>
+
+  <div className="mt-2 text-sm">
+    <div>
+      Open Issues:
+      <strong> {summary.openCount}</strong>
+    </div>
+
+    <div>
+      Resolved Issues:
+      <strong> {summary.resolvedCount}</strong>
+    </div>
+
+    <div className="mt-2">
+      Highest Priority:
+    </div>
+
+    <div className="font-semibold text-red-500">
+      {summary.highestPriority}
+    </div>
+  </div>
 </div>
       {openIssues.length > 0 && (
         <>
