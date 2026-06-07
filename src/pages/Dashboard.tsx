@@ -129,6 +129,7 @@ export default function Dashboard() {
   const loadDashboard = useCallback(async () => {
     if (!effectiveClinicId) {
       console.debug("[dashboard] no active clinic, skipping fetch");
+      stopLoadingWatch("dashboard");
       setLoading(false);
       return;
     }
@@ -138,6 +139,13 @@ export default function Dashboard() {
   .select("subscription_status")
   .eq("id", cid)
   .maybeSingle();
+    
+    const clinicRes = await apiClient...
+checkQueryFailure(
+  "clinics",
+  "subscription check",
+  clinicRes.error
+);
 
 checkClinicSubscription(
   clinic?.subscription_status
@@ -160,6 +168,7 @@ checkClinicSubscription(
         setRecentPatients(snap.recentPatients ?? []);
         setUpcomingAppts(snap.upcomingAppts ?? []);
       }
+      stopLoadingWatch("dashboard");
       setLoading(false);
     };
     // Offline: skip network entirely.
