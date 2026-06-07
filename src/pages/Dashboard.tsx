@@ -140,12 +140,13 @@ export default function Dashboard() {
   .eq("id", cid)
   .maybeSingle();
     
-    const clinicRes = await apiClient...
 checkQueryFailure(
   "clinics",
   "subscription check",
   clinicRes.error
 );
+
+    const clinic = clinicRes.data;
 
 checkClinicSubscription(
   clinic?.subscription_status
@@ -454,6 +455,7 @@ console.log("Current month revenue", currentMonthRevenue);
         setRecentPatients(snap.recentPatients ?? []);
         setUpcomingAppts(snap.upcomingAppts ?? []);
       }
+      stopLoadingWatch("dashboard");
       setLoading(false);
     }
   }, [effectiveClinicId, isOffline]);
