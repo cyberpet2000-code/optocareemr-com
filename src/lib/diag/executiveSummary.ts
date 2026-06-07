@@ -1,4 +1,4 @@
-import { getIssueHistory } from "./history";
+import { getIssues } from "./issueTracker";
 import { analyzePriority } from "./priorityAnalyzer";
 
 export interface ExecutiveSummary {
@@ -9,7 +9,7 @@ export interface ExecutiveSummary {
 }
 
 export function getExecutiveSummary(): ExecutiveSummary {
-  const history = getIssueHistory();
+  const history = getIssue();
   const open = history.filter((h) => h.status === "open");
   const resolved = history.filter((h) => h.status === "resolved");
 
