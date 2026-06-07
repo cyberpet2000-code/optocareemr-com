@@ -73,7 +73,10 @@ const score = getHealthScore();
       <HealthCard
         key={`open-${idx}`}
         title={issue.name}
-        severity="critical"
+        severity=issue.level === "warn"
+    ? "warn"
+    : "critical"
+        }
         description={`
 Occurrences: ${issue.occurrences}
 
