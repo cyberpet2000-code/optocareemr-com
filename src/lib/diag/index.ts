@@ -20,6 +20,8 @@ from "./issueClassifier";
 export { analyzeTrend }
 from "./trendAnalyzer";
 export { analyzePriority }
+  export { forecastHealth }
+from "./healthForecast";
 from "./priorityAnalyzer";
 export { getExecutiveSummary }
 from "./executiveSummary";
