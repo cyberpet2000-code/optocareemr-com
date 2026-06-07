@@ -2,39 +2,36 @@ import { getEntries } from "@/lib/diag/diagSinks";
 import HealthCard from "./HealthCard";
 import { getHealthScore } from "@/lib/diag/healthScore";
 import { healthHint } from "@/lib/diag/healthHints";
+import { getIssues } from "@/lib/diag";
 import { getFixRecommendation } from "@/lib/diag/fixRecommendations";
 
 export default function DiagFeed() {
   const entries = getEntries();
 
-   const issues = Array.from(
-  new Map(
-    entries
-      .filter(
-        (e) =>
-          e.level === "error" ||
-          e.level === "warn"
-      )
-      .map((e) => {
-        const key = `${e.area}-${e.name}`;
+  const issues = getIssues();
 
-        return [
-          key,
-          {
-            ...e,
-            occurrences:
-              entries.filter(
-                (x) =>
-                  x.area === e.area &&
-                  x.name === e.name
-              ).length,
-          },
-        ];
-      })
-  ).values()
-);
+const openIssues =
+  issues.filter(
+    (i) => i.status === "open"
+  );
+
+const resolvedIssues =
+  issues.filter(
+    (i) => i.status === "resolved"
+  );
   
 const score = getHealthScore();
+  const issues = getIssues();
+
+const openIssues =
+  issues.filter(
+    (i) => i.status === "open"
+  );
+
+const resolvedIssues =
+  issues.filter(
+    (i) => i.status === "resolved"
+  );
   
   if (issues.length === 0) {
     return (
@@ -77,31 +74,49 @@ const score = getHealthScore();
 </div>
         
 </div>
-      {issues
-        .slice()
-        .reverse()
-        .map((issue, idx) => (
-          <HealthCard
-            key={idx}
-            title={`${issue.name} (${issue.occurrences}x)`}
-            severity={
-              issue.level === "error"
-                ? "critical"
-                : "warn"
-            }
-            description={`${
-              healthHint(issue.name) ||
-              issue.hint ||
-              "Issue detected."
-            }
-            
-            Occurrences:
-${issue.occurrences}
+      {openIssues.length > 0 && (
+  <>
+    <div className="text-sm font-semibold text-red-500">
+      Active Issues
+    </div>
+
+    {openIssues.map((issue, idx) => (
+      <HealthCard
+        key={`open-${idx}`}
+        title={issue.name}
+        severity="critical"
+        description={`
+Occurrences: ${issue.occurrences}
 
 Recommended Fix:
-${getFixRecommendation(issue.name) || "No recommendation available."}`}
-          />
-        ))}
+${getFixRecommendation(issue.name) || "No recommendation available."}
+`}
+      />
+    ))}
+  </>
+)}
+
+{resolvedIssues.length > 0 && (
+  <>
+    <div className="text-sm font-semibold text-green-500 mt-4">
+      Resolved Issues
+    </div>
+
+    {resolvedIssues.map((issue, idx) => (
+      <HealthCard
+        key={`resolved-${idx}`}
+        title={issue.name}
+        severity="info"
+        description={`
+Resolved Successfully
+
+Occurrences:
+${issue.occurrences}
+`}
+      />
+    ))}
+  </>
+)}
     </div>
   );
 }
