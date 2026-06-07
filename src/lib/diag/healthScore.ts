@@ -1,5 +1,7 @@
+import { getIssueHistory } from "./history";
+
 export function getHealthScore() {
-  const issues = getIssues();
+  const issues = getIssueHistory();
 
   let score = 100;
 
