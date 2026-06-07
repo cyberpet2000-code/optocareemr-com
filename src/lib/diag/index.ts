@@ -25,4 +25,6 @@ from "./healthForecast";
 from "./priorityAnalyzer";
 export { getExecutiveSummary }
 from "./executiveSummary";
+export { runSelfHealing }
+from "./selfHealing";
 
