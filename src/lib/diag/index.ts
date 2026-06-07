@@ -17,3 +17,5 @@ export { analyzeRootCause }
 from "./rootCauseAnalyzer";
 export { classifyIssue }
 from "./issueClassifier";
+export { analyzeTrend }
+from "./trendAnalyzer";
