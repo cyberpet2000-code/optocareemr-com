@@ -15,3 +15,5 @@ export {
 } from "./issueTracker";
 export { analyzeRootCause }
 from "./rootCauseAnalyzer";
+export { classifyIssue }
+from "./issueClassifier";
