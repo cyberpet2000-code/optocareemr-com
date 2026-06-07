@@ -4,6 +4,7 @@ import { getIssues } from "@/lib/diag";
 import { getFixRecommendation } from "@/lib/diag/fixRecommendations";
 import { analyzeRootCause }
 from "@/lib/diag";
+import { classifyIssue } from "@/lib/diag";
 
 export default function DiagFeed() {
   const issues = getIssues();
@@ -67,6 +68,7 @@ export default function DiagFeed() {
 
           {openIssues.map((issue, idx) => {
             const rootCause = analyzeRootCause(issue.name);
+          const analysis = classifyIssue(issue.name);
 
             return (
               <HealthCard
@@ -74,6 +76,15 @@ export default function DiagFeed() {
                 title={issue.name}
                 severity="critical"
                 description={`Occurrences: ${issue.occurrences}
+
+            Category:
+${analysis.category}
+
+Confidence:
+${analysis.confidence}%
+
+Impact:
+${analysis.impact}
 
 Root Cause:
 ${rootCause.cause}
