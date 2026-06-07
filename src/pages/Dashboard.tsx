@@ -235,7 +235,7 @@ checkClinicSubscription(
   `)
   .eq("clinic_id", cid)
   .eq("status", "paid"),
-        apiClient.from("drugs").select("*", { count: "exact", head: true }).eq("clinic_id", cid).lte("stock_quantity", 5),
+        apiClient.from("drugs").select("*", { count: "exact", head: true }).eq("clinic_id", cid).lte("stock", 5),
       ]);
       
       checkQueryFailure(
