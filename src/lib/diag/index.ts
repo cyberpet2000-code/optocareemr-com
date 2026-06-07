@@ -13,3 +13,5 @@ export {
   resolveIssue,
   getIssues,
 } from "./issueTracker";
+export { analyzeRootCause }
+from "./rootCauseAnalyzer";
