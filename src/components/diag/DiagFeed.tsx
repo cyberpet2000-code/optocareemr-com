@@ -12,17 +12,15 @@ export default function DiagFeed() {
 
   const issues = getIssues();
 
-const openIssues =
-  issues.filter(
+  const openIssues = issues.filter(
     (i) => i.status === "open"
   );
 
-const resolvedIssues =
-  issues.filter(
+  const resolvedIssues = issues.filter(
     (i) => i.status === "resolved"
   );
-  
-const score = getHealthScore();
+
+  const score = getHealthScore();
   
   if (issues.length === 0) {
     return (
@@ -66,58 +64,51 @@ const score = getHealthScore();
         
 </div>
       {openIssues.length > 0 && (
-  <>
-    <div className="text-sm font-semibold text-red-500">
-      Active Issues
-    </div>
+        <>
+          <div className="text-sm font-semibold text-red-500">
+            Active Issues
+          </div>
 
-    {openIssues.map((issue, idx) => (
-    const rootCause = analyzeRootCause(
-  issue.name
+          {openIssues.map((issue, idx) => {
+            const rootCause = analyzeRootCause(issue.name);
 
-return (
-      <HealthCard
-        key={`open-${idx}`}
-        title={issue.name}
-        severity=issue.level === "warn"
-    ? "warn"
-    : "critical"
-        }
-        description={`
-Occurrences: ${issue.occurrences}
+            return (
+              <HealthCard
+                key={`open-${idx}`}
+                title={issue.name}
+                severity={issue.level === "warn" ? "warn" : "critical"}
+                description={`Occurrences: ${issue.occurrences}
 
 Root Cause:
-${rootCause}
+${rootCause.cause}
 
 Recommended Fix:
-${getFixRecommendation(issue.name) || "No recommendation available."}
-`}
-      />
-    ))}
-  </>
-)}
+${getFixRecommendation(issue.name) || rootCause.fix || "No recommendation available."}`}
+              />
+            );
+          })}
+        </>
+      )}
 
-{resolvedIssues.length > 0 && (
-  <>
-    <div className="text-sm font-semibold text-green-500 mt-4">
-      Resolved Issues
-    </div>
+      {resolvedIssues.length > 0 && (
+        <>
+          <div className="text-sm font-semibold text-green-500 mt-4">
+            Resolved Issues
+          </div>
 
-    {resolvedIssues.map((issue, idx) => (
-      <HealthCard
-        key={`resolved-${idx}`}
-        title={issue.name}
-        severity="info"
-        description={`
-Resolved Successfully
+          {resolvedIssues.map((issue, idx) => (
+            <HealthCard
+              key={`resolved-${idx}`}
+              title={issue.name}
+              severity="info"
+              description={`Resolved Successfully
 
 Occurrences:
-${issue.occurrences}
-`}
-      />
-    ))}
-  </>
-)}
+${issue.occurrences}`}
+            />
+          ))}
+        </>
+      )}
     </div>
   );
 }
