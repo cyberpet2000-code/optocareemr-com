@@ -8,3 +8,8 @@ export {
 export { installRuntimeErrorDetector } from "./runtimeErrorDetector";
 export { default as DiagOverlay } from "./DiagOverlay";
 export { checkQueryFailure } from "./queryFailureDetector";
+export {
+  reportIssue,
+  resolveIssue,
+  getIssues,
+} from "./issueTracker";
