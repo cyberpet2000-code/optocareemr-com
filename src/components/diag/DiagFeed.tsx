@@ -5,6 +5,7 @@ import { getFixRecommendation } from "@/lib/diag/fixRecommendations";
 import { analyzeRootCause }
 from "@/lib/diag";
 import { classifyIssue } from "@/lib/diag";
+import { analyzeTrend } from "@/lib/diag";
 
 export default function DiagFeed() {
   const issues = getIssues();
