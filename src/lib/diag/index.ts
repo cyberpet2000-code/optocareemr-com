@@ -21,3 +21,5 @@ export { analyzeTrend }
 from "./trendAnalyzer";
 export { analyzePriority }
 from "./priorityAnalyzer";
+export { getExecutiveSummary }
+from "./executiveSummary";
