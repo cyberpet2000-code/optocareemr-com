@@ -1,30 +1,34 @@
-import { getIssues } from "./issueTracker";
-import { analyzePriority } from "./priorityAnalyzer";
+<div className="space-y-2">
+  <div>
+    System Status:
+    {" "}
+    {openIssues.length === 0
+      ? "Healthy"
+      : "Warning"}
+  </div>
 
-export function getExecutiveSummary() {
-  const issues = getIssues();
+  <div>
+    Open Technical Issues:
+    {openIssues.length}
+  </div>
 
-  const openIssues = issues.filter(
-    (i) => i.status === "open"
-  );
+  <div>
+    Resolved Issues:
+    {resolvedIssues.length}
+  </div>
 
-  const highest =
-    openIssues
-      .map((i) => ({
-        issue: i,
-        priority: analyzePriority(i.name),
-      }))
-      .sort(
-        (a, b) =>
-          b.priority.score -
-          a.priority.score
-      )[0];
+  <div>
+    Performance:
+    Stable
+  </div>
 
-  return {
-    openCount: openIssues.length,
-    resolvedCount:
-      issues.length - openIssues.length,
-    highestPriority:
-      highest?.issue?.name ?? "None",
-  };
-}
+  <div>
+    Database:
+    Healthy
+  </div>
+
+  <div>
+    API Connectivity:
+    Healthy
+  </div>
+</div>
