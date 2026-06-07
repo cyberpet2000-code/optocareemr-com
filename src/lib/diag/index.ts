@@ -23,5 +23,4 @@ export { analyzePriority }
 from "./priorityAnalyzer";
 export { getExecutiveSummary }
 from "./executiveSummary";
-export { analyzeRisk }
-from "./riskAnalyzer";
+
