@@ -1,22 +1,28 @@
 import { diag } from "./diag";
+import {
+  reportIssue,
+  resolveIssue,
+} from "./issueTracker";
 
 export function checkQueryFailure(
   table: string,
-  operation: string,
+  action: string,
   error: any
 ) {
-  if (!error) return;
+  const issueName =
+    `${table}:${action}`;
 
-  diag.error(
-    "query",
-    `${table}-query-failed`,
-    error,
-    {
-      table,
-      operation,
-      code: error.code,
-      status: error.status,
-      message: error.message,
-    }
-  );
+  if (error) {
+    reportIssue(issueName);
+
+    diag.error(
+      "query",
+      issueName,
+      error
+    );
+
+    return;
+  }
+
+  resolveIssue(issueName);
 }
