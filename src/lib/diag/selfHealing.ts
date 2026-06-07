@@ -6,34 +6,26 @@ import {
 export function runSelfHealing() {
   const issues = getIssues();
 
+  let healedCount = 0;
+
   issues.forEach((issue) => {
     const name =
       issue.name.toLowerCase();
 
-    if (
-      name.includes("inventory") ||
-      name.includes("drug")
-    ) {
-      resolveIssue(issue.name);
-    }
+    const safeInfrastructureIssue =
+      name.includes("cache") ||
+      name.includes("loading") ||
+      name.includes("sync") ||
+      name.includes("network") ||
+      name.includes("realtime");
 
-    if (
-      name.includes("cache")
-    ) {
+    if (safeInfrastructureIssue) {
       resolveIssue(issue.name);
-    }
-
-    if (
-      name.includes("loading")
-    ) {
-      resolveIssue(issue.name);
+      healedCount++;
     }
   });
 
   return {
-    healedIssues:
-      issues.filter(
-        (i) => i.status === "open"
-      ).length,
+    healedCount,
   };
 }
