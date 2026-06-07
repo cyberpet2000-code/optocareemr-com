@@ -8,6 +8,7 @@ import { classifyIssue } from "@/lib/diag";
 import { analyzeTrend } from "@/lib/diag";
 import { getExecutiveSummary } from "@/lib/diag";
 import { analyzePriority } from "@/lib/diag";
+import { runSelfHealing } from "@/lib/diag";
 
 export default function DiagFeed() {
   const issues = getIssues();
