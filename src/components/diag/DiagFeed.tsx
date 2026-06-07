@@ -15,10 +15,22 @@ export default function DiagFeed() {
           e.level === "error" ||
           e.level === "warn"
       )
-      .map((e) => [
-        `${e.area}-${e.name}`,
-        e,
-      ])
+      .map((e) => {
+        const key = `${e.area}-${e.name}`;
+
+        return [
+          key,
+          {
+            ...e,
+            occurrences:
+              entries.filter(
+                (x) =>
+                  x.area === e.area &&
+                  x.name === e.name
+              ).length,
+          },
+        ];
+      })
   ).values()
 );
   
@@ -71,7 +83,7 @@ const score = getHealthScore();
         .map((issue, idx) => (
           <HealthCard
             key={idx}
-            title={issue.name}
+            title={`${issue.name} (${issue.occurrences}x)`}
             severity={
               issue.level === "error"
                 ? "critical"
@@ -82,6 +94,9 @@ const score = getHealthScore();
               issue.hint ||
               "Issue detected."
             }
+            
+            Occurrences:
+${issue.occurrences}
 
 Recommended Fix:
 ${getFixRecommendation(issue.name) || "No recommendation available."}`}
