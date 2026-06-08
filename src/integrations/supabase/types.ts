@@ -1630,6 +1630,7 @@ export type Database = {
       }
       hmos: {
         Row: {
+          claims_portal_url: string | null
           clinic_id: string | null
           created_at: string
           email: string | null
@@ -1638,9 +1639,11 @@ export type Database = {
           phone: string | null
           status: string
           updated_at: string
+          verification_notes: string | null
           website: string | null
         }
         Insert: {
+          claims_portal_url?: string | null
           clinic_id?: string | null
           created_at?: string
           email?: string | null
@@ -1649,9 +1652,11 @@ export type Database = {
           phone?: string | null
           status?: string
           updated_at?: string
+          verification_notes?: string | null
           website?: string | null
         }
         Update: {
+          claims_portal_url?: string | null
           clinic_id?: string | null
           created_at?: string
           email?: string | null
@@ -1660,6 +1665,7 @@ export type Database = {
           phone?: string | null
           status?: string
           updated_at?: string
+          verification_notes?: string | null
           website?: string | null
         }
         Relationships: []
