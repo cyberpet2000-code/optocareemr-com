@@ -4,6 +4,7 @@ import { apiClient } from "@/lib/apiClient";
 import { useAccess } from "@/hooks/useAccess";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { CheckCircle2, MailCheck, Loader2, AlertTriangle } from "lucide-react";
