@@ -13,7 +13,7 @@
 @layer base {
   :root {
     /* Surfaces — soft tinted, never harsh white */
-    --background: 210 40% 97%;
+    --background: 210 33% 97%;          /* #F5F8FB premium surface */
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
