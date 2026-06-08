@@ -351,14 +351,115 @@
       radial-gradient(ellipse 60% 50% at 50% 100%, hsl(var(--primary-glow) / 0.15), transparent 60%),
       linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--secondary)) 100%);
   }
-  .dark .login-aurora {
-    background:
-      radial-gradient(ellipse 50% 40% at 20% 20%, hsl(var(--primary) / 0.25), transparent 60%),
-      radial-gradient(ellipse 60% 50% at 85% 15%, hsl(var(--accent) / 0.20), transparent 60%),
-      radial-gradient(ellipse 60% 50% at 50% 100%, hsl(var(--primary-glow) / 0.20), transparent 60%),
-      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(222 65% 6%) 100%);
+
+  /* ===== Global form controls — premium polish ===== */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  [data-radix-select-trigger],
+  .premium-input {
+    background-color: hsl(var(--card));
+    border-color: hsl(var(--border));
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):hover,
+  textarea:hover,
+  [data-radix-select-trigger]:hover {
+    border-color: hsl(var(--primary) / 0.55);
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):focus-visible,
+  textarea:focus-visible,
+  [data-radix-select-trigger]:focus-visible,
+  [data-radix-select-trigger][data-state="open"] {
+    border-color: hsl(var(--primary));
+    box-shadow:
+      0 0 0 3px hsl(var(--primary) / 0.18),
+      0 1px 2px hsl(var(--primary) / 0.10);
+  }
+
+  /* ===== Tables — branded headers + soft rows ===== */
+  table thead tr {
+    background: linear-gradient(180deg, hsl(var(--secondary) / 0.6) 0%, hsl(var(--secondary) / 0.3) 100%);
+  }
+  table thead th {
+    @apply text-xs uppercase tracking-wide font-semibold;
+    color: hsl(var(--muted-foreground));
+    border-bottom: 1px solid hsl(var(--border));
+  }
+  table tbody tr {
+    border-bottom: 1px solid hsl(var(--border) / 0.5);
+  }
+  table tbody tr:hover {
+    background: linear-gradient(90deg, hsl(var(--primary) / 0.06), hsl(var(--accent) / 0.04));
+  }
+
+  /* ===== Dialogs / Sheets / Popovers — elevated glass ===== */
+  [role="dialog"][data-state="open"] {
+    box-shadow:
+      0 30px 60px -20px hsl(var(--navy) / 0.45),
+      0 12px 24px -10px hsl(var(--primary) / 0.20),
+      inset 0 1px 0 hsl(0 0% 100% / 0.5);
+    border-color: hsl(var(--border) / 0.7);
+  }
+  .dark [role="dialog"][data-state="open"] {
+    box-shadow:
+      0 30px 60px -20px hsl(0 0% 0% / 0.75),
+      0 12px 24px -10px hsl(var(--primary) / 0.30),
+      inset 0 1px 0 hsl(var(--primary) / 0.10);
+  }
+
+  /* ===== Buttons — subtle lift on hover ===== */
+  button:not(:disabled):not([data-no-lift]):active {
+    transform: translateY(1px);
+  }
+
+  /* ===== Sonner toast — premium glass tone ===== */
+  [data-sonner-toast] {
+    backdrop-filter: blur(16px);
+    box-shadow:
+      0 12px 28px -12px hsl(var(--navy) / 0.30),
+      inset 0 1px 0 hsl(0 0% 100% / 0.5) !important;
+    border-radius: 0.85rem !important;
+  }
+  [data-sonner-toast][data-type="success"] {
+    border-color: hsl(var(--success) / 0.45) !important;
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--success) / 0.10) 100%) !important;
+  }
+  [data-sonner-toast][data-type="error"] {
+    border-color: hsl(var(--destructive) / 0.45) !important;
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--destructive) / 0.10) 100%) !important;
+  }
+  [data-sonner-toast][data-type="warning"] {
+    border-color: hsl(var(--warning) / 0.45) !important;
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--warning) / 0.10) 100%) !important;
+  }
+
+  /* ===== Empty state icon — branded gradient halo ===== */
+  .empty-state-icon {
+    background: var(--gradient-brand-soft);
+    color: hsl(var(--primary));
+    box-shadow:
+      inset 0 0 0 1px hsl(var(--primary) / 0.15),
+      0 8px 24px -10px hsl(var(--primary) / 0.30);
+  }
+
+  /* ===== Badges — branded variants ===== */
+  .badge-gradient {
+    background: var(--gradient-primary);
+    color: hsl(var(--primary-foreground));
+    box-shadow: 0 4px 12px -4px hsl(var(--primary) / 0.40);
+  }
+
+  /* ===== Bottom nav — premium press & active ring ===== */
+  .bottom-nav-item:active .bottom-nav-icon {
+    transform: scale(0.9);
+  }
+  .bottom-nav-item:not(.active):hover {
+    color: hsl(var(--foreground));
+  }
+  .bottom-nav-item.active .bottom-nav-icon {
+    filter: drop-shadow(0 2px 6px hsl(var(--primary) / 0.45));
   }
 }
+
 
 /* === Animations === */
 @keyframes fadeSlideIn {
