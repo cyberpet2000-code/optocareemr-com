@@ -38,6 +38,8 @@ import {
 } from "@/lib/diag";
 import { apiClient } from "@/lib/apiClient";
 import { toast } from "sonner";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import OptoLoader from "@/components/OptoLoader";
 
 installDiagFetchPatch();
 
@@ -49,12 +51,7 @@ function playAlert() {
 }
 
 function FullScreenLoader({ label = "Loading…" }: { label?: string }) {
-  return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
-      <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-      <div className="text-sm text-muted-foreground">{label}</div>
-    </div>
-  );
+  return <OptoLoader fullscreen size={56} label={label} />;
 }
 
 function FullScreenMessage({ label }: { label: string }) {
