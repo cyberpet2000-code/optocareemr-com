@@ -1,3 +1,4 @@
+import OptoLoader from "@/components/OptoLoader";
 import { useState, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
@@ -898,7 +899,7 @@ export default function Billing() {
          ].map(tab => (
            <TabsContent key={tab.value} value={tab.value}>
              {loading ? (
-               <div className="flex items-center justify-center py-12"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
+               <div className="flex items-center justify-center py-12"><OptoLoader size={40} /></div>
              ) : tab.list.length === 0 ? (
                <div className="text-center py-12 text-sm text-muted-foreground">No bills.</div>
              ) : (

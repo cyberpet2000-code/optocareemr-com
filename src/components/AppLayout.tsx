@@ -14,6 +14,7 @@ import ClinicSidebar, { resolveWorkspace } from "@/components/ClinicSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { diag } from "@/lib/diag";
 import { useOffline } from "@/hooks/useOffline";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const ROLE_LABEL: Record<string, string> = {
   doctor: "Doctor",
@@ -199,6 +200,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
               </div>
 
               <div className="flex items-center gap-1.5 lg:gap-2 shrink-0">
+                <ThemeToggle />
                 <button className="hidden lg:flex items-center justify-center w-9 h-9 rounded-lg hover:bg-muted transition-colors text-muted-foreground" aria-label="Notifications">
                   <Bell size={16} />
                 </button>

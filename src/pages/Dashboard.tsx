@@ -1,3 +1,5 @@
+import OptoLoader from "@/components/OptoLoader";
+import EmptyState from "@/components/EmptyState";
 import { useState, useEffect, useCallback } from "react";
 import {
   enableNotifications,
@@ -578,10 +580,10 @@ console.log("Current month revenue", currentMonthRevenue);
         </div>
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <OptoLoader size={40} />
           </div>
         ) : recentPatients.length === 0 ? (
-          <p className="text-muted-foreground text-sm py-8 text-center">No patients registered yet.</p>
+          <EmptyState compact icon={Users} title="No patients registered yet" description="Patients you add will appear here." />
         ) : (
           <div className="space-y-1">
             {recentPatients.map((p: any) => (

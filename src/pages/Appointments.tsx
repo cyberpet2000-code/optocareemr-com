@@ -1,3 +1,4 @@
+import OptoLoader from "@/components/OptoLoader";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
@@ -307,7 +308,7 @@ export default function Appointments() {
 
       {showHydrating ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <OptoLoader size={40} />
         </div>
       ) : showNoClinic ? (
         <div className="form-section flex items-start gap-3 text-sm">
@@ -328,7 +329,7 @@ export default function Appointments() {
         </div>
       ) : loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <OptoLoader size={40} />
         </div>
       ) : appointments.length === 0 ? (
         <div className="text-center py-12 text-sm text-muted-foreground">No upcoming appointments.</div>

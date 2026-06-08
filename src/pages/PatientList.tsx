@@ -1,6 +1,8 @@
+import OptoLoader from "@/components/OptoLoader";
+import EmptyState from "@/components/EmptyState";
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search, ChevronRight, UserPlus, Phone, MessageCircle } from "lucide-react";
+import { Search, ChevronRight, UserPlus, Phone, MessageCircle, Users } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -111,14 +113,14 @@ const { data, error } =
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <OptoLoader size={40} />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground text-sm">
-            {patients.length === 0 ? "No patients registered yet." : "No matching patients found."}
-          </p>
-        </div>
+        <EmptyState
+          icon={Users}
+          title={patients.length === 0 ? "No patients registered yet" : "No matching patients"}
+          description={patients.length === 0 ? "Register your first patient to start building records." : "Try a different name or phone number."}
+        />
       ) : (
         <div className="space-y-2">
           {filtered.map(p => {
