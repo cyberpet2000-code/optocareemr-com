@@ -506,6 +506,7 @@ hmo_relationship:
             clinicId={cid}
             hmoId={patient.active_hmo_id}
             hmoName={hmoName}
+            hmoWebsite={hmoWebsite}
             enrolleeNumber={patient.enrollee_number}
             status={((patient as any).hmo_verification_status as HmoVerifStatus) || "pending"}
             verifiedAt={(patient as any).hmo_verified_at}
