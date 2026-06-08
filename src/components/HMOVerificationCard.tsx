@@ -25,7 +25,7 @@ interface HMOVerificationCardProps {
   }) => void;
 }
 
-const STATUS_META: Record<HmoVerifStatus, { label: string; cls: string; Icon: React.ComponentType<{ size?: number; className?: string }> }> = {
+const STATUS_META: Record<HmoVerifStatus, { label: string; cls: string; Icon: LucideIcon }> = {
   pending: { label: "Pending verification", cls: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30", Icon: ShieldQuestion },
   verified: { label: "Verified", cls: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30", Icon: ShieldCheck },
   rejected: { label: "Rejected", cls: "bg-destructive/10 text-destructive border-destructive/30", Icon: ShieldAlert },
