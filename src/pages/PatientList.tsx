@@ -115,11 +115,11 @@ const { data, error } =
           <OptoLoader size={40} />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground text-sm">
-            {patients.length === 0 ? "No patients registered yet." : "No matching patients found."}
-          </p>
-        </div>
+        <EmptyState
+          icon={Users}
+          title={patients.length === 0 ? "No patients registered yet" : "No matching patients"}
+          description={patients.length === 0 ? "Register your first patient to start building records." : "Try a different name or phone number."}
+        />
       ) : (
         <div className="space-y-2">
           {filtered.map(p => {
