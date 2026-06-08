@@ -126,7 +126,7 @@ export default function PatientRecord() {
 
   apiClient
     .from("hmos")
-    .select("id, name")
+    .select("id, name, website")
     .eq("clinic_id", cid)
     .eq("status", "active"),
 
