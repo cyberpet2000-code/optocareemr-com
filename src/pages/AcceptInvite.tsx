@@ -406,7 +406,7 @@ setWorking(false);
             </div>
             <div>
               <Label htmlFor="signinPassword">Password</Label>
-              <Input id="signinPassword" type="password" value={signinPassword} onChange={(e) => setSigninPassword(e.target.value)} required />
+              <PasswordInput id="signinPassword" value={signinPassword} onChange={(e) => setSigninPassword(e.target.value)} required />
             </div>
             {errMsg && <p className="text-sm text-destructive">{errMsg}</p>}
             <Button type="submit" className="w-full" disabled={working}>
