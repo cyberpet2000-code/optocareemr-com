@@ -480,7 +480,7 @@ console.log("Current month revenue", currentMonthRevenue);
 
   const Metric = ({ icon: Icon, label, value, color, to }: any) => (
     <Link to={to} className="stat-card group">
-      <div className={`w-11 h-11 rounded-2xl ${color} flex items-center justify-center shrink-0`}>
+      <div className={`icon-glow w-11 h-11 rounded-2xl ${color} flex items-center justify-center shrink-0`}>
         <Icon size={20} />
       </div>
       <div className="min-w-0">
