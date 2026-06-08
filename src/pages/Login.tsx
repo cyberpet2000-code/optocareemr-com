@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { APP_URL } from "@/lib/app-url";
@@ -80,7 +81,7 @@ export default function Login() {
           {mode !== "forgot" && (
             <div className="space-y-1.5">
               <Label>Password</Label>
-              <Input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} />
+              <PasswordInput required minLength={6} value={password} onChange={e => setPassword(e.target.value)} />
             </div>
           )}
           <Button type="submit" className="w-full" disabled={loading}>
