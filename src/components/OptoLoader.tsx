@@ -1,78 +1,107 @@
 import { cn } from "@/lib/utils";
 
+type SizeName = "sm" | "md" | "lg";
+
 interface Props {
-  size?: number;
+  /** Either a preset (sm|md|lg) or a custom pixel size. */
+  size?: SizeName | number;
+  /** Optional caption shown beneath the loader. */
+  loadingText?: string;
+  /** Backwards-compatible alias of loadingText. */
   label?: string;
   className?: string;
   fullscreen?: boolean;
 }
 
+const SIZE_MAP: Record<SizeName, number> = { sm: 28, md: 48, lg: 72 };
+
 /**
  * OptoCare branded loader.
- * The "O" eye stays static; a thin ring rotates around it.
+ * - Eye (the "O") is stationary.
+ * - A thin ring rotates continuously around the eye (1.2s linear infinite).
+ * - No pulse, no bounce, no scale.
  */
-export default function OptoLoader({ size = 48, label, className, fullscreen }: Props) {
-  const stroke = Math.max(2, Math.round(size / 24));
-  const r = size / 2 - stroke;
-  const inner = size * 0.3;
-  const pupil = size * 0.13;
+export default function OptoLoader({
+  size = "md",
+  loadingText,
+  label,
+  className,
+  fullscreen,
+}: Props) {
+  const px = typeof size === "number" ? size : SIZE_MAP[size];
+  const stroke = Math.max(2, Math.round(px / 24));
+  const ringR = px / 2 - stroke;
+  const eyeR = px * 0.3;
+  const pupilR = px * 0.13;
+  const caption = loadingText ?? label;
 
   const content = (
-    <div className={cn("inline-flex flex-col items-center justify-center gap-3", className)}>
+    <div
+      className={cn(
+        "inline-flex flex-col items-center justify-center gap-3",
+        className
+      )}
+    >
       <div
         className="relative inline-block"
-        style={{ width: size, height: size }}
+        style={{ width: px, height: px }}
         role="status"
-        aria-label={label || "Loading"}
+        aria-label={caption || "Loading"}
       >
-        {/* Static O / eye */}
+        {/* Stationary eye (the O) */}
         <svg
-          viewBox={`0 0 ${size} ${size}`}
-          width={size}
-          height={size}
+          viewBox={`0 0 ${px} ${px}`}
+          width={px}
+          height={px}
           className="absolute inset-0"
           aria-hidden="true"
         >
-          {/* eye outline */}
           <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={inner}
+            cx={px / 2}
+            cy={px / 2}
+            r={eyeR}
             fill="none"
             stroke="hsl(var(--primary))"
             strokeWidth={stroke}
           />
-          {/* pupil */}
           <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={pupil}
+            cx={px / 2}
+            cy={px / 2}
+            r={pupilR}
             fill="hsl(var(--primary))"
           />
         </svg>
-        {/* Rotating ring */}
+
+        {/* Rotating outer "O" ring */}
         <svg
-          viewBox={`0 0 ${size} ${size}`}
-          width={size}
-          height={size}
+          viewBox={`0 0 ${px} ${px}`}
+          width={px}
+          height={px}
           className="absolute inset-0 animate-opto-spin"
           style={{ animationDuration: "1.2s" }}
           aria-hidden="true"
         >
+          <defs>
+            <linearGradient id={`opto-ring-${px}`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="hsl(var(--primary))" />
+              <stop offset="100%" stopColor="hsl(var(--primary) / 0.3)" />
+            </linearGradient>
+          </defs>
           <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={r}
+            cx={px / 2}
+            cy={px / 2}
+            r={ringR}
             fill="none"
-            stroke="hsl(var(--primary))"
+            stroke={`url(#opto-ring-${px})`}
             strokeWidth={stroke}
             strokeLinecap="round"
-            strokeDasharray={`${2 * Math.PI * r * 0.25} ${2 * Math.PI * r * 0.75}`}
-            opacity={0.7}
+            strokeDasharray={`${2 * Math.PI * ringR * 0.28} ${2 * Math.PI * ringR * 0.72}`}
           />
         </svg>
       </div>
-      {label && <div className="text-sm text-muted-foreground">{label}</div>}
+      {caption && (
+        <div className="text-sm text-muted-foreground">{caption}</div>
+      )}
     </div>
   );
 
