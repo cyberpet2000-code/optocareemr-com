@@ -81,7 +81,7 @@ export default function Login() {
           {mode !== "forgot" && (
             <div className="space-y-1.5">
               <Label>Password</Label>
-              <Input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} />
+              <PasswordInput required minLength={6} value={password} onChange={e => setPassword(e.target.value)} />
             </div>
           )}
           <Button type="submit" className="w-full" disabled={loading}>
