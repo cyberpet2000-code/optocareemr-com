@@ -93,8 +93,8 @@ export default function PatientRecord() {
   const patientId = id || "";
   const { effectiveClinicId: cid } = useAccess();
   const [patient, setPatient] = useState<PatientData | null>(null);
-  const [hmos, setHmos] = useState<{ id: string; name: string }[]>([]);
-  const [hmoMap, setHmoMap] = useState<Map<string, string>>(new Map());
+  const [hmos, setHmos] = useState<{ id: string; name: string; website?: string | null }[]>([]);
+  const [hmoMap, setHmoMap] = useState<Map<string, { name: string; website?: string | null }>>(new Map());
   const [visits, setVisits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
