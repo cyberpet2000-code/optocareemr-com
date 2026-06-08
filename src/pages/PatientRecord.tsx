@@ -153,7 +153,7 @@ export default function PatientRecord() {
       if (visRes.data) setVisits(visRes.data);
       if (hmoRes.data) {
         setHmos(hmoRes.data as any);
-        setHmoMap(new Map((hmoRes.data as any[]).map(h => [h.id, h.name])));
+        setHmoMap(new Map((hmoRes.data as any[]).map(h => [h.id, { name: h.name, website: h.website }])));
       }
       // Load clinic medications (drug inventory)
       const { data: medRes } = await apiClient
