@@ -266,16 +266,18 @@ export function AppRoutes() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AccessProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </AccessProvider>
-      {isDiagEnabled() && <DiagOverlay />}
-    </TooltipProvider>
+    <ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AccessProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </AccessProvider>
+        {isDiagEnabled() && <DiagOverlay />}
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
