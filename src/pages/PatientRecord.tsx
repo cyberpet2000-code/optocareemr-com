@@ -93,8 +93,8 @@ export default function PatientRecord() {
   const patientId = id || "";
   const { effectiveClinicId: cid } = useAccess();
   const [patient, setPatient] = useState<PatientData | null>(null);
-  const [hmos, setHmos] = useState<{ id: string; name: string }[]>([]);
-  const [hmoMap, setHmoMap] = useState<Map<string, string>>(new Map());
+  const [hmos, setHmos] = useState<{ id: string; name: string; website?: string | null }[]>([]);
+  const [hmoMap, setHmoMap] = useState<Map<string, { name: string; website?: string | null }>>(new Map());
   const [visits, setVisits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -126,7 +126,7 @@ export default function PatientRecord() {
 
   apiClient
     .from("hmos")
-    .select("id, name")
+    .select("id, name, website")
     .eq("clinic_id", cid)
     .eq("status", "active"),
 
@@ -153,7 +153,7 @@ export default function PatientRecord() {
       if (visRes.data) setVisits(visRes.data);
       if (hmoRes.data) {
         setHmos(hmoRes.data as any);
-        setHmoMap(new Map((hmoRes.data as any[]).map(h => [h.id, h.name])));
+        setHmoMap(new Map((hmoRes.data as any[]).map(h => [h.id, { name: h.name, website: h.website }])));
       }
       // Load clinic medications (drug inventory)
       const { data: medRes } = await apiClient
@@ -421,7 +421,9 @@ hmo_relationship:
   if (!patient) return <p className="text-center py-12 text-muted-foreground">Patient not found.</p>;
 
   const isHmo = patient.payment_type === "hmo";
-  const hmoName = patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : null;
+  const hmoEntry = patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : null;
+  const hmoName = hmoEntry?.name || null;
+  const hmoWebsite = hmoEntry?.website || null;
 
   console.log("Current editingVisitId:", editingVisitId);
 
@@ -504,6 +506,7 @@ hmo_relationship:
             clinicId={cid}
             hmoId={patient.active_hmo_id}
             hmoName={hmoName}
+            hmoWebsite={hmoWebsite}
             enrolleeNumber={patient.enrollee_number}
             status={((patient as any).hmo_verification_status as HmoVerifStatus) || "pending"}
             verifiedAt={(patient as any).hmo_verified_at}

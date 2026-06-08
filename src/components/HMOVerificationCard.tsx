@@ -3,7 +3,21 @@ import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck, ShieldAlert, ShieldQuestion, Loader2, type LucideIcon } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  ShieldCheck,
+  ShieldAlert,
+  ShieldQuestion,
+  Loader2,
+  Globe,
+  ExternalLink,
+  type LucideIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +28,7 @@ interface HMOVerificationCardProps {
   clinicId: string;
   hmoId: string | null;
   hmoName?: string | null;
+  hmoWebsite?: string | null;
   enrolleeNumber?: string | null;
   status: HmoVerifStatus;
   verifiedAt?: string | null;
@@ -32,11 +47,19 @@ const STATUS_META: Record<HmoVerifStatus, { label: string; cls: string; Icon: Lu
   not_applicable: { label: "Not applicable", cls: "bg-muted text-muted-foreground border-border", Icon: ShieldQuestion },
 };
 
+function normalizeUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 export function HMOVerificationCard({
   patientId,
   clinicId,
   hmoId,
   hmoName,
+  hmoWebsite,
   enrolleeNumber,
   status,
   verifiedAt,
@@ -46,8 +69,17 @@ export function HMOVerificationCard({
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [draftNotes, setDraftNotes] = useState(notes || "");
+  const [siteOpen, setSiteOpen] = useState(false);
+  const [iframeFailed, setIframeFailed] = useState(false);
   const meta = STATUS_META[status] || STATUS_META.pending;
   const Icon = meta.Icon;
+  const websiteUrl = hmoWebsite ? normalizeUrl(hmoWebsite) : "";
+  const hasWebsite = Boolean(websiteUrl);
+
+  const openSite = () => {
+    setIframeFailed(false);
+    setSiteOpen(true);
+  };
 
   const act = async (next: HmoVerifStatus) => {
     setBusy(true);
@@ -95,18 +127,38 @@ export function HMOVerificationCard({
             <Icon size={18} />
           </div>
           <div>
-            <div className="text-sm font-semibold">HMO Verification — {meta.label}</div>
+            <div className="text-sm font-semibold flex items-center gap-1.5 flex-wrap">
+              HMO Verification —{" "}
+              {hasWebsite ? (
+                <button
+                  type="button"
+                  onClick={openSite}
+                  className="text-primary hover:underline underline-offset-2 inline-flex items-center gap-1"
+                  title="Open HMO website inside OptoCare"
+                >
+                  {hmoName || "HMO"}
+                  <Globe size={12} />
+                </button>
+              ) : (
+                <span>{hmoName || "HMO"}</span>
+              )}
+              <span className="text-muted-foreground font-normal">· {meta.label}</span>
+            </div>
             <div className="text-xs text-muted-foreground">
-              {hmoName || "HMO"}
-              {enrolleeNumber ? ` · Enrollee ${enrolleeNumber}` : ""}
+              {enrolleeNumber ? `Enrollee ${enrolleeNumber}` : "No enrollee number"}
               {verifiedAt ? ` · ${new Date(verifiedAt).toLocaleString()}` : ""}
             </div>
             {notes && <div className="text-xs mt-1">{notes}</div>}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {hasWebsite && (
+            <Button size="sm" variant="outline" className="rounded-xl gap-1.5" onClick={openSite}>
+              <Globe size={14} /> Visit HMO Website
+            </Button>
+          )}
           {!open && (
-            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => { setDraftNotes(notes || ""); setOpen(true); }}>
+            <Button size="sm" className="rounded-xl" onClick={() => { setDraftNotes(notes || ""); setOpen(true); }}>
               {status === "verified" ? "Re-verify" : "Verify HMO"}
             </Button>
           )}
@@ -135,6 +187,53 @@ export function HMOVerificationCard({
           </div>
         </div>
       )}
+
+      <Dialog open={siteOpen} onOpenChange={setSiteOpen}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[85vh] p-0 gap-0 flex flex-col">
+          <DialogHeader className="px-4 py-3 border-b border-border shrink-0">
+            <DialogTitle className="flex items-center justify-between gap-3 pr-8">
+              <span className="flex items-center gap-2 text-sm">
+                <Globe size={16} className="text-primary" />
+                {hmoName || "HMO"} · Website
+              </span>
+              <a
+                href={websiteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-normal text-primary hover:underline inline-flex items-center gap-1"
+              >
+                Open in new tab <ExternalLink size={12} />
+              </a>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 bg-muted/30 relative">
+            {hasWebsite && !iframeFailed && (
+              <iframe
+                key={websiteUrl}
+                src={websiteUrl}
+                title={`${hmoName || "HMO"} website`}
+                className="w-full h-full border-0"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                referrerPolicy="no-referrer"
+                onError={() => setIframeFailed(true)}
+              />
+            )}
+            {iframeFailed && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 gap-3">
+                <Globe size={32} className="text-muted-foreground" />
+                <p className="text-sm text-muted-foreground max-w-md">
+                  This HMO website blocks embedding. You can still open it in a new tab — OptoCare stays open and your patient context is preserved.
+                </p>
+                <Button asChild size="sm" className="rounded-xl">
+                  <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
+                    Open {hmoName || "HMO"} site
+                  </a>
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
