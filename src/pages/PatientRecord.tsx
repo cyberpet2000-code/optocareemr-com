@@ -40,6 +40,7 @@ import {
 } from "@/components/QuickPicker";
 import { MedicationPicker, type MedItem } from "@/components/MedicationPicker";
 import { AbbrTip } from "@/components/AbbrTip";
+import { HMOVerificationCard, type HmoVerifStatus } from "@/components/HMOVerificationCard";
 
 
 interface PatientData {
