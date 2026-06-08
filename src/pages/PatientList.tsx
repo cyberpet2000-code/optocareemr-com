@@ -1,7 +1,8 @@
 import OptoLoader from "@/components/OptoLoader";
+import EmptyState from "@/components/EmptyState";
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search, ChevronRight, UserPlus, Phone, MessageCircle } from "lucide-react";
+import { Search, ChevronRight, UserPlus, Phone, MessageCircle, Users } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

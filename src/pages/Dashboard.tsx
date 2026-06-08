@@ -582,7 +582,7 @@ console.log("Current month revenue", currentMonthRevenue);
             <OptoLoader size={40} />
           </div>
         ) : recentPatients.length === 0 ? (
-          <p className="text-muted-foreground text-sm py-8 text-center">No patients registered yet.</p>
+          <EmptyState compact icon={Users} title="No patients registered yet" description="Patients you add will appear here." />
         ) : (
           <div className="space-y-1">
             {recentPatients.map((p: any) => (
