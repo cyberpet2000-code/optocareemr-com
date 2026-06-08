@@ -28,7 +28,7 @@ export default function EmptyState({
     >
       <div
         className={cn(
-          "rounded-full bg-primary/10 text-primary flex items-center justify-center",
+          "empty-state-icon rounded-full flex items-center justify-center",
           compact ? "w-10 h-10" : "w-14 h-14"
         )}
       >
