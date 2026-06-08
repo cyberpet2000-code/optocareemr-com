@@ -421,7 +421,9 @@ hmo_relationship:
   if (!patient) return <p className="text-center py-12 text-muted-foreground">Patient not found.</p>;
 
   const isHmo = patient.payment_type === "hmo";
-  const hmoName = patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : null;
+  const hmoEntry = patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : null;
+  const hmoName = hmoEntry?.name || null;
+  const hmoWebsite = hmoEntry?.website || null;
 
   console.log("Current editingVisitId:", editingVisitId);
 
