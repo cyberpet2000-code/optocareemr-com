@@ -304,7 +304,18 @@ function buildSphereOptions(): string[] {
 }
 
 export const SPHERE_OPTIONS = buildSphereOptions();
-export const CYL_OPTIONS = SPHERE_OPTIONS;
+
+// Minus-cylinder convention: only negative values (and 0.00) for Cyl
+function buildMinusCylOptions(): string[] {
+  const opts: string[] = [];
+  for (let i = 80; i >= 1; i--) {
+    const v = (i * 0.25).toFixed(2);
+    opts.push(`-${v}`);
+  }
+  opts.push("0.00");
+  return opts;
+}
+export const CYL_OPTIONS = buildMinusCylOptions();
 export const ADD_OPTIONS = (() => {
   // ADD usually positive small range; include +0.25..+4.00 prominent
   const opts: string[] = [];
