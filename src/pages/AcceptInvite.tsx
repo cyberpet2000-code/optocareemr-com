@@ -380,7 +380,7 @@ setWorking(false);
             </div>
             <div>
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" required />
+              <PasswordInput id="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" required />
             </div>
             <div>
               <Label htmlFor="confirm">Confirm password</Label>
