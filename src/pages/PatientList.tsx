@@ -1,3 +1,4 @@
+import OptoLoader from "@/components/OptoLoader";
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Search, ChevronRight, UserPlus, Phone, MessageCircle } from "lucide-react";
