@@ -384,7 +384,7 @@ setWorking(false);
             </div>
             <div>
               <Label htmlFor="confirm">Confirm password</Label>
-              <Input id="confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+              <PasswordInput id="confirm" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
             </div>
             {errMsg && <p className="text-sm text-destructive">{errMsg}</p>}
             <Button type="submit" className="w-full" disabled={working}>
