@@ -13,8 +13,16 @@ export function analyzeRootCause(issueName: string, data?: any) {
   if (message.includes('column "quantity"') && message.includes("drugs")) {
     return {
       cause: 'Column "quantity" does not exist in drugs table.',
-      fix: 'Use "stock_quantity" instead.',
+      fix: 'Use "stock" instead (drugs table uses "stock", not "stock_quantity").',
       confidence: 98,
+    };
+  }
+
+  if (message.includes('column "stock_quantity"') && message.includes("drugs")) {
+    return {
+      cause: 'Column "stock_quantity" does not exist on drugs table.',
+      fix: 'Drugs table uses "stock". Update query to .lte("stock", n).',
+      confidence: 99,
     };
   }
 
