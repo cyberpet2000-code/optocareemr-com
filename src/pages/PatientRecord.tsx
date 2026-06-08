@@ -772,9 +772,9 @@ hmo_relationship:
                   <h2 className="section-title text-sm"><Eye size={16} /> Visual Acuity — Aided</h2>
                   <div className="grid grid-cols-4 gap-2 items-center">
                     <div />
-                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">OD</Label>
-                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">OS</Label>
-                    <Label className="text-[10px] text-center text-muted-foreground font-semibold">OU</Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold"><AbbrTip>OD</AbbrTip></Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold"><AbbrTip>OS</AbbrTip></Label>
+                    <Label className="text-[10px] text-center text-muted-foreground font-semibold"><AbbrTip>OU</AbbrTip></Label>
 
                     <Label className="text-xs flex items-center font-semibold">Distance</Label>
                     {vaCell("vaAidedOd")}
