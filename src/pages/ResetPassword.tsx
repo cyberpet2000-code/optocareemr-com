@@ -54,7 +54,7 @@ export default function ResetPassword() {
         <form onSubmit={handleSubmit} className="form-section space-y-4">
           <div className="space-y-1.5">
             <Label>New Password</Label>
-            <Input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} />
+            <PasswordInput required minLength={6} value={password} onChange={e => setPassword(e.target.value)} />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Updating..." : "Update Password"}
