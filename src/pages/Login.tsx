@@ -7,6 +7,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { APP_URL } from "@/lib/app-url";
+import OptoCareLogo from "@/components/OptoCareLogo";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -63,11 +64,8 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <span className="bg-primary text-primary-foreground rounded-lg w-10 h-10 flex items-center justify-center text-lg font-black">O</span>
-            <span className="text-2xl font-bold text-foreground">Optocare EMR</span>
-          </div>
+        <div className="text-center flex flex-col items-center">
+          <OptoCareLogo size="lg" showTagline className="mb-4" />
           <p className="text-muted-foreground text-sm">
             {mode === "forgot" ? "Reset your password" : mode === "signup" ? "Create your account" : "Sign in to continue"}
           </p>
