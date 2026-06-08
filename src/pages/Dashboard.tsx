@@ -1,4 +1,5 @@
 import OptoLoader from "@/components/OptoLoader";
+import EmptyState from "@/components/EmptyState";
 import { useState, useEffect, useCallback } from "react";
 import {
   enableNotifications,
