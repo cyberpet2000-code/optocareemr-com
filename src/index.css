@@ -191,7 +191,7 @@
   }
 
   .stat-card {
-    @apply rounded-2xl border border-border/60 p-4 flex items-center gap-3.5 transition-all duration-300 relative overflow-hidden;
+    @apply rounded-2xl border border-border/60 p-4 flex items-center gap-3.5 transition-all duration-200 relative overflow-hidden;
     background: var(--gradient-card);
     box-shadow: var(--shadow-card);
   }
@@ -212,6 +212,7 @@
   .stat-card.accent-success::before { background: var(--gradient-success); }
   .stat-card.accent-warning::before { background: var(--gradient-warning); }
   .stat-card.accent-violet::before { background: var(--gradient-violet); }
+  .stat-card.accent-navy::before { background: linear-gradient(135deg, hsl(222 65% 16%) 0%, hsl(217 91% 55%) 100%); }
 
   .icon-glow {
     @apply transition-all duration-300;

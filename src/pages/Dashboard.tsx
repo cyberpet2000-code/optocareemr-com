@@ -478,14 +478,23 @@ console.log("Current month revenue", currentMonthRevenue);
     return () => window.removeEventListener("optocare:sync:done", onSync as EventListener);
   }, [effectiveClinicId, loadDashboard]);
 
-  const Metric = ({ icon: Icon, label, value, color, to }: any) => (
-    <Link to={to} className="stat-card group">
-      <div className={`icon-glow w-11 h-11 rounded-2xl ${color} flex items-center justify-center shrink-0`}>
-        <Icon size={20} />
+  const tealGrad = "linear-gradient(135deg, hsl(184 78% 40% / 0.10) 0%, hsl(192 92% 50% / 0.16) 100%)";
+  const tealIcon = "linear-gradient(135deg, hsl(184 78% 40% / 0.22) 0%, hsl(192 92% 50% / 0.30) 100%)";
+  const navyGrad = "linear-gradient(135deg, hsl(222 65% 16% / 0.10) 0%, hsl(217 91% 55% / 0.16) 100%)";
+  const navyIcon = "linear-gradient(135deg, hsl(222 65% 16% / 0.22) 0%, hsl(217 91% 55% / 0.30) 100%)";
+  const amberGrad = "linear-gradient(135deg, hsl(38 92% 50% / 0.10) 0%, hsl(28 92% 55% / 0.16) 100%)";
+  const amberIcon = "linear-gradient(135deg, hsl(38 92% 50% / 0.22) 0%, hsl(28 92% 55% / 0.30) 100%)";
+  const blueGrad = "linear-gradient(135deg, hsl(217 91% 55% / 0.10) 0%, hsl(192 92% 50% / 0.16) 100%)";
+  const blueIcon = "linear-gradient(135deg, hsl(217 91% 55% / 0.22) 0%, hsl(192 92% 50% / 0.30) 100%)";
+
+  const Metric = ({ icon: Icon, label, value, gradient, iconGradient, iconColor, accentClass, to }: any) => (
+    <Link to={to} className={`stat-card group p-5 gap-4 ${accentClass}`} style={{ background: gradient }}>
+      <div className="icon-glow w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110" style={{ background: iconGradient, color: iconColor }}>
+        <Icon size={26} strokeWidth={2} />
       </div>
       <div className="min-w-0">
-        <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">{label}</p>
-        <p className="text-xl font-bold tracking-tight">{loading ? "—" : value}</p>
+        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-0.5">{label}</p>
+        <p className="text-2xl font-bold tracking-tight">{loading ? "—" : value}</p>
       </div>
     </Link>
   );
@@ -501,53 +510,57 @@ console.log("Current month revenue", currentMonthRevenue);
         </p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <Metric icon={Users} label="Patients This Month" value={monthPatients} color="bg-primary/10 text-primary" to="/patients?filter=thismonth"/>
-        <Metric icon={TrendingUp} label={`${currentMonthName} Revenue`} value={`₦${monthlyRevenue.toLocaleString()}`} color="bg-success/10 text-success" to={`/billing?month=current`} />
-        <Metric icon={DollarSign} label="Pending Bills" value={pendingBills} color="bg-warning/10 text-warning" to="/billing" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Metric icon={Users} label="Patients This Month" value={monthPatients} gradient={tealGrad} iconGradient={tealIcon} iconColor="hsl(184 78% 40%)" accentClass="accent-teal" to="/patients?filter=thismonth"/>
+        <Metric icon={TrendingUp} label={`${currentMonthName} Revenue`} value={`₦${monthlyRevenue.toLocaleString()}`} gradient={navyGrad} iconGradient={navyIcon} iconColor="hsl(217 91% 55%)" accentClass="accent-navy" to={`/billing?month=current`} />
+        <Metric icon={DollarSign} label="Pending Bills" value={pendingBills} gradient={amberGrad} iconGradient={amberIcon} iconColor="hsl(38 92% 50%)" accentClass="accent-warning" to="/billing" />
         <Metric
           icon={DollarSign}
           label={`${previousMonthName} Revenue`}
           value={`₦${previousMonthRevenue.toLocaleString()}`}
-          color="bg-accent/10 text-accent"
+          gradient={navyGrad}
+          iconGradient={navyIcon}
+          iconColor="hsl(217 91% 55%)"
+          accentClass="accent-navy"
           to={`/billing?month=previous`}
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-6">
         <Link
           to="/visits?filter=today"
-          className="stat-card"
+          className="stat-card group p-5 gap-4 accent-teal"
+          style={{ background: tealGrad }}
         >
-          <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-            <Clock className="text-accent" size={18} />
+          <div className="icon-glow w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110" style={{ background: tealIcon, color: "hsl(184 78% 40%)" }}>
+            <Clock size={26} strokeWidth={2} />
           </div>
-          <div>
-            <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Today's Visits</p>
-            <p className="text-lg font-bold">{loading ? "—" : todayVisits}</p>
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-0.5">Today's Visits</p>
+            <p className="text-2xl font-bold tracking-tight">{loading ? "—" : todayVisits}</p>
           </div>
         </Link>
-        <div className="stat-card">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Clock className="text-primary" size={18} />
+        <div className="stat-card group p-5 gap-4" style={{ background: blueGrad }}>
+          <div className="icon-glow w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110" style={{ background: blueIcon, color: "hsl(217 91% 55%)" }}>
+            <Clock size={26} strokeWidth={2} />
           </div>
-          <div>
-            <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Appointments</p>
-            <p className="text-lg font-bold">{loading ? "—" : todayAppointments}</p>
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-0.5">Appointments</p>
+            <p className="text-2xl font-bold tracking-tight">{loading ? "—" : todayAppointments}</p>
           </div>
         </div>
       </div>
 
       {(lowStockCount > 0 || drugAlerts > 0) && (
-        <Link to="/inventory" className="flex items-center gap-3 bg-destructive/5 border border-destructive/15 rounded-2xl p-4 mb-6 hover:bg-destructive/10 transition-all">
-          <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0">
-            <AlertTriangle className="text-destructive" size={18} />
+        <Link to="/inventory" className="flex items-center gap-4 rounded-2xl border border-border/60 p-5 mb-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated group" style={{ background: amberGrad }}>
+          <div className="icon-glow w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110" style={{ background: amberIcon, color: "hsl(38 92% 50%)" }}>
+            <AlertTriangle size={26} strokeWidth={2} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold">Stock Alerts</p>
             <p className="text-xs text-muted-foreground">{lowStockCount + drugAlerts} item(s) need attention</p>
           </div>
-          <ChevronRight size={16} className="text-muted-foreground shrink-0" />
+          <ChevronRight size={18} className="text-muted-foreground shrink-0 transition-colors group-hover:text-foreground" />
         </Link>
       )}
 
