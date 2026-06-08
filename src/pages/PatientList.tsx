@@ -112,7 +112,7 @@ const { data, error } =
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <OptoLoader size={40} />
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12">

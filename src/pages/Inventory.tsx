@@ -272,7 +272,7 @@ export default function Inventory() {
           )}
 
           {loading ? (
-            <div className="flex items-center justify-center py-12"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
+            <div className="flex items-center justify-center py-12"><OptoLoader size={40} /></div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-8 text-sm text-muted-foreground">No products found.</div>
           ) : (

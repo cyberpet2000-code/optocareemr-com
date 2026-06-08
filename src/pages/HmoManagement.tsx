@@ -129,7 +129,7 @@ export default function HmoManagement() {
 
         <TabsContent value="hmos">
           {loading ? (
-            <div className="flex items-center justify-center py-12"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
+            <div className="flex items-center justify-center py-12"><OptoLoader size={40} /></div>
           ) : hmos.length === 0 ? (
             <div className="text-center py-12"><Building2 className="mx-auto text-muted-foreground mb-2" size={32} /><p className="text-sm text-muted-foreground">No HMOs yet.</p></div>
           ) : (
