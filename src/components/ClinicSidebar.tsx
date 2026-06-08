@@ -121,12 +121,26 @@ export default function ClinicSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/60">
-      {/* Clinic identity block */}
-      <SidebarHeader className="border-b border-border/60 p-3">
-        <Link to={isSuperAdminWs ? "/super-admin" : "/dashboard"} className="flex items-center gap-2.5 group">
+      {/* Clinic identity block — premium gradient */}
+      <SidebarHeader className="border-b border-sidebar-border/60 p-3">
+        <Link
+          to={isSuperAdminWs ? "/super-admin" : "/dashboard"}
+          className={`flex items-center gap-2.5 group rounded-xl ${collapsed ? "" : "p-2.5 text-white relative overflow-hidden"}`}
+          style={collapsed ? undefined : {
+            background: "var(--gradient-brand)",
+            boxShadow: "var(--shadow-elevated)",
+          }}
+        >
+          {!collapsed && (
+            <span
+              aria-hidden="true"
+              className="absolute -top-10 -right-10 w-32 h-32 rounded-full opacity-30 blur-2xl pointer-events-none"
+              style={{ background: "hsl(var(--primary-glow))" }}
+            />
+          )}
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0 shadow-sm"
-            style={clinic?.logo_url && !isSuperAdminWs ? undefined : { background: "hsl(var(--primary))" }}
+            className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 shadow-sm bg-white/15 backdrop-blur-sm ring-1 ring-white/20 text-white"
+            style={clinic?.logo_url && !isSuperAdminWs ? { background: "transparent" } : undefined}
           >
             {clinic?.logo_url && !isSuperAdminWs ? (
               <img src={clinic.logo_url} alt={clinicName} className="w-full h-full object-cover rounded-xl" />
@@ -135,18 +149,18 @@ export default function ClinicSidebar() {
             )}
           </div>
           {!collapsed && (
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 relative">
               {identityLoading ? (
                 <div className="space-y-1.5">
-                  <Skeleton className="h-3.5 w-28" />
-                  <Skeleton className="h-2.5 w-16" />
+                  <Skeleton className="h-3.5 w-28 bg-white/30" />
+                  <Skeleton className="h-2.5 w-16 bg-white/20" />
                 </div>
               ) : (
                 <>
-                  <div className="font-bold text-sm text-foreground leading-tight truncate" title={clinicName}>
+                  <div className="font-bold text-sm leading-tight truncate" title={clinicName}>
                     {clinicName}
                   </div>
-                  <div className="text-[10px] text-muted-foreground capitalize leading-tight mt-0.5">
+                  <div className="text-[10px] capitalize leading-tight mt-0.5 text-white/80">
                     {ROLE_LABEL[userRole] || userRole}
                   </div>
                 </>

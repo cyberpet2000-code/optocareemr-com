@@ -156,9 +156,20 @@
   body {
     @apply text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
-    background: var(--gradient-surface);
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(ellipse 60% 50% at 0% 0%, hsl(var(--primary) / 0.10), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 100% 0%, hsl(var(--accent) / 0.10), transparent 60%),
+      radial-gradient(ellipse 80% 60% at 50% 100%, hsl(var(--primary-glow) / 0.08), transparent 65%);
     background-attachment: fixed;
     min-height: 100vh;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(ellipse 60% 50% at 0% 0%, hsl(var(--primary) / 0.14), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 100% 0%, hsl(var(--accent) / 0.12), transparent 60%),
+      radial-gradient(ellipse 80% 60% at 50% 100%, hsl(var(--primary-glow) / 0.10), transparent 65%);
   }
 
   /* Smoother focus rings across forms */
@@ -193,16 +204,41 @@
     box-shadow: var(--shadow-elevated);
     transform: translateY(-2px);
   }
+  .stat-card:hover .icon-glow {
+    box-shadow: 0 8px 24px -6px hsl(var(--primary) / 0.45);
+    transform: scale(1.05);
+  }
   .stat-card.accent-teal::before { background: var(--gradient-teal); }
   .stat-card.accent-success::before { background: var(--gradient-success); }
   .stat-card.accent-warning::before { background: var(--gradient-warning); }
   .stat-card.accent-violet::before { background: var(--gradient-violet); }
+
+  .icon-glow {
+    @apply transition-all duration-300;
+    box-shadow: 0 4px 14px -4px hsl(var(--primary) / 0.30);
+  }
 
   /* Glass surface for hero panels */
   .glass-panel {
     @apply rounded-2xl border border-border/60 backdrop-blur-xl;
     background: linear-gradient(135deg, hsl(var(--card) / 0.85), hsl(var(--card) / 0.6));
     box-shadow: var(--shadow-elevated);
+  }
+
+  .glass-card {
+    @apply rounded-2xl border backdrop-blur-2xl;
+    border-color: hsl(var(--border) / 0.6);
+    background: linear-gradient(160deg, hsl(var(--card) / 0.95), hsl(var(--card) / 0.75));
+    box-shadow:
+      0 20px 50px -20px hsl(var(--navy) / 0.30),
+      0 8px 20px -10px hsl(var(--primary) / 0.20),
+      inset 0 1px 0 hsl(0 0% 100% / 0.6);
+  }
+  .dark .glass-card {
+    box-shadow:
+      0 24px 60px -20px hsl(0 0% 0% / 0.65),
+      0 8px 20px -10px hsl(var(--primary) / 0.30),
+      inset 0 1px 0 hsl(var(--primary) / 0.10);
   }
 
   /* Brand banner — for dashboard hero / login */
@@ -274,6 +310,54 @@
   .pill-warning { @apply inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md bg-warning/10 text-warning; }
   .pill-danger  { @apply inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md bg-destructive/10 text-destructive; }
   .pill-info    { @apply inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md bg-primary/10 text-primary; }
+
+  /* === Premium Sidebar === */
+  [data-sidebar="sidebar"] {
+    background: linear-gradient(180deg, hsl(var(--sidebar-background)) 0%, hsl(var(--sidebar-background) / 0.96) 100%);
+  }
+
+  [data-sidebar="menu-button"] {
+    @apply rounded-xl transition-all duration-200 relative;
+  }
+  [data-sidebar="menu-button"]:hover {
+    background: hsl(var(--primary) / 0.06);
+    color: hsl(var(--primary));
+  }
+  [data-sidebar="menu-button"][data-active="true"] {
+    background: var(--gradient-brand-soft);
+    color: hsl(var(--primary));
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.12);
+  }
+  [data-sidebar="menu-button"][data-active="true"]::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--gradient-primary);
+    box-shadow: 0 0 12px hsl(var(--primary) / 0.5);
+  }
+
+  /* Premium login aurora */
+  .login-aurora {
+    position: relative;
+    min-height: 100vh;
+    background:
+      radial-gradient(ellipse 50% 40% at 20% 20%, hsl(var(--primary) / 0.18), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 85% 15%, hsl(var(--accent) / 0.20), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 50% 100%, hsl(var(--primary-glow) / 0.15), transparent 60%),
+      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--secondary)) 100%);
+  }
+  .dark .login-aurora {
+    background:
+      radial-gradient(ellipse 50% 40% at 20% 20%, hsl(var(--primary) / 0.25), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 85% 15%, hsl(var(--accent) / 0.20), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 50% 100%, hsl(var(--primary-glow) / 0.20), transparent 60%),
+      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(222 65% 6%) 100%);
+  }
 }
 
 /* === Animations === */

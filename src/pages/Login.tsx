@@ -62,54 +62,70 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6">
+    <div className="login-aurora flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md space-y-6 animate-page">
         <div className="text-center flex flex-col items-center">
-          <OptoCareLogo size="lg" showTagline className="mb-4" />
-          <p className="text-muted-foreground text-sm">
-            {mode === "forgot" ? "Reset your password" : mode === "signup" ? "Create your account" : "Sign in to continue"}
-          </p>
+          <OptoCareLogo size="xl" showTagline className="mb-2" />
         </div>
 
-        <form onSubmit={handleSubmit} className="form-section space-y-4">
-          <div className="space-y-1.5">
-            <Label>Email</Label>
-            <Input type="email" required value={email} onChange={e => setEmail(e.target.value)} />
+        <div className="glass-card p-7 space-y-5">
+          <div className="text-center space-y-1">
+            <h1 className="text-lg font-semibold tracking-tight">
+              {mode === "forgot" ? "Reset your password" : mode === "signup" ? "Create your account" : "Welcome back"}
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              {mode === "forgot" ? "We'll email you a secure reset link" : mode === "signup" ? "Get started with OptoCare-EMR" : "Sign in to continue to your clinic"}
+            </p>
           </div>
-          {mode !== "forgot" && (
-            <div className="space-y-1.5">
-              <Label>Password</Label>
-              <PasswordInput required minLength={6} value={password} onChange={e => setPassword(e.target.value)} />
-            </div>
-          )}
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Please wait..." : mode === "forgot" ? "Send Reset Link" : mode === "signup" ? "Sign Up" : "Sign In"}
-          </Button>
-        </form>
 
-        <div className="text-center text-sm text-muted-foreground space-y-1">
-          {mode === "login" && (
-            <>
-              <p>
-                <button onClick={() => setMode("forgot")} className="text-primary hover:underline font-medium">Forgot password?</button>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Email</Label>
+              <Input type="email" required value={email} onChange={e => setEmail(e.target.value)} />
+            </div>
+            {mode !== "forgot" && (
+              <div className="space-y-1.5">
+                <Label>Password</Label>
+                <PasswordInput required minLength={6} value={password} onChange={e => setPassword(e.target.value)} />
+              </div>
+            )}
+            <Button
+              type="submit"
+              className="w-full bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95 hover:shadow-elevated transition-all"
+              disabled={loading}
+            >
+              {loading ? "Please wait..." : mode === "forgot" ? "Send Reset Link" : mode === "signup" ? "Sign Up" : "Sign In"}
+            </Button>
+          </form>
+
+          <div className="text-center text-sm text-muted-foreground space-y-1 pt-1">
+            {mode === "login" && (
+              <>
+                <p>
+                  <button onClick={() => setMode("forgot")} className="text-primary hover:underline font-medium">Forgot password?</button>
+                </p>
+                <p>
+                  Don't have an account?{" "}
+                  <button onClick={() => setMode("signup")} className="text-primary hover:underline font-medium">Sign up</button>
+                </p>
+              </>
+            )}
+            {mode === "signup" && (
+              <p>Already have an account?{" "}
+                <button onClick={() => setMode("login")} className="text-primary hover:underline font-medium">Sign in</button>
               </p>
+            )}
+            {mode === "forgot" && (
               <p>
-                Don't have an account?{" "}
-                <button onClick={() => setMode("signup")} className="text-primary hover:underline font-medium">Sign up</button>
+                <button onClick={() => setMode("login")} className="text-primary hover:underline font-medium">Back to sign in</button>
               </p>
-            </>
-          )}
-          {mode === "signup" && (
-            <p>Already have an account?{" "}
-              <button onClick={() => setMode("login")} className="text-primary hover:underline font-medium">Sign in</button>
-            </p>
-          )}
-          {mode === "forgot" && (
-            <p>
-              <button onClick={() => setMode("login")} className="text-primary hover:underline font-medium">Back to sign in</button>
-            </p>
-          )}
+            )}
+          </div>
         </div>
+
+        <p className="text-center text-[11px] text-muted-foreground/80">
+          Secured by OptoCare-EMR · HIPAA-aligned data handling
+        </p>
       </div>
     </div>
   );
