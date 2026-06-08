@@ -157,12 +157,14 @@ export default function ClinicSidebar() {
                 </div>
               ) : (
                 <>
-                  <div className="font-bold text-sm leading-tight truncate" title={clinicName}>
-                    {clinicName}
-                  </div>
-                  <div className="text-[10px] capitalize leading-tight mt-0.5 text-white/80">
-                    {ROLE_LABEL[userRole] || userRole}
-                  </div>
+                  <div className="font-extrabold text-base leading-tight truncate">
+  OptoCare-EMR
+</div>
+
+<div className="text-[10px] uppercase tracking-[0.15em] text-white/80">
+  Intelligent Eye Care Management
+</div>
+                  
                 </>
               )}
             </div>
