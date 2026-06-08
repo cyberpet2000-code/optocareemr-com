@@ -39,6 +39,7 @@ import {
   isValidPower, isValidAxis, isValidVaDistance, isValidVaNear,
 } from "@/components/QuickPicker";
 import { MedicationPicker, type MedItem } from "@/components/MedicationPicker";
+import { AbbrTip } from "@/components/AbbrTip";
 
 
 interface PatientData {
