@@ -1570,6 +1570,64 @@ export type Database = {
           },
         ]
       }
+      hmo_verification_log: {
+        Row: {
+          acted_by: string | null
+          clinic_id: string
+          created_at: string
+          enrollee_number: string | null
+          hmo_id: string | null
+          id: string
+          notes: string | null
+          patient_id: string
+          status: string
+        }
+        Insert: {
+          acted_by?: string | null
+          clinic_id: string
+          created_at?: string
+          enrollee_number?: string | null
+          hmo_id?: string | null
+          id?: string
+          notes?: string | null
+          patient_id: string
+          status: string
+        }
+        Update: {
+          acted_by?: string | null
+          clinic_id?: string
+          created_at?: string
+          enrollee_number?: string | null
+          hmo_id?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hmo_verification_log_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hmo_verification_log_hmo_id_fkey"
+            columns: ["hmo_id"]
+            isOneToOne: false
+            referencedRelation: "hmos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hmo_verification_log_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hmos: {
         Row: {
           clinic_id: string | null
@@ -1917,6 +1975,10 @@ export type Database = {
           hmo_principal_name: string | null
           hmo_provider: string | null
           hmo_relationship: string | null
+          hmo_verification_notes: string | null
+          hmo_verification_status: string
+          hmo_verified_at: string | null
+          hmo_verified_by: string | null
           id: string
           next_of_kin: string | null
           patient_number: string | null
@@ -1947,6 +2009,10 @@ export type Database = {
           hmo_principal_name?: string | null
           hmo_provider?: string | null
           hmo_relationship?: string | null
+          hmo_verification_notes?: string | null
+          hmo_verification_status?: string
+          hmo_verified_at?: string | null
+          hmo_verified_by?: string | null
           id?: string
           next_of_kin?: string | null
           patient_number?: string | null
@@ -1977,6 +2043,10 @@ export type Database = {
           hmo_principal_name?: string | null
           hmo_provider?: string | null
           hmo_relationship?: string | null
+          hmo_verification_notes?: string | null
+          hmo_verification_status?: string
+          hmo_verified_at?: string | null
+          hmo_verified_by?: string | null
           id?: string
           next_of_kin?: string | null
           patient_number?: string | null
