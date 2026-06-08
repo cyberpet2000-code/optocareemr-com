@@ -496,6 +496,28 @@ hmo_relationship:
         </div>
       </div>
 
+      {isHmo && cid && (
+        <div className="mb-5">
+          <HMOVerificationCard
+            patientId={patient.id}
+            clinicId={cid}
+            hmoId={patient.active_hmo_id}
+            hmoName={hmoName}
+            enrolleeNumber={patient.enrollee_number}
+            status={((patient as any).hmo_verification_status as HmoVerifStatus) || "pending"}
+            verifiedAt={(patient as any).hmo_verified_at}
+            notes={(patient as any).hmo_verification_notes}
+            onUpdated={(next) => setPatient(p => p ? ({
+              ...p,
+              hmo_verification_status: next.status,
+              hmo_verified_at: next.verifiedAt,
+              hmo_verification_notes: next.notes,
+            } as any) : p)}
+          />
+        </div>
+      )}
+
+
       {editing && (
         <div className="form-section mb-5 border-2 border-primary/20">
           <h2 className="section-title text-sm mb-3">Edit Patient</h2>
