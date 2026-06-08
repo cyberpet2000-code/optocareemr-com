@@ -3,7 +3,7 @@ import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck, ShieldAlert, ShieldQuestion, Loader2 } from "lucide-react";
+import { ShieldCheck, ShieldAlert, ShieldQuestion, Loader2, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
