@@ -42,7 +42,7 @@ export default function PatientRegister() {
   const [loading, setLoading] = useState(false);
   const [hmos, setHmos] = useState<HmoRow[]>([]);
   const [form, setForm] = useState({
-    fullName: "", age: "", gender: "", phone: "",
+    fullName: "", dateOfBirth: "",age: "", gender: "", phone: "",
     address: "", nextOfKin: "",
     paymentType: "private" as "private" | "hmo",
     activeHmoId: "",
@@ -180,10 +180,47 @@ export default function PatientRegister() {
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1"> <Label className="text-xs font-medium">Date of Birth</Label>
 
-  <Input
-    className="rounded-xlh-11 text-sm font-medium"
-    type="date"
-  />
+          <Input
+  className="rounded-xl h-11 text-sm font-medium"
+  type="text"
+  placeholder="DD/MM/YYYY"
+  value={form.dateOfBirth}
+  onChange={(e) => set("dateOfBirth", e.target.value)}
+/>
+</div>
+
+            <div className="grid grid-cols-2 gap-2">
+  <div className="space-y-1">
+    <Label className="text-xs">Age *</Label>
+    <Input
+      className="rounded-xl h-11"
+      type="number"
+      min={0}
+      max={150}
+      placeholder="Enter age"
+      value={form.age}
+      onChange={(e) => set("age", e.target.value)}
+    />
+  </div>
+
+  <div className="space-y-1">
+    <Label className="text-xs">Age Unit *</Label>
+    <Select
+      value={form.ageUnit}
+      onValueChange={(v) => set("ageUnit", v)}
+    >
+      <SelectTrigger className="rounded-xl">
+        <SelectValue />
+      </SelectTrigger>
+
+      <SelectContent>
+        <SelectItem value="years">Years</SelectItem>
+        <SelectItem value="months">Months</SelectItem>
+        <SelectItem value="weeks">Weeks</SelectItem>
+        <SelectItem value="days">Days</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
 </div>
             <div className="space-y-1"><Label className="text-xs">Gender *</Label>
               <Select value={form.gender} onValueChange={v => set("gender", v)}>
