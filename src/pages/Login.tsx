@@ -74,7 +74,7 @@ export default function Login() {
 />
 
         <div
-  className="p-8 space-y-6 rounded-3xl border border-white/30"
+  className="p-6 md:p-8 space-y-6 rounded-3xl border border-white/30"
   style={{
     background: "rgba(255,255,255,0.70)",
     backdropFilter: "blur(24px)",
