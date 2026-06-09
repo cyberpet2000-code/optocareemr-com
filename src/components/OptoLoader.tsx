@@ -51,27 +51,16 @@ export default function OptoLoader({
         aria-label={caption || "Loading"}
       >
         {/* Stationary eye (the O) */}
-        <svg
-          viewBox={`0 0 ${px} ${px}`}
-          width={px}
-          height={px}
-          className="absolute inset-0"
-        >
-          <circle
-            cx={px / 2}
-            cy={px / 2}
-            r={px * 0.22}
-            fill="none"
-            stroke="hsl(var(--primary))"
-            strokeWidth={stroke}
-          />
-          <circle
-            cx={px / 2}
-            cy={px / 2}
-            r={px * 0.08}
-            fill="hsl(var(--primary))"
-          />
-        </svg>
+        <img
+  src="/logo.png"
+  alt="OptoCare"
+  className="absolute inset-0 m-auto"
+  style={{
+    width: px * 0.55,
+    height: px * 0.55,
+    objectFit: "contain",
+  }}
+/>
 
         {/* Rotating outer "O" ring */}
         <svg
