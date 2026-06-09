@@ -627,6 +627,7 @@ console.log("Current month revenue", currentMonthRevenue);
           </div>
         )}
       </div>
-    </>
+    </div>
+
   );
 }
