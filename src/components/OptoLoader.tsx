@@ -23,7 +23,7 @@ const SIZE_MAP: Record<SizeName, number> = { sm: 28, md: 48, lg: 72 };
  * - No pulse, no bounce, no scale.
  */
 export default function OptoLoader({
-  size = "md",
+  size = "lg",
   loadingText,
   label,
   clinicName
@@ -56,12 +56,11 @@ export default function OptoLoader({
           width={px}
           height={px}
           className="absolute inset-0"
-          aria-hidden="true"
         >
           <circle
             cx={px / 2}
             cy={px / 2}
-            r={eyeR}
+            r={px * 0.22}
             fill="none"
             stroke="hsl(var(--primary))"
             strokeWidth={stroke}
@@ -69,7 +68,7 @@ export default function OptoLoader({
           <circle
             cx={px / 2}
             cy={px / 2}
-            r={pupilR}
+            r={px * 0.08}
             fill="hsl(var(--primary))"
           />
         </svg>
