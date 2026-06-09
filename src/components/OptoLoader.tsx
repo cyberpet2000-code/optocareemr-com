@@ -137,15 +137,9 @@ export default function OptoLoader({
       </div>
       <div className="text-center space-y-1">
   {caption && (
-  <div className="flex flex-col items-center gap-1">
-    <p className="text-sm font-medium text-foreground">
-      {caption}
-    </p>
-
-    <p className="text-xs text-muted-foreground">
-      Powered by OptoCare EMR
-    </p>
-  </div>
+  <p className="text-sm font-medium text-muted-foreground">
+    {caption}
+  </p>
 )}
 
   {clinicName && (
