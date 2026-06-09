@@ -126,14 +126,20 @@ const { data, error } =
           {filtered.map(p => {
             const isHmo = p.payment_type === "hmo";
             return (
-              <div key={p.id} className="medical-card p-3 flex items-center gap-3">
+              <div key={p.id} className="medical-card p-3 flex items-center gap-3 hover:border-primary/30 transition-all">
                 <Link to={`/patient/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <div className="w-11
+                    14h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                     <span className="text-sm font-bold text-primary">{(p.full_name || "?")[0]}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold truncate">{p.full_name}</p>
+                      <p className="text-lg font-semibold truncate">{p.full_name}</p>
+                      
+  <p className="text-[11px] text-muted-foreground">
+    Patient Record
+  </p>
+</div>
                       {p.patient_number && <span className="text-[10px] font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">{p.patient_number}</span>}
                       <span className="text-[10px] font-mono text-muted-foreground">#{p.queue_number}</span>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium uppercase ${
@@ -142,9 +148,20 @@ const { data, error } =
                         {isHmo ? (p.hmo_name || "HMO") : "Private"}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {p.gender}, {p.age} yrs • {p.phone}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap mt-1">
+  <span className="text-xs text-muted-foreground">
+    {p.gender}
+  </span>
+
+  <span className="text-xs text-muted-foreground">
+    {p.age} yrs
+  </span>
+
+  <span className="text-xs text-muted-foreground">
+    {p.phone}
+  </span>
+</div>
+                    
                   </div>
                 </Link>
                 <div className="flex items-center gap-1 shrink-0">
