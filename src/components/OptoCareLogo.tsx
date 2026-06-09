@@ -21,7 +21,7 @@ const TAGLINE_TEXT: Record<Size, string> = {
   sm: "text-[10px]",
   md: "text-xs",
   lg: "text-sm",
-  xl: "text-base",
+  xl: "text-[14px]",
 };
 
 /**
@@ -47,7 +47,7 @@ export default function OptoCareLogo({ size = "md", showTagline = false, classNa
         <span
           className={cn(
             TAGLINE_TEXT[size],
-            "font-medium tracking-[0.04em] text-center text-[#35548D] dark:text-white/90"
+            "font-semibold tracking-wide text-center text-[#1E4D8F]" dark:text-white/90"
           )}
           style={{ textShadow: "none" }}
         >
