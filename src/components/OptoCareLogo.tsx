@@ -13,7 +13,7 @@ const HEIGHTS: Record<Size, string> = {
   sm: "h-8",
   md: "h-12",
   lg: "h-16",
-  xl: "h-24",
+  xl: "h-32",
 };
 
 const TAGLINE_TEXT: Record<Size, string> = {
