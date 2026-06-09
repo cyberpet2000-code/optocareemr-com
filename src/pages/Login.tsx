@@ -63,7 +63,7 @@ export default function Login() {
 
   return (
     <div className="login-aurora flex items-center justify-center px-4 py-6">
-      <div className="w-full max-w-md space-y-6 animate-page">
+      <div className="w-full max-w-md space-y-8 animate-page">
         
         <div className="flex justify-center mb-10 relative z-10"> 
           <OptoCareLogo
@@ -75,11 +75,11 @@ export default function Login() {
         </div>
 
         <div
-  className="p-6 md:p-8 space-y-6 rounded-3xl border border-white/20"
+  className="p-6 md:p-8 space-y-6 rounded-[32px] border border-white/20"
   style={{
-    background: "rgba(255,255,255,0.55)",
+    background: "rgba(255,255,255,0.50)",
     backdropFilter: "blur(24px)",
-    WebkitBackdropFilter: "blur(30px)",
+    WebkitBackdropFilter: "blur(32px)",
     boxShadow:
       "0 20px 60px rgba(15,23,42,0.12), 0 8px 24px rgba(15,23,42,0.08)",
   }}
