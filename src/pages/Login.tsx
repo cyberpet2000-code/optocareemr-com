@@ -70,7 +70,7 @@ export default function Login() {
             size="xl"
             showTagline={true}
             className="w-full px-4"
-            imgClassName="w-full max-w-[500px] md:max-w-[600px] h-auto mx-auto dark:drop-shadow-[0_2px_8px_rgba(255,255,255,0.25)]"
+            imgClassName="w-full max-w-[340px] md:max-w-[4200px] h-auto mx-auto dark:drop-shadow-[0_2px_8px_rgba(255,255,255,0.25)]"
           />
         </div>
 
