@@ -64,7 +64,7 @@ export default function Login() {
   return (
     <div className="login-aurora flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md space-y-6 animate-page">
-        <div className="text-center flex flex-col items-center">
+        <div className="text-center flex flex-col items-center mb-6">
           <OptoCareLogo
   size="xl"
   showTagline={false}
