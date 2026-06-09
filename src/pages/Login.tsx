@@ -66,12 +66,13 @@ export default function Login() {
       <div className="w-full max-w-md space-y-3 animate-page">
         
         <div className="flex justify-center mb-8">  
-      <OptoCareLogo
-  size="xl"
-  showTagline={true}
-  className="w-full"
-  imgClassName="w-full max-w-[360px] md:max-w-[420px] h-auto mx-auto dark:drop-shadow-[0_2px_8px_rgba(255,255,255,0.25)]"
-/>
+          <OptoCareLogo
+            size="xl"
+            showTagline={true}
+            className="w-full"
+            imgClassName="w-full max-w-[360px] md:max-w-[420px] h-auto mx-auto dark:drop-shadow-[0_2px_8px_rgba(255,255,255,0.25)]"
+          />
+        </div>
 
         <div
   className="p-6 md:p-8 space-y-6 rounded-3xl border border-white/30"
