@@ -51,16 +51,63 @@ export default function OptoLoader({
         aria-label={caption || "Loading"}
       >
         {/* Stationary eye (the O) */}
-        <img
-  src="/__l5e/assets-v1/1d217ffb-c36c-4677-af40-563d3ced8221/optocare-logo.png"
-  alt="OptoCare"
-  className="absolute inset-0 m-auto"
-  style={{
-    width: px * 0.75,
-    height: px * 0.75,
-    objectFit: "contain",
-  }}
-/>
+        <svg
+  viewBox="0 0 120 120"
+  width={px}
+  height={px}
+  className="absolute inset-0"
+>
+  {/* Main O Ring */}
+  <path
+    d="M60 15
+       A45 45 0 1 1 25 88"
+    fill="none"
+    stroke="hsl(var(--primary))"
+    strokeWidth="10"
+    strokeLinecap="round"
+  />
+
+  {/* Dots */}
+  <circle cx="20" cy="40" r="4" fill="hsl(var(--primary))" />
+  <circle cx="28" cy="28" r="4" fill="hsl(var(--primary))" />
+  <circle cx="40" cy="20" r="4" fill="hsl(var(--primary))" />
+
+  {/* Eye */}
+  <path
+    d="M35 60
+       Q60 30 85 60
+       Q60 90 35 60"
+    fill="none"
+    stroke="hsl(var(--primary))"
+    strokeWidth="6"
+  />
+
+  {/* Iris */}
+  <circle
+    cx="60"
+    cy="60"
+    r="14"
+    fill="none"
+    stroke="hsl(var(--primary))"
+    strokeWidth="4"
+  />
+
+  {/* Pupil */}
+  <circle
+    cx="60"
+    cy="60"
+    r="7"
+    fill="hsl(var(--primary))"
+  />
+
+  {/* Reflection */}
+  <circle
+    cx="66"
+    cy="54"
+    r="3"
+    fill="white"
+  />
+</svg>
         {/* Rotating outer "O" ring */}
         <svg
           viewBox={`0 0 ${px} ${px}`}
