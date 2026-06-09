@@ -11,6 +11,7 @@ interface Props {
   label?: string;
   className?: string;
   fullscreen?: boolean;
+  clinicName?: string;
 }
 
 const SIZE_MAP: Record<SizeName, number> = { sm: 28, md: 48, lg: 72 };
@@ -25,14 +26,15 @@ export default function OptoLoader({
   size = "md",
   loadingText,
   label,
+  clinicName
   className,
   fullscreen,
 }: Props) {
   const px = typeof size === "number" ? size : SIZE_MAP[size];
   const stroke = Math.max(2, Math.round(px / 24));
   const ringR = px / 2 - stroke;
-  const eyeR = px * 0.3;
-  const pupilR = px * 0.13;
+  const eyeR = px * 0.34;
+  const pupilR = px * 0.15;
   const caption = loadingText ?? label;
 
   const content = (
@@ -99,9 +101,19 @@ export default function OptoLoader({
           />
         </svg>
       </div>
-      {caption && (
-        <div className="text-sm text-muted-foreground">{caption}</div>
-      )}
+      <div className="text-center space-y-1">
+  {caption && (
+    <div className="text-sm text-muted-foreground">
+      {caption}
+    </div>
+  )}
+
+  {clinicName && (
+    <div className="text-sm font-semibold text-primary">
+      {clinicName}
+    </div>
+  )}
+</div>
     </div>
   );
 
