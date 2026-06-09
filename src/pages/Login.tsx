@@ -69,8 +69,8 @@ export default function Login() {
           <OptoCareLogo
             size="xl"
             showTagline={true}
-            className="w-full"
-            imgClassName="w-full max-w-[360px] md:max-w-[420px] h-auto mx-auto dark:drop-shadow-[0_2px_8px_rgba(255,255,255,0.25)]"
+            className="w-full px-4"
+            imgClassName="w-full max-w-[500px] md:max-w-[600px] h-auto mx-auto dark:drop-shadow-[0_2px_8px_rgba(255,255,255,0.25)]"
           />
         </div>
 
