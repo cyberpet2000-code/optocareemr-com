@@ -22,6 +22,8 @@ interface PatientRow {
   patient_number: string | null;
   hmo_name?: string;
   last_visit?: string | null;
+  hmo_verification_status?: string | null;
+  balance?: number;
 }
 
 export default function PatientList() {
@@ -48,7 +50,7 @@ const filter = searchParams.get("filter");
     (async () => {
       try {
         let query = apiClient
-  .from("patients")
+  .from("patients",)
   .select("id, full_name, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number")
   .eq("clinic_id", cid);
 
@@ -77,7 +79,27 @@ const { data, error } =
           const { data: hmos } = await apiClient.from("hmos").select("id, name").eq("clinic_id", cid).in("id", hmoIds as string[]);
           hmoMap = new Map((hmos || []).map((h: any) => [h.id, h.name]));
         }
-        const rows = data.map((p: any) => ({ ...p, hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined }));
+        const patientIds = data.map(p => p.id);
+
+const { data: bills } = await apiClient
+  .from("bills")
+  .select("patient_id, balance")
+  .eq("clinic_id", cid)
+  .in("patient_id", patientIds);
+
+const balanceMap = new Map<string, number>();
+
+(bills || []).forEach((bill: any) => {
+  const current =
+    balanceMap.get(bill.patient_id) || 0;
+
+  balanceMap.set(
+    bill.patient_id,
+    current + (bill.balance || 0)
+  );
+});
+        const rows = data.map((p: any) => ({ ...p, hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined  balance:
+    balanceMap.get(p.id) || 0,}));
         setPatients(rows);
         offlineStore.save(cacheKey, rows);
         setLoading(false);
@@ -129,16 +151,38 @@ const { data, error } =
             return (
               <div key={p.id} className="medical-card p-4 flex items-center gap-3 hover:border-primary/30 transition-all">
                 <Link to={`/patient/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-11
-                    14h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <div className="absolute left-1/2 top-14 w-px h-8 bg-border" />
-                    <span className="text-sm font-bold text-primary">{(p.full_name || "?")[0]}</span>
-                  </div>
+                  <div className="relative shrink-0">
+  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full ${
+  p.balance > 0
+    ? "bg-red-500"
+    : isHmo
+    ? "bg-amber-500"
+    : "bg-green-500"
+                    } />
+
+  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center relative z-10">
+    <span className="text-lg font-bold text-primary">
+      {(p.full_name || "?")[0]}
+    </span>
+  </div>
+</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="flex items-center gap-2 flex-wrap">
   <p className="text-sm font-semibold truncate">
     {p.full_name}
+     {p.balance > 0 && (
+    <span className="text-[10px] font-semibold px-2 py-1 rounded-full ${
+  p.balance > 10000
+    ? "bg-red-100 text-red-700"
+    : p.balance > 0
+    ? "bg-amber-100 text-amber-700"
+    : ""
+    }">
+      ₦{p.balance.toLocaleString()}
+    </span>
+  )}
+</div>
   </p>
 
   <span
@@ -159,6 +203,7 @@ const { data, error } =
     ? `Last visit ${new Date(p.last_visit).toLocaleDateString()}`
     : "🆕 First Visit"}
 </p>
+)}                   
 </div>
                       {p.patient_number && <span className="text-[10px] font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">{p.patient_number}</span>}
                       <span className="text-[10px] font-mono text-muted-foreground">#{p.queue_number}</span>
