@@ -139,7 +139,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-[11px] text-muted-foreground/80">
-          Secured by OptoCare-EMR · HIPAA-aligned data handling
+          Trusted by Eye Clinics • Secure • HIPAA-Aligned
         </p>
       </div>
     </div>
