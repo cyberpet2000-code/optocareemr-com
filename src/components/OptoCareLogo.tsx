@@ -7,6 +7,7 @@ interface Props {
   size?: Size;
   showTagline?: boolean;
   className?: string;
+  imgClassName?: string;
 }
 
 const HEIGHTS: Record<Size, string> = {
@@ -27,13 +28,13 @@ const TAGLINE_TEXT: Record<Size, string> = {
  * Official OptoCare-EMR brand logo.
  * Transparent PNG — renders naturally on light & dark themes.
  */
-export default function OptoCareLogo({ size = "md", showTagline = false, className }: Props) {
+export default function OptoCareLogo({ size = "md", showTagline = false, className, imgClassName }: Props) {
   return (
     <div className={cn("inline-flex flex-col items-center gap-1", className)}>
       <img
         src={logoAsset.url}
         alt="OptoCare-EMR"
-        className={cn(HEIGHTS[size], "w-auto select-none object-contain")}
+        className={cn(HEIGHTS[size], "w-auto select-none object-contain", imgClassName)}
         draggable={false}
         style={{ imageRendering: "auto" }}
       />
