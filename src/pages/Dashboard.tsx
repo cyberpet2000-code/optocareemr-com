@@ -500,15 +500,14 @@ console.log("Current month revenue", currentMonthRevenue);
   );
 
   return (
-      <div
-    className="min-h-screen"
-    style={{
-      background:
-        "linear-gradient(180deg,#F5F8FB 0%,#EDF5FA 100%)",
-    </div>
-      );
-    }}
-  >
+    <div
+      className="min-h-screen"
+      style={{
+        background:
+          "linear-gradient(180deg,#F5F8FB 0%,#EDF5FA 100%)",
+      }}
+    >
+
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">
           {getGreeting()}, <span className="text-primary">{displayName}</span>
@@ -628,6 +627,7 @@ console.log("Current month revenue", currentMonthRevenue);
           </div>
         )}
       </div>
-    </>
+    </div>
+
   );
 }
