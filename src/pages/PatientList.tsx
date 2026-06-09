@@ -82,7 +82,7 @@ const { data, error } =
         const patientIds = data.map(p => p.id);
 
 const { data: bills } = await apiClient
-  .from("bills")
+  .from("billing")
   .select("patient_id, balance")
   .eq("clinic_id", cid)
   .in("patient_id", patientIds);
