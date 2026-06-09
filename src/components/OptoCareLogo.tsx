@@ -47,11 +47,12 @@ export default function OptoCareLogo({ size = "md", showTagline = false, classNa
         <span
           className={cn(
             TAGLINE_TEXT[size],
-            "font-medium tracking-[0.02em] text-center text-[#0A2A6B] dark:text-[hsl(var(--primary-foreground))]"
+            "font-semibold tracking-wide text-center text-[#1E4D8F] dark:text-white/90"
+)}
           )}
-          style={{ textShadow: "none" }}
+          style={{ textShadow: "0 1px 3px rgba(255,255,255,0.35)" }}
         >
-          Intelligent Eye Care Management
+          Intelligent Eye Care Management Platform 
         </span>
       )}
     </div>
