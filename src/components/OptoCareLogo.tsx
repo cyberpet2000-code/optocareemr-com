@@ -12,8 +12,8 @@ interface Props {
 const HEIGHTS: Record<Size, string> = {
   sm: "h-8",
   md: "h-12",
-  lg: "h-16",
-  xl: "h-32",
+  lg: "h-20",
+  xl: "h-36",
 };
 
 const TAGLINE_TEXT: Record<Size, string> = {
@@ -25,25 +25,27 @@ const TAGLINE_TEXT: Record<Size, string> = {
 
 /**
  * Official OptoCare-EMR brand logo.
- * Uses the supplied gradient logo asset. Renders crisply in light & dark mode.
+ * Transparent PNG — renders naturally on light & dark themes.
  */
 export default function OptoCareLogo({ size = "md", showTagline = false, className }: Props) {
   return (
-    <div className={cn("inline-flex flex-col items-center gap-2", className)}>
+    <div className={cn("inline-flex flex-col items-center gap-1", className)}>
       <img
         src={logoAsset.url}
         alt="OptoCare-EMR"
-        className={cn(HEIGHTS[size], "w-auto select-none dark:drop-shadow-[0_0_10px_hsl(var(--primary)/0.25)]")}
+        className={cn(HEIGHTS[size], "w-auto select-none object-contain")}
         draggable={false}
+        style={{ imageRendering: "auto" }}
       />
       {showTagline && (
         <span
           className={cn(
             TAGLINE_TEXT[size],
-            "font-medium tracking-wide text-muted-foreground"
+            "font-medium tracking-[0.02em] text-center text-[#0A2A6B] dark:text-[hsl(var(--primary-foreground))]"
           )}
+          style={{ textShadow: "none" }}
         >
-          Intelligent Eye Care Management
+          Intelligent Eye Care Management Platform
         </span>
       )}
     </div>
