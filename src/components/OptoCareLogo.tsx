@@ -29,7 +29,7 @@ const TAGLINE_TEXT: Record<Size, string> = {
  */
 export default function OptoCareLogo({ size = "md", showTagline = false, className }: Props) {
   return (
-    <div className={cn("inline-flex flex-col items-center gap-1", className)}>
+    <div className={cn("inline-flex flex-col items-center gap-2", className)}>
       <img
         src={logoAsset.url}
         alt="OptoCare-EMR"
