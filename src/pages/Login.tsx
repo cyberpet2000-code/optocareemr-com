@@ -63,14 +63,16 @@ export default function Login() {
 
   return (
     <div className="login-aurora flex items-center justify-center px-4 py-6">
-      <div className="w-full max-w-md space-y-5 animate-page">
-        <div className="flex flex-col items-center">
+      <div className="w-full max-w-md space-y-4 animate-page">
+        <div className="flex justify-center">
           <OptoCareLogo
             size="xl"
             showTagline={false}
-            imgClassName="w-[260px] md:w-[380px] h-auto"
+            className="w-full"
+            imgClassName="w-full max-w-[360px] md:max-w-[420px] h-auto mx-auto dark:drop-shadow-[0_2px_8px_rgba(255,255,255,0.25)]"
           />
         </div>
+
 
         <div className="glass-card p-8 space-y-6 shadow-2xl">
           <div className="text-center space-y-2">
