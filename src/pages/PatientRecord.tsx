@@ -1197,10 +1197,98 @@ shadow-sm
             ) : (
               <div className="space-y-2">
                 {visits.map((v: any) => (
-                  <details key={v.id} className="border border-border/60 rounded-xl overflow-hidden">
-                    <summary className="px-4 py-3 cursor-pointer hover:bg-muted/50 text-sm flex items-center justify-between">
-                      <span className="font-medium">
-                        {new Date(v.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                  <div key={v.id} className="relative pl-8 pb-6">
+
+  <div className="absolute left-3 top-2 h-4 w-4 rounded-full bg-primary" />
+
+  <div className="absolute left-5 top-6 bottom-0 w-px bg-border" />
+
+  <div className="rounded-2xl border bg-card p-4 shadow-sm">
+
+    <div className="flex items-center justify-between">
+
+      <div>
+        <p className="font-semibold text-sm">
+          {new Date(v.created_at).toLocaleDateString()}
+        </p>
+
+        {v.diagnosis && (
+          <p className="text-xs text-muted-foreground">
+            {v.diagnosis}
+          </p>
+        )}
+      </div>
+
+      <span
+        className={`text-[10px] px-2 py-1 rounded-full ${
+          v.status === "completed"
+            ? "bg-green-100 text-green-700"
+            : "bg-amber-100 text-amber-700"
+        }`}
+      >
+        {v.status}
+      </span>
+
+    </div>
+
+    <div className="mt-3 text-xs space-y-1">
+
+      {v.chief_complaint && (
+        <p>
+          <strong>CC:</strong>
+          {" "}
+          {v.chief_complaint}
+        </p>
+      )}
+
+      {(v.va_unaided_od || v.va_unaided_os) && (
+        <p>
+          <strong>VA:</strong>
+          {" "}
+          OD {v.va_unaided_od || "—"}
+          {" | "}
+          OS {v.va_unaided_os || "—"}
+        </p>
+      )}
+
+      {(v.iop_od || v.iop_os) && (
+        <p>
+          <strong>IOP:</strong>
+          {" "}
+          {v.iop_od || "—"}
+          {" / "}
+          {v.iop_os || "—"}
+        </p>
+      )}
+
+    </div>
+
+    <div className="mt-3 flex gap-2">
+
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => startEditVisit(v)}
+      >
+        Edit
+      </Button>
+
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() =>
+          generateVisitPdf(patient, v)
+        }
+      >
+        Export
+      </Button>
+
+    </div>
+
+  </div>
+
+</div>
+                ))}
                         {v.diagnosis && <span className="text-muted-foreground ml-2 font-normal">— {String(v.diagnosis).slice(0, 50)}</span>}
                         <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-md ${v.status === "completed" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>{v.status}</span>
                       </span>
