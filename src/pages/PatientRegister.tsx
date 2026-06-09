@@ -125,7 +125,7 @@ export default function PatientRegister() {
         ? form.hmoPrincipalName.trim() : null,
       hmo_relationship: form.paymentType === "hmo" && form.hmoCoverageType === "dependent"
         ? form.hmoRelationship : null,
-      hmo_verification_status: form.paymentType === "hmo" ? verifyStatus : "verified",
+      hmo_verification_status: form.paymentType === "hmo" ? verifyStatus : "pending",
       hmo_verified_at: form.paymentType === "hmo" && verifyStatus !== "not_verified" ? verifiedAt : null,
       hmo_verified_by: form.paymentType === "hmo" && verifyStatus !== "not_verified" ? (user?.id ?? null) : null,
       hmo_verification_notes: form.paymentType === "hmo" ? (verifyNotes.trim() || null) : null,
