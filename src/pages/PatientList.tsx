@@ -2,7 +2,7 @@ import OptoLoader from "@/components/OptoLoader";
 import EmptyState from "@/components/EmptyState";
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search, ChevronRight, UserPlus, Phone, MessageCircle, Users } from "lucide-react";
+import { Search, ChevronRight, UserPlus, Phone, MessageCircle, Users, FileText} from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ interface PatientRow {
   queue_number: number;
   patient_number: string | null;
   hmo_name?: string;
+  last_visit?: string | null;
 }
 
 export default function PatientList() {
@@ -106,7 +107,7 @@ const { data, error } =
         </Link>
       </div>
 
-      <div className="relative mb-4">
+      <div className="sticky top-0 z-10 bg-background pb-3 mb-4">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input placeholder="Search name or phone..." className="pl-9 rounded-xl bg-card" value={search} onChange={e => setSearch(e.target.value)} />
       </div>
@@ -126,19 +127,38 @@ const { data, error } =
           {filtered.map(p => {
             const isHmo = p.payment_type === "hmo";
             return (
-              <div key={p.id} className="medical-card p-3 flex items-center gap-3 hover:border-primary/30 transition-all">
+              <div key={p.id} className="medical-card p-4 flex items-center gap-3 hover:border-primary/30 transition-all">
                 <Link to={`/patient/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="w-11
                     14h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <div className="absolute left-1/2 top-14 w-px h-8 bg-border" />
                     <span className="text-sm font-bold text-primary">{(p.full_name || "?")[0]}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-lg font-semibold truncate">{p.full_name}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+  <p className="text-sm font-semibold truncate">
+    {p.full_name}
+  </p>
+
+  <span
+    className={`text-[10px] px-2 py-0.5 rounded-full ${
+      p.queue_number <= 5
+        ? "bg-green-100 text-green-700"
+        : "bg-blue-100 text-blue-700"
+    }`}
+  >
+    {p.queue_number <= 5
+      ? "TODAY"
+      : "RETURNING"}
+  </span>
+</div>
                       
   <p className="text-[11px] text-muted-foreground">
-    Patient Record
-  </p>
+     {p.last_visit
+    ? `Last visit ${new Date(p.last_visit).toLocaleDateString()}`
+    : "🆕 First Visit"}
+</p>
 </div>
                       {p.patient_number && <span className="text-[10px] font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">{p.patient_number}</span>}
                       <span className="text-[10px] font-mono text-muted-foreground">#{p.queue_number}</span>
@@ -164,7 +184,10 @@ const { data, error } =
                     
                   </div>
                 </Link>
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-1 shrink-0"<FileText
+  size={14}
+  className="text-primary"
+/>
                   {p.phone && (
                     <>
                       <a href={`tel:${p.phone}`} className="p-2 rounded-xl hover:bg-muted transition-colors" title="Call">
@@ -177,7 +200,8 @@ const { data, error } =
                     </>
                   )}
                   <Link to={`/patient/${p.id}`} className="p-2 rounded-xl hover:bg-muted transition-colors">
-                    <ChevronRight size={14} className="text-muted-foreground" />
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <ChevronRight size={14} className="text-primary" />
                   </Link>
                 </div>
               </div>
