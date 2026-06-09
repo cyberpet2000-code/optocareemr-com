@@ -47,7 +47,7 @@ export default function OptoCareLogo({ size = "md", showTagline = false, classNa
         <span
           className={cn(
             TAGLINE_TEXT[size],
-            "font-semibold tracking-wide text-center text-[#1E4D8F]" dark:text-white/90"
+            "font-semibold tracking-wide text-center text-[#1E4D8F] dark:text-white/90"
           )}
           style={{ textShadow: "none" }}
         >
