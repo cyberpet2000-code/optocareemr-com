@@ -421,18 +421,9 @@ hmo_relationship:
   if (!patient) return <p className="text-center py-12 text-muted-foreground">Patient not found.</p>;
 
   const totalVisits = visits.length;
-
-const lastVisit =
-  visits.length > 0
-    ? visits[0]
-    : null;
+  const lastVisit = visits.length > 0 ? visits[0] : null;
   const hmoEntry = patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : null;
-  const totalVisits = visits.length;
-
-const lastVisit =
-  visits.length > 0
-    ? visits[0]
-    : null;
+  const isHmo = patient.payment_type === "hmo";
   const hmoName = hmoEntry?.name || null;
   const hmoWebsite = hmoEntry?.website || null;
 
