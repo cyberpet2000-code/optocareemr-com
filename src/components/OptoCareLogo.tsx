@@ -46,7 +46,7 @@ export default function OptoCareLogo({ size = "md", showTagline = false, classNa
           )}
           style={{ textShadow: "none" }}
         >
-          Intelligent Eye Care Management Platform
+          Intelligent Eye Care Management
         </span>
       )}
     </div>
