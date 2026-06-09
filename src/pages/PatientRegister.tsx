@@ -42,7 +42,7 @@ export default function PatientRegister() {
   const [loading, setLoading] = useState(false);
   const [hmos, setHmos] = useState<HmoRow[]>([]);
   const [form, setForm] = useState({
-    fullName: "", dateOfBirth: "",age: "", gender: "", phone: "",
+    fullName: "", dateOfBirth: "", age: "", ageUnit: "years", gender: "", phone: "",
     address: "", nextOfKin: "",
     paymentType: "private" as "private" | "hmo",
     activeHmoId: "",
