@@ -64,12 +64,12 @@ export default function Login() {
   return (
     <div className="login-aurora flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md space-y-8 animate-page">
-        <div className="text-center flex flex-col items-center mb-6">
+        <div className="text-center flex flex-col items-center mb-6 mt-2">
           <OptoCareLogo
-  size="xl"
-  showTagline={false}
-  className="mb-4"
-/>
+            size="xl"
+            showTagline={true}
+            className="mb-2"
+          />
         </div>
 
         <div className="glass-card p-8 space-y-6 shadow-2xl">
