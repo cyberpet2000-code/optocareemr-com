@@ -64,17 +64,26 @@ export default function Login() {
   return (
     <div className="login-aurora flex items-center justify-center px-4 py-6">
       <div className="w-full max-w-md space-y-4 animate-page">
-        <div className="flex justify-center">
-          <OptoCareLogo
-            size="xl"
-            showTagline={false}
-            className="w-full"
-            imgClassName="w-full max-w-[360px] md:max-w-[420px] h-auto mx-auto dark:drop-shadow-[0_2px_8px_rgba(255,255,255,0.25)]"
-          />
+        <div className="flex justify-center mb-4">
+          
         </div>
+        <OptoCareLogo
+  size="xl"
+  showTagline={true}
+  className="w-full"
+  imgClassName="w-full max-w-[360px] md:max-w-[420px] h-auto mx-auto dark:drop-shadow-[0_2px_8px_rgba(255,255,255,0.25)]"
+/>
 
-
-        <div className="glass-card p-8 space-y-6 shadow-2xl">
+        <div
+  className="p-8 space-y-6 rounded-3xl border border-white/30"
+  style={{
+    background: "rgba(255,255,255,0.70)",
+    backdropFilter: "blur(24px)",
+    WebkitBackdropFilter: "blur(24px)",
+    boxShadow:
+      "0 20px 60px rgba(15,23,42,0.12), 0 8px 24px rgba(15,23,42,0.08)",
+  }}
+>
           <div className="text-center space-y-2">
             <h1 className="text-2xl font-bold tracking-tight">
               {mode === "forgot" ? "Reset your password" : mode === "signup" ? "Create your account" : "Welcome back"}
