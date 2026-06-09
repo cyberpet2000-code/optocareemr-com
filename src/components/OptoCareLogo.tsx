@@ -32,7 +32,7 @@ export default function OptoCareLogo({ size = "md", showTagline = false, classNa
   return (
      <div
   className={cn(
-    "inline-flex flex-col items-center gap-2 overflow-visible",
+    "inline-flex flex-col items-center gap-3 overflow-visible",
     className
   )}
 >
@@ -47,9 +47,9 @@ export default function OptoCareLogo({ size = "md", showTagline = false, classNa
         <span
           className={cn(
             TAGLINE_TEXT[size],
-            "font-semibold tracking-wide text-center text-[#1E4D8F] dark:text-white/90"
+            "font-medium tracking-[0.04em] text-center text-[#35548D]" dark:text-white/90"
           )}
-          style={{ textShadow: "0 1px 3px rgba(255,255,255,0.35)" }}
+          style={{ textShadow: "none" }}
         >
           Intelligent Eye Care Management Platform 
         </span>
