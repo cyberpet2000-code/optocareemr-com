@@ -63,7 +63,7 @@ export default function Login() {
 
   return (
     <div className="login-aurora flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md space-y-6 animate-page">
+      <div className="w-full max-w-md space-y-8 animate-page">
         <div className="text-center flex flex-col items-center mb-6">
           <OptoCareLogo
   size="xl"
@@ -72,12 +72,12 @@ export default function Login() {
 />
         </div>
 
-        <div className="glass-card p-7 space-y-5">
-          <div className="text-center space-y-1">
-            <h1 className="text-lg font-semibold tracking-tight">
+        <div className="glass-card p-8 space-y-6 shadow-2xl">
+          <div className="text-center space-y-2">
+            <h1 className="text-2xl font-bold tracking-tight">
               {mode === "forgot" ? "Reset your password" : mode === "signup" ? "Create your account" : "Welcome back"}
             </h1>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {mode === "forgot" ? "We'll email you a secure reset link" : mode === "signup" ? "Get started with OptoCare-EMR" : "Sign in to continue to your clinic"}
             </p>
           </div>
@@ -95,7 +95,7 @@ export default function Login() {
             )}
             <Button
               type="submit"
-              className="w-full bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95 hover:shadow-elevated transition-all"
+              className="w-full h-12 bg-gradient-primary text-primary-foreground shadow-glow hover:scale-[1.02] hover:shadow-elevated transition-all duration-300"
               disabled={loading}
             >
               {loading ? "Please wait..." : mode === "forgot" ? "Send Reset Link" : mode === "signup" ? "Sign Up" : "Sign In"}
