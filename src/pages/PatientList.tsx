@@ -98,8 +98,11 @@ const balanceMap = new Map<string, number>();
     current + (bill.balance || 0)
   );
 });
-        const rows = data.map((p: any) => ({ ...p, hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined  balance:
-    balanceMap.get(p.id) || 0,}));
+        const rows = data.map((p: any) => ({
+          ...p,
+          hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined,
+          balance: balanceMap.get(p.id) || 0,
+        }));
         setPatients(rows);
         offlineStore.save(cacheKey, rows);
         setLoading(false);
