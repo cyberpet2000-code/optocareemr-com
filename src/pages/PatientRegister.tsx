@@ -178,7 +178,13 @@ export default function PatientRegister() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1"><Label className="text-xs">Full Name *</Label><Input className="rounded-xl" value={form.fullName} onChange={e => set("fullName", e.target.value)} /></div>
           <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1"><Label className="text-xs">Age *</Label><Input className="rounded-xl" type="number" min={0} max={150} value={form.age} onChange={e => set("age", e.target.value)} /></div>
+            <div className="space-y-1"> <Label className="text-xs font-medium">Date of Birth</Label>
+
+  <Input
+    className="rounded-xlh-11 text-sm font-medium"
+    type="date"
+  />
+</div>
             <div className="space-y-1"><Label className="text-xs">Gender *</Label>
               <Select value={form.gender} onValueChange={v => set("gender", v)}>
                 <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
