@@ -32,7 +32,7 @@ export default function OptoLoader({
 }: Props) {
   const px = typeof size === "number" ? size : SIZE_MAP[size];
   const stroke = Math.max(2, Math.round(px / 24));
-  const ringR = px / 2 - stroke;
+  const ringR = px / 2 - stroke-2;
   const eyeR = px * 0.34;
   const pupilR = px * 0.15;
   const caption = loadingText ?? label;
@@ -52,16 +52,15 @@ export default function OptoLoader({
       >
         {/* Stationary eye (the O) */}
         <img
-  src="/logo.png"
+  src="/__l5e/assets-v1/1d217ffb-c36c-4677-af40-563d3ced8221/optocare-logo.png"
   alt="OptoCare"
   className="absolute inset-0 m-auto"
   style={{
-    width: px * 0.55,
-    height: px * 0.55,
+    width: px * 0.75,
+    height: px * 0.75,
     objectFit: "contain",
   }}
 />
-
         {/* Rotating outer "O" ring */}
         <svg
           viewBox={`0 0 ${px} ${px}`}
@@ -91,10 +90,16 @@ export default function OptoLoader({
       </div>
       <div className="text-center space-y-1">
   {caption && (
-    <div className="text-sm text-muted-foreground">
+  <div className="flex flex-col items-center gap-1">
+    <p className="text-sm font-medium text-foreground">
       {caption}
-    </div>
-  )}
+    </p>
+
+    <p className="text-xs text-muted-foreground">
+      Powered by OptoCare EMR
+    </p>
+  </div>
+)}
 
   {clinicName && (
     <div className="text-sm font-semibold text-primary">
