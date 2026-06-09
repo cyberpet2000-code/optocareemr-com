@@ -346,12 +346,65 @@
   .login-aurora {
     position: relative;
     min-height: 100vh;
-    background:
-      radial-gradient(ellipse 50% 40% at 20% 20%, hsl(var(--primary) / 0.18), transparent 60%),
-      radial-gradient(ellipse 60% 50% at 85% 15%, hsl(var(--accent) / 0.20), transparent 60%),
-      radial-gradient(ellipse 60% 50% at 50% 100%, hsl(var(--primary-glow) / 0.15), transparent 60%),
-      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--secondary)) 100%);
+
+     background:
+    radial-gradient(circle at 15% 20%,
+      hsl(var(--primary) / 0.22) 0%,
+      transparent 35%),
+
+    radial-gradient(circle at 85% 15%,
+      hsl(var(--accent) / 0.22) 0%,
+      transparent 35%),
+
+    radial-gradient(circle at 50% 85%,
+      hsl(var(--primary-glow) / 0.18) 0%,
+      transparent 40%),
+
+    linear-gradient(
+      180deg,
+      #f8fbff 0%,
+      #f2f7fb 50%,
+      #edf4fa 100%
+    );
   }
+
+     .login-aurora::before {
+  content: "";
+  position: absolute;
+
+  width: 420px;
+  height: 420px;
+
+  top: -120px;
+  left: -120px;
+
+  border-radius: 9999px;
+
+  background: hsl(var(--primary) / 0.12);
+
+  filter: blur(90px);
+
+  pointer-events: none;
+}
+
+.login-aurora::after {
+  content: "";
+  position: absolute;
+
+  width: 420px;
+  height: 420px;
+
+  bottom: -120px;
+  right: -120px;
+
+  border-radius: 9999px;
+
+  background: hsl(var(--accent) / 0.12);
+
+  filter: blur(90px);
+
+  pointer-events: none;
+}
 
   /* ===== Global form controls — premium polish ===== */
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
