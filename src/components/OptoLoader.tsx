@@ -26,7 +26,7 @@ export default function OptoLoader({
   size = "lg",
   loadingText,
   label,
-  clinicName
+  clinicName,
   className,
   fullscreen,
 }: Props) {
