@@ -420,8 +420,19 @@ hmo_relationship:
   if (loading) return <div className="flex items-center justify-center py-12"><OptoLoader size={40} /></div>;
   if (!patient) return <p className="text-center py-12 text-muted-foreground">Patient not found.</p>;
 
-  const isHmo = patient.payment_type === "hmo";
+  const totalVisits = visits.length;
+
+const lastVisit =
+  visits.length > 0
+    ? visits[0]
+    : null;
   const hmoEntry = patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : null;
+  const totalVisits = visits.length;
+
+const lastVisit =
+  visits.length > 0
+    ? visits[0]
+    : null;
   const hmoName = hmoEntry?.name || null;
   const hmoWebsite = hmoEntry?.website || null;
 
@@ -433,7 +444,16 @@ hmo_relationship:
         <ArrowLeft size={12} /> Back
       </Link>
 
-      <div className="medical-card mb-5">
+      <div className="
+mb-5
+rounded-3xl
+border
+bg-gradient-to-r
+from-primary/5
+to-accent/5
+p-5
+shadow-sm
+">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -451,6 +471,25 @@ hmo_relationship:
               <p className="text-xs text-muted-foreground mt-0.5">
   {patient.gender}, {patient.age} yrs • {patient.phone}
 </p>
+
+              <div className="flex flex-wrap gap-2 mt-2">
+  <span className="text-[10px] px-2 py-1 rounded-full bg-muted">
+    Queue #{patient.queue_number}
+  </span>
+
+  <span className="text-[10px] px-2 py-1 rounded-full bg-muted">
+    {totalVisits} Visits
+  </span>
+
+  {lastVisit && (
+    <span className="text-[10px] px-2 py-1 rounded-full bg-muted">
+      Last Visit{" "}
+      {new Date(
+        lastVisit.created_at
+      ).toLocaleDateString()}
+    </span>
+  )}
+</div>
 
 {isHmo && patient.enrollee_number && (
   <p className="text-xs text-accent font-medium mt-1">
