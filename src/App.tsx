@@ -64,7 +64,7 @@ function FullScreenMessage({ label }: { label: string }) {
 
 function SuperAdminOnly({ children }: { children: React.ReactNode }) {
   const { isSuperAdmin, loading } = useRole();
-  if (loading) return <FullScreenLoader label="Loading OptoCare…" />;
+  if (loading) return <FullScreenLoader />;
   if (!isSuperAdmin) return <FullScreenMessage label="Super Admin access required" />;
   return <>{children}</>;
 }
@@ -216,7 +216,7 @@ export function AppRoutes() {
 
   const isPublicRoute = ["/login", "/reset-password", "/accept-invite", "/signup", "/no-access"].includes(location.pathname);
 
-  if (!isAuthReady) return <FullScreenLoader label="Loading OptoCare…" />;
+  if (!isAuthReady) return <FullScreenLoader la />;
 
   if (user && (location.pathname === "/login" || location.pathname === "/signup")) {
     return <LandingRedirect />;
