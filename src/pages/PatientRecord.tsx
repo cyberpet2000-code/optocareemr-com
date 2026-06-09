@@ -711,7 +711,22 @@ shadow-sm
 )}
 
       <Tabs defaultValue="history" className="space-y-4">
-        <TabsList className="w-full flex overflow-x-auto bg-muted/50 rounded-2xl p-1">
+        <TabsList
+className="
+sticky
+top-14
+z-30
+w-full
+flex
+overflow-x-auto
+rounded-2xl
+border
+bg-background/95
+backdrop-blur
+p-1
+shadow-sm
+"
+>
           <TabsTrigger value="history" className="flex items-center gap-1 text-[11px] rounded-xl"><ClipboardList size={12} /> History</TabsTrigger>
           <TabsTrigger value="va" className="flex items-center gap-1 text-[11px] rounded-xl"><Eye size={12} /> VA</TabsTrigger>
           <TabsTrigger value="refraction" className="flex items-center gap-1 text-[11px] rounded-xl"><Eye size={12} /> Refraction</TabsTrigger>
