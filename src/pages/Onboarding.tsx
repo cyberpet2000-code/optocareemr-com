@@ -41,7 +41,7 @@ export default function Onboarding() {
   }, [isSetupCompleted, loading, navigate, roleLoading]);
 
   if (loading || roleLoading) {
-    return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading OptoCare...</div>;
+    return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading clinic...</div>;
   }
   if (!clinic) {
     return (
