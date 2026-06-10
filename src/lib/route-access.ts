@@ -105,7 +105,7 @@ export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision
 
   // a. Loading state
   if (!isAuthReady && !didTimeout) {
-    return { type: "loading", label: "Loading OptoCare…" };
+    return { type: "loading", undefined };
   }
 
   // b. Auth failure
