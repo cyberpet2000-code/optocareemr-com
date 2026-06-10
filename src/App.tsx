@@ -51,7 +51,11 @@ function playAlert() {
 }
 
 function FullScreenLoader({ label }: { label?: string }) {
-  return <OptoLoader fullscreen size={56} label=;
+  return <OptoLoader fullscreen size={56} label ||
+      `Loading ${localStorage.getItem("active_clinic_name") || "Clinic"}...`
+    }
+  />
+)
 }
 
 function FullScreenMessage({ label }: { label: string }) {
