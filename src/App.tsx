@@ -223,7 +223,7 @@ export function AppRoutes() {
 
   const isPublicRoute = ["/login", "/reset-password", "/accept-invite", "/signup", "/no-access"].includes(location.pathname);
 
-  if (!isAuthReady) return <FullScreenLoader la />;
+  if (!isAuthReady) return <FullScreenLoader />;
 
   if (user && (location.pathname === "/login" || location.pathname === "/signup")) {
     return <LandingRedirect />;
