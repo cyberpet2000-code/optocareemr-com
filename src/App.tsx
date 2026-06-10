@@ -51,24 +51,23 @@ function playAlert() {
 }
 
 function FullScreenLoader({ label }: { label?: string }) {
-  return <OptoLoader fullscreen size={56} label ||
-      `Loading ${localStorage.getItem("active_clinic_name") || "Clinic"}...`
-    }
-  />
-)
+  return (
+    <OptoLoader
+      fullscreen
+      size={56}
+      label={label || `Loading ${localStorage.getItem("active_clinic_name") || "Clinic"}...`}
+    />
+  );
 }
 
 function FullScreenMessage({ label }: { label: string }) {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3 px-6 text-center">
-      <div className="text-base font-medium text-foreground">{label||
-    `Loading ${localStorage.getItem("active_clinic_name") || "Clinic"}...`
-  }
-/> 
-      </div>
+      <div className="text-base font-medium text-foreground">{label}</div>
     </div>
   );
 }
+
 
 function SuperAdminOnly({ children }: { children: React.ReactNode }) {
   const { isSuperAdmin, loading } = useRole();
