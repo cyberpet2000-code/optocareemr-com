@@ -105,7 +105,7 @@ export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision
 
   // a. Loading state
   if (!isAuthReady && !didTimeout) {
-    return { type: "loading", undefined };
+    return { type: "loading", label: "Loading..." };
   }
 
   // b. Auth failure
