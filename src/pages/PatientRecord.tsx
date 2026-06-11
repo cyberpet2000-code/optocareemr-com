@@ -435,6 +435,11 @@ hmo_relationship:
 
   const totalVisits = visits.length;
   const lastVisit = visits.length > 0 ? visits[0] : null;
+
+  const whatsappNumber = patient?.phone
+  ?.replace(/\D/g, "")
+  ?.replace(/^0/, "234");
+  
   const hmoEntry = patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : null;
   const isHmo = patient.payment_type === "hmo";
   const hmoName = hmoEntry?.name || null;
@@ -544,10 +549,6 @@ transition-colors
 
                 const totalVisits = visits.length;
 const lastVisit = visits.length > 0 ? visits[0] : null;
-
-const whatsappNumber = patient?.phone
-  ?.replace(/\D/g, "")
-  ?.replace(/^0/, "234");
                 <a
   href={`https://wa.me/${whatsappNumber}`}
   target="_blank"
