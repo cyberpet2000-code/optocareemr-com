@@ -45,8 +45,7 @@ import { HMOVerificationCard, type HmoVerifStatus } from "@/components/HMOVerifi
 import {
   MoreVertical,
   Trash2,
-  Archive,
-  Download
+  Archive
 } from "lucide-react";
 
 import {
@@ -542,19 +541,34 @@ justify-center
 hover:bg-green-100
 transition-colors
 "><Phone size={14} className="text-success" /></a>
-                <a href={`https://wa.me/${whatsappNumber}
+
+                const totalVisits = visits.length;
+const lastVisit = visits.length > 0 ? visits[0] : null;
+
+const whatsappNumber = patient?.phone
   ?.replace(/\D/g, "")
-  ?.replace(/^0/, "234");}`} target="_blank" rel="noopener noreferrer" className="
-w-10
-h-10
-rounded-full
-bg-green-50
-flex
-items-center
-justify-center
-hover:bg-green-100
-transition-colors
-"><MessageCircle size={14} className="text-success" /></a>
+  ?.replace(/^0/, "234");
+                <a
+  href={`https://wa.me/${whatsappNumber}`}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="
+  w-10
+  h-10
+  rounded-full
+  bg-green-50
+  flex
+  items-center
+  justify-center
+  hover:bg-green-100
+  transition-colors
+"
+>
+  <MessageCircle
+    size={14}
+    className="text-success"
+  />
+</a>
               </>
             )}
             <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => {
