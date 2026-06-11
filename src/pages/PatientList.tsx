@@ -167,6 +167,7 @@ hover:-translate-y-0.5
 transition-all
 duration-200
 "
+                ></div>
                 <Link to={`/patient/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="relative shrink-0">
                     <div
@@ -201,7 +202,7 @@ duration-200
       "linear-gradient(135deg,#2563EB 0%,#22D3EE 100%)"
   }}
 >
-                      <span className="text-lg font-bold ">
+                      <span className="text-lg font-bold text-white">
                         {(p.full_name || "?")[0]}
                       </span>
                     </div>
@@ -232,7 +233,7 @@ duration-200
   </span>
 </div>
 
-<div className="flex items-center gap-2 mt-2 flex-wrap">
+<div className="flex items-center gap-2 mt-2">
   <span
     className={`text-[11px] px-2 py-1 rounded-full font-medium ${
       isHmo
