@@ -1281,14 +1281,17 @@ shadow-sm
   {v.status === "completed"
     ? "Completed"
     : "Open"}
-</span> ${
-          v.status === "completed"
-            ? "bg-green-100 text-green-700"
-            : "bg-amber-100 text-amber-700"
-        }`}
-      >
-        {v.status}
-      </span>
+<span
+  className={`text-[11px] px-3 py-1 rounded-full font-medium ${
+    v.status === "completed"
+      ? "bg-green-100 text-green-700"
+      : "bg-amber-100 text-amber-700"
+  }`}
+>
+  {v.status === "completed"
+    ? "Completed"
+    : "Open"}
+</span>
 
     </div>
 
@@ -1325,16 +1328,24 @@ shadow-sm
     </div>
 
     <div className="mt-3 flex gap-2">
+  <Button
+    size="sm"
+    variant="outline"
+    className="rounded-xl"
+    onClick={() => startEditVisit(v)}
+  >
+    Edit
+  </Button>
 
-      size="sm"
-className="rounded-xl"
-variant="outline"
-
-      size="sm"
-className="rounded-xl"
-variant="outline"
-
-    </div>
+  <Button
+    size="sm"
+    variant="outline"
+    className="rounded-xl"
+    onClick={() => generateVisitPdf(patient, v)}
+  >
+    Export
+  </Button>
+</div>
 
   </div>
 
