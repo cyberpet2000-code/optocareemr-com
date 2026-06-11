@@ -91,7 +91,7 @@ notes: "",
 export default function PatientRecord() {
   const { id } = useParams<{ id: string }>();
   const patientId = id || "";
-  const { effectiveClinicId: cid } = useAccess();
+  const { effectiveClinicId: cid, role } = useAccess();
   const [patient, setPatient] = useState<PatientData | null>(null);
   const [hmos, setHmos] = useState<{ id: string; name: string; website?: string | null }[]>([]);
   const [hmoMap, setHmoMap] = useState<Map<string, { name: string; website?: string | null }>>(new Map());
@@ -563,34 +563,20 @@ transition-colors
 >         
               <Pencil size={12} />
             </Button>
-            <Button
-  variant="destructive"
-  size="sm"
-  className="rounded-xl"
-  onClick={async () => {
-    const confirmed = window.confirm(
-      "Delete this patient permanently?"
-    );
+            import {
+  MoreVertical,
+  Trash2,
+  Archive,
+  Download
+} from "lucide-react";
 
-    if (!confirmed) return;
-
-    const { error } = await apiClient
-      .from("patients")
-      .delete()
-      .eq("id", patient.id);
-
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-
-    toast.success("Patient deleted");
-
-    window.location.href = "/patients";
-  }}
->
-  Delete
-</Button>
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
           </div>
         </div>
       </div>
