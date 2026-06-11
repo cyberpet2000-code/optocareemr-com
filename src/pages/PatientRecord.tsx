@@ -1468,15 +1468,6 @@ shadow-sm
     </>
   ) : (
     <>
-      <Button
-        onClick={() => handleSaveVisit(false)}
-        variant="destructive"
-        size="lg"
-        className="rounded-2xl"
-        disabled={saving}
-      >
-        {saving ? "..." : "Save Draft"}
-      </Button>
 
       <Button
         onClick={() => handleSaveVisit(true)}
