@@ -243,7 +243,7 @@ duration-200
     {isHmo ? (p.hmo_name || "HMO") : "PRIVATE"}
   </span>
 
-  <span className="text-xs text-muted-foreground">
+  <span className="text-sm text-muted-foreground">
     {p.phone}
   </span>
 </div> 
