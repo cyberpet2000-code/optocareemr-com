@@ -164,7 +164,22 @@ const balanceMap = new Map<string, number>();
                           : "bg-green-500"
                       }`}
                     />
-                    <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center relative z-10">
+                    <div
+  className="
+  w-14
+  h-14
+  rounded-2xl
+  flex
+  items-center
+  justify-center
+  text-white
+  shadow-md
+  "
+  style={{
+    background:
+      "linear-gradient(135deg,#2563EB 0%,#22D3EE 100%)"
+  }}
+>
                       <span className="text-lg font-bold text-primary">
                         {(p.full_name || "?")[0]}
                       </span>
@@ -172,48 +187,45 @@ const balanceMap = new Map<string, number>();
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold truncate">
-                        {p.full_name}
-                      </p>
-                      {p.balance > 0 && (
-                        <span
-                          className={`text-[10px] font-semibold px-2 py-1 rounded-full ${
-                            p.balance > 10000
-                              ? "bg-red-100 text-red-700"
-                              : "bg-amber-100 text-amber-700"
-                          }`}
-                        >
-                          ₦{p.balance.toLocaleString()}
-                        </span>
-                      )}
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full ${
-                          p.queue_number <= 5
-                            ? "bg-green-100 text-green-700"
-                            : "bg-blue-100 text-blue-700"
-                        }`}
-                      >
-                        {p.queue_number <= 5 ? "TODAY" : "RETURNING"}
-                      </span>
-                      <p className="text-[11px] text-muted-foreground">
-                        {p.last_visit
-                          ? `Last visit ${new Date(p.last_visit).toLocaleDateString()}`
-                          : "🆕 First Visit"}
-                      </p>
-                      {p.patient_number && (
-                        <span className="text-[10px] font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">
-                          {p.patient_number}
-                        </span>
-                      )}
-                      <span className="text-[10px] font-mono text-muted-foreground">#{p.queue_number}</span>
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium uppercase ${
-                          isHmo ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {isHmo ? (p.hmo_name || "HMO") : "Private"}
-                      </span>
-                    </div>
+                      <p className="text-base font-bold truncate">
+    {p.full_name}
+  </p>
+
+  {p.patient_number && (
+    <span className="text-[11px] font-mono bg-primary/10 text-primary px-2 py-1 rounded-lg">
+      {p.patient_number}
+    </span>
+  )}
+</div>
+                     <div className="flex items-center gap-2 mt-1 flex-wrap">
+  <span className="text-xs text-muted-foreground">
+    {p.gender}
+  </span>
+
+  <span className="text-xs text-muted-foreground">
+    •
+  </span>
+
+  <span className="text-xs text-muted-foreground">
+    {p.age} yrs
+  </span>
+</div>
+
+<div className="flex items-center gap-2 mt-2 flex-wrap">
+  <span
+    className={`text-[11px] px-2 py-1 rounded-full font-medium ${
+      isHmo
+        ? "bg-accent/10 text-accent"
+        : "bg-muted text-muted-foreground"
+    }`}
+  >
+    {isHmo ? (p.hmo_name || "HMO") : "PRIVATE"}
+  </span>
+
+  <span className="text-xs text-muted-foreground">
+    {p.phone}
+  </span>
+</div> 
                     <div className="flex items-center gap-2 flex-wrap mt-1">
                       <span className="text-xs text-muted-foreground">{p.gender}</span>
                       <span className="text-xs text-muted-foreground">{p.age} yrs</span>
@@ -238,7 +250,17 @@ const balanceMap = new Map<string, number>();
                       </a>
                     </>
                   )}
-                  <Link to={`/patient/${p.id}`} className="p-2 rounded-xl hover:bg-muted transition-colors">
+                  <Link to={`/patient/${p.id}`} className="
+w-9
+h-9
+rounded-full
+bg-green-50
+flex
+items-center
+justify-center
+hover:bg-green-100
+transition-colors
+"
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                       <ChevronRight size={14} className="text-primary" />
                     </div>
