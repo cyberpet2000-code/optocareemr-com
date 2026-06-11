@@ -152,10 +152,31 @@ const balanceMap = new Map<string, number>();
           {filtered.map(p => {
             const isHmo = p.payment_type === "hmo";
             return (
-              <div key={p.id} className="medical-card p-4 flex items-center gap-3 hover:border-primary/30 transition-all">
+              <div key={p.id} className="
+medical-card
+p-4
+flex
+items-center
+gap-3
+rounded-3xl
+border
+border-slate-100
+shadow-sm
+hover:shadow-lg
+hover:-translate-y-0.5
+transition-all
+duration-200
+"
                 <Link to={`/patient/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="relative shrink-0">
                     <div
+  title={
+    p.balance > 0
+      ? "Outstanding Balance"
+      : isHmo
+      ? "HMO Patient"
+      : "Private Patient"
+  }
                       className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full z-20 ${
                         p.balance > 0
                           ? "bg-red-500"
