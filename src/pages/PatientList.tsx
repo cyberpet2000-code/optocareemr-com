@@ -180,7 +180,7 @@ const balanceMap = new Map<string, number>();
       "linear-gradient(135deg,#2563EB 0%,#22D3EE 100%)"
   }}
 >
-                      <span className="text-lg font-bold text-white">
+                      <span className="text-lg font-bold ">
                         {(p.full_name || "?")[0]}
                       </span>
                     </div>
@@ -231,7 +231,21 @@ const balanceMap = new Map<string, number>();
                 <div className="flex items-center gap-1 shrink-0">
                   {p.phone && (
                     <>
-                      <a href={`tel:${p.phone}`} className="p-2 rounded-xl hover:bg-muted transition-colors" title="Call">
+                      <a
+  href={`tel:${p.phone}`}
+  className="
+  w-9
+  h-9
+  rounded-full
+  bg-green-50
+  flex
+  items-center
+  justify-center
+  hover:bg-green-100
+  transition-colors
+  "
+  title="Call"
+>
                         <Phone size={14} className="text-success" />
                       </a>
                       <a
@@ -263,8 +277,7 @@ transition-colors
     size={16}
     className="text-primary"
   />
-</Link>
-                  </Link>
+</Link> 
                 </div>
               </div>
             );
