@@ -542,7 +542,9 @@ justify-center
 hover:bg-green-100
 transition-colors
 "><Phone size={14} className="text-success" /></a>
-                <a href={`https://wa.me/${patient.phone.replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className="
+                <a href={`https://wa.me/${whatsappNumber}
+  ?.replace(/\D/g, "")
+  ?.replace(/^0/, "234");}`} target="_blank" rel="noopener noreferrer" className="
 w-10
 h-10
 rounded-full
