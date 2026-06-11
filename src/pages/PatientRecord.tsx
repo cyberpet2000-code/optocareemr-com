@@ -617,7 +617,46 @@ transition-colors
     <DropdownMenuItem>
       <Archive className="mr-2 h-4 w-4" />
       Archive Patient
+      
     </DropdownMenuItem>
+    {editingVisitId && (
+  <>
+    <DropdownMenuSeparator />
+
+    <DropdownMenuItem
+      className="text-red-600"
+      onClick={async () => {
+        const confirmed = window.confirm(
+          "Delete this visit permanently?"
+        );
+
+        if (!confirmed) return;
+
+        const { error } = await apiClient
+          .from("visits")
+          .delete()
+          .eq("id", editingVisitId);
+
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+
+        toast.success("Visit deleted");
+
+        setVisits(prev =>
+          prev.filter(v => v.id !== editingVisitId)
+        );
+
+        setEditingVisitId(null);
+        setForm(emptyVisitForm());
+      }}
+    >
+      <Trash2 className="mr-2 h-4 w-4" />
+      Delete Visit
+    </DropdownMenuItem>
+  </>
+)}
 
     {(role === "admin" ||
       role === "super_admin") && (
