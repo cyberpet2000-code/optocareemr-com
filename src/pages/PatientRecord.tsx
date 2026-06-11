@@ -1309,16 +1309,6 @@ shadow-sm
   {v.status === "completed"
     ? "Completed"
     : "Open"}
-<span
-  className={`text-[11px] px-3 py-1 rounded-full font-medium ${
-    v.status === "completed"
-      ? "bg-green-100 text-green-700"
-      : "bg-amber-100 text-amber-700"
-  }`}
->
-  {v.status === "completed"
-    ? "Completed"
-    : "Open"}
 </span>
 
     </div>
