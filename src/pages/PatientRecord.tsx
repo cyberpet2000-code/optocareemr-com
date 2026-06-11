@@ -563,6 +563,34 @@ transition-colors
 >         
               <Pencil size={12} />
             </Button>
+            <Button
+  variant="destructive"
+  size="sm"
+  className="rounded-xl"
+  onClick={async () => {
+    const confirmed = window.confirm(
+      "Delete this patient permanently?"
+    );
+
+    if (!confirmed) return;
+
+    const { error } = await apiClient
+      .from("patients")
+      .delete()
+      .eq("id", patient.id);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success("Patient deleted");
+
+    window.location.href = "/patients";
+  }}
+>
+  Delete
+</Button>
           </div>
         </div>
       </div>
