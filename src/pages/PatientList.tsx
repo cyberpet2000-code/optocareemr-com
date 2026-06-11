@@ -180,7 +180,7 @@ const balanceMap = new Map<string, number>();
       "linear-gradient(135deg,#2563EB 0%,#22D3EE 100%)"
   }}
 >
-                      <span className="text-lg font-bold text-primary">
+                      <span className="text-lg font-bold text-white">
                         {(p.full_name || "?")[0]}
                       </span>
                     </div>
@@ -226,11 +226,6 @@ const balanceMap = new Map<string, number>();
     {p.phone}
   </span>
 </div> 
-                    <div className="flex items-center gap-2 flex-wrap mt-1">
-                      <span className="text-xs text-muted-foreground">{p.gender}</span>
-                      <span className="text-xs text-muted-foreground">{p.age} yrs</span>
-                      <span className="text-xs text-muted-foreground">{p.phone}</span>
-                    </div>
                   </div>
                 </Link>
                 <div className="flex items-center gap-1 shrink-0">
@@ -243,14 +238,7 @@ const balanceMap = new Map<string, number>();
                         href={`https://wa.me/${p.phone.replace(/[^0-9]/g, "")}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 rounded-xl hover:bg-muted transition-colors"
-                        title="WhatsApp"
-                      >
-                        <MessageCircle size={14} className="text-success" />
-                      </a>
-                    </>
-                  )}
-                  <Link to={`/patient/${p.id}`} className="
+                        className="
 w-9
 h-9
 rounded-full
@@ -261,9 +249,21 @@ justify-center
 hover:bg-green-100
 transition-colors
 "
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <ChevronRight size={14} className="text-primary" />
-                    </div>
+                        title="WhatsApp"
+                      >
+                        <MessageCircle size={14} className="text-success" />
+                      </a>
+                    </>
+                  )}
+                  <Link
+  to={`/patient/${p.id}`}
+  className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
+>
+  <ChevronRight
+    size={16}
+    className="text-primary"
+  />
+</Link>
                   </Link>
                 </div>
               </div>
