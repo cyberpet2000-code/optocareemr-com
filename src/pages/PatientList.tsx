@@ -166,8 +166,7 @@ hover:shadow-lg
 hover:-translate-y-0.5
 transition-all
 duration-200
-"
-                ></div>
+" >
                 <Link to={`/patient/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="relative shrink-0">
                     <div
@@ -244,6 +243,7 @@ duration-200
     {isHmo ? (p.hmo_name || "HMO") : "PRIVATE"}
   </span>
 
+  <div className="mt-2">
   <span className="text-sm text-muted-foreground">
     {p.phone}
   </span>
