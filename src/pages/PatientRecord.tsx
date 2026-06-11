@@ -447,9 +447,27 @@ shadow-sm
 ">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <span className="text-lg font-bold text-primary">{(patient.full_name || "?")[0]}</span>
-            </div>
+            <div
+  className="
+  w-14
+  h-14
+  rounded-2xl
+  flex
+  items-center
+  justify-center
+  text-white
+  shadow-md
+  shrink-0
+  "
+  style={{
+    background:
+      "linear-gradient(135deg,#2563EB 0%,#22D3EE 100%)"
+  }}
+>
+  <span className="text-lg font-bold text-white">
+    {(patient.full_name || "?")[0]}
+  </span>
+</div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-lg font-bold">{patient.full_name}</h1>
@@ -499,8 +517,28 @@ shadow-sm
           <div className="flex items-center gap-1 shrink-0">
             {patient.phone && (
               <>
-                <a href={`tel:${patient.phone}`} className="p-2 rounded-xl hover:bg-muted transition-colors"><Phone size={14} className="text-success" /></a>
-                <a href={`https://wa.me/${patient.phone.replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl hover:bg-muted transition-colors"><MessageCircle size={14} className="text-success" /></a>
+                <a href={`tel:${patient.phone}`} className="
+w-10
+h-10
+rounded-full
+bg-green-50
+flex
+items-center
+justify-center
+hover:bg-green-100
+transition-colors
+"><Phone size={14} className="text-success" /></a>
+                <a href={`https://wa.me/${patient.phone.replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className="
+w-10
+h-10
+rounded-full
+bg-green-50
+flex
+items-center
+justify-center
+hover:bg-green-100
+transition-colors
+"><MessageCircle size={14} className="text-success" /></a>
               </>
             )}
             <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => {
