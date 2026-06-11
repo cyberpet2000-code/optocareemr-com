@@ -42,6 +42,20 @@ import {
 import { MedicationPicker, type MedItem } from "@/components/MedicationPicker";
 import { AbbrTip } from "@/components/AbbrTip";
 import { HMOVerificationCard, type HmoVerifStatus } from "@/components/HMOVerificationCard";
+import {
+  MoreVertical,
+  Trash2,
+  Archive,
+  Download
+} from "lucide-react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 
 interface PatientData {
@@ -563,20 +577,63 @@ transition-colors
 >         
               <Pencil size={12} />
             </Button>
-            import {
-  MoreVertical,
-  Trash2,
-  Archive,
-  Download
-} from "lucide-react";
+            <DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button
+      variant="ghost"
+      size="icon"
+      className="rounded-xl"
+    >
+      <MoreVertical size={18} />
+    </Button>
+  </DropdownMenuTrigger>
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  <DropdownMenuContent align="end">
+
+    <DropdownMenuItem
+      onClick={() => {
+        setEditing(true);
+
+        setEditForm({
+          ...patient,
+          hmo_coverage_type:
+            patient.hmo_coverage_type || "principal",
+          hmo_principal_name:
+            (patient as any).hmo_principal_name || "",
+          hmo_relationship:
+            (patient as any).hmo_relationship || "",
+        });
+      }}
+    >
+      <Pencil className="mr-2 h-4 w-4" />
+      Edit Patient
+    </DropdownMenuItem>
+
+    <DropdownMenuItem>
+      <Download className="mr-2 h-4 w-4" />
+      Export Record
+    </DropdownMenuItem>
+
+    <DropdownMenuItem>
+      <Archive className="mr-2 h-4 w-4" />
+      Archive Patient
+    </DropdownMenuItem>
+
+    {(role === "admin" ||
+      role === "super_admin") && (
+      <>
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          className="text-red-600"
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Delete Patient
+        </DropdownMenuItem>
+      </>
+    )}
+  </DropdownMenuContent>
+</DropdownMenu>
           </div>
         </div>
       </div>
