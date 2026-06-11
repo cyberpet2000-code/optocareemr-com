@@ -161,7 +161,7 @@ gap-3
 rounded-3xl
 border
 border-slate-100
-shadow-sm
+shadow-md bg-white
 hover:shadow-lg
 hover:-translate-y-0.5
 transition-all
@@ -177,7 +177,7 @@ duration-200
       ? "HMO Patient"
       : "Private Patient"
   }
-                      className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full z-20 ${
+                      className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full z-20 ${
                         p.balance > 0
                           ? "bg-red-500"
                           : isHmo
@@ -206,14 +206,14 @@ duration-200
                       </span>
                     </div>
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-base font-bold truncate">
     {p.full_name}
   </p>
 
   {p.patient_number && (
-    <span className="text-[11px] font-mono bg-primary/10 text-primary px-2 py-1 rounded-lg">
+    <span className="text-xs font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-lg">
       {p.patient_number}
     </span>
   )}
