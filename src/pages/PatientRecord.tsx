@@ -1232,24 +1232,56 @@ shadow-sm
 
   <div className="absolute left-5 top-6 bottom-0 w-px bg-border" />
 
-  <div className="rounded-2xl border bg-card p-4 shadow-sm">
+  <div
+  className="
+  rounded-3xl
+  border
+  bg-card
+  p-4
+  shadow-sm
+  hover:shadow-md
+  transition-all
+  duration-200
+  "
+>
 
     <div className="flex items-center justify-between">
 
       <div>
-        <p className="font-semibold text-sm">
-          {new Date(v.created_at).toLocaleDateString()}
-        </p>
+        <p className="font-bold text-base">
+  {new Date(v.created_at).toLocaleDateString()}
+</p>
 
         {v.diagnosis && (
-          <p className="text-xs text-muted-foreground">
-            {v.diagnosis}
-          </p>
-        )}
+  <div className="mt-1">
+    <span
+      className="
+      inline-flex
+      px-2
+      py-1
+      rounded-full
+      text-[11px]
+      bg-primary/10
+      text-primary
+      "
+    >
+      {v.diagnosis}
+    </span>
+  </div>
+)}
       </div>
 
       <span
-        className={`text-[10px] px-2 py-1 rounded-full ${
+  className={`text-[11px] px-3 py-1 rounded-full font-medium ${
+    v.status === "completed"
+      ? "bg-green-100 text-green-700"
+      : "bg-amber-100 text-amber-700"
+  }`}
+>
+  {v.status === "completed"
+    ? "Completed"
+    : "Open"}
+</span> ${
           v.status === "completed"
             ? "bg-green-100 text-green-700"
             : "bg-amber-100 text-amber-700"
@@ -1294,23 +1326,13 @@ shadow-sm
 
     <div className="mt-3 flex gap-2">
 
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => startEditVisit(v)}
-      >
-        Edit
-      </Button>
+      size="sm"
+className="rounded-xl"
+variant="outline"
 
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() =>
-          generateVisitPdf(patient, v)
-        }
-      >
-        Export
-      </Button>
+      size="sm"
+className="rounded-xl"
+variant="outline"
 
     </div>
 
