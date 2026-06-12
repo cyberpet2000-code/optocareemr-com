@@ -546,9 +546,6 @@ justify-center
 hover:bg-green-100
 transition-colors
 "><Phone size={14} className="text-success" /></a>
-
-                const totalVisits = visits.length;
-const lastVisit = visits.length > 0 ? visits[0] : null;
                 <a
   href={`https://wa.me/${whatsappNumber}`}
   target="_blank"
