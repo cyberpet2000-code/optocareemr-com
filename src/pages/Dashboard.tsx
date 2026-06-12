@@ -605,12 +605,31 @@ console.log("Current month revenue", currentMonthRevenue);
         ) : recentPatients.length === 0 ? (
           <EmptyState compact icon={Users} title="No patients registered yet" description="Patients you add will appear here." />
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-3">
             {recentPatients.map((p: any) => (
               <Link key={p.id} to={`/patient/${p.id}`}
-                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/50 transition-all group">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-bold text-primary">{(p.full_name || "?")[0]}</span>
+                className="
+flex items-center gap-3
+p-3
+rounded-2xl
+border
+bg-card
+shadow-sm
+hover:shadow-md
+hover:-translate-y-0.5
+transition-all
+group
+">
+                <div
+  className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0"
+  style={{
+    background:
+      "linear-gradient(135deg,#2563EB 0%,#22D3EE 100%)",
+  }}
+>
+                  <span className="text-lg font-bold text-white">
+  {(p.full_name || "?")[0]}
+</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
