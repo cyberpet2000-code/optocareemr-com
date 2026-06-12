@@ -435,6 +435,12 @@ hmo_relationship:
 
   const totalVisits = visits.length;
   const lastVisit = visits.length > 0 ? visits[0] : null;
+  const lastRx =
+  visits.find(
+    v =>
+      v.sub_od_sphere ||
+      v.sub_os_sphere
+  ) || null;
 
   const whatsappNumber = patient?.phone
   ?.replace(/\D/g, "")
@@ -1417,6 +1423,43 @@ shadow-sm
           {v.iop_os || "—"}
         </p>
       )}
+
+      {(
+  v.sub_od_sphere ||
+  v.sub_os_sphere ||
+  v.sub_reading_add
+) && (
+  <div className="mt-2 rounded-xl bg-primary/5 p-3">
+    <p className="font-medium mb-2">
+      Prescription
+    </p>
+
+    <p>
+      <strong>OD:</strong>{" "}
+      {v.sub_od_sphere || "Plano"}
+      {" "}
+      {v.sub_od_cyl || ""}
+      {" "}
+      x {v.sub_od_axis || ""}
+    </p>
+
+    <p>
+      <strong>OS:</strong>{" "}
+      {v.sub_os_sphere || "Plano"}
+      {" "}
+      {v.sub_os_cyl || ""}
+      {" "}
+      x {v.sub_os_axis || ""}
+    </p>
+
+    {v.sub_reading_add && (
+      <p>
+        <strong>ADD:</strong>{" "}
+        {v.sub_reading_add}
+      </p>
+    )}
+  </div>
+)}
 
     </div>
 
