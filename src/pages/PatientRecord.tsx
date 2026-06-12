@@ -569,28 +569,7 @@ transition-colors
 </a>
               </>
             )}
-            <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => {
-  setEditing(true);
-
-  setEditForm({
-    ...patient,
-
-    hmo_coverage_type:
-      patient.hmo_coverage_type ||
-      "principal",
-
-    hmo_principal_name:
-      (patient as any)
-        .hmo_principal_name || "",
-
-    hmo_relationship:
-      (patient as any)
-        .hmo_relationship || "",
-  });
-}}
->         
-              <Pencil size={12} />
-            </Button>
+            
             <DropdownMenu>
   <DropdownMenuTrigger asChild>
     <Button
