@@ -1394,74 +1394,127 @@ shadow-sm
 
     </div>
 
-    <div className="mt-3 text-xs space-y-1">
+    <div className="mt-3 text-xs space-y-2">
 
-      {v.chief_complaint && (
-        <p>
-          <strong>CC:</strong>
-          {" "}
-          {v.chief_complaint}
-        </p>
-      )}
-
-      {(v.va_unaided_od || v.va_unaided_os) && (
-        <p>
-          <strong>VA:</strong>
-          {" "}
-          OD {v.va_unaided_od || "—"}
-          {" | "}
-          OS {v.va_unaided_os || "—"}
-        </p>
-      )}
-
-      {(v.iop_od || v.iop_os) && (
-        <p>
-          <strong>IOP:</strong>
-          {" "}
-          {v.iop_od || "—"}
-          {" / "}
-          {v.iop_os || "—"}
-        </p>
-      )}
-
-      {(
-  v.sub_od_sphere ||
-  v.sub_os_sphere ||
-  v.sub_reading_add
-) && (
-  <div className="mt-2 rounded-xl bg-primary/5 p-3">
-    <p className="font-medium mb-2">
-      Prescription
-    </p>
-
+  {v.chief_complaint && (
     <p>
-      <strong>OD:</strong>{" "}
-      {v.sub_od_sphere || "Plano"}
-      {" "}
-      {v.sub_od_cyl || ""}
-      {" "}
-      x {v.sub_od_axis || ""}
+      <div className="flex items-center gap-2 font-semibold">
+  <ClipboardList size={14} />
+  CC
+</div> {v.chief_complaint}
     </p>
+  )}
 
+  {v.history && (
     <p>
-      <strong>OS:</strong>{" "}
-      {v.sub_os_sphere || "Plano"}
-      {" "}
-      {v.sub_os_cyl || ""}
-      {" "}
-      x {v.sub_os_axis || ""}
+      <div className="flex items-center gap-2 font-semibold">
+  <History size={14} />
+  History
+</div> {v.history}
     </p>
+  )}
 
-    {v.sub_reading_add && (
+  {(v.va_unaided_od || v.va_unaided_os) && (
+    <p>
+      <div className="flex items-center gap-2 font-semibold">
+  <Eye size={14} />
+  Visual Acuity
+</div>
+      {" "}
+      UA OD: {v.va_unaided_od || "—"}
+      {" | "}
+      UA OS: {v.va_unaided_os || "—"}
+    </p>
+  )}
+
+  {(v.iop_od || v.iop_os) && (
+    <p>
+      <div className="flex items-center gap-2 font-semibold">
+  <Gauge size={14} />
+  IOP
+</div>
+      {" "}
+      OD {v.iop_od || "—"} mmHg
+      {" | "}
+      OS {v.iop_os || "—"} mmHg
+    </p>
+  )}
+
+  {v.examination && (
+    <p>
+      <div className="flex items-center gap-2 font-semibold">
+  <Eye size={14} />
+  Examination
+</div>
+      {" "}
+      {v.examination}
+    </p>
+  )}
+
+  {v.diagnosis && (
+    <p>
+      <div className="flex items-center gap-2 font-semibold">
+  <Stethoscope size={14} />
+  Diagnosis
+</div>
+      {" "}
+      {v.diagnosis}
+    </p>
+  )}
+
+  {(v.sub_od_sphere || v.sub_os_sphere) && (
+    <div className="rounded-xl bg-primary/5 p-3">
+      <div className="flex items-center gap-2 font-medium mb-2">
+  <Eye size={14} />
+  Subjective Refraction
+</div>
+
       <p>
-        <strong>ADD:</strong>{" "}
-        {v.sub_reading_add}
+        OD: {v.sub_od_sphere || "Plano"}
+        {" "}
+        {v.sub_od_cyl || ""}
+        {" "}
+        x{v.sub_od_axis || ""}
       </p>
-    )}
-  </div>
-)}
 
+      <p>
+        OS: {v.sub_os_sphere || "Plano"}
+        {" "}
+        {v.sub_os_cyl || ""}
+        {" "}
+        x{v.sub_os_axis || ""}
+      </p>
+
+      {v.sub_reading_add && (
+        <p>
+          ADD: {v.sub_reading_add}
+        </p>
+      )}
     </div>
+  )}
+
+  {(v.lens_type || v.medication || v.notes) && (
+    <div>
+      <div className="flex items-center gap-2 font-semibold">
+  <FileText size={14} />
+  Management Plan
+</div>
+
+      {v.lens_type && (
+        <p>• {v.lens_type}</p>
+      )}
+
+      {v.medication && (
+        <p>• {v.medication}</p>
+      )}
+
+      {v.notes && (
+        <p>• {v.notes}</p>
+      )}
+    </div>
+  )}
+
+</div>
 
     <div className="mt-3 flex gap-2">
   <Button
