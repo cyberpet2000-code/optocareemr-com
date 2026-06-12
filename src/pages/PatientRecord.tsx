@@ -1398,7 +1398,7 @@ shadow-sm
 
   {v.chief_complaint && (
     <p>
-      <div className="flex items-center gap-2 font-semibold">
+      <div className="flex items-center gap-2 font-semibold text-sky-600">
   <ClipboardList size={14} />
   CC
 </div> {v.chief_complaint}
@@ -1407,7 +1407,7 @@ shadow-sm
 
   {v.history && (
     <p>
-      <div className="flex items-center gap-2 font-semibold">
+      <div className="flex items-center gap-2 font-semibold text-amber-600">
   <History size={14} />
   History
 </div> {v.history}
@@ -1416,7 +1416,7 @@ shadow-sm
 
   {(v.va_unaided_od || v.va_unaided_os) && (
     <p>
-      <div className="flex items-center gap-2 font-semibold">
+      <div className="flex items-center gap-2 font-semibold text-indigo-600">
   <Eye size={14} />
   Visual Acuity
 </div>
@@ -1429,7 +1429,7 @@ shadow-sm
 
   {(v.iop_od || v.iop_os) && (
     <p>
-      <div className="flex items-center gap-2 font-semibold">
+      <div className="flex items-center gap-2 font-semibold text-red-500">
   <Gauge size={14} />
   IOP
 </div>
@@ -1442,7 +1442,7 @@ shadow-sm
 
   {v.examination && (
     <p>
-      <div className="flex items-center gap-2 font-semibold">
+      <div className="flex items-center gap-2 font-semibold text-sky-600">
   <Eye size={14} />
   Examination
 </div>
@@ -1453,7 +1453,7 @@ shadow-sm
 
   {v.diagnosis && (
     <p>
-      <div className="flex items-center gap-2 font-semibold">
+      <div className="flex items-center gap-2 font-semibold text-red-500">
   <Stethoscope size={14} />
   Diagnosis
 </div>
@@ -1464,7 +1464,7 @@ shadow-sm
 
   {(v.sub_od_sphere || v.sub_os_sphere) && (
     <div className="rounded-xl bg-primary/5 p-3">
-      <div className="flex items-center gap-2 font-medium mb-2">
+      <div className="flex items-center gap-2 font-medium text-indigo-600 mb-2">
   <Eye size={14} />
   Subjective Refraction
 </div>
@@ -1495,7 +1495,7 @@ shadow-sm
 
   {(v.lens_type || v.medication || v.notes) && (
     <div>
-      <div className="flex items-center gap-2 font-semibold">
+      <div className="flex items-center gap-2 font-semibold text-green-600">
   <FileText size={14} />
   Management Plan
 </div>
