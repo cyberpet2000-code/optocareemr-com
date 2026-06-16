@@ -127,8 +127,11 @@ export function HMOVerificationCard({
             <Icon size={18} />
           </div>
           <div>
-            <div className="text-sm font-semibold flex items-center gap-1.5 flex-wrap">
-              HMO Verification —{" "}
+            <div className="flex items-center gap-2 flex-wrap">
+             <span className="text-sm font-semibold">
+              HMO Verification —
+               </span>
+            
               {hasWebsite ? (
                 <button
                   type="button"
