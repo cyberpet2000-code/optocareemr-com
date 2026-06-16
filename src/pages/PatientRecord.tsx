@@ -1398,8 +1398,7 @@ shadow-sm
     </div>
 
     <pre className="text-[10px] overflow-auto">
-  {JSON.stringify(v, null, 2)}
-</pre>
+  
     <div className="mt-3 text-xs space-y-2">
 
   {v.chief_complaint && (
@@ -1485,14 +1484,18 @@ shadow-sm
 
       <p>
   OD: {v.sub_od_sphere ?? "Plano"}
-  {v.sub_od_cyl ? ` ${v.sub_od_cyl}` : ""}
-  {v.sub_od_axis ? ` x${v.sub_od_axis}` : ""}
+  {" / "}
+  {v.sub_od_cyl ?? "0.00"}
+  {" × "}
+  {v.sub_od_axis ?? "—"}
 </p>
 
 <p>
   OS: {v.sub_os_sphere ?? "Plano"}
-  {v.sub_os_cyl ? ` ${v.sub_os_cyl}` : ""}
-  {v.sub_os_axis ? ` x${v.sub_os_axis}` : ""}
+  {" / "}
+  {v.sub_os_cyl ?? "0.00"}
+  {" × "}
+  {v.sub_os_axis ?? "—"}
 </p>
 
       {v.sub_reading_add && (
