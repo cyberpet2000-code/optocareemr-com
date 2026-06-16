@@ -163,7 +163,10 @@ export default function PatientRecord() {
     hmo_name: activeHmo?.name || "",
   } as any);
   }
-      if (visRes.data) setVisits(visRes.data);
+      if (visRes.data) {
+  console.log("VISITS FROM DB", visRes.data);
+  setVisits(visRes.data);
+      }
       if (hmoRes.data) {
         setHmos(hmoRes.data as any);
         setHmoMap(new Map((hmoRes.data as any[]).map(h => [h.id, { name: h.name, website: h.website }])));
@@ -1394,6 +1397,9 @@ shadow-sm
 
     </div>
 
+    <pre className="text-[10px] overflow-auto">
+  {JSON.stringify(v, null, 2)}
+</pre>
     <div className="mt-3 text-xs space-y-2">
 
   {v.chief_complaint && (
