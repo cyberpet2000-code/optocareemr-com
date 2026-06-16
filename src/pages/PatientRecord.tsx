@@ -1462,7 +1462,15 @@ shadow-sm
     </p>
   )}
 
-  {(v.sub_od_sphere || v.sub_os_sphere) && (
+  {(
+  v.sub_od_sphere ||
+  v.sub_od_cyl ||
+  v.sub_od_axis ||
+  v.sub_os_sphere ||
+  v.sub_os_cyl ||
+  v.sub_os_axis ||
+  v.sub_reading_add
+) && (
     <div className="rounded-xl bg-primary/5 p-3">
       <div className="flex items-center gap-2 font-medium text-indigo-600 mb-2">
   <Eye size={14} />
