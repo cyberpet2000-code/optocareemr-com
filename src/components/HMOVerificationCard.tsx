@@ -42,7 +42,7 @@ interface HMOVerificationCardProps {
 
 const STATUS_META: Record<HmoVerifStatus, { label: string; cls: string; Icon: LucideIcon }> = {
   pending: { label: "Pending verification", cls: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30", Icon: ShieldQuestion },
-  verified: { label: "Verified", cls: "bg-emerald-100 text-emerald-800 dark:text-emerald-300", Icon: ShieldCheck },
+  verified: { label: "Verified", cls: "bg-green-50 text-green-700 border-green-200", Icon: ShieldCheck },
   rejected: { label: "Rejected", cls: "bg-destructive/10 text-destructive border-destructive/30", Icon: ShieldAlert },
   not_applicable: { label: "Not applicable", cls: "bg-muted text-muted-foreground border-border", Icon: ShieldQuestion },
 };
