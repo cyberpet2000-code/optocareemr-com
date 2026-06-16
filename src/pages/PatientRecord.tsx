@@ -1484,20 +1484,16 @@ shadow-sm
 </div>
 
       <p>
-        OD: {v.sub_od_sphere || "Plano"}
-        {" "}
-        {v.sub_od_cyl || ""}
-        {" "}
-        x{v.sub_od_axis || ""}
-      </p>
+  OD: {v.sub_od_sphere ?? "Plano"}
+  {v.sub_od_cyl ? ` ${v.sub_od_cyl}` : ""}
+  {v.sub_od_axis ? ` x${v.sub_od_axis}` : ""}
+</p>
 
-      <p>
-        OS: {v.sub_os_sphere || "Plano"}
-        {" "}
-        {v.sub_os_cyl || ""}
-        {" "}
-        x{v.sub_os_axis || ""}
-      </p>
+<p>
+  OS: {v.sub_os_sphere ?? "Plano"}
+  {v.sub_os_cyl ? ` ${v.sub_os_cyl}` : ""}
+  {v.sub_os_axis ? ` x${v.sub_os_axis}` : ""}
+</p>
 
       {v.sub_reading_add && (
         <p>
