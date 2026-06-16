@@ -1398,6 +1398,7 @@ shadow-sm
     </div>
 
     <pre className="text-[10px] overflow-auto">
+      </pre>
   
     <div className="mt-3 text-xs space-y-2">
 
