@@ -30,6 +30,15 @@ import SelectClinic from "./pages/SelectClinic";
 import AcceptInvite from "./pages/AcceptInvite";
 import NoAccess from "./pages/NoAccess";
 import NotFound from "./pages/NotFound";
+import LegalIndex from "./pages/legal/LegalIndex";
+import LegalTerms from "./pages/legal/Terms";
+import LegalPrivacy from "./pages/legal/Privacy";
+import LegalCookies from "./pages/legal/Cookies";
+import LegalDPA from "./pages/legal/DPA";
+import LegalSecurity from "./pages/legal/Security";
+import LegalCompliance from "./pages/legal/Compliance";
+import LegalMedical from "./pages/legal/MedicalDisclaimer";
+import LegalContact from "./pages/legal/Contact";
 import {
   diag,
   isDiagEnabled,
