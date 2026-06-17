@@ -30,6 +30,15 @@ import SelectClinic from "./pages/SelectClinic";
 import AcceptInvite from "./pages/AcceptInvite";
 import NoAccess from "./pages/NoAccess";
 import NotFound from "./pages/NotFound";
+import LegalIndex from "./pages/legal/LegalIndex";
+import LegalTerms from "./pages/legal/Terms";
+import LegalPrivacy from "./pages/legal/Privacy";
+import LegalCookies from "./pages/legal/Cookies";
+import LegalDPA from "./pages/legal/DPA";
+import LegalSecurity from "./pages/legal/Security";
+import LegalCompliance from "./pages/legal/Compliance";
+import LegalMedical from "./pages/legal/MedicalDisclaimer";
+import LegalContact from "./pages/legal/Contact";
 import {
   diag,
   isDiagEnabled,
@@ -221,7 +230,8 @@ export function AppRoutes() {
     diag.event("routing", "navigate", { path: location.pathname });
   }, [location.pathname]);
 
-  const isPublicRoute = ["/login", "/reset-password", "/accept-invite", "/signup", "/no-access"].includes(location.pathname);
+  const isLegalRoute = location.pathname === "/legal" || location.pathname.startsWith("/legal/");
+  const isPublicRoute = isLegalRoute || ["/login", "/reset-password", "/accept-invite", "/signup", "/no-access"].includes(location.pathname);
 
   if (!isAuthReady) return <FullScreenLoader />;
 
@@ -236,6 +246,15 @@ export function AppRoutes() {
       <Route path="/accept-invite" element={<AcceptInvite />} />
       <Route path="/signup" element={<AcceptInvite />} />
       <Route path="/no-access" element={<NoAccess />} />
+      <Route path="/legal" element={<LegalIndex />} />
+      <Route path="/legal/terms" element={<LegalTerms />} />
+      <Route path="/legal/privacy" element={<LegalPrivacy />} />
+      <Route path="/legal/cookies" element={<LegalCookies />} />
+      <Route path="/legal/dpa" element={<LegalDPA />} />
+      <Route path="/legal/security" element={<LegalSecurity />} />
+      <Route path="/legal/compliance" element={<LegalCompliance />} />
+      <Route path="/legal/medical-disclaimer" element={<LegalMedical />} />
+      <Route path="/legal/contact" element={<LegalContact />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   ) : (
