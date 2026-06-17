@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import OptoCareLogo from "@/components/OptoCareLogo";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import ThemeToggle from "@/components/ThemeToggle";
 import { Printer } from "lucide-react";
 
 export const LEGAL_PAGES = [
@@ -114,14 +114,14 @@ export default function LegalLayout({ title, description, lastUpdated = LAST_UPD
 
           {/* Content */}
           <main className="legal-prose max-w-3xl">
-            <article className="prose prose-slate dark:prose-invert max-w-none
-              prose-headings:font-semibold prose-headings:tracking-tight
-              prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:border-b prose-h2:pb-2
-              prose-h3:text-lg prose-h3:mt-6 prose-h3:mb-2
-              prose-p:text-foreground/90 prose-p:leading-relaxed
-              prose-li:text-foreground/90 prose-li:leading-relaxed
-              prose-strong:text-foreground
-              prose-a:text-primary prose-a:no-underline hover:prose-a:underline">
+            <article className="legal-article max-w-none text-foreground/90 leading-relaxed
+              [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:pb-2 [&_h2]:border-b [&_h2]:text-foreground
+              [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-foreground
+              [&_p]:my-4
+              [&_ul]:my-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2
+              [&_ol]:my-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:space-y-2
+              [&_strong]:text-foreground [&_strong]:font-semibold
+              [&_a]:text-primary hover:[&_a]:underline">
               {children}
             </article>
           </main>
