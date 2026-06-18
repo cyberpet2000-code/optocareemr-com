@@ -480,6 +480,77 @@ export type Database = {
         }
         Relationships: []
       }
+      clinic_archives: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          date_from: string | null
+          date_to: string | null
+          encrypted: boolean
+          error_message: string | null
+          expires_at: string | null
+          file_count: number | null
+          file_size_bytes: number | null
+          generated_by: string | null
+          id: string
+          password_hint: string | null
+          patient_id: string | null
+          progress: number
+          scope: string
+          status: string
+          storage_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          date_from?: string | null
+          date_to?: string | null
+          encrypted?: boolean
+          error_message?: string | null
+          expires_at?: string | null
+          file_count?: number | null
+          file_size_bytes?: number | null
+          generated_by?: string | null
+          id?: string
+          password_hint?: string | null
+          patient_id?: string | null
+          progress?: number
+          scope: string
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          date_from?: string | null
+          date_to?: string | null
+          encrypted?: boolean
+          error_message?: string | null
+          expires_at?: string | null
+          file_count?: number | null
+          file_size_bytes?: number | null
+          generated_by?: string | null
+          id?: string
+          password_hint?: string | null
+          patient_id?: string | null
+          progress?: number
+          scope?: string
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_archives_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_dashboard_cache: {
         Row: {
           clinic_id: string
@@ -1034,6 +1105,7 @@ export type Database = {
       clinics: {
         Row: {
           billing_enabled: boolean | null
+          cancelled_at: string | null
           created_at: string | null
           custom_footer: string | null
           deactivated_at: string | null
@@ -1056,6 +1128,7 @@ export type Database = {
           parent_clinic_id: string | null
           pharmacy_enabled: boolean | null
           phone: string | null
+          retention_expires_at: string | null
           secondary_color: string | null
           setup_completed: boolean | null
           staff_added: boolean | null
@@ -1070,6 +1143,7 @@ export type Database = {
         }
         Insert: {
           billing_enabled?: boolean | null
+          cancelled_at?: string | null
           created_at?: string | null
           custom_footer?: string | null
           deactivated_at?: string | null
@@ -1092,6 +1166,7 @@ export type Database = {
           parent_clinic_id?: string | null
           pharmacy_enabled?: boolean | null
           phone?: string | null
+          retention_expires_at?: string | null
           secondary_color?: string | null
           setup_completed?: boolean | null
           staff_added?: boolean | null
@@ -1106,6 +1181,7 @@ export type Database = {
         }
         Update: {
           billing_enabled?: boolean | null
+          cancelled_at?: string | null
           created_at?: string | null
           custom_footer?: string | null
           deactivated_at?: string | null
@@ -1128,6 +1204,7 @@ export type Database = {
           parent_clinic_id?: string | null
           pharmacy_enabled?: boolean | null
           phone?: string | null
+          retention_expires_at?: string | null
           secondary_color?: string | null
           setup_completed?: boolean | null
           staff_added?: boolean | null
