@@ -138,9 +138,24 @@ export default function Login() {
           </div>
         </div>
 
-        <p className="mt-4 text-center text-[11px] text-muted-foreground/80">
-          Trusted by Eye Clinics • Secure • HIPAA-Aligned
-        </p>
+        <div className="mt-4 text-center space-y-2">
+          <p className="text-[11px] text-muted-foreground/80">
+            Trusted by Eye Clinics • Secure • HIPAA-Aligned
+          </p>
+          <p className="text-xs text-muted-foreground/80 px-4">
+            By continuing, you agree to our Terms and acknowledge our Privacy Policy.
+          </p>
+          <nav className="flex items-center justify-center gap-2 text-xs text-muted-foreground/70">
+            <a href="/legal/terms" className="hover:text-foreground transition-colors">Terms</a>
+            <span aria-hidden>•</span>
+            <a href="/legal/privacy" className="hover:text-foreground transition-colors">Privacy</a>
+            <span aria-hidden>•</span>
+            <a href="/legal/cookies" className="hover:text-foreground transition-colors">Cookies</a>
+            <span aria-hidden>•</span>
+            <a href="/legal/contact" className="hover:text-foreground transition-colors">Contact</a>
+          </nav>
+        </div>
+
       </div>
     </div>
   );
