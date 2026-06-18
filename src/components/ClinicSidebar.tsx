@@ -55,6 +55,7 @@ export default function ClinicSidebar() {
         ],
         secondary: [
           { to: "/super-admin/create-clinic", label: "Create Clinic", icon: Sparkles },
+          { to: "/super-admin/archives", label: "Data Archives", icon: Archive },
           { to: "/super-admin/users", label: "Users", icon: ShieldCheck },
         ],
       };
