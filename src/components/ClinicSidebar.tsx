@@ -98,6 +98,7 @@ export default function ClinicSidebar() {
         { to: "/appointments", label: "Appointments", icon: Calendar },
         { to: "/hmos", label: "HMOs", icon: Building2 },
         ...(isAdmin ? [{ to: "/admin/roles", label: "Manage Roles", icon: ShieldCheck }] : []),
+        { to: "/legal", label: "Legal & Policies", icon: FileText },
       ],
     };
   }, [isAdmin, isDoctor, isReceptionist, isSuperAdmin, workspace]);
