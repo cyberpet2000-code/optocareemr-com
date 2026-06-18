@@ -67,7 +67,9 @@ export default function ClinicSidebar() {
           { to: "/patients", label: "Patients", icon: Users },
           { to: "/appointments", label: "Visits", icon: Calendar },
         ],
-        secondary: [],
+        secondary: [
+          { to: "/legal", label: "Legal & Policies", icon: FileText },
+        ],
       };
     }
 
@@ -78,7 +80,9 @@ export default function ClinicSidebar() {
           { to: "/appointments", label: "Appointments", icon: Calendar },
           { to: "/billing", label: "Billing", icon: DollarSign },
         ],
-        secondary: [],
+        secondary: [
+          { to: "/legal", label: "Legal & Policies", icon: FileText },
+        ],
       };
     }
 
