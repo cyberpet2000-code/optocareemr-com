@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, ShoppingBag, DollarSign, ShieldCheck, Calendar,
-  UserPlus, Building2, Sparkles, LifeBuoy, CheckCircle2, CircleDashed, Clock, Activity,
+  UserPlus, Building2, Sparkles, LifeBuoy, CheckCircle2, CircleDashed, Clock, Activity, FileText,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -56,6 +56,7 @@ export default function ClinicSidebar() {
         secondary: [
           { to: "/super-admin/create-clinic", label: "Create Clinic", icon: Sparkles },
           { to: "/super-admin/users", label: "Users", icon: ShieldCheck },
+          { to: "/legal", label: "Legal & Policies", icon: FileText },
         ],
       };
     }
@@ -66,7 +67,9 @@ export default function ClinicSidebar() {
           { to: "/patients", label: "Patients", icon: Users },
           { to: "/appointments", label: "Visits", icon: Calendar },
         ],
-        secondary: [],
+        secondary: [
+          { to: "/legal", label: "Legal & Policies", icon: FileText },
+        ],
       };
     }
 
@@ -77,7 +80,9 @@ export default function ClinicSidebar() {
           { to: "/appointments", label: "Appointments", icon: Calendar },
           { to: "/billing", label: "Billing", icon: DollarSign },
         ],
-        secondary: [],
+        secondary: [
+          { to: "/legal", label: "Legal & Policies", icon: FileText },
+        ],
       };
     }
 
@@ -93,6 +98,7 @@ export default function ClinicSidebar() {
         { to: "/appointments", label: "Appointments", icon: Calendar },
         { to: "/hmos", label: "HMOs", icon: Building2 },
         ...(isAdmin ? [{ to: "/admin/roles", label: "Manage Roles", icon: ShieldCheck }] : []),
+        { to: "/legal", label: "Legal & Policies", icon: FileText },
       ],
     };
   }, [isAdmin, isDoctor, isReceptionist, isSuperAdmin, workspace]);
