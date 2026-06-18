@@ -23,6 +23,7 @@ import Onboarding from "./pages/Onboarding";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import SuperAdminClinics from "./pages/SuperAdminClinics";
 import SuperAdminCreateClinic from "./pages/SuperAdminCreateClinic";
+import SuperAdminArchives from "./pages/SuperAdminArchives";
 import SystemHealth from "./pages/SystemHealth";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
