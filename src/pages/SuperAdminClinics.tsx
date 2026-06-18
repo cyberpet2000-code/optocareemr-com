@@ -195,6 +195,9 @@ export default function SuperAdminClinics() {
                           </>
                         );
                       })()}
+                      <Button size="sm" variant="outline" onClick={() => navigate(`/super-admin/archives?clinic_id=${c.id}`)}>
+                        <Archive size={14} className="mr-1" /> Archive
+                      </Button>
                       <Button size="sm" variant="outline" onClick={() => enter(c)} disabled={enteringId === c.id || !!enteringId}>
                         <LogIn size={14} className="mr-1" /> {enteringId === c.id ? "Entering…" : "Enter"}
                       </Button>
