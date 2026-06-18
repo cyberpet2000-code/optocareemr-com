@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, ShoppingBag, DollarSign, ShieldCheck, Calendar,
-  UserPlus, Building2, Sparkles, LifeBuoy, CheckCircle2, CircleDashed, Clock, Activity,
+  UserPlus, Building2, Sparkles, LifeBuoy, CheckCircle2, CircleDashed, Clock, Activity, Archive,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
