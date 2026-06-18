@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
-import { Building2, Plus, LogIn, UserPlus, Copy, Check, CheckCircle2, PauseCircle, PlayCircle, XCircle } from "lucide-react";
+import { Building2, Plus, LogIn, UserPlus, Copy, Check, CheckCircle2, PauseCircle, PlayCircle, XCircle, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -195,6 +195,9 @@ export default function SuperAdminClinics() {
                           </>
                         );
                       })()}
+                      <Button size="sm" variant="outline" onClick={() => navigate(`/super-admin/archives?clinic_id=${c.id}`)}>
+                        <Archive size={14} className="mr-1" /> Archive
+                      </Button>
                       <Button size="sm" variant="outline" onClick={() => enter(c)} disabled={enteringId === c.id || !!enteringId}>
                         <LogIn size={14} className="mr-1" /> {enteringId === c.id ? "Entering…" : "Enter"}
                       </Button>
