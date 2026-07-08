@@ -1,121 +1,126 @@
-# OptoCare EMR — Diagnostic Layer Design
+# Finance, Reporting & Monthly Automated Email System
 
-A thin, opt-in observability layer that surfaces real frontend, backend, and performance failures without touching auth, routing, providers, or business logic.
+Non-breaking enhancement. No existing tables, routes, RLS, or UI will be rewritten. All changes are additive.
 
-## Goals
+---
 
-- Surface **exact** failures (e.g. `patients query failed: permission denied`) instead of generic messages.
-- Suggest **likely causes** (missing RLS policy, stale clinic state, expired JWT).
-- Stay **disabled by default in production**, toggle-able per session.
-- Zero impact on render path, no new providers, no global event bus, no retries.
+## 1. Database Migrations (additive only)
 
-## Architecture
+**New tables**
 
-```text
-                    ┌──────────────────────────────┐
-                    │  src/lib/diag/               │
-                    │                              │
-   app code ──────► │  diag.ts        (core API)   │
-                    │  diagConfig.ts  (on/off)     │
-                    │  diagRules.ts   (cause hints)│
-                    │  diagSinks.ts   (console,    │
-                    │                  ring buffer)│
-                    │  DiagOverlay.tsx (dev panel) │
-                    └──────────────────────────────┘
-                              │
-              ┌───────────────┼───────────────────┐
-              ▼               ▼                   ▼
-        apiClient        useAccess           Router/
-        wrapper          hydration           AppLayout
-        (supabase        checkpoints         route timing
-         errors)
-```
+- `expenses` — clinic-scoped expense entries with category, amount, vendor, receipt URL, expense date.
+- `inventory_movements` — audit log for every stock change (dispense, sale, adjustment, return, count) with before/after quantities, reason, patient, visit, staff.
+- `monthly_reports` — cached generated reports (clinic, month, year, JSON payload, PDF storage path, status).
+- `report_email_logs` — delivery log for monthly report emails (recipient, clinic, month, status, retries, error).
 
-One folder. No provider. No context. Pure functions + an optional dev-only overlay.
+**Additive alters**
 
-## Activation
+- Storage buckets: `expense-receipts` (private, clinic-scoped), `monthly-reports` (private, super-admin + clinic-admin scoped).
+- Trigger on `inventory_sale_items`, `visits` (medication dispense fields) to insert into `inventory_movements` and decrement `inventory.quantity` if not already handled.
 
-- **Off in production** unless one of:
-  - `localStorage.optocare_diag = "1"` (manual toggle)
-  - URL has `?diag=1`
-  - `import.meta.env.DEV` is true
-- A single `isDiagEnabled()` short-circuits every call to ~1 boolean check.
+**RLS**
 
-## Public API (tiny)
+- `expenses`: clinic members can read; only admin/super_admin can write/delete.
+- `inventory_movements`: clinic members can read; inserts allowed via SECURITY DEFINER triggers.
+- `monthly_reports` & `report_email_logs`: clinic admin/super_admin read; service_role write.
 
-```ts
-diag.event(area, name, data?)        // structured log
-diag.error(area, name, err, hints?)  // logs + suggests causes
-diag.time(area, name) → end()        // perf span
-diag.snapshot()                       // dump ring buffer (JSON)
-```
+No changes to existing tables' columns or policies unless a missing trigger is needed.
 
-`area` is a fixed union: `"auth" | "routing" | "hydration" | "query" | "rls" | "perf"`.
+---
 
-## What it captures (instrumentation points)
+## 2. Expense Management Module
 
-| Layer | Hook point | Captured |
-|---|---|---|
-| Backend queries | `src/lib/apiClient.ts` (already wraps fetch + invoke) | URL, table, status, Postgres `code`, `message`, duration |
-| RLS / permission | same wrapper, classifier on `42501`, `42P17`, `PGRST301` | "permission denied", "infinite recursion in policy", "JWT missing" |
-| Auth | `useAccess` checkpoints: `session-resolved`, `profile-loaded`, `roles-loaded`, `clinic-resolved` | timing + which step stalled |
-| Hydration | `AppLayout` mount, first non-loading render | time-to-shell, time-to-clinic-name |
-| Routing | `App.tsx` route change listener (read-only) | route, duration |
-| Perf | `diag.time` around expensive effects + the SuperAdmin stats queries | ms per span, slowest-N |
+- Route `/finance/expenses` (new sidebar group "Finance").
+- Page `src/pages/Expenses.tsx`: list + filters (category, date range, search), monthly totals card, CSV export.
+- Dialog for add/edit/delete with receipt upload to `expense-receipts` bucket.
+- Categories seeded as a const array (Salaries, Rent, Utilities, Fuel, Internet/Data, Advertising, Drugs, Frames, Contact Lenses, Lens Lab, Repairs, Equipment, Office Supplies, Taxes, Bank Charges, Miscellaneous).
+- Edit/delete gated by `isAdmin || isSuperAdmin`.
 
-No new provider; instrumentation is a few one-line calls inside existing files.
+---
 
-## Cause-hint rules (diagRules.ts)
+## 3. Dashboard Enhancement (additive cards)
 
-Pure lookup table from `{ area, code|name }` → hint string. Examples:
+- New component `src/components/dashboard/FinanceOverview.tsx` appended below existing Dashboard content — existing layout untouched.
+- Cards: Revenue (today/month), Expenses (today/month), Net Profit, Patients breakdown, Clinical Activity, Inventory, Billing.
+- Uses recharts (already in stack) for small trend sparklines.
 
-```ts
-"42501"     → "RLS denied. Missing policy or wrong auth.uid()."
-"42P17"     → "Recursive RLS policy. Use SECURITY DEFINER helper."
-"PGRST301"  → "JWT expired or missing. Check session persistence."
-"auth/no-session-after-login" → "Storage write failed; verify localStorage."
-"hydration/clinic-name-empty" → "Profile loaded but active_clinic_id null."
-"query/duration>1500" → "Slow query; check indexes or N+1 pattern."
-```
+---
 
-Rules live in one file, easy to extend.
+## 4. Inventory Audit
 
-## Sinks
+- New page `src/pages/InventoryAudit.tsx` at `/inventory/audit` — table of `inventory_movements` with filters.
+- Verify deduction paths (`Billing`, `Visits` medication dispense, `inventory_sales`) — if a path bypasses deduction, add a shared helper `src/lib/inventoryMovement.ts` and call it. No rewrite of existing screens beyond wiring the helper.
 
-1. **Console** — colored, grouped: `[diag:rls] patients query failed: permission denied → hint: …`
-2. **Ring buffer** — last 200 events in memory (`globalThis.__optocareDiag`).
-3. **Overlay (dev only)** — `DiagOverlay.tsx`, lazy-loaded, opens with `Ctrl+Shift+D`. Shows tabs: Events / Errors / Perf / Snapshot (copy JSON).
+---
 
-No network sink, no localStorage spam, no Sentry dependency.
+## 5. Settings → Account
 
-## What it does NOT do
+- New page `src/pages/AccountSettings.tsx` at `/settings/account`.
+- Shows email, last login (`auth.users.last_sign_in_at` via edge function), last password change (tracked via new column on `profiles` or read from auth metadata), active sessions count.
+- Actions: Change Email, Change Password, Send Password Reset — all use existing Supabase auth flows and existing `send-password-reset` edge function.
+- Audit-only fixes to any broken auth wiring found; no login flow rewrite.
 
-- No auth refactor, no provider, no context, no router replacement.
-- No retries, no auto-recovery, no global event bus.
-- No production telemetry shipped to a server (can be added later behind the same flag).
-- No mutation of working error messages — only **adds** structured logging and overlay.
+---
 
-## Implementation steps
+## 6. Monthly Report Engine
 
-1. Create `src/lib/diag/` with `diag.ts`, `diagConfig.ts`, `diagRules.ts`, `diagSinks.ts`.
-2. Add ~5 instrumentation calls:
-   - `apiClient.ts`: log non-2xx with table + Postgres code.
-   - `useAccess.tsx`: 4 checkpoint `diag.event` calls.
-   - `AppLayout.tsx`: one `diag.time("hydration","shell")`.
-   - `App.tsx`: route-change listener.
-   - `SuperAdminDashboard.tsx`: wrap each stat query in `diag.time`.
-3. Add `DiagOverlay.tsx`, lazy-mount only when `isDiagEnabled()`.
-4. Add a short `README` in `src/lib/diag/` with toggle instructions.
+- Edge function `generate-monthly-report`:
+  - Input: `clinic_id`, `year`, `month`.
+  - Aggregates from `visits`, `billing`, `expenses`, `patients`, `inventory`, `inventory_movements`, `hmo_claims`.
+  - Renders PDF using existing `pdf-lib` pattern from `generate-clinic-archive`.
+  - Uploads to `monthly-reports` bucket, writes `monthly_reports` row with payload + path.
+- Edge function `run-monthly-reports` (scheduled 1st of each month 02:00 UTC via `pg_cron` + `pg_net`):
+  - Iterates every active clinic, invokes `generate-monthly-report` for previous month, then `send-monthly-report-email`.
+- Edge function `send-monthly-report-email`:
+  - Sends via existing `sendEmail` shared util from `reports@optocareemr.com`.
+  - Recipients: clinic admin(s) + owner + optional `finance_email` on clinics.
+  - Retries 3× on failure; logs to `report_email_logs`.
 
-## Files touched
+Optional additive column `clinics.finance_email` (nullable).
 
-- **New:** `src/lib/diag/{diag,diagConfig,diagRules,diagSinks}.ts`, `src/lib/diag/DiagOverlay.tsx`, `src/lib/diag/README.md`
-- **Edited (1–3 lines each):** `src/lib/apiClient.ts`, `src/hooks/useAccess.tsx`, `src/components/AppLayout.tsx`, `src/App.tsx`, `src/pages/SuperAdminDashboard.tsx`
+---
 
-## Expected outcome
+## 7. Reports UI
 
-- Turn on with `?diag=1`, open overlay, reproduce a bug.
-- Instead of "Failed to load stats" you see:
-  `[diag:rls] HEAD /clinics?select=id → 500 (42P17) infinite recursion in policy for "user_roles" — hint: recursive RLS policy, use SECURITY DEFINER helper.`
-- Hydration tab shows: `session 120ms · profile 80ms · roles ✗ (500) · clinic — stuck`.
-- Zero overhead and zero visible UI when disabled.
+- `/reports/monthly` page listing cached `monthly_reports` for the current clinic, with view/download PDF.
+- Super Admin sees all clinics' reports at `/super-admin/reports`.
+
+---
+
+## 8. Charts inside PDF
+
+Server-side charts rendered as simple SVG via a lightweight helper in the edge function (no headless browser). Revenue trend, expense trend, net profit, patient growth, HMO distribution, product sales, top diagnoses.
+
+---
+
+## 9. Multi-Tenant Safety
+
+- Every query in new code filters by `clinic_id = effectiveClinicId`.
+- All new tables have RLS; edge functions use service role but scope by `clinic_id` from validated input.
+
+---
+
+## 10. Regression Protection
+
+- No edits to `useAuth`, `useAccess`, existing route guards, existing dashboard layout, existing billing/inventory pages beyond wiring the movement helper.
+- All new UI mounted under new routes; sidebar gets an additive "Finance" group and one "Inventory Audit" link.
+- Existing types file (`supabase/integrations/types.ts`) will be regenerated automatically after migrations.
+
+---
+
+## Delivery Order
+
+1. Migration 1: `expenses`, `inventory_movements`, `monthly_reports`, `report_email_logs`, storage buckets, triggers.
+2. Expense module + sidebar link.
+3. Inventory movement helper + Inventory Audit page.
+4. Dashboard finance cards.
+5. Account settings page.
+6. Monthly report edge functions + cron.
+7. Reports UI (clinic + super admin).
+8. Verification pass (build + targeted Playwright smoke on new routes).
+
+---
+
+## Scope Confirmation Needed
+
+This is a large multi-part build (~4 edge functions, 4 new tables, 5+ new pages, cron job). Confirm you want it all in one pass, or I can ship it in the numbered stages above so you can review incrementally.
