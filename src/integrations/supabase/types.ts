@@ -1112,6 +1112,7 @@ export type Database = {
           deactivation_reason: string | null
           display_name: string | null
           email: string | null
+          finance_email: string | null
           first_patient_created: boolean | null
           first_patient_done: boolean | null
           hmo_enabled: boolean | null
@@ -1150,6 +1151,7 @@ export type Database = {
           deactivation_reason?: string | null
           display_name?: string | null
           email?: string | null
+          finance_email?: string | null
           first_patient_created?: boolean | null
           first_patient_done?: boolean | null
           hmo_enabled?: boolean | null
@@ -1188,6 +1190,7 @@ export type Database = {
           deactivation_reason?: string | null
           display_name?: string | null
           email?: string | null
+          finance_email?: string | null
           first_patient_created?: boolean | null
           first_patient_done?: boolean | null
           hmo_enabled?: boolean | null
@@ -1368,6 +1371,59 @@ export type Database = {
           source?: string | null
         }
         Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          clinic_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          expense_date: string
+          id: string
+          payment_method: string | null
+          receipt_url: string | null
+          updated_at: string
+          vendor: string | null
+        }
+        Insert: {
+          amount?: number
+          category: string
+          clinic_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expense_date?: string
+          id?: string
+          payment_method?: string | null
+          receipt_url?: string | null
+          updated_at?: string
+          vendor?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string
+          clinic_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expense_date?: string
+          id?: string
+          payment_method?: string | null
+          receipt_url?: string | null
+          updated_at?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feature_flags: {
         Row: {
@@ -1801,6 +1857,83 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_movements: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          id: string
+          inventory_id: string | null
+          notes: string | null
+          patient_id: string | null
+          product_name: string | null
+          quantity_after: number | null
+          quantity_before: number | null
+          quantity_delta: number
+          reason: string
+          staff_id: string | null
+          visit_id: string | null
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          id?: string
+          inventory_id?: string | null
+          notes?: string | null
+          patient_id?: string | null
+          product_name?: string | null
+          quantity_after?: number | null
+          quantity_before?: number | null
+          quantity_delta: number
+          reason: string
+          staff_id?: string | null
+          visit_id?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          inventory_id?: string | null
+          notes?: string | null
+          patient_id?: string | null
+          product_name?: string | null
+          quantity_after?: number | null
+          quantity_before?: number | null
+          quantity_delta?: number
+          reason?: string
+          staff_id?: string | null
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_sale_items: {
         Row: {
           clinic_id: string | null
@@ -1926,6 +2059,59 @@ export type Database = {
           status?: string | null
         }
         Relationships: []
+      }
+      monthly_reports: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          error_message: string | null
+          file_size_bytes: number | null
+          generated_by: string | null
+          id: string
+          month: number
+          payload: Json | null
+          status: string
+          storage_path: string | null
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          error_message?: string | null
+          file_size_bytes?: number | null
+          generated_by?: string | null
+          id?: string
+          month: number
+          payload?: Json | null
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          error_message?: string | null
+          file_size_bytes?: number | null
+          generated_by?: string | null
+          id?: string
+          month?: number
+          payload?: Json | null
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_reports_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_logs: {
         Row: {
@@ -2347,6 +2533,63 @@ export type Database = {
           query?: string | null
         }
         Relationships: []
+      }
+      report_email_logs: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          recipient: string
+          report_id: string | null
+          report_month: number
+          report_year: number
+          retries: number
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient: string
+          report_id?: string | null
+          report_month: number
+          report_year: number
+          retries?: number
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient?: string
+          report_id?: string | null
+          report_month?: number
+          report_year?: number
+          retries?: number
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_email_logs_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_email_logs_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_reports"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       restock_history: {
         Row: {
