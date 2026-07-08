@@ -40,6 +40,10 @@ import LegalSecurity from "./pages/legal/Security";
 import LegalCompliance from "./pages/legal/Compliance";
 import LegalMedical from "./pages/legal/MedicalDisclaimer";
 import LegalContact from "./pages/legal/Contact";
+import Expenses from "./pages/Expenses";
+import InventoryAudit from "./pages/InventoryAudit";
+import AccountSettings from "./pages/AccountSettings";
+import MonthlyReports from "./pages/MonthlyReports";
 import {
   diag,
   isDiagEnabled,
@@ -283,6 +287,10 @@ export function AppRoutes() {
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/billing" element={<Billing />} />
           <Route path="/admin/roles" element={<AdminRoles />} />
+          <Route path="/finance/expenses" element={<Expenses />} />
+          <Route path="/inventory/audit" element={<InventoryAudit />} />
+          <Route path="/settings/account" element={<AccountSettings />} />
+          <Route path="/reports/monthly" element={<MonthlyReports />} />
           <Route path="*" element={<NotFound />} />
         </Route>
 
