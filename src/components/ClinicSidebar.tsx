@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, ShoppingBag, DollarSign, ShieldCheck, Calendar,
   UserPlus, Building2, Sparkles, LifeBuoy, CheckCircle2, CircleDashed, Clock, Activity, Archive,
+  Wallet, ClipboardList, FileBarChart, UserCog,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -93,6 +94,10 @@ export default function ClinicSidebar() {
         { to: "/register", label: "Add Patient", icon: UserPlus },
         { to: "/appointments", label: "Appointments", icon: Calendar },
         { to: "/hmos", label: "HMOs", icon: Building2 },
+        { to: "/finance/expenses", label: "Expenses", icon: Wallet },
+        { to: "/reports/monthly", label: "Monthly Reports", icon: FileBarChart },
+        { to: "/inventory/audit", label: "Inventory Audit", icon: ClipboardList },
+        { to: "/settings/account", label: "Account", icon: UserCog },
         ...(isAdmin ? [{ to: "/admin/roles", label: "Manage Roles", icon: ShieldCheck }] : []),
       ],
     };

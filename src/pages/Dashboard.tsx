@@ -18,6 +18,7 @@ import { startLoadingWatch,
 import { useClinic } from "@/hooks/useClinic";
 import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
+import FinanceOverview from "@/components/dashboard/FinanceOverview";
 
 interface DashboardSnapshot {
   todayVisits: number;
@@ -646,6 +647,7 @@ group
           </div>
         )}
       </div>
+      <FinanceOverview />
     </div>
 
   );
