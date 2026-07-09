@@ -14,10 +14,17 @@ interface Metrics {
   consultations: number;
 }
 
-const Card = ({ icon: Icon, label, value, tone = "primary" as "primary"|"success"|"warning"|"destructive" }: any) => (
+const TONE: Record<string, string> = {
+  primary: "bg-primary/10 text-primary",
+  success: "bg-success/10 text-success",
+  warning: "bg-warning/10 text-warning",
+  destructive: "bg-destructive/10 text-destructive",
+};
+
+const Card = ({ icon: Icon, label, value, tone = "primary" }: { icon: any; label: string; value: any; tone?: keyof typeof TONE }) => (
   <div className="form-section">
     <div className="flex items-center gap-3">
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-${tone}/10 text-${tone}`}>
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${TONE[tone] || TONE.primary}`}>
         <Icon size={18} />
       </div>
       <div className="min-w-0">
