@@ -18,6 +18,7 @@ export interface BillQueueItem {
   notes?: string | null;
   items?: Array<any>;
   visit_id?: string | number | null;
+  editing_billing_id?: string | null; // NEW: if set, update existing billing record instead of creating
   queued_at?: number | string;
   [k:string]: any;
 }
@@ -86,20 +87,47 @@ export async function processBillsQueue(clinicId: string): Promise<{ success:num
         const itemsTotal = itemsList.reduce((s:any, it:any) => s + Number((it.total_price ?? (Number(it.quantity||0) * Number(it.unit_price||0))) || 0), 0);
         const grandTotal = itemsTotal + consult;
 
-        const { data: bill, error: billErr } = await apiClient.from('billing').insert({
-          clinic_id: clinicId,
-          patient_id: patientId,
-          visit_id: latestVisit?.id,
-          payer_type: isHmo ? 'hmo' : 'private',
-          hmo_id: isHmo ? item.hmo_id ?? null : null,
-          consultation_fee: consult,
-          notes: item.notes ?? null,
-          status: 'pending',
-        } as any).select().single();
+        let billingId: string;
 
-        if (billErr || !bill) throw new Error(billErr?.message || 'Failed to create billing record');
-        const billingId = (bill as any).id;
+        // NEW: Check if this is an editing operation
+        if (item.editing_billing_id) {
+          // Update existing billing record
+          billingId = item.editing_billing_id;
 
+          const updatePayload: any = {
+            consultation_fee: consult,
+            notes: item.notes ?? null,
+            payer_type: isHmo ? 'hmo' : 'private',
+          };
+
+          if (isHmo) {
+            updatePayload.hmo_id = item.hmo_id ?? null;
+          }
+
+          const { error: updateErr } = await apiClient
+            .from('billing')
+            .update(updatePayload)
+            .eq('id', billingId);
+
+          if (updateErr) throw new Error(`Failed to update billing: ${updateErr.message}`);
+        } else {
+          // Create new billing record (original behavior)
+          const { data: bill, error: billErr } = await apiClient.from('billing').insert({
+            clinic_id: clinicId,
+            patient_id: patientId,
+            visit_id: latestVisit?.id,
+            payer_type: isHmo ? 'hmo' : 'private',
+            hmo_id: isHmo ? item.hmo_id ?? null : null,
+            consultation_fee: consult,
+            notes: item.notes ?? null,
+            status: 'pending',
+          } as any).select().single();
+
+          if (billErr || !bill) throw new Error(billErr?.message || 'Failed to create billing record');
+          billingId = (bill as any).id;
+        }
+
+        // Insert billing items (always insert new items, never update)
         if (itemsList.length > 0) {
           const payload = itemsList.map((it:any) => ({
             clinic_id: clinicId,
@@ -115,6 +143,7 @@ export async function processBillsQueue(clinicId: string): Promise<{ success:num
           if (itemsErr) throw new Error(itemsErr.message);
         }
 
+        // NEW: Only create HMO claim if not already exists for this billing_id
         if (isHmo && item.hmo_id) {
           let hmoName = '';
           try {
@@ -122,17 +151,26 @@ export async function processBillsQueue(clinicId: string): Promise<{ success:num
             if (hmoRow) hmoName = hmoRow.name ?? '';
           } catch {}
 
-          await apiClient.from('hmo_claims').insert({
-            clinic_id: clinicId,
-            billing_id: billingId,
-            hmo_id: item.hmo_id,
-            hmo_name: hmoName,
-            patient_id: patientId,
-            service_cost: grandTotal,
-            approved_amount: 0,
-            co_payment: 0,
-            status: 'Pending',
-          } as any);
+          // Check if claim already exists
+          const { data: existingClaim } = await apiClient
+            .from('hmo_claims')
+            .select('id')
+            .eq('billing_id', billingId)
+            .maybeSingle();
+
+          if (!existingClaim) {
+            await apiClient.from('hmo_claims').insert({
+              clinic_id: clinicId,
+              billing_id: billingId,
+              hmo_id: item.hmo_id,
+              hmo_name: hmoName,
+              patient_id: patientId,
+              service_cost: grandTotal,
+              approved_amount: 0,
+              co_payment: 0,
+              status: 'Pending',
+            } as any);
+          }
         }
 
         // inventory deductions (best-effort)
@@ -154,7 +192,8 @@ export async function processBillsQueue(clinicId: string): Promise<{ success:num
         // remove item on full success
         await removeQueueItemAndSave(key, queue, idx);
         success++;
-        toast.success(`Bill queued at ${item.queued_at ?? 'unknown'} synced (bill ${String(billingId)})`);
+        const action = item.editing_billing_id ? 'updated' : 'created';
+        toast.success(`Bill queued at ${item.queued_at ?? 'unknown'} synced (bill ${action}: ${String(billingId)})`);
       } catch (err:any) {
         failed++; idx++; toast.error(`Failed to sync bill queued at ${item.queued_at ?? 'unknown'}: ${String(err?.message ?? err)}`);
       }
