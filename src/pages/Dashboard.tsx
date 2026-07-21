@@ -6,7 +6,6 @@ import {
   showNotification,
 } from "@/lib/notifications";
 import {
-  checkRevenueMismatch,
   checkClinicSubscription,
 } from "@/lib/diag/healthChecks";
 import { Link, useSearchParams } from "react-router-dom";
@@ -142,7 +141,7 @@ export default function Dashboard() {
   .select("subscription_status")
   .eq("id", cid)
   .maybeSingle();
-    
+     
 checkQueryFailure(
   "clinics",
   "subscription check",
@@ -207,39 +206,15 @@ checkClinicSubscription(
         upcomingApptRes,
         invRes,
         billRes,
-        revenueRes,
-        prevRevenueRes,
         drugRes,
       ] = await Promise.all([
         apiClient.from("patients").select("id, full_name, age, gender, phone, payment_type, queue_number").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(5),
         apiClient.from("patients").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", monthStart),
         apiClient.from("visits").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", `${today}T00:00:00`),
         apiClient.from("appointments").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]),
-        apiClient.from("appointments").select("id, appointment_date, appointment_time, reason, patient_id").eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]).order("appointment_date", { ascending: true }).limit(5),
+        apiClient.from("appointments").select("id, appointment_date, appointment_time, reason, patient_id").eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]),
         apiClient.from("inventory").select("*", { count: "exact", head: true }).eq("clinic_id", cid).lte("stock_quantity", 5),
         apiClient.from("billing").select("*", { count: "exact", head: true }).eq("clinic_id", cid).eq("status", "pending"),
-        apiClient
-  .from("billing")
-  .select(`
-    total_amount,
-    visit:visits!billing_visit_id_fkey(
-      created_at
-    )
-  `)
-  .eq("clinic_id", cid)
-  .eq("status", "paid")
-        
-        apiClient
-  .from("billing")
-  .select(`
-    total_amount,
-    visit:visits!billing_visit_id_fkey(
-      created_at
-    )
-  `)
- .eq("clinic_id", cid)
-  .eq("status", "paid")
-    
         apiClient.from("drugs").select("*", { count: "exact", head: true }).eq("clinic_id", cid).lte("stock", 5),
       ]);
       
@@ -283,18 +258,6 @@ checkQueryFailure(
   "billing",
   "pending bills",
   billRes.error
-);
-
-checkQueryFailure(
-  "billing",
-  "current revenue",
-  revenueRes.error
-);
-
-checkQueryFailure(
-  "billing",
-  "previous revenue",
-  prevRevenueRes.error
 );
 
 checkQueryFailure(
@@ -347,81 +310,50 @@ if ((billingMissing || 0) > 0) {
   );
 }
 
-      const sumAmount = (rows: any) => Array.isArray(rows) ? rows.reduce((s, r) => s + Number(r.total_amount || 0), 0) : 0;
-      const currentMonthRevenue =
-  (revenueRes.data || [])
-    .filter((bill: any) => {
-      const visitDate =
-        bill.visit?.created_at
-          ? new Date(
-              bill.visit.created_at
-            )
-          : null;
-
-      return (
-        visitDate &&
-        visitDate.getMonth() ===
-          now.getMonth() &&
-        visitDate.getFullYear() ===
-          now.getFullYear()
+      // Fetch revenue from PostgreSQL RPC
+      const currentRevenueRes = await apiClient.rpc(
+        "get_dashboard_revenue",
+        {
+          p_clinic_id: cid,
+          p_year: now.getFullYear(),
+          p_month: now.getMonth() + 1,
+        }
       );
-    })
-    .reduce(
-      (sum: number, bill: any) =>
-        sum +
-        Number(
-          bill.total_amount || 0
-        ),
-      0
-    );
 
-      const billingRevenue =
-  sumAmount(revenueRes.data);
-
-checkRevenueMismatch(
-  billingRevenue,
-  currentMonthRevenue
-);
-
-      const previousMonthRevenueCalc =
-  (prevRevenueRes.data || [])
-    .filter((bill: any) => {
-      const visitDate =
-        bill.visit?.created_at
-          ? new Date(bill.visit.created_at)
-          : null;
-
-      const prevMonth =
-        now.getMonth() === 0
-          ? 11
-          : now.getMonth() - 1;
-
-      const prevYear =
-        now.getMonth() === 0
-          ? now.getFullYear() - 1
-          : now.getFullYear();
-
-      return (
-        visitDate &&
-        visitDate.getMonth() === prevMonth &&
-        visitDate.getFullYear() === prevYear
+      checkQueryFailure(
+        "get_dashboard_revenue",
+        "current month revenue",
+        currentRevenueRes.error
       );
-    })
-    .reduce(
-      (sum: number, bill: any) =>
-        sum + Number(bill.total_amount || 0),
-      0
-    );
 
-      console.log("Revenue rows", revenueRes.data);
-console.log("Current month revenue", currentMonthRevenue);
+      const previousDate = new Date(
+        now.getFullYear(),
+        now.getMonth() - 1,
+        1
+      );
+
+      const previousRevenueRes = await apiClient.rpc(
+        "get_dashboard_revenue",
+        {
+          p_clinic_id: cid,
+          p_year: previousDate.getFullYear(),
+          p_month: previousDate.getMonth() + 1,
+        }
+      );
+
+      checkQueryFailure(
+        "get_dashboard_revenue",
+        "previous month revenue",
+        previousRevenueRes.error
+      );
+
       const snap: DashboardSnapshot = {
         monthPatients: monthPatientsRes.count ?? 0,
         todayVisits: visitsRes.count ?? 0,
         todayAppointments: apptRes.count ?? 0,
         pendingBills: billRes.count ?? 0,
-        monthlyRevenue: currentMonthRevenue,
-        previousMonthRevenue: previousMonthRevenueCalc,
+        monthlyRevenue: Number(currentRevenueRes.data ?? 0),
+        previousMonthRevenue: Number(previousRevenueRes.data ?? 0),
         lowStockCount: invRes.count ?? 0,
         drugAlerts: drugRes.count ?? 0,
         recentPatients: (patientsRes.data as any[]) ?? [],
@@ -521,8 +453,8 @@ console.log("Current month revenue", currentMonthRevenue);
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Metric icon={Users} label="Patients This Month" value={monthPatients} gradient={tealGrad} iconGradient={tealIcon} iconColor="hsl(184 78% 40%)" accentClass="accent-teal" to="/patients?filter=thismonth"/>
-        <Metric icon={TrendingUp} label={`${currentMonthName} Revenue`} value={`₦${monthlyRevenue.toLocaleString()}`} gradient={navyGrad} iconGradient={navyIcon} iconColor="hsl(217 91% 55%)" accentClass="accent-navy" to={`/billing?month=current`} />
+        <Metric icon={Users} label="Patients This Month" value={monthPatients} gradient={tealGrad} iconGradient={tealIcon} iconColor="hsl(184 78% 40%)" accentClass="accent-teal" to="/patients?filter=month" />
+        <Metric icon={TrendingUp} label={`${currentMonthName} Revenue`} value={`₦${monthlyRevenue.toLocaleString()}`} gradient={navyGrad} iconGradient={navyIcon} iconColor="hsl(217 91% 55%)" accentClass="accent-navy" to="/billing?month=current" />
         <Metric icon={DollarSign} label="Pending Bills" value={pendingBills} gradient={amberGrad} iconGradient={amberIcon} iconColor="hsl(38 92% 50%)" accentClass="accent-warning" to="/billing" />
         <Metric
           icon={DollarSign}
