@@ -227,7 +227,7 @@ checkClinicSubscription(
     )
   `)
   .eq("clinic_id", cid)
-  .not("status", "in", "(cancelled,voided)"),
+  .eq("status", "paid")
         
         apiClient
   .from("billing")
@@ -238,7 +238,7 @@ checkClinicSubscription(
     )
   `)
  .eq("clinic_id", cid)
-  .not("status", "in", "(cancelled,voided)"),
+  .eq("status", "paid")
     
         apiClient.from("drugs").select("*", { count: "exact", head: true }).eq("clinic_id", cid).lte("stock", 5),
       ]);
