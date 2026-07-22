@@ -199,11 +199,7 @@ export default function Billing() {
 
     setPatientSearch("");
 
-    console.log("================================");
-console.log("Current Clinic ID:", cid);
-console.log("Patient ID:", patient.id);
-console.log("Patient Name:", patient.full_name);
-console.log("================================");
+    
 
     const { data: billsRes, error } =
       await apiClient
@@ -234,10 +230,10 @@ console.log("Billing rows:", billsRes);
     // Remember the billing record being edited
 if (!billsRes || billsRes.length === 0) {
   console.log("No billing records for patient");
-  setEditingBillingId(null);
+  setEditingBill(null);
 } else {
   console.log("Selected billing:", billsRes[0]);
-  setEditingBillingId(billsRes[0].id);
+  setEditingBill(billsRes[0]);
 }
 
     setLookupPayments(
