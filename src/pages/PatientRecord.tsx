@@ -387,7 +387,11 @@ const { data, error } = editingVisitId
       .select()
       .single();
     setSaving(false);
-    if (error) { toast.error("Failed to save visit: " + error.message); return; }
+    if (error) {
+  alert(JSON.stringify(error, null, 2));
+  toast.error(error.message);
+  return;
+    }
     toast.success(markCompleted ? "Visit completed — bill auto-created" : "Visit saved");
     setEditingVisitId(null);
     setForm(emptyVisitForm());
