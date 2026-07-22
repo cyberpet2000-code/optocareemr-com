@@ -219,6 +219,12 @@ export default function Billing() {
     setLookupBills(
       (billsRes || []) as BillingRow[]
     );
+    // Remember the billing record being edited
+if (billsRes && billsRes.length > 0) {
+  setEditingBillingId(billsRes[0].id);
+} else {
+  setEditingBillingId(null);
+}
 
     setLookupPayments(
       paymentsRes || []
@@ -340,24 +346,31 @@ export default function Billing() {
     setSaving(true);
     try {
       const isHmo = selectedPatient?.payment_type === "hmo";
-      const { data: latestVisit } = await apiClient
-        .from("visits")
-        .select("id")
-        .eq("clinic_id", cid)
-        .eq("patient_id", form.patientId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
+      if (!editingBillingId) {
+  toast.error("No billing record selected.");
+  setSaving(false);
+  return;
+}
 
-      if (!latestVisit) {
-        toast.error("Complete patient visit before billing");
-        setSaving(false);
-        return;
-      }
+const { data: existingBill, error: billError } = await apiClient
+  .from("billing")
+  .select("*")
+  .eq("id", editingBillingId)
+  .maybeSingle();
 
-      // Fetch existing billing record by visit_id
-      const existingBill = await fetchBillingByVisitId(latestVisit.id);
-      const billingId = existingBill.id;
+if (billError) {
+  toast.error(billError.message);
+  setSaving(false);
+  return;
+}
+
+if (!existingBill) {
+  toast.error("Billing record not found.");
+  setSaving(false);
+  return;
+}
+
+const billingId = existingBill.id;
 
       // Update consultation fee if changed
       if (existingBill.consultation_fee !== consult) {
