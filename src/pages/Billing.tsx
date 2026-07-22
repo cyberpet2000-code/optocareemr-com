@@ -206,6 +206,7 @@ export default function Billing() {
         .order("created_at", {
           ascending: false,
         });
+    console.log("Bills found:", billsRes);
 
     const { data: paymentsRes } =
       await apiClient
@@ -220,10 +221,12 @@ export default function Billing() {
       (billsRes || []) as BillingRow[]
     );
     // Remember the billing record being edited
-if (billsRes && billsRes.length > 0) {
-  setEditingBillingId(billsRes[0].id);
-} else {
+if (!billsRes || billsRes.length === 0) {
+  console.log("No billing records for patient");
   setEditingBillingId(null);
+} else {
+  console.log("Selected billing:", billsRes[0]);
+  setEditingBillingId(billsRes[0].id);
 }
 
     setLookupPayments(
@@ -348,6 +351,7 @@ console.log("Billing lookup error:", error);
     setSaving(true);
     try {
       const isHmo = selectedPatient?.payment_type === "hmo";
+      console.log("editingBillingId =", editingBillingId);
       if (!editingBillingId) {
   toast.error("No billing record selected.");
   setSaving(false);
@@ -359,6 +363,8 @@ const { data: existingBill, error: billError } = await apiClient
   .select("*")
   .eq("id", editingBillingId)
   .maybeSingle();
+      console.log("existingBill =", existingBill);
+console.log("billError =", billError);
 
 if (billError) {
   toast.error(billError.message);
