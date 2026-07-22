@@ -199,6 +199,12 @@ export default function Billing() {
 
     setPatientSearch("");
 
+    console.log("================================");
+console.log("Current Clinic ID:", cid);
+console.log("Patient ID:", patient.id);
+console.log("Patient Name:", patient.full_name);
+console.log("================================");
+
     const { data: billsRes, error } =
       await apiClient
         .from("billing")
