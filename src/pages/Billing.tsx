@@ -199,7 +199,7 @@ export default function Billing() {
 
     setPatientSearch("");
 
-    const { data: billsRes } =
+    const { data: billsRes, error } =
       await apiClient
         .from("billing")
         .select("*")
@@ -208,7 +208,9 @@ export default function Billing() {
         .order("created_at", {
           ascending: false,
         });
-    console.log("Bills found:", billsRes);
+    console.log("Billing query error:", error);
+console.log("Billing rows:", billsRes);
+    
 
     const { data: paymentsRes } =
       await apiClient
