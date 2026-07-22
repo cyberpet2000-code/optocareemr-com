@@ -188,6 +188,8 @@ export default function Billing() {
 
     setSelectedLookupPatient(patient);
 
+    console.log("editingBillingId before opening form:", editingBillingId);
+
     setForm((f) => ({
       ...f,
       patientId: patient.id,
@@ -219,6 +221,7 @@ export default function Billing() {
 
     setLookupBills(
       (billsRes || []) as BillingRow[]
+      console.log("billsRes =", billsRes);
     );
     // Remember the billing record being edited
 if (!billsRes || billsRes.length === 0) {
