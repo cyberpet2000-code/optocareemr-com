@@ -292,6 +292,8 @@ if (billsRes && billsRes.length > 0) {
       .eq("clinic_id", cid)
       .eq("visit_id", visitId)
       .maybeSingle();
+    console.log("Billing lookup result:", data);
+console.log("Billing lookup error:", error);
 
     if (error) {
       throw new Error(`Failed to fetch billing record: ${error.message}`);
