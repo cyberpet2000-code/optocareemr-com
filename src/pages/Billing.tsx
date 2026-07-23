@@ -225,6 +225,7 @@ console.log("Billing rows:", billsRes);
 
     setLookupBills(
       (billsRes || []) as BillingRow[]
+      
       console.log("billsRes =", billsRes);
     );
     // Remember the billing record being edited
