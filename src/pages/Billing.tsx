@@ -208,6 +208,12 @@ export default function Billing() {
           .order("created_at", {
             ascending: false,
           });
+      
+      console.log("========== BILLING QUERY ==========");
+console.log("Patient ID:", patient.id);
+console.log("Clinic ID:", cid);
+console.log("Billing rows:", billsRes);
+console.log("Billing error:", error);
 
       if (error) {
         console.error("Billing query error:", error);
@@ -237,9 +243,14 @@ export default function Billing() {
       }
 
       if (selectedBill) {
-        setEditingBillingId(selectedBill.id);
-      } else {
-        setEditingBillingId(null);
+    console.log("Selected billing record:", selectedBill);
+    console.log("Selected billing ID:", selectedBill.id);
+
+    setEditingBillingId(selectedBill.id);
+} else {
+    console.log("NO BILL WAS SELECTED");
+
+    setEditingBillingId(null);
       }
 
       setLookupPayments(
