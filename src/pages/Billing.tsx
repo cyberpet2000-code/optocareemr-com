@@ -202,7 +202,7 @@ toast.success("Clinic ID: " + cid);
     setPatientSearch("");
 
     try {
-      const { data: billsRes, error } =
+      
       const { data: billsRes, error } =
   await apiClient
     .from("billing")
