@@ -2,7 +2,7 @@ import OptoLoader from "@/components/OptoLoader";
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
-
+import { ensureBillingForVisit } from "@/lib/ensureBilling";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -392,6 +392,36 @@ const { data, error } = editingVisitId
   toast.error(error.message);
   return;
     }
+
+    // ----------------------------------------------------
+// Safety net: Ensure completed visits always have a bill
+// ----------------------------------------------------
+
+if (
+  markCompleted &&
+  data
+) {
+  try {
+    await ensureBillingForVisit({
+      id: data.id,
+      clinic_id: data.clinic_id,
+      patient_id: data.patient_id,
+      payment_type: data.payment_type,
+      active_hmo_id: data.active_hmo_id,
+    });
+  } catch (err: any) {
+    console.error(
+      "Failed to ensure billing:",
+      err
+    );
+
+    toast.error(
+      "Visit was completed, but billing could not be verified."
+    );
+
+    return;
+  }
+}
     toast.success(markCompleted ? "Visit completed — bill auto-created" : "Visit saved");
     setEditingVisitId(null);
     setForm(emptyVisitForm());
