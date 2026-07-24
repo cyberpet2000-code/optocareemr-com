@@ -1,7 +1,6 @@
 import OptoLoader from "@/components/OptoLoader";
 import { useState, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ensureBillingForVisit } from "@/lib/ensureBilling";
 import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -200,37 +199,6 @@ export default function Billing() {
     setPatientSearch("");
 
     try {
-
-      const { data: latestVisit, error: visitError } =
-  await apiClient
-    .from("visits")
-    .select(`
-      id,
-      clinic_id,
-      patient_id,
-      payment_type,
-      active_hmo_id,
-      status
-    `)
-    .eq("clinic_id", cid)
-    .eq("patient_id", patient.id)
-    .eq("status", "completed")
-    .order("completed_at", {
-      ascending: false,
-    })
-    .limit(1)
-    .maybeSingle();
-
-if (visitError) {
-  toast.error(
-    "Failed to load patient's latest visit."
-  );
-  return;
-}
-
-      if (latestVisit) {
-  await ensureBillingForVisit(latestVisit);
-      }
       
       const { data: billsRes, error } = await apiClient
   .from("billing")
