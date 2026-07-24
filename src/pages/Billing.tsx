@@ -211,9 +211,16 @@ export default function Billing() {
       
       if (error) {
   toast.error("Billing query failed: " + error.message);
-} else {
-  toast.success("Bills found: " + (billsRes?.length ?? 0));
-      }
+  return;
+}
+
+if (!billsRes || billsRes.length === 0) {
+  toast.error("Bills found: 0");
+  setEditingBillingId(null);
+  return;
+}
+
+toast.success("Bills found: " + billsRes.length);
 
       if (error) {
         console.error("Billing query error:", error);
@@ -235,20 +242,20 @@ export default function Billing() {
         (billsRes || []) as BillingRow[]
       );
 
-      // Select the latest pending bill, or if no pending bills, the most recent bill
-      let selectedBill: BillingRow | null = null;
-      if (billsRes && billsRes.length > 0) {
-        // Look for a pending bill (status !== "paid")
-        selectedBill = billsRes.find((b) => b.status !== "paid") || billsRes[0];
-      }
+      // Select the latest pending bill, or if no pending bills, the newest bill
+const selectedBill =
+  billsRes.find((b) => b.status !== "paid") ??
+  billsRes[0];
 
-      if (selectedBill) {
-  toast.success("Selected Bill ID: " + selectedBill.id);
-  setEditingBillingId(selectedBill.id);
-} else {
+if (!selectedBill) {
   toast.error("No billing record selected");
   setEditingBillingId(null);
-      }
+  return;
+}
+
+toast.success("Selected Bill ID: " + selectedBill.id);
+
+setEditingBillingId(selectedBill.id);
 
       setLookupPayments(
         paymentsRes || []
