@@ -203,27 +203,13 @@ toast.success("Clinic ID: " + cid);
 
     try {
       
-      const { data: billsRes, error } =
-  await apiClient
-    .from("billing")
-    .select("*")
-    .eq("clinic_id", cid)
-    .order("created_at", {
-      ascending: false,
-    });
+      const { data: billsRes, error: billsError } = await supabase
+  .from("billing")
+  .select("*")
+  .eq("clinic_id", cid)
+  .eq("patient_id", patient.id)
+  .order("created_at", { ascending: false });
       
-      if (error) {
-  toast.error("Billing query failed: " + error.message);
-  return;
-}
-
-if (!billsRes || billsRes.length === 0) {
-  toast.error("Bills found: 0");
-  setEditingBillingId(null);
-  return;
-}
-
-toast.success("Bills found: " + billsRes.length);
 
       if (error) {
         console.error("Billing query error:", error);
