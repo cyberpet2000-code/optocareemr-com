@@ -504,6 +504,56 @@ setEditingBillingId(selectedBill.id);
         }
       }
 
+      // ---------------------------------------------
+// Recalculate and update billing totals
+// ---------------------------------------------
+
+const newItemsTotal = items.reduce(
+  (sum, item) => sum + Number(item.total_price || 0),
+  0
+);
+
+const newTotalAmount = consult + newItemsTotal;
+
+const amountPaid =
+  Number(existingBill.amount_paid) || 0;
+
+const newBalance =
+  Math.max(newTotalAmount - amountPaid, 0);
+
+let newStatus: "pending" | "partial" | "paid";
+
+if (amountPaid === 0) {
+  newStatus = "pending";
+} else if (newBalance === 0) {
+  newStatus = "paid";
+} else {
+  newStatus = "partial";
+}
+
+const { error: totalsError } =
+  await apiClient
+    .from("billing")
+    .update({
+      consultation_fee: consult,
+      items_total: newItemsTotal,
+      total_amount: newTotalAmount,
+      balance: newBalance,
+      status: newStatus,
+    })
+    .eq("id", billingId);
+
+if (totalsError) {
+  toast.error(
+    "Failed to update billing totals: " +
+      totalsError.message
+  );
+
+  setSaving(false);
+
+  return;
+}
+
       // Create or update HMO claim if needed
       if (isHmo && selectedPatient?.active_hmo_id) {
         // Check if claim already exists
