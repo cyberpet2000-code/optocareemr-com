@@ -226,8 +226,10 @@ console.log("Billing rows:", billsRes);
     setLookupBills(
       (billsRes || []) as BillingRow[]
       
-      console.log("billsRes =", billsRes);
     );
+
+    console.log("billsRes =", billsRes);
+    
     // Remember the billing record being edited
 if (!billsRes || billsRes.length === 0) {
   console.log("No billing records for patient");
