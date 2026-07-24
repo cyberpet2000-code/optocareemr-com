@@ -61,6 +61,7 @@ export default function Billing() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadingBilling, setLoadingBilling] = useState(false);
   const [paymentBillingId, setPaymentBillingId] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("Cash");
@@ -186,9 +187,8 @@ export default function Billing() {
   ) => {
     if (!cid) return;
 
+    setLoadingBilling(true);
     setSelectedLookupPatient(patient);
-
-    console.log("editingBillingId before opening form:", editingBillingId);
 
     setForm((f) => ({
       ...f,
@@ -196,50 +196,61 @@ export default function Billing() {
     }));
 
     setShowForm(true);
-
     setPatientSearch("");
 
-    
+    try {
+      const { data: billsRes, error } =
+        await apiClient
+          .from("billing")
+          .select("*")
+          .eq("clinic_id", cid)
+          .eq("patient_id", patient.id)
+          .order("created_at", {
+            ascending: false,
+          });
 
-    const { data: billsRes, error } =
-      await apiClient
-        .from("billing")
-        .select("*")
-        .eq("clinic_id", cid)
-        .eq("patient_id", patient.id)
-        .order("created_at", {
-          ascending: false,
-        });
-    console.log("Billing query error:", error);
-console.log("Billing rows:", billsRes);
-    
+      if (error) {
+        console.error("Billing query error:", error);
+        setEditingBillingId(null);
+        setLoadingBilling(false);
+        return;
+      }
 
-    const { data: paymentsRes } =
-      await apiClient
-        .from("payments")
-        .select("*")
-        .in(
-          "billing_id",
-          (billsRes || []).map((b) => b.id)
-        );
+      const { data: paymentsRes } =
+        await apiClient
+          .from("payments")
+          .select("*")
+          .in(
+            "billing_id",
+            (billsRes || []).map((b) => b.id)
+          );
 
-    setLookupBills(
-      (billsRes || []) as BillingRow[]
-      
-    );
+      setLookupBills(
+        (billsRes || []) as BillingRow[]
+      );
 
-    console.log("billsRes =", billsRes);
-    
-    // Remember the billing record being edited
-if (!billsRes || billsRes.length === 0) {
-  setEditingBillingId(null);
-} else {
-  setEditingBillingId(billsRes[0].id);
-}
+      // Select the latest pending bill, or if no pending bills, the most recent bill
+      let selectedBill: BillingRow | null = null;
+      if (billsRes && billsRes.length > 0) {
+        // Look for a pending bill (status !== "paid")
+        selectedBill = billsRes.find((b) => b.status !== "paid") || billsRes[0];
+      }
 
-    setLookupPayments(
-      paymentsRes || []
-    );
+      if (selectedBill) {
+        setEditingBillingId(selectedBill.id);
+      } else {
+        setEditingBillingId(null);
+      }
+
+      setLookupPayments(
+        paymentsRes || []
+      );
+    } catch (err) {
+      console.error("Error loading patient billing:", err);
+      setEditingBillingId(null);
+    } finally {
+      setLoadingBilling(false);
+    }
   };
 
   const filteredPatients =
@@ -303,8 +314,6 @@ if (!billsRes || billsRes.length === 0) {
       .eq("clinic_id", cid)
       .eq("visit_id", visitId)
       .maybeSingle();
-    console.log("Billing lookup result:", data);
-console.log("Billing lookup error:", error);
 
     if (error) {
       throw new Error(`Failed to fetch billing record: ${error.message}`);
@@ -333,6 +342,14 @@ console.log("Billing lookup error:", error);
     if (!cid) { toast.error("No active clinic"); return; }
     if (!form.patientId) { toast.error("Select a patient"); return; }
     if (grandTotal <= 0) { toast.error("Add a consultation fee or items"); return; }
+    
+    // Prevent execution if bill is still loading or no bill is selected
+    if (loadingBilling || !editingBillingId) {
+      if (!editingBillingId && !loadingBilling) {
+        toast.error("No billing record found. Please select a patient with an existing bill.");
+      }
+      return;
+    }
 
     const offline = isOffline || (typeof navigator !== "undefined" && !navigator.onLine);
     if (offline) {
@@ -359,34 +376,26 @@ console.log("Billing lookup error:", error);
     setSaving(true);
     try {
       const isHmo = selectedPatient?.payment_type === "hmo";
-      console.log("editingBillingId =", editingBillingId);
-      if (!editingBillingId) {
-  toast.error("No billing record selected.");
-  setSaving(false);
-  return;
-}
 
-const { data: existingBill, error: billError } = await apiClient
-  .from("billing")
-  .select("*")
-  .eq("id", editingBillingId)
-  .maybeSingle();
-      console.log("existingBill =", existingBill);
-console.log("billError =", billError);
+      const { data: existingBill, error: billError } = await apiClient
+        .from("billing")
+        .select("*")
+        .eq("id", editingBillingId)
+        .maybeSingle();
 
-if (billError) {
-  toast.error(billError.message);
-  setSaving(false);
-  return;
-}
+      if (billError) {
+        toast.error(billError.message);
+        setSaving(false);
+        return;
+      }
 
-if (!existingBill) {
-  toast.error("Billing record not found.");
-  setSaving(false);
-  return;
-}
+      if (!existingBill) {
+        toast.error("Billing record not found.");
+        setSaving(false);
+        return;
+      }
 
-const billingId = existingBill.id;
+      const billingId = existingBill.id;
 
       // Update consultation fee if changed
       if (existingBill.consultation_fee !== consult) {
@@ -982,7 +991,13 @@ const billingId = existingBill.id;
               <div><p className="text-[10px] text-muted-foreground">TOTAL</p><p className="text-base font-bold text-primary">₦{grandTotal.toLocaleString()}</p></div>
             </div>
 
-            <Button className="rounded-xl w-full" onClick={handleEditBill} disabled={saving}>{saving ? "Saving..." : "Save Bill"}</Button>
+            <Button 
+              className="rounded-xl w-full" 
+              onClick={handleEditBill} 
+              disabled={saving || loadingBilling || !editingBillingId}
+            >
+              {loadingBilling ? "Loading bill..." : saving ? "Saving..." : "Save Bill"}
+            </Button>
           </div>
         </div>
       )}
