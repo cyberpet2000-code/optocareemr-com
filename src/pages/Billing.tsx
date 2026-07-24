@@ -190,6 +190,9 @@ export default function Billing() {
     setLoadingBilling(true);
     setSelectedLookupPatient(patient);
 
+    toast.success("Patient ID: " + patient.id);
+toast.success("Clinic ID: " + cid);
+
     setForm((f) => ({
       ...f,
       patientId: patient.id,
@@ -200,14 +203,14 @@ export default function Billing() {
 
     try {
       const { data: billsRes, error } =
-        await apiClient
-          .from("billing")
-          .select("*")
-          .eq("clinic_id", cid)
-          .eq("patient_id", patient.id)
-          .order("created_at", {
-            ascending: false,
-          });
+      const { data: billsRes, error } =
+  await apiClient
+    .from("billing")
+    .select("*")
+    .eq("clinic_id", cid)
+    .order("created_at", {
+      ascending: false,
+    });
       
       if (error) {
   toast.error("Billing query failed: " + error.message);
