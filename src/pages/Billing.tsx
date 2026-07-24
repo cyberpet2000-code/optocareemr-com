@@ -209,11 +209,11 @@ export default function Billing() {
             ascending: false,
           });
       
-      console.log("========== BILLING QUERY ==========");
-console.log("Patient ID:", patient.id);
-console.log("Clinic ID:", cid);
-console.log("Billing rows:", billsRes);
-console.log("Billing error:", error);
+      if (error) {
+  toast.error("Billing query failed: " + error.message);
+} else {
+  toast.success("Bills found: " + (billsRes?.length ?? 0));
+      }
 
       if (error) {
         console.error("Billing query error:", error);
@@ -243,14 +243,11 @@ console.log("Billing error:", error);
       }
 
       if (selectedBill) {
-    console.log("Selected billing record:", selectedBill);
-    console.log("Selected billing ID:", selectedBill.id);
-
-    setEditingBillingId(selectedBill.id);
+  toast.success("Selected Bill ID: " + selectedBill.id);
+  setEditingBillingId(selectedBill.id);
 } else {
-    console.log("NO BILL WAS SELECTED");
-
-    setEditingBillingId(null);
+  toast.error("No billing record selected");
+  setEditingBillingId(null);
       }
 
       setLookupPayments(
