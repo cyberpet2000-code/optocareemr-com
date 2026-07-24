@@ -200,7 +200,7 @@ export default function Billing() {
 
     try {
       
-      const { data: billsRes, error: billsError } = await supabase
+      const { data: billsRes, error } = await apiClient
   .from("billing")
   .select("*")
   .eq("clinic_id", cid)
@@ -208,8 +208,10 @@ export default function Billing() {
   .order("created_at", { ascending: false });
       
 
-      if (!selectedBill) {
+      if (error) {
+  console.error("Billing query error:", error);
   setEditingBillingId(null);
+  setLoadingBilling(false);
   return;
       }
 
