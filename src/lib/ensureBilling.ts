@@ -1,4 +1,4 @@
-import { apiClient } from "@/lib/apiClient";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VisitForBilling {
   id: string;
