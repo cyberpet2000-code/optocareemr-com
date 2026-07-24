@@ -13,7 +13,7 @@ export async function ensureBillingForVisit(
 ) {
   // First check if billing already exists
   const { data: existing, error: checkError } =
-    await apiClient
+    await supabase
       .from("billing")
       .select("id")
       .eq("visit_id", visit.id)
@@ -30,7 +30,7 @@ export async function ensureBillingForVisit(
 
   // Try creating it
   const { data: created, error: createError } =
-    await apiClient
+    await supabase
       .from("billing")
       .insert({
         clinic_id: visit.clinic_id,
@@ -61,7 +61,7 @@ export async function ensureBillingForVisit(
    * Check one more time.
    */
   const { data: retry, error: retryError } =
-    await apiClient
+    await supabase
       .from("billing")
       .select("id")
       .eq("visit_id", visit.id)
