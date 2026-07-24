@@ -190,9 +190,6 @@ export default function Billing() {
     setLoadingBilling(true);
     setSelectedLookupPatient(patient);
 
-    toast.success("Patient ID: " + patient.id);
-toast.success("Clinic ID: " + cid);
-
     setForm((f) => ({
       ...f,
       patientId: patient.id,
@@ -211,11 +208,9 @@ toast.success("Clinic ID: " + cid);
   .order("created_at", { ascending: false });
       
 
-      if (error) {
-        console.error("Billing query error:", error);
-        setEditingBillingId(null);
-        setLoadingBilling(false);
-        return;
+      if (!selectedBill) {
+  setEditingBillingId(null);
+  return;
       }
 
       const { data: paymentsRes } =
@@ -241,8 +236,6 @@ if (!selectedBill) {
   setEditingBillingId(null);
   return;
 }
-
-toast.success("Selected Bill ID: " + selectedBill.id);
 
 setEditingBillingId(selectedBill.id);
 
