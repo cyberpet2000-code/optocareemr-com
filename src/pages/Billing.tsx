@@ -232,11 +232,9 @@ console.log("Billing rows:", billsRes);
     
     // Remember the billing record being edited
 if (!billsRes || billsRes.length === 0) {
-  console.log("No billing records for patient");
-  setEditingBill(null);
+  setEditingBillingId(null);
 } else {
-  console.log("Selected billing:", billsRes[0]);
-  setEditingBill(billsRes[0]);
+  setEditingBillingId(billsRes[0].id);
 }
 
     setLookupPayments(
