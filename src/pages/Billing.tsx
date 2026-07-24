@@ -234,7 +234,6 @@ const selectedBill =
   billsRes[0];
 
 if (!selectedBill) {
-  toast.error("No billing record selected");
   setEditingBillingId(null);
   return;
 }
