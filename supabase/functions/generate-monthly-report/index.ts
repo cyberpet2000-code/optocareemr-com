@@ -139,7 +139,12 @@ Deno.serve(async (req) => {
 
       // Data queries (all scoped by clinic_id)
       const [billing, expenses, patients, visits, inventory, hmoClaims, sales, saleItems] = await Promise.all([
-        admin.from("billing").select("*").eq("clinic_id", clinic_id).gte("created_at", from).lt("created_at", to),
+        admin.from("billing").select(`*,
+      visit:visits!inner (
+        id,
+        created_at
+      )
+    `)).eq("clinic_id", clinic_id).gte("created_at", from).lt("created_at", to),
         admin.from("expenses").select("*").eq("clinic_id", clinic_id).gte("expense_date", fromDate).lt("expense_date", toDate),
         admin.from("patients").select("id,payment_type,created_at").eq("clinic_id", clinic_id),
         admin.from("visits").select("*").eq("clinic_id", clinic_id).gte("created_at", from).lt("created_at", to),
@@ -152,7 +157,13 @@ Deno.serve(async (req) => {
       const bRows = billing.data || [];
       const eRows = expenses.data || [];
       const pAll = patients.data || [];
-      const pMonth = pAll.filter((p: any) => p.created_at >= from && p.created_at < to);
+      const patientIdsSeenThisMonth = new Set(
+  vRows.map((v: any) => v.patient_id)
+);
+
+const pMonth = pAll.filter(
+  (p: any) => patientIdsSeenThisMonth.has(p.id)
+);
       const vRows = visits.data || [];
       const iRows = inventory.data || [];
       const hRows = hmoClaims.data || [];
@@ -176,8 +187,19 @@ Deno.serve(async (req) => {
 
       const patientsData = {
         total: pMonth.length,
-        new: pMonth.length,
-        returning: 0,
+        const firstVisitMap = new Map<string, string>();
+
+for (const v of (visits.data || [])) {
+  if (!firstVisitMap.has(v.patient_id)) {
+    firstVisitMap.set(v.patient_id, v.created_at);
+  }
+}
+
+const newPatients = pMonth.filter(
+  (p: any) => firstVisitMap.get(p.id)?.startsWith(fromDate)
+).length;
+
+const returningPatients = pMonth.length - newPatients;
         walkins: pMonth.filter((p: any) => (p.payment_type || "").toLowerCase() === "walk-in" || (p.payment_type || "").toLowerCase() === "walk_in").length,
         hmo: pMonth.filter((p: any) => (p.payment_type || "").toLowerCase() === "hmo").length,
         private: pMonth.filter((p: any) => (p.payment_type || "").toLowerCase() !== "hmo").length,
