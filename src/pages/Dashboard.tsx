@@ -164,18 +164,23 @@ checkClinicSubscription(
     const hydrateFromCache = () => {
       const snap = offlineStore.get<DashboardSnapshot>(cacheKey);
       if (snap) {
-        setMonthPatients(snap.monthPatients ?? 0);
-        setTodayVisits(snap.todayVisits ?? 0);
-        setTodayAppointments(snap.todayAppointments ?? 0);
-        setPendingBills(snap.pendingBills ?? 0);
-        setMonthlyRevenue(snap.monthlyRevenue ?? 0);
-        setPreviousMonthRevenue(
-          snap.previousMonthRevenue ?? 0
-        );
-        setLowStockCount(snap.lowStockCount ?? 0);
-        setDrugAlerts(snap.drugAlerts ?? 0);
-        setRecentPatients(snap.recentPatients ?? []);
-        setUpcomingAppts(snap.upcomingAppts ?? []);
+    setMonthPatients(snap.monthPatients ?? 0);
+
+    setPatientsSeen(snap.patientsSeen ?? 0);
+    setNewPatientsSeen(snap.newPatientsSeen ?? 0);
+    setReturningPatients(snap.returningPatients ?? 0);
+
+    setTodayVisits(snap.todayVisits ?? 0);
+    setTodayAppointments(snap.todayAppointments ?? 0);
+    setPendingBills(snap.pendingBills ?? 0);
+    setMonthlyRevenue(snap.monthlyRevenue ?? 0);
+    setPreviousMonthRevenue(
+      snap.previousMonthRevenue ?? 0
+    );
+    setLowStockCount(snap.lowStockCount ?? 0);
+    setDrugAlerts(snap.drugAlerts ?? 0);
+    setRecentPatients(snap.recentPatients ?? []);
+    setUpcomingAppts(snap.upcomingAppts ?? []);
       }
       stopLoadingWatch("dashboard");
       setLoading(false);
@@ -190,18 +195,6 @@ checkClinicSubscription(
     startLoadingWatch("dashboard");
     const today = new Date().toISOString().split("T")[0];
     const now = new Date();
-
-    const monthStart = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      1
-    ).toISOString();
-
-    const previousMonthStart = new Date(
-      now.getFullYear(),
-      now.getMonth() - 1,
-      1
-    ).toISOString();
 
     try {
       const [
@@ -416,6 +409,7 @@ setReturningPatients(snap.returningPatients ?? 0);
       const cacheKeyFallback = `dashboard:${cidFallback}`;
       const snap = offlineStore.get<DashboardSnapshot>(cacheKeyFallback);
       if (snap) {
+        setMonthPatients(snap.monthPatients ?? 0);
         setPatientsSeen(snap.patientsSeen ?? 0);
 setNewPatientsSeen(snap.newPatientsSeen ?? 0);
 setReturningPatients(snap.returningPatients ?? 0);
