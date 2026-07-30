@@ -203,7 +203,7 @@ checkClinicSubscription(
   apptRes,
   upcomingApptRes,
   invRes,
-  billRes,
+  pendingBillsRes,
   drugRes,
 ] = await Promise.all([
         apiClient.from("patients").select("id, full_name, age, gender, phone, payment_type, queue_number").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(5),
@@ -211,7 +211,7 @@ checkClinicSubscription(
         apiClient.from("appointments").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]),
         apiClient.from("appointments").select("id, appointment_date, appointment_time, reason, patient_id").eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]),
         apiClient.from("inventory").select("*", { count: "exact", head: true }).eq("clinic_id", cid).lte("stock_quantity", 5),
-        apiClient.from("billing").select("*", { count: "exact", head: true }).eq("clinic_id", cid).eq("status", "pending"),
+        apiClient.from("billing").select("*", { count: "exact", head: true }).eq("clinic_id", cid).eq("status", "pending").gt("total_amount", 0),
         apiClient.from("drugs").select("*", { count: "exact", head: true }).eq("clinic_id", cid).lte("stock", 5),
       ]);
       
@@ -248,7 +248,7 @@ checkQueryFailure(
 checkQueryFailure(
   "billing",
   "pending bills",
-  billRes.error
+  pendingBillsRes.error
 );
 
 checkQueryFailure(
@@ -376,7 +376,7 @@ newPatientsSeen: newPatientsSeenCount,
 returningPatients: returningPatientsCount,
         todayVisits: visitsRes.count ?? 0,
         todayAppointments: apptRes.count ?? 0,
-        pendingBills: billRes.count ?? 0,
+        pendingBills: pendingBillsRes.count ?? 0,
         monthlyRevenue: Number(currentRevenueRes.data ?? 0),
         previousMonthRevenue: Number(previousRevenueRes.data ?? 0),
         lowStockCount: invRes.count ?? 0,
