@@ -523,9 +523,11 @@ const newBalance =
 
 let newStatus: "pending" | "partial" | "paid";
 
-if (amountPaid === 0) {
+if (newTotalAmount <= 0) {
   newStatus = "pending";
-} else if (newBalance === 0) {
+} else if (amountPaid <= 0) {
+  newStatus = "pending";
+} else if (newBalance <= 0) {
   newStatus = "paid";
 } else {
   newStatus = "partial";
