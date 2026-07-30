@@ -6,9 +6,9 @@ CREATE OR REPLACE FUNCTION public.get_dashboard_patient_stats(
   p_month integer
 )
 RETURNS TABLE(
-  patients_seen integer,
-  new_patients_seen integer,
-  returning_patients integer
+  patients_seen bigint,
+  new_patients_seen bigint,
+  returning_patients bigint
 )
 LANGUAGE plpgsql STABLE AS $$
 DECLARE
@@ -39,6 +39,10 @@ BEGIN
   RETURN NEXT;
 END;
 $$;
+
+-- Index to support this RPC and speed up queries
+CREATE INDEX IF NOT EXISTS idx_visits_clinic_created_patient
+ON public.visits (clinic_id, created_at, patient_id);
 
 -- Allow authenticated users to execute the RPC (service_role already has rights)
 GRANT EXECUTE ON FUNCTION public.get_dashboard_patient_stats(uuid, integer, integer) TO authenticated;
