@@ -608,22 +608,113 @@ if (totalsError) {
   };
 
   const addPayment = async () => {
-    if (!paymentBillingId || !paymentAmount) return;
-    const amt = parseFloat(paymentAmount);
-    if (amt <= 0) { toast.error("Enter valid amount"); return; }
-    const { error } = await apiClient.from("payments").insert({
-      billing_id: paymentBillingId,
-      clinic_id: cid,
-      amount: amt,
-      method: paymentMethod,
-      paid_by: "patient",
-    } as any);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Payment recorded");
-    setPaymentBillingId(null);
-    setPaymentAmount("");
-    loadData();
-  };
+  if (!paymentBillingId || !paymentAmount) {
+    return;
+  }
+
+  const amt = Number(paymentAmount);
+
+  if (amt <= 0) {
+    toast.error("Enter a valid amount.");
+    return;
+  }
+
+  // -----------------------------
+  // Load the billing record
+  // -----------------------------
+  const { data: bill, error: billError } =
+    await apiClient
+      .from("billing")
+      .select("*")
+      .eq("id", paymentBillingId)
+      .maybeSingle();
+
+  if (billError) {
+    toast.error(billError.message);
+    return;
+  }
+
+  if (!bill) {
+    toast.error("Billing record not found.");
+    return;
+  }
+
+  // -----------------------------
+  // Save the payment
+  // -----------------------------
+  const { error: paymentError } =
+    await apiClient
+      .from("payments")
+      .insert({
+        billing_id: paymentBillingId,
+        clinic_id: cid,
+        amount: amt,
+        method: paymentMethod,
+        paid_by: "patient",
+      });
+
+  if (paymentError) {
+    toast.error(paymentError.message);
+    return;
+  }
+
+  // -----------------------------
+  // Calculate new payment totals
+  // -----------------------------
+  const totalAmount =
+    Number(bill.total_amount || 0);
+
+  const currentAmountPaid =
+    Number(bill.amount_paid || 0);
+
+  const newAmountPaid =
+    currentAmountPaid + amt;
+
+  const newBalance =
+    Math.max(
+      totalAmount - newAmountPaid,
+      0
+    );
+
+  let newStatus: "pending" | "partial" | "paid";
+
+  if (newAmountPaid <= 0) {
+    newStatus = "pending";
+  } else if (newBalance <= 0) {
+    newStatus = "paid";
+  } else {
+    newStatus = "partial";
+  }
+
+  // -----------------------------
+  // Update the billing record
+  // -----------------------------
+  const { error: updateError } =
+    await apiClient
+      .from("billing")
+      .update({
+        amount_paid: newAmountPaid,
+        balance: newBalance,
+        status: newStatus,
+      })
+      .eq("id", paymentBillingId);
+
+  if (updateError) {
+    toast.error(updateError.message);
+    return;
+  }
+
+  // -----------------------------
+  // Refresh the page
+  // -----------------------------
+  toast.success("Payment recorded.");
+
+  setPaymentBillingId(null);
+  setPaymentAmount("");
+  setPaymentMethod("Cash");
+
+  loadData();
+};
 
   const printReceipt = async (b: BillingRow) => {
     if (!billItems[b.id]) await loadBillItems(b.id);
@@ -669,7 +760,14 @@ if (totalsError) {
     return "bg-primary/10 text-primary";
   };
 
-  const pendingBills = bills.filter(b => b.status !== "paid");
+  const pendingBills = bills.filter(b => {
+  const total = Number(b.total_amount || 0);
+
+  return (
+    total > 0 &&
+    b.status !== "paid"
+  );
+});
 
   const medicationItems =
     inventoryItems.filter(
