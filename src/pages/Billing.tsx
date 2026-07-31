@@ -504,46 +504,18 @@ setEditingBillingId(selectedBill.id);
         }
       }
 
-      // ---------------------------------------------
-// Recalculate and update billing totals
-// ---------------------------------------------
-
-const newItemsTotal = items.reduce(
-  (sum, item) => sum + Number(item.total_price || 0),
-  0
-);
-
-const newTotalAmount = consult + newItemsTotal;
-
-const amountPaid =
-  Number(existingBill.amount_paid) || 0;
-
-const newBalance =
-  Math.max(newTotalAmount - amountPaid, 0);
-
-let newStatus: "pending" | "partial" | "paid";
-
-if (newTotalAmount <= 0) {
-  newStatus = "pending";
-} else if (amountPaid <= 0) {
-  newStatus = "pending";
-} else if (newBalance <= 0) {
-  newStatus = "paid";
-} else {
-  newStatus = "partial";
-}
-
-const { error: totalsError } =
-  await apiClient
-    .from("billing")
-    .update({
+const { error } = await apiClient
+  .from("billing")
+  .update({
       consultation_fee: consult,
-      items_total: newItemsTotal,
-      total_amount: newTotalAmount,
-      balance: newBalance,
-      status: newStatus,
-    })
-    .eq("id", billingId);
+  })
+  .eq("id", billingId);
+
+if (error) {
+    toast.error(error.message);
+    setSaving(false);
+    return;
+}
 
 if (totalsError) {
   toast.error(
@@ -655,52 +627,6 @@ if (totalsError) {
 
   if (paymentError) {
     toast.error(paymentError.message);
-    return;
-  }
-
-  // -----------------------------
-  // Calculate new payment totals
-  // -----------------------------
-  const totalAmount =
-    Number(bill.total_amount || 0);
-
-  const currentAmountPaid =
-    Number(bill.amount_paid || 0);
-
-  const newAmountPaid =
-    currentAmountPaid + amt;
-
-  const newBalance =
-    Math.max(
-      totalAmount - newAmountPaid,
-      0
-    );
-
-  let newStatus: "pending" | "partial" | "paid";
-
-  if (newAmountPaid <= 0) {
-    newStatus = "pending";
-  } else if (newBalance <= 0) {
-    newStatus = "paid";
-  } else {
-    newStatus = "partial";
-  }
-
-  // -----------------------------
-  // Update the billing record
-  // -----------------------------
-  const { error: updateError } =
-    await apiClient
-      .from("billing")
-      .update({
-        amount_paid: newAmountPaid,
-        balance: newBalance,
-        status: newStatus,
-      })
-      .eq("id", paymentBillingId);
-
-  if (updateError) {
-    toast.error(updateError.message);
     return;
   }
 
