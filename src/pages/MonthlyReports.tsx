@@ -4,7 +4,7 @@ import { useClinic } from "@/hooks/useClinic";
 import { useRole } from "@/hooks/useRole";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, RefreshCw, FileText } from "lucide-react";
+import { Download, RefreshCw, FileText, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 interface Report {
