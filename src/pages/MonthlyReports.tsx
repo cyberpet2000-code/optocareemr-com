@@ -60,7 +60,24 @@ export default function MonthlyReports() {
     window.open(data.signedUrl, "_blank");
   }
 
+  async function resend(r: Report) {
+    setSending(r.id);
+    try {
+      const { data, error } = await apiClient.functions.invoke("send-monthly-report-email", {
+        body: { report_id: r.id },
+      });
+      if (error) throw error;
+      const sentTo = (data as any)?.results?.find((x: any) => x.ok)?.recipient;
+      toast.success(sentTo ? `Report emailed to ${sentTo}` : "Report email queued");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to resend email");
+    } finally {
+      setSending(null);
+    }
+  }
+
   const canGenerate = isAdmin || isSuperAdmin;
+
 
   return (
     <div className="space-y-6">
