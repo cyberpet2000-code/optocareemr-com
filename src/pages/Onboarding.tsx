@@ -28,6 +28,7 @@ export default function Onboarding() {
   const [modules, setModules] = useState({ billing: true, hmo: true, pharmacy: true, appointments: true });
   const [staff, setStaff] = useState({ doctor_name: "", doctor_email: "", reception_name: "", reception_email: "" });
   const [patient, setPatient] = useState({ full_name: "", phone: "", age: "" });
+  const [clinicEmail, setClinicEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const isSetupCompleted = clinic?.setup_completed === true;
   const clinicName = clinic?.name ?? "";
