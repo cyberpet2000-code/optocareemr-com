@@ -65,6 +65,21 @@ export default function Onboarding() {
   const next = () => setStep(s => Math.min(s + 1, STEP_LABELS.length - 1));
   const back = () => setStep(s => Math.max(s - 1, 0));
 
+  const saveClinicEmail = async () => {
+    const email = clinicEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Enter a valid clinic email");
+      return;
+    }
+    setBusy(true);
+    const { error } = await apiClient.from("clinics").update({ email } as any).eq("id", clinic.id);
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    await reload();
+    next();
+  };
+
+
   const initType = async () => {
     setBusy(true);
     const { error } = await apiClient.rpc("smart_initialize_clinic", { _clinic_id: clinic.id, _clinic_type: clinicType });
