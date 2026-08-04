@@ -50,6 +50,8 @@ async function buildPdf(clinicName: string, year: number, month: number, data: a
   y = H - 120;
 
   heading("Executive Summary");
+  draw("Revenue is recognized in the month of the patient visit.", 9, font, rgb(0.4,0.45,0.5));
+  row("Total Bills", String(data.income.totalBills ?? 0));
   row("Total Income", `NGN ${data.income.total.toLocaleString()}`);
   row("Total Expenses", `NGN ${data.expenses.total.toLocaleString()}`);
   row("Net Profit", `NGN ${(data.income.total - data.expenses.total).toLocaleString()}`);
@@ -138,18 +140,20 @@ Deno.serve(async (req) => {
       const clinicName = clinic?.name || "Clinic";
 
       // Data queries (all scoped by clinic_id)
-      const [billing, expenses, patients, visits, inventory, hmoClaims, sales, saleItems] = await Promise.all([
-        admin.from("billing").select(`*,
-      visit:visits!inner (
-        id,
-        created_at
-      )
-    `)).eq("clinic_id", clinic_id).gte("created_at", from).lt("created_at", to),
+      // ACCOUNTING RULE: revenue is recognized in the month of the patient VISIT
+      // (visits.created_at), never the month the billing row was created/edited.
+      const [billing, expenses, patients, visits, allVisits, inventory, hmoClaimsAll, sales, saleItems] = await Promise.all([
+        admin.from("billing")
+          .select("*, visit:visits!inner(id,created_at,patient_id)")
+          .eq("clinic_id", clinic_id)
+          .gte("visit.created_at", from)
+          .lt("visit.created_at", to),
         admin.from("expenses").select("*").eq("clinic_id", clinic_id).gte("expense_date", fromDate).lt("expense_date", toDate),
         admin.from("patients").select("id,payment_type,created_at").eq("clinic_id", clinic_id),
         admin.from("visits").select("*").eq("clinic_id", clinic_id).gte("created_at", from).lt("created_at", to),
+        admin.from("visits").select("id,patient_id,created_at").eq("clinic_id", clinic_id).order("created_at", { ascending: true }),
         admin.from("inventory").select("*").eq("clinic_id", clinic_id),
-        admin.from("hmo_claims").select("*").eq("clinic_id", clinic_id).gte("created_at", from).lt("created_at", to),
+        admin.from("hmo_claims").select("*").eq("clinic_id", clinic_id),
         admin.from("inventory_sales").select("*").eq("clinic_id", clinic_id).gte("created_at", from).lt("created_at", to),
         admin.from("inventory_sale_items").select("*").eq("clinic_id", clinic_id).gte("created_at", from).lt("created_at", to),
       ]);
@@ -157,17 +161,23 @@ Deno.serve(async (req) => {
       const bRows = billing.data || [];
       const eRows = expenses.data || [];
       const pAll = patients.data || [];
-      const patientIdsSeenThisMonth = new Set(
-  vRows.map((v: any) => v.patient_id)
-);
-
-const pMonth = pAll.filter(
-  (p: any) => patientIdsSeenThisMonth.has(p.id)
-);
       const vRows = visits.data || [];
+      const avRows = allVisits.data || [];
       const iRows = inventory.data || [];
-      const hRows = hmoClaims.data || [];
       const siRows = saleItems.data || [];
+
+      // Patients counted = patients actually seen in the visit month
+      const patientIdsSeenThisMonth = new Set(vRows.map((v: any) => v.patient_id));
+      const pMonth = pAll.filter((p: any) => patientIdsSeenThisMonth.has(p.id));
+
+      // HMO claims recognized by the visit month via their billing record
+      const billingIdsThisMonth = new Set(bRows.map((b: any) => b.id));
+      const hRows = (hmoClaimsAll.data || []).filter((c: any) =>
+        c.billing_id
+          ? billingIdsThisMonth.has(c.billing_id)
+          : (c.created_at >= from && c.created_at < to)
+      );
+
 
       const income = {
         total: sum(bRows, r => r.total_amount) + sum(sales.data || [], r => r.total_amount),
@@ -178,6 +188,7 @@ const pMonth = pAll.filter(
           ["Optical / Items", sum(bRows, r => r.items_total)],
           ["Product Sales", sum(sales.data || [], r => r.total_amount)],
         ] as [string, number][],
+        totalBills: bRows.length,
       };
 
       const expensesData = {
@@ -185,25 +196,25 @@ const pMonth = pAll.filter(
         byCategory: groupSum(eRows, r => r.category, r => r.amount),
       };
 
+      // First-ever visit per patient decides new vs returning
+      const firstVisitMap = new Map<string, string>();
+      for (const v of avRows) {
+        if (v.patient_id && !firstVisitMap.has(v.patient_id)) firstVisitMap.set(v.patient_id, v.created_at);
+      }
+      const newPatients = pMonth.filter((p: any) => {
+        const fv = firstVisitMap.get(p.id);
+        return !!fv && fv >= from && fv < to;
+      }).length;
+
       const patientsData = {
         total: pMonth.length,
-        const firstVisitMap = new Map<string, string>();
-
-for (const v of (visits.data || [])) {
-  if (!firstVisitMap.has(v.patient_id)) {
-    firstVisitMap.set(v.patient_id, v.created_at);
-  }
-}
-
-const newPatients = pMonth.filter(
-  (p: any) => firstVisitMap.get(p.id)?.startsWith(fromDate)
-).length;
-
-const returningPatients = pMonth.length - newPatients;
-        walkins: pMonth.filter((p: any) => (p.payment_type || "").toLowerCase() === "walk-in" || (p.payment_type || "").toLowerCase() === "walk_in").length,
+        new: newPatients,
+        returning: pMonth.length - newPatients,
+        walkins: pMonth.filter((p: any) => ["walk-in", "walk_in"].includes((p.payment_type || "").toLowerCase())).length,
         hmo: pMonth.filter((p: any) => (p.payment_type || "").toLowerCase() === "hmo").length,
         private: pMonth.filter((p: any) => (p.payment_type || "").toLowerCase() !== "hmo").length,
       };
+
 
       const clinical = {
         consultations: vRows.length,
