@@ -50,6 +50,8 @@ async function buildPdf(clinicName: string, year: number, month: number, data: a
   y = H - 120;
 
   heading("Executive Summary");
+  draw("Revenue is recognized in the month of the patient visit.", 9, font, rgb(0.4,0.45,0.5));
+  row("Total Bills", String(data.income.totalBills ?? 0));
   row("Total Income", `NGN ${data.income.total.toLocaleString()}`);
   row("Total Expenses", `NGN ${data.expenses.total.toLocaleString()}`);
   row("Net Profit", `NGN ${(data.income.total - data.expenses.total).toLocaleString()}`);
