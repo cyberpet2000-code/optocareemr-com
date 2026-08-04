@@ -168,13 +168,14 @@ Deno.serve(async (req) => {
       const patientIdsSeenThisMonth = new Set(vRows.map((v: any) => v.patient_id));
       const pMonth = pAll.filter((p: any) => patientIdsSeenThisMonth.has(p.id));
 
-      // HMO claims recognized by the visit month too (fall back to claim date when unlinked)
-      const visitIdsThisMonth = new Set(vRows.map((v: any) => v.id));
+      // HMO claims recognized by the visit month via their billing record
+      const billingIdsThisMonth = new Set(bRows.map((b: any) => b.id));
       const hRows = (hmoClaimsAll.data || []).filter((c: any) =>
-        c.visit_id
-          ? visitIdsThisMonth.has(c.visit_id)
+        c.billing_id
+          ? billingIdsThisMonth.has(c.billing_id)
           : (c.created_at >= from && c.created_at < to)
       );
+
 
       const income = {
         total: sum(bRows, r => r.total_amount) + sum(sales.data || [], r => r.total_amount),
