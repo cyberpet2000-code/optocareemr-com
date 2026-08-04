@@ -166,15 +166,23 @@ export default function Onboarding() {
                 <div className="text-xs uppercase text-muted-foreground">Clinic name</div>
                  <div className="text-lg font-semibold">{clinicName}</div>
               </div>
+              <div className="space-y-1.5">
+                <Label>Clinic email <span className="text-destructive">*</span></Label>
+                <Input type="email" required value={clinicEmail}
+                  placeholder="clinic@example.com"
+                  onChange={e => setClinicEmail(e.target.value)} />
+                <p className="text-xs text-muted-foreground">Monthly reports and important notices are sent here.</p>
+              </div>
               <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm text-primary">
                 Welcome aboard — let's get your clinic set up.
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={back}>Back</Button>
-                <Button onClick={next} className="flex-1">Continue</Button>
+                <Button onClick={saveClinicEmail} className="flex-1" disabled={busy}>{busy ? "Saving…" : "Continue"}</Button>
               </div>
             </div>
           )}
+
 
           {step === 2 && (
             <div className="space-y-4">
