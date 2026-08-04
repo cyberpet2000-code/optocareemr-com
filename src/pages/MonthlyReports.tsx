@@ -21,6 +21,7 @@ export default function MonthlyReports() {
   const [rows, setRows] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [gen, setGen] = useState(false);
+  const [sending, setSending] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!effectiveClinicId) return;
