@@ -41,6 +41,10 @@ export default function Onboarding() {
     }
   }, [isSetupCompleted, loading, navigate, roleLoading]);
 
+  useEffect(() => {
+    if ((clinic as any)?.email) setClinicEmail(String((clinic as any).email));
+  }, [(clinic as any)?.email]);
+
   if (loading || roleLoading) {
     return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading clinic...</div>;
   }
