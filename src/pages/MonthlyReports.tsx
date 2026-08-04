@@ -117,7 +117,12 @@ export default function MonthlyReports() {
                   {r.error_message && <div className="text-xs text-destructive mt-1">{r.error_message}</div>}
                 </div>
                 {r.status === "ready" && r.storage_path && (
-                  <Button size="sm" variant="outline" onClick={() => download(r)}><Download size={14} className="mr-1" /> PDF</Button>
+                  <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                    <Button size="sm" variant="outline" onClick={() => download(r)}><Download size={14} className="mr-1" /> PDF</Button>
+                    <Button size="sm" variant="secondary" disabled={sending === r.id} onClick={() => resend(r)}>
+                      <Mail size={14} className="mr-1" /> {sending === r.id ? "Sending…" : "Resend email"}
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
