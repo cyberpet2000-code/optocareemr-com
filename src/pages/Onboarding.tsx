@@ -28,6 +28,7 @@ export default function Onboarding() {
   const [modules, setModules] = useState({ billing: true, hmo: true, pharmacy: true, appointments: true });
   const [staff, setStaff] = useState({ doctor_name: "", doctor_email: "", reception_name: "", reception_email: "" });
   const [patient, setPatient] = useState({ full_name: "", phone: "", age: "" });
+  const [clinicEmail, setClinicEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const isSetupCompleted = clinic?.setup_completed === true;
   const clinicName = clinic?.name ?? "";
@@ -39,6 +40,10 @@ export default function Onboarding() {
       navigate("/dashboard", { replace: true });
     }
   }, [isSetupCompleted, loading, navigate, roleLoading]);
+
+  useEffect(() => {
+    if ((clinic as any)?.email) setClinicEmail(String((clinic as any).email));
+  }, [(clinic as any)?.email]);
 
   if (loading || roleLoading) {
     return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading clinic...</div>;
@@ -59,6 +64,21 @@ export default function Onboarding() {
 
   const next = () => setStep(s => Math.min(s + 1, STEP_LABELS.length - 1));
   const back = () => setStep(s => Math.max(s - 1, 0));
+
+  const saveClinicEmail = async () => {
+    const email = clinicEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Enter a valid clinic email");
+      return;
+    }
+    setBusy(true);
+    const { error } = await apiClient.from("clinics").update({ email } as any).eq("id", clinic.id);
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    await reload();
+    next();
+  };
+
 
   const initType = async () => {
     setBusy(true);
@@ -166,15 +186,23 @@ export default function Onboarding() {
                 <div className="text-xs uppercase text-muted-foreground">Clinic name</div>
                  <div className="text-lg font-semibold">{clinicName}</div>
               </div>
+              <div className="space-y-1.5">
+                <Label>Clinic email <span className="text-destructive">*</span></Label>
+                <Input type="email" required value={clinicEmail}
+                  placeholder="clinic@example.com"
+                  onChange={e => setClinicEmail(e.target.value)} />
+                <p className="text-xs text-muted-foreground">Monthly reports and important notices are sent here.</p>
+              </div>
               <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm text-primary">
                 Welcome aboard — let's get your clinic set up.
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={back}>Back</Button>
-                <Button onClick={next} className="flex-1">Continue</Button>
+                <Button onClick={saveClinicEmail} className="flex-1" disabled={busy}>{busy ? "Saving…" : "Continue"}</Button>
               </div>
             </div>
           )}
+
 
           {step === 2 && (
             <div className="space-y-4">

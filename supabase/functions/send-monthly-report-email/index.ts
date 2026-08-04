@@ -27,20 +27,27 @@ Deno.serve(async (req) => {
 
     const { data: clinic } = await admin.from("clinics").select("name,email,finance_email").eq("id", report.clinic_id).single();
 
-    // Recipients: clinic email, finance_email, all admins/members of the clinic with admin role
-    const recipients = new Set<string>();
-    if (clinic?.email) recipients.add(clinic.email.toLowerCase());
-    if (clinic?.finance_email) recipients.add(clinic.finance_email.toLowerCase());
+    const valid = (e?: string | null) => {
+      const v = (e || "").trim().toLowerCase();
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? v : null;
+    };
 
-    const { data: adminUsers } = await admin.from("user_clinic_memberships")
-      .select("user_id, profiles!inner(email)")
-      .eq("clinic_id", report.clinic_id);
-    for (const u of (adminUsers || []) as any[]) {
-      const email = u.profiles?.email;
-      if (email) recipients.add(String(email).toLowerCase());
+    // Recipient priority: Finance Email -> Clinic Email -> Admin Email
+    let recipient = valid(clinic?.finance_email) || valid(clinic?.email);
+    let source = clinic?.finance_email && recipient === valid(clinic?.finance_email) ? "finance_email" : "clinic_email";
+
+    if (!recipient) {
+      const { data: adminUsers } = await admin.from("user_clinic_memberships")
+        .select("user_id, profiles!inner(email,role)")
+        .eq("clinic_id", report.clinic_id);
+      const list = (adminUsers || []) as any[];
+      const adminRow = list.find((u) => ["admin", "super_admin"].includes(String(u.profiles?.role || ""))) || list[0];
+      recipient = valid(adminRow?.profiles?.email);
+      source = "admin_email";
     }
 
-    if (recipients.size === 0) return json({ error: "No recipients" }, 400);
+    if (!recipient) return json({ error: "No recipients" }, 400);
+    const recipients = new Set<string>([recipient]);
 
     // Signed URL (7 days)
     const { data: signed } = await admin.storage.from("monthly-reports").createSignedUrl(report.storage_path, 60 * 60 * 24 * 7);

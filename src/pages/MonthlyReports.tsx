@@ -4,7 +4,7 @@ import { useClinic } from "@/hooks/useClinic";
 import { useRole } from "@/hooks/useRole";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, RefreshCw, FileText } from "lucide-react";
+import { Download, RefreshCw, FileText, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 interface Report {
@@ -21,6 +21,7 @@ export default function MonthlyReports() {
   const [rows, setRows] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [gen, setGen] = useState(false);
+  const [sending, setSending] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!effectiveClinicId) return;
@@ -60,7 +61,24 @@ export default function MonthlyReports() {
     window.open(data.signedUrl, "_blank");
   }
 
+  async function resend(r: Report) {
+    setSending(r.id);
+    try {
+      const { data, error } = await apiClient.functions.invoke("send-monthly-report-email", {
+        body: { report_id: r.id },
+      });
+      if (error) throw error;
+      const sentTo = (data as any)?.results?.find((x: any) => x.ok)?.recipient;
+      toast.success(sentTo ? `Report emailed to ${sentTo}` : "Report email queued");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to resend email");
+    } finally {
+      setSending(null);
+    }
+  }
+
   const canGenerate = isAdmin || isSuperAdmin;
+
 
   return (
     <div className="space-y-6">
@@ -99,7 +117,12 @@ export default function MonthlyReports() {
                   {r.error_message && <div className="text-xs text-destructive mt-1">{r.error_message}</div>}
                 </div>
                 {r.status === "ready" && r.storage_path && (
-                  <Button size="sm" variant="outline" onClick={() => download(r)}><Download size={14} className="mr-1" /> PDF</Button>
+                  <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                    <Button size="sm" variant="outline" onClick={() => download(r)}><Download size={14} className="mr-1" /> PDF</Button>
+                    <Button size="sm" variant="secondary" disabled={sending === r.id} onClick={() => resend(r)}>
+                      <Mail size={14} className="mr-1" /> {sending === r.id ? "Sending…" : "Resend email"}
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>

@@ -517,16 +517,7 @@ if (error) {
     return;
 }
 
-if (totalsError) {
-  toast.error(
-    "Failed to update billing totals: " +
-      totalsError.message
-  );
 
-  setSaving(false);
-
-  return;
-}
 
       // Create or update HMO claim if needed
       if (isHmo && selectedPatient?.active_hmo_id) {

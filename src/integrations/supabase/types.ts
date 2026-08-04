@@ -348,7 +348,7 @@ export type Database = {
           {
             foreignKeyName: "billing_visit_id_fkey"
             columns: ["visit_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "visits"
             referencedColumns: ["id"]
           },
@@ -3543,6 +3543,18 @@ export type Database = {
       }
       freeze_extra_branches: { Args: { p_org_id: string }; Returns: undefined }
       get_active_clinic_id: { Args: never; Returns: string }
+      get_dashboard_patient_stats: {
+        Args: { p_clinic_id: string; p_month: number; p_year: number }
+        Returns: {
+          new_patients_seen: number
+          patients_seen: number
+          returning_patients: number
+        }[]
+      }
+      get_dashboard_revenue: {
+        Args: { p_clinic_id: string; p_month: number; p_year: number }
+        Returns: number
+      }
       get_due_reminders: {
         Args: never
         Returns: {
@@ -3628,6 +3640,10 @@ export type Database = {
       preload_clinic_cache: { Args: { cid: string }; Returns: undefined }
       process_cache_queue: { Args: never; Returns: undefined }
       process_retry_reminders: { Args: never; Returns: undefined }
+      recalculate_billing_totals: {
+        Args: { p_billing_id: string }
+        Returns: undefined
+      }
       refresh_clinic_dashboard_cache: {
         Args: { cid: string }
         Returns: undefined
