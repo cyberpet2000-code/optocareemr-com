@@ -445,7 +445,7 @@ if (
       next_of_kin: editForm.next_of_kin,
       payment_type: editForm.payment_type,
       active_hmo_id: editForm.payment_type === "hmo" ? editForm.active_hmo_id : null,
-      enrollee_number: editForm.enrollee_number || "",
+      enrollee_number: editForm.payment_type === "hmo" ? (editForm.enrollee_number || "").trim() : "",
       hmo_coverage_type:
       editForm.payment_type === "hmo"
     ? editForm.hmo_coverage_type
