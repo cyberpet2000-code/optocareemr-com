@@ -1981,27 +1981,57 @@ export type Database = {
       }
       inventory_sales: {
         Row: {
+          amount_paid: number
           clinic_id: string | null
           created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          discount_amount: number
           id: string
+          notes: string | null
           patient_id: string | null
+          payment_method: string | null
+          receipt_number: string | null
+          sale_type: string
           sold_by: string | null
+          subtotal: number
           total_amount: number
         }
         Insert: {
+          amount_paid?: number
           clinic_id?: string | null
           created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          discount_amount?: number
           id?: string
+          notes?: string | null
           patient_id?: string | null
+          payment_method?: string | null
+          receipt_number?: string | null
+          sale_type?: string
           sold_by?: string | null
+          subtotal?: number
           total_amount?: number
         }
         Update: {
+          amount_paid?: number
           clinic_id?: string | null
           created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          discount_amount?: number
           id?: string
+          notes?: string | null
           patient_id?: string | null
+          payment_method?: string | null
+          receipt_number?: string | null
+          sale_type?: string
           sold_by?: string | null
+          subtotal?: number
           total_amount?: number
         }
         Relationships: []
