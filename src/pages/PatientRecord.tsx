@@ -770,6 +770,22 @@ transition-colors
                   <SelectContent>{hmos.map(h => <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Enrollee Number</Label>
+                <Input
+                  className="rounded-xl"
+                  placeholder="Current/valid enrollee number"
+                  value={editForm.enrollee_number || ""}
+                  onChange={e =>
+                    setEditForm(f => ({ ...f, enrollee_number: e.target.value }))
+                  }
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Update this if the patient's HMO enrollee number has changed.
+                </p>
+              </div>
+          
           
               <div className="space-y-1">
   <Label className="text-xs">
