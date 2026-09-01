@@ -15,6 +15,7 @@ export type EmailType =
   | "billing_reminder"
   | "subscription_notice"
   | "daily_summary"
+  | "walkin_receipt"
   | "system_alert";
 
 export interface SendEmailInput {
@@ -51,6 +52,7 @@ const SHELL_CATEGORY: Record<EmailType, "transactional" | "onboarding" | "remind
   billing_reminder: "billing",
   subscription_notice: "billing",
   daily_summary: "summary",
+  walkin_receipt: "billing",
   system_alert: "transactional",
 };
 
