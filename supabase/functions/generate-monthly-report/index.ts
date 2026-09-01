@@ -52,7 +52,9 @@ async function buildPdf(clinicName: string, year: number, month: number, data: a
   heading("Executive Summary");
   draw("Revenue is recognized in the month of the patient visit.", 9, font, rgb(0.4,0.45,0.5));
   row("Total Bills", String(data.income.totalBills ?? 0));
+  row("Walk-In Sales", String(data.income.walkInSales ?? 0));
   row("Total Income", `NGN ${data.income.total.toLocaleString()}`);
+  row("Walk-In Revenue", `NGN ${(data.income.walkInRevenue ?? 0).toLocaleString()}`);
   row("Total Expenses", `NGN ${data.expenses.total.toLocaleString()}`);
   row("Net Profit", `NGN ${(data.income.total - data.expenses.total).toLocaleString()}`);
   row("Cash Received", `NGN ${data.income.cashReceived.toLocaleString()}`);
@@ -160,6 +162,7 @@ Deno.serve(async (req) => {
 
       const bRows = billing.data || [];
       const eRows = expenses.data || [];
+      const walkInRows = (sales.data || []).filter((s: any) => s.sale_type === "walk_in");
       const pAll = patients.data || [];
       const vRows = visits.data || [];
       const avRows = allVisits.data || [];
@@ -181,8 +184,10 @@ Deno.serve(async (req) => {
 
       const income = {
         total: sum(bRows, r => r.total_amount) + sum(sales.data || [], r => r.total_amount),
-        cashReceived: sum(bRows, r => r.amount_paid),
-        outstanding: sum(bRows, r => r.balance),
+        walkInSales: walkInRows.length,
+        walkInRevenue: sum(walkInRows, r => r.total_amount),
+        cashReceived: sum(bRows, r => r.amount_paid) + sum(walkInRows, r => r.amount_paid),
+        outstanding: sum(bRows, r => r.balance) + sum(walkInRows, r => Math.max(Number(r.total_amount || 0) - Number(r.amount_paid || 0), 0)),
         byCategory: [
           ["Consultation", sum(bRows, r => r.consultation_fee)],
           ["Optical / Items", sum(bRows, r => r.items_total)],

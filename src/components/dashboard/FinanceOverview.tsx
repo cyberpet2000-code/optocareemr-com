@@ -50,9 +50,11 @@ export default function FinanceOverview() {
       const somDate = som.slice(0, 10);
       const sodDate = sod.slice(0, 10);
 
-      const [billingMonth, billingToday, expMonth, expToday, patientsMonth, inv, visitsMonth] = await Promise.all([
+      const [billingMonth, billingToday, salesMonth, salesToday, expMonth, expToday, patientsMonth, inv, visitsMonth] = await Promise.all([
         apiClient.from("billing").select("total_amount,amount_paid,balance,status,payer_type,created_at").eq("clinic_id", effectiveClinicId).gte("created_at", som),
         apiClient.from("billing").select("amount_paid").eq("clinic_id", effectiveClinicId).gte("created_at", sod),
+        apiClient.from("inventory_sales").select("total_amount,amount_paid").eq("clinic_id", effectiveClinicId).eq("sale_type", "walk_in").gte("created_at", som),
+        apiClient.from("inventory_sales").select("amount_paid").eq("clinic_id", effectiveClinicId).eq("sale_type", "walk_in").gte("created_at", sod),
         apiClient.from("expenses").select("amount").eq("clinic_id", effectiveClinicId).gte("expense_date", somDate),
         apiClient.from("expenses").select("amount").eq("clinic_id", effectiveClinicId).gte("expense_date", sodDate),
         apiClient.from("patients").select("id,payment_type,created_at").eq("clinic_id", effectiveClinicId).gte("created_at", som),
@@ -63,21 +65,23 @@ export default function FinanceOverview() {
 
       const bMonth = (billingMonth.data as any[]) || [];
       const bToday = (billingToday.data as any[]) || [];
+      const sMonth = (salesMonth.data as any[]) || [];
+      const sToday = (salesToday.data as any[]) || [];
       const invRows = (inv.data as any[]) || [];
       const pRows = (patientsMonth.data as any[]) || [];
       const eMonth = (expMonth.data as any[]) || [];
       const eToday = (expToday.data as any[]) || [];
 
       const metrics: Metrics = {
-        revenueToday: bToday.reduce((a, r) => a + Number(r.amount_paid || 0), 0),
-        revenueMonth: bMonth.reduce((a, r) => a + Number(r.amount_paid || 0), 0),
+        revenueToday: bToday.reduce((a, r) => a + Number(r.amount_paid || 0), 0) + sToday.reduce((a, r) => a + Number(r.amount_paid || 0), 0),
+        revenueMonth: bMonth.reduce((a, r) => a + Number(r.amount_paid || 0), 0) + sMonth.reduce((a, r) => a + Number(r.amount_paid || 0), 0),
         expensesToday: eToday.reduce((a, r) => a + Number(r.amount || 0), 0),
         expensesMonth: eMonth.reduce((a, r) => a + Number(r.amount || 0), 0),
         newPatients: pRows.length,
         hmoPatients: pRows.filter(p => (p.payment_type || "").toLowerCase() === "hmo").length,
         privatePatients: pRows.filter(p => (p.payment_type || "").toLowerCase() !== "hmo").length,
-        outstanding: bMonth.reduce((a, r) => a + Number(r.balance || 0), 0),
-        cashReceived: bMonth.reduce((a, r) => a + Number(r.amount_paid || 0), 0),
+        outstanding: bMonth.reduce((a, r) => a + Number(r.balance || 0), 0) + sMonth.reduce((a, r) => a + Math.max(Number(r.total_amount || 0) - Number(r.amount_paid || 0), 0), 0),
+        cashReceived: bMonth.reduce((a, r) => a + Number(r.amount_paid || 0), 0) + sMonth.reduce((a, r) => a + Number(r.amount_paid || 0), 0),
         pendingHmo: bMonth.filter(r => r.payer_type === "hmo" && r.status !== "paid").length,
         inventoryValue: invRows.reduce((a, r) => a + Number(r.stock_quantity || 0) * Number(r.price || 0), 0),
         lowStock: invRows.filter(r => (r.stock_quantity ?? 0) > 0 && (r.stock_quantity ?? 0) <= (r.low_stock_threshold ?? r.min_stock ?? 5)).length,

@@ -62,6 +62,8 @@ Deno.serve(async (req) => {
         <p style="color:#475569;margin:0 0 16px">${clinic?.name || "Your clinic"}</p>
         <table style="width:100%;border-collapse:collapse;font-size:14px">
           <tr><td style="padding:6px 0;color:#64748b">Total Income</td><td style="text-align:right;font-weight:600">₦${(p?.income?.total || 0).toLocaleString()}</td></tr>
+          <tr><td style="padding:6px 0;color:#64748b">Walk-In Sales</td><td style="text-align:right;font-weight:600">${p?.income?.walkInSales || 0}</td></tr>
+          <tr><td style="padding:6px 0;color:#64748b">Walk-In Revenue</td><td style="text-align:right;font-weight:600">₦${(p?.income?.walkInRevenue || 0).toLocaleString()}</td></tr>
           <tr><td style="padding:6px 0;color:#64748b">Total Expenses</td><td style="text-align:right;font-weight:600">₦${(p?.expenses?.total || 0).toLocaleString()}</td></tr>
           <tr><td style="padding:6px 0;color:#64748b">Net Profit</td><td style="text-align:right;font-weight:700;color:${netProfit>=0?'#059669':'#dc2626'}">₦${netProfit.toLocaleString()}</td></tr>
           <tr><td style="padding:6px 0;color:#64748b">Total Patients</td><td style="text-align:right;font-weight:600">${p?.patients?.total || 0}</td></tr>

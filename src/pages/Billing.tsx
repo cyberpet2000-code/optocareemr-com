@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, FileText, Plus, X, Printer, Trash2 } from "lucide-react";
+import { DollarSign, FileText, Plus, X, Printer, Trash2, ShoppingBag } from "lucide-react";
 import { useAccess } from "@/hooks/useAccess";
 import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
+import WalkInSale from "@/components/billing/WalkInSale";
 const PAYMENT_METHODS = ["Cash", "Card", "Transfer", "HMO"];
 const ITEM_TYPES = ["Lens", "Frame", "Contact Lens", "Eye Drop", "Drugs", "Accessories", "Others"];
 
@@ -1074,7 +1075,12 @@ if (error) {
         <TabsList className="bg-muted/50 rounded-2xl p-1">
           <TabsTrigger value="pending" className="rounded-xl text-xs gap-1"><DollarSign size={12} /> Pending ({pendingBills.length})</TabsTrigger>
           <TabsTrigger value="all" className="rounded-xl text-xs gap-1"><FileText size={12} /> All ({bills.length})</TabsTrigger>
+          <TabsTrigger value="walk-in" className="rounded-xl text-xs gap-1"><ShoppingBag size={12} /> Walk-In Sale</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="walk-in">
+          <WalkInSale />
+        </TabsContent>
 
         {[
           { value: "pending", list: pendingBills },
