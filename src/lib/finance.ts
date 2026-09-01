@@ -14,7 +14,7 @@ export const EXPENSE_CATEGORIES = [
   "Office Supplies",
   "Taxes",
   "Bank Charges",
-  "Miscellaneous",
+  "Imprest",
 ] as const;
 
 export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];
