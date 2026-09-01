@@ -160,6 +160,7 @@ Deno.serve(async (req) => {
 
       const bRows = billing.data || [];
       const eRows = expenses.data || [];
+      const walkInRows = (sales.data || []).filter((s: any) => s.sale_type === "walk_in");
       const pAll = patients.data || [];
       const vRows = visits.data || [];
       const avRows = allVisits.data || [];
@@ -181,8 +182,8 @@ Deno.serve(async (req) => {
 
       const income = {
         total: sum(bRows, r => r.total_amount) + sum(sales.data || [], r => r.total_amount),
-        cashReceived: sum(bRows, r => r.amount_paid),
-        outstanding: sum(bRows, r => r.balance),
+        cashReceived: sum(bRows, r => r.amount_paid) + sum(walkInRows, r => r.amount_paid),
+        outstanding: sum(bRows, r => r.balance) + sum(walkInRows, r => Math.max(Number(r.total_amount || 0) - Number(r.amount_paid || 0), 0)),
         byCategory: [
           ["Consultation", sum(bRows, r => r.consultation_fee)],
           ["Optical / Items", sum(bRows, r => r.items_total)],
