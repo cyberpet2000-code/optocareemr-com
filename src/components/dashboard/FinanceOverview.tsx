@@ -51,8 +51,8 @@ export default function FinanceOverview() {
       const sodDate = sod.slice(0, 10);
 
       const [billingMonth, billingToday, salesMonth, salesToday, expMonth, expToday, patientsMonth, inv, visitsMonth] = await Promise.all([
-        apiClient.from("billing").select("total_amount,amount_paid,balance,status,payer_type,created_at").eq("clinic_id", effectiveClinicId).gte("created_at", som),
-        apiClient.from("billing").select("amount_paid").eq("clinic_id", effectiveClinicId).gte("created_at", sod),
+        apiClient.from("billing").select("total_amount,amount_paid,balance,status,payer_type,visit:visits!inner(created_at)").eq("clinic_id", effectiveClinicId).gte("visit.created_at", som),
+        apiClient.from("billing").select("amount_paid,visit:visits!inner(created_at)").eq("clinic_id", effectiveClinicId).gte("visit.created_at", sod),
         apiClient.from("inventory_sales").select("total_amount,amount_paid").eq("clinic_id", effectiveClinicId).eq("sale_type", "walk_in").gte("created_at", som),
         apiClient.from("inventory_sales").select("amount_paid").eq("clinic_id", effectiveClinicId).eq("sale_type", "walk_in").gte("created_at", sod),
         apiClient.from("expenses").select("amount").eq("clinic_id", effectiveClinicId).gte("expense_date", somDate),
