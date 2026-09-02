@@ -9,7 +9,7 @@ import { ShoppingBag, Plus, Trash2, Printer, Mail, Search, Receipt } from "lucid
 import { useAccess } from "@/hooks/useAccess";
 import OptoLoader from "@/components/OptoLoader";
 
-const PAYMENT_METHODS = ["Cash", "POS", "Transfer", "Mobile Money"];
+const PAYMENT_METHODS = ["Cash", "POS", "Transfer", "HMO"];
 
 interface InvItem {
   id: string;
