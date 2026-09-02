@@ -614,7 +614,8 @@ if (error) {
         clinic_id: cid,
         amount: amt,
         method: paymentMethod,
-        paid_by: "patient",
+        // HMO-settled amounts are recorded as paid by the HMO, not patient cash
+        paid_by: paymentMethod === "HMO" ? "hmo" : "patient",
       });
 
   if (paymentError) {
