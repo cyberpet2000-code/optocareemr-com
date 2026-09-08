@@ -1130,6 +1130,7 @@ export type Database = {
           pharmacy_enabled: boolean | null
           phone: string | null
           retention_expires_at: string | null
+          revenue_recognition_method: string
           secondary_color: string | null
           setup_completed: boolean | null
           staff_added: boolean | null
@@ -1169,6 +1170,7 @@ export type Database = {
           pharmacy_enabled?: boolean | null
           phone?: string | null
           retention_expires_at?: string | null
+          revenue_recognition_method?: string
           secondary_color?: string | null
           setup_completed?: boolean | null
           staff_added?: boolean | null
@@ -1208,6 +1210,7 @@ export type Database = {
           pharmacy_enabled?: boolean | null
           phone?: string | null
           retention_expires_at?: string | null
+          revenue_recognition_method?: string
           secondary_color?: string | null
           setup_completed?: boolean | null
           staff_added?: boolean | null
@@ -3529,6 +3532,25 @@ export type Database = {
       }
       calculate_health_score: { Args: { cid: string }; Returns: number }
       can_add_branch: { Args: { org_id: string }; Returns: boolean }
+      check_duplicate_patient: {
+        Args: {
+          p_age: number
+          p_clinic_id: string
+          p_full_name: string
+          p_gender: string
+          p_phone: string
+        }
+        Returns: {
+          age: number
+          full_name: string
+          gender: string
+          match_score: number
+          match_type: string
+          patient_id: string
+          patient_number: string
+          phone: string
+        }[]
+      }
       check_policy_safety: { Args: { policy_text: string }; Returns: boolean }
       check_reminder: { Args: { p_clinic_id: string }; Returns: boolean }
       check_trial_expiration: { Args: never; Returns: number }
