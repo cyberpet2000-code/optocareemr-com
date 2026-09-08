@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
 import { useClinic } from "@/hooks/useClinic";
+import { useRole } from "@/hooks/useRole";
 import { formatMoney, startOfMonthISO, startOfDayISO } from "@/lib/finance";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DollarSign, TrendingUp, TrendingDown, Package, Users, Activity, FileText, Wallet } from "lucide-react";
@@ -37,11 +38,17 @@ const Card = ({ icon: Icon, label, value, tone = "primary" }: { icon: any; label
 
 export default function FinanceOverview() {
   const { effectiveClinicId } = useClinic();
+  const { isAdmin } = useRole();
   const [m, setM] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Only admins can see finance overview
   useEffect(() => {
-    if (!effectiveClinicId) return;
+    if (!isAdmin || !effectiveClinicId) {
+      setLoading(false);
+      return;
+    }
+    
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -92,7 +99,12 @@ export default function FinanceOverview() {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [effectiveClinicId]);
+  }, [effectiveClinicId, isAdmin]);
+
+  // Don't render for non-admin users
+  if (!isAdmin) {
+    return null;
+  }
 
   if (loading || !m) {
     return (
