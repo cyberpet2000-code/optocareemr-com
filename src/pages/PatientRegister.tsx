@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
@@ -27,12 +27,47 @@ type HmoRow = {
 
 type VerificationStatus = "not_verified" | "verified" | "rejected";
 
+type PatientMatch = {
+  patient_id: string;
+  patient_number: string | null;
+  full_name: string;
+  phone: string | null;
+  age: number | null;
+  gender: string | null;
+  match_type?: string | null;
+  match_score?: number | null;
+};
+
+type DuplicateSeverity = "strong" | "high" | "phone" | "name";
+
 function normalizeUrl(u?: string | null) {
   if (!u) return "";
   const s = u.trim();
   if (!s) return "";
   if (/^https?:\/\//i.test(s)) return s;
   return `https://${s}`;
+}
+
+function normalizeSearchText(value: string) {
+  return value.toLowerCase().replace(/[\p{P}\p{S}]+/gu, " ").replace(/\s+/g, " ").trim();
+}
+
+function escapeLikeTerm(value: string) {
+  return value.replace(/[\\%_]/g, "\\$&");
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function highlightName(name: string, query: string) {
+  const firstTerm = normalizeSearchText(query).split(" ")[0];
+  if (!firstTerm) return name;
+
+  const parts = name.split(new RegExp(`(${escapeRegExp(firstTerm)})`, "ig"));
+  return parts.map((part, index) => part.toLowerCase() === firstTerm
+    ? <mark key={`${part}-${index}`} className="rounded bg-primary/10 px-0.5 text-primary">{part}</mark>
+    : <Fragment key={`${part}-${index}`}>{part}</Fragment>);
 }
 
 export default function PatientRegister() {
@@ -60,6 +95,12 @@ export default function PatientRegister() {
   const [siteOpen, setSiteOpen] = useState(false);
   const [iframeFailed, setIframeFailed] = useState(false);
   const [showWarn, setShowWarn] = useState(false);
+  const [patientSearchResults, setPatientSearchResults] = useState<PatientMatch[]>([]);
+  const [patientSearchLoading, setPatientSearchLoading] = useState(false);
+  const [duplicateMatches, setDuplicateMatches] = useState<PatientMatch[]>([]);
+  const [duplicateSeverity, setDuplicateSeverity] = useState<DuplicateSeverity | null>(null);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const searchRequestRef = useRef(0);
 
   useEffect(() => {
     if (!cid) return;
@@ -68,6 +109,60 @@ export default function PatientRegister() {
       .eq("clinic_id", cid).eq("status", "active").order("name")
       .then(({ data }) => { if (data) setHmos(data as any); });
   }, [cid]);
+
+  useEffect(() => {
+    const query = form.fullName.trim();
+    const normalizedQuery = normalizeSearchText(query);
+    const requestId = ++searchRequestRef.current;
+
+    if (!cid || normalizedQuery.length < 2) {
+      setPatientSearchResults([]);
+      setPatientSearchLoading(false);
+      return;
+    }
+
+    const searchTimer = window.setTimeout(async () => {
+      setPatientSearchLoading(true);
+      const terms = Array.from(new Set(normalizedQuery.split(" ").filter(Boolean))).slice(0, 3);
+
+      const responses = await Promise.all(terms.map((term) => apiClient
+        .from("patients")
+        .select("id, full_name, patient_number, age, gender, phone")
+        .eq("clinic_id", cid)
+        .ilike("full_name", `%${escapeLikeTerm(term)}%`)
+        .limit(10)));
+
+      if (requestId !== searchRequestRef.current) return;
+
+      const matches = new Map<string, PatientMatch>();
+      responses.forEach(({ data }) => {
+        (data || []).forEach((patient) => {
+          const match = {
+            patient_id: patient.id,
+            patient_number: patient.patient_number,
+            full_name: patient.full_name,
+            phone: patient.phone,
+            age: patient.age,
+            gender: patient.gender,
+          } satisfies PatientMatch;
+          const normalizedName = normalizeSearchText(match.full_name);
+          if (normalizedQuery.split(" ").every((term) => normalizedName.includes(term))) {
+            matches.set(match.patient_id, match);
+          }
+        });
+      });
+
+      setPatientSearchResults(Array.from(matches.values()).sort((left, right) => {
+        const leftName = normalizeSearchText(left.full_name);
+        const rightName = normalizeSearchText(right.full_name);
+        return Number(!leftName.startsWith(normalizedQuery)) - Number(!rightName.startsWith(normalizedQuery))
+          || leftName.localeCompare(rightName);
+      }).slice(0, 8));
+      setPatientSearchLoading(false);
+    }, 300);
+
+    return () => window.clearTimeout(searchTimer);
+  }, [cid, form.fullName]);
 
   const set = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }));
 
@@ -106,6 +201,20 @@ export default function PatientRegister() {
     toast.message("HMO marked as rejected");
   };
 
+  const openExistingPatient = (patientId: string) => {
+    setShowDuplicateDialog(false);
+    setPatientSearchResults([]);
+    navigate(`/patient/${patientId}`);
+  };
+
+  const continueToSave = () => {
+    if (form.paymentType === "hmo" && verifyStatus === "not_verified") {
+      setShowWarn(true);
+      return;
+    }
+    void doSubmit();
+  };
+
   const doSubmit = async () => {
     if (!cid) { toast.error("No active clinic"); return; }
     setLoading(true);
@@ -133,9 +242,59 @@ export default function PatientRegister() {
       queue_status: "waiting",
     } as any).select().single();
     setLoading(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      const errorMessage = error.message.toLowerCase();
+      const isDuplicateConflict = error.code === "23505"
+        || errorMessage.includes("duplicate")
+        || errorMessage.includes("unique")
+        || errorMessage.includes("patient_number");
+      toast.error(isDuplicateConflict
+        ? "This patient may have been registered by someone else. Search for the existing patient and open their record."
+        : error.message);
+      return;
+    }
     toast.success("Patient registered");
     navigate(`/patient/${data!.id}`);
+  };
+
+  const checkForDuplicates = async () => {
+    if (!cid) {
+      toast.error("No active clinic");
+      return;
+    }
+
+    setLoading(true);
+    const { data, error } = await apiClient.rpc("check_duplicate_patient", {
+      p_clinic_id: cid,
+      p_full_name: form.fullName.trim(),
+      p_phone: form.phone.trim(),
+      p_age: parseInt(form.age, 10),
+      p_gender: form.gender,
+    });
+    setLoading(false);
+
+    if (error) {
+      toast.error("We could not complete the duplicate check. Please try again.");
+      return;
+    }
+
+    const matches = ((data || []) as PatientMatch[]).sort((left, right) => (right.match_score ?? 0) - (left.match_score ?? 0));
+    if (matches.length === 0) {
+      continueToSave();
+      return;
+    }
+
+    const highestScore = matches[0]?.match_score ?? 0;
+    const severity: DuplicateSeverity = highestScore >= 100
+      ? "strong"
+      : highestScore >= 85
+        ? "high"
+        : highestScore >= 60
+          ? "phone"
+          : "name";
+    setDuplicateMatches(matches);
+    setDuplicateSeverity(severity);
+    setShowDuplicateDialog(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -149,10 +308,7 @@ export default function PatientRegister() {
     if (form.paymentType === "hmo" && form.hmoCoverageType === "dependent" && !form.hmoPrincipalName.trim()) {
       toast.error("Enter principal name"); return;
     }
-    if (form.paymentType === "hmo" && verifyStatus === "not_verified") {
-      setShowWarn(true); return;
-    }
-    doSubmit();
+    void checkForDuplicates();
   };
 
   // Verification status badge
@@ -176,7 +332,47 @@ export default function PatientRegister() {
       <h1 className="page-header mb-5">Register Patient</h1>
       <form onSubmit={handleSubmit} className="form-section max-w-2xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1"><Label className="text-xs">Full Name *</Label><Input className="rounded-xl" value={form.fullName} onChange={e => set("fullName", e.target.value)} /></div>
+          <div className="relative space-y-1">
+            <Label className="text-xs">Full Name *</Label>
+            <Input
+              className="rounded-xl"
+              value={form.fullName}
+              onChange={e => {
+                set("fullName", e.target.value);
+                setPatientSearchResults([]);
+              }}
+              autoComplete="off"
+              aria-describedby="patient-search-status"
+            />
+            {form.fullName.trim().length >= 2 && (patientSearchLoading || patientSearchResults.length > 0) && (
+              <div className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-xl border bg-popover shadow-lg">
+                {patientSearchLoading ? (
+                  <div id="patient-search-status" className="px-3 py-2 text-xs text-muted-foreground">Searching existing patients…</div>
+                ) : (
+                  <div id="patient-search-status" className="max-h-72 overflow-y-auto p-1">
+                    <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Existing patients</p>
+                    {patientSearchResults.map((patient) => (
+                      <Button
+                        key={patient.patient_id}
+                        type="button"
+                        variant="ghost"
+                        className="h-auto w-full justify-start rounded-lg px-2 py-2 text-left"
+                        onClick={() => openExistingPatient(patient.patient_id)}
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium">{highlightName(patient.full_name, form.fullName)}</span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {patient.patient_number || "No patient number"} • {patient.age ?? "—"} • {patient.gender || "—"}
+                          </span>
+                          {patient.phone && <span className="block truncate text-xs text-muted-foreground">{patient.phone}</span>}
+                        </span>
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1"> <Label className="text-xs font-medium">Date of Birth</Label>
 
@@ -399,9 +595,59 @@ export default function PatientRegister() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Verify First</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { setShowWarn(false); doSubmit(); }}>
+            <AlertDialogAction onClick={() => { setShowWarn(false); void doSubmit(); }}>
               Continue Anyway
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Existing-patient duplicate protection */}
+      <AlertDialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {duplicateSeverity === "strong" && "Patient already exists"}
+              {duplicateSeverity === "high" && "Possible duplicate patient"}
+              {duplicateSeverity === "phone" && "Phone number already in use"}
+              {duplicateSeverity === "name" && "Similar patient name found"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {duplicateSeverity === "strong" && "A matching patient was found. Open the existing record instead of creating another patient."}
+              {duplicateSeverity === "high" && "Review the matching patient details. Continue only if this is a different patient."}
+              {duplicateSeverity === "phone" && "This may be a family or shared phone number. Review the existing patient before continuing."}
+              {duplicateSeverity === "name" && "Please confirm that this is a new patient before continuing."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="max-h-64 space-y-2 overflow-y-auto">
+            {duplicateMatches.map((patient) => (
+              <div key={patient.patient_id} className="rounded-lg border bg-muted/30 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{patient.full_name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {patient.patient_number || "No patient number"} • {patient.age ?? "—"} • {patient.gender || "—"}
+                    </p>
+                    {patient.phone && <p className="text-xs text-muted-foreground">{patient.phone}</p>}
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={() => openExistingPatient(patient.patient_id)}>
+                    Open Existing Patient
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              {duplicateSeverity === "strong" ? "Close" : "Cancel"}
+            </AlertDialogCancel>
+            {duplicateSeverity !== "strong" && (
+              <AlertDialogAction onClick={() => { setShowDuplicateDialog(false); continueToSave(); }}>
+                {duplicateSeverity === "high" ? "This is a different patient" : "Continue registration"}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
