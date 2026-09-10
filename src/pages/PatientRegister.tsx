@@ -34,6 +34,7 @@ type PatientMatch = {
   phone: string | null;
   age: number | null;
   gender: string | null;
+  date_of_birth: string | null;
   match_type?: string | null;
   match_score?: number | null;
 };
@@ -112,6 +113,23 @@ export default function PatientRegister() {
   return age >= 0 ? String(age) : "";
 };
 
+  const getPatientDisplayAge = (
+  dateOfBirth: string | null,
+  storedAge: number | null
+) => {
+  if (dateOfBirth) {
+    const calculatedAge = calculateAge(dateOfBirth);
+
+    if (calculatedAge !== "") {
+      return calculatedAge;
+    }
+  }
+
+  return storedAge !== null && storedAge !== undefined
+    ? String(storedAge)
+    : "—";
+};
+
   // Verification state
   const [verifyStatus, setVerifyStatus] = useState<VerificationStatus>("not_verified");
   const [verifyNotes, setVerifyNotes] = useState("");
@@ -129,7 +147,7 @@ export default function PatientRegister() {
   useEffect(() => {
     if (!cid) return;
     apiClient.from("hmos")
-      .select("id, name, website, claims_portal_url, phone, email")
+      .select("id, name, website, claims_portal_url, phone, email , date_of_birth")
       .eq("clinic_id", cid).eq("status", "active").order("name")
       .then(({ data }) => { if (data) setHmos(data as any); });
   }, [cid]);
@@ -168,6 +186,7 @@ export default function PatientRegister() {
             phone: patient.phone,
             age: patient.age,
             gender: patient.gender,
+            date_of_birth: patient.date_of_birth,
           } satisfies PatientMatch;
           const normalizedName = normalizeSearchText(match.full_name);
           if (normalizedQuery.split(" ").every((term) => normalizedName.includes(term))) {
@@ -393,7 +412,7 @@ export default function PatientRegister() {
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-medium">{highlightName(patient.full_name, form.fullName)}</span>
                           <span className="block truncate text-xs text-muted-foreground">
-                            {patient.patient_number || "No patient number"} • {patient.age ?? "—"} • {patient.gender || "—"}
+                            {patient.patient_number || "No patient number"} • {getPatientDisplayAge(patient.date_of_birth, patient.age)} • {patient.gender || "—"}
                           </span>
                           {patient.phone && <span className="block truncate text-xs text-muted-foreground">{patient.phone}</span>}
                         </span>
