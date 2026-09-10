@@ -89,17 +89,26 @@ export default function PatientRegister() {
     priority: "normal" as "normal" | "follow_up" | "emergency",
   });
 
-  const calculateAge = (dateOfBirth: string) => {
-  if (!dateOfBirth) return "";
+  const calculateAgeDetails = (dateOfBirth: string) => {
+  if (!dateOfBirth) {
+    return {
+      age: "",
+      ageUnit: "years",
+    };
+  }
 
   const dob = new Date(dateOfBirth);
   const today = new Date();
 
   if (Number.isNaN(dob.getTime()) || dob > today) {
-    return "";
+    return {
+      age: "",
+      ageUnit: "years",
+    };
   }
 
-  let age = today.getFullYear() - dob.getFullYear();
+  // Calculate completed years
+  let years = today.getFullYear() - dob.getFullYear();
 
   const monthDifference = today.getMonth() - dob.getMonth();
 
@@ -107,10 +116,54 @@ export default function PatientRegister() {
     monthDifference < 0 ||
     (monthDifference === 0 && today.getDate() < dob.getDate())
   ) {
-    age--;
+    years--;
   }
 
-  return age >= 0 ? String(age) : "";
+  // If at least 1 year old, use years
+  if (years >= 1) {
+    return {
+      age: String(years),
+      ageUnit: "years",
+    };
+  }
+
+  // Calculate difference in days
+  const millisecondsPerDay = 1000 * 60 * 60 * 24;
+  const differenceInDays = Math.floor(
+    (today.getTime() - dob.getTime()) / millisecondsPerDay
+  );
+
+  // Less than 1 week
+  if (differenceInDays < 7) {
+    return {
+      age: String(differenceInDays),
+      ageUnit: "days",
+    };
+  }
+
+  // Less than 1 month
+  if (differenceInDays < 30) {
+    return {
+      age: String(Math.floor(differenceInDays / 7)),
+      ageUnit: "weeks",
+    };
+  }
+
+  // Less than 1 year
+  let months =
+    (today.getFullYear() - dob.getFullYear()) * 12 +
+    (today.getMonth() - dob.getMonth());
+
+  if (today.getDate() < dob.getDate()) {
+    months--;
+  }
+
+  months = Math.max(1, months);
+
+  return {
+    age: String(months),
+    ageUnit: "months",
+  };
 };
 
   const getPatientDisplayAge = (
@@ -118,15 +171,15 @@ export default function PatientRegister() {
   storedAge: number | null
 ) => {
   if (dateOfBirth) {
-    const calculatedAge = calculateAge(dateOfBirth);
+    const calculatedAge = calculateAgeDetails(dateOfBirth);
 
-    if (calculatedAge !== "") {
-      return calculatedAge;
+    if (calculatedAge.age !== "") {
+      return `${calculatedAge.age} ${calculatedAge.ageUnit}`;
     }
   }
 
   return storedAge !== null && storedAge !== undefined
-    ? String(storedAge)
+    ? `${storedAge} years`
     : "—";
 };
 
@@ -432,12 +485,13 @@ export default function PatientRegister() {
   value={form.dateOfBirth}
   max={new Date().toISOString().split("T")[0]}
   onChange={(e) => {
-    const dateOfBirth = e.target.value;
-    const age = calculateAge(dateOfBirth);
+  const dateOfBirth = e.target.value;
+  const ageDetails = calculateAgeDetails(dateOfBirth);
 
-    set("dateOfBirth", dateOfBirth);
-    set("age", age);
-  }}
+  set("dateOfBirth", dateOfBirth);
+  set("age", ageDetails.age);
+  set("ageUnit", ageDetails.ageUnit);
+}}
 />
 </div>
 
