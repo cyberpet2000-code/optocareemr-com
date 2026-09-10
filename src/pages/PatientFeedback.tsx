@@ -9,6 +9,17 @@ export default function PatientFeedback() {
   const [valid, setValid] = useState(false);
   const [clinicName, setClinicName] = useState("");
 
+  const [overallRating, setOverallRating] = useState<number | null>(null);
+const [cleanlinessRating, setCleanlinessRating] = useState<number | null>(null);
+  const [frontDeskRating, setFrontDeskRating] = useState<number | null>(null);
+const [attendedReasonableTime, setAttendedReasonableTime] = useState<string | null>(null);
+const ratingOptions = [
+  { value: 5, label: "Excellent" },
+  { value: 4, label: "Very Good" },
+  { value: 3, label: "Good" },
+  { value: 2, label: "Fair" },
+  { value: 1, label: "Poor" },
+];
   useEffect(() => {
     async function loadFeedbackRequest() {
       if (!token) {
@@ -94,6 +105,128 @@ export default function PatientFeedback() {
             We value your feedback and use it to improve our services,
             patient care and overall experience.
           </p>
+          <div className="mt-8 border-t pt-6">
+  <h2 className="text-lg font-semibold text-foreground">
+    1. Your Visit
+  </h2>
+
+  <div className="mt-6">
+    <p className="text-sm font-medium text-foreground">
+      How would you rate your overall experience at the clinic?
+    </p>
+
+    <div className="mt-3 space-y-2">
+      {ratingOptions.map((option) => (
+        <label
+          key={option.value}
+          className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
+        >
+          <input
+            type="radio"
+            name="overall-rating"
+            value={option.value}
+            checked={overallRating === option.value}
+            onChange={() => setOverallRating(option.value)}
+          />
+
+          <span className="text-sm">
+            {option.label}
+          </span>
+        </label>
+      ))}
+    </div>
+  </div>
+
+  <div className="mt-8">
+    <p className="text-sm font-medium text-foreground">
+      How would you rate the cleanliness and comfort of the clinic?
+    </p>
+
+    <div className="mt-3 space-y-2">
+      {ratingOptions.map((option) => (
+        <label
+          key={option.value}
+          className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
+        >
+          <input
+            type="radio"
+            name="cleanliness-rating"
+            value={option.value}
+            checked={cleanlinessRating === option.value}
+            onChange={() => setCleanlinessRating(option.value)}
+          />
+
+          <span className="text-sm">
+            {option.label}
+          </span>
+        </label>
+      ))}
+    </div>
+  </div>
+            <div className="mt-8 border-t pt-6">
+  <h2 className="text-lg font-semibold text-foreground">
+    2. Reception & Staff
+  </h2>
+
+  <div className="mt-6">
+    <p className="text-sm font-medium text-foreground">
+      How would you rate the attitude and professionalism of our front-desk staff?
+    </p>
+
+    <div className="mt-3 space-y-2">
+      {ratingOptions.map((option) => (
+        <label
+          key={option.value}
+          className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
+        >
+          <input
+            type="radio"
+            name="front-desk-rating"
+            value={option.value}
+            checked={frontDeskRating === option.value}
+            onChange={() => setFrontDeskRating(option.value)}
+          />
+
+          <span className="text-sm">
+            {option.label}
+          </span>
+        </label>
+      ))}
+    </div>
+  </div>
+
+  <div className="mt-8">
+    <p className="text-sm font-medium text-foreground">
+      Were you attended to within a reasonable time?
+    </p>
+
+    <div className="mt-3 space-y-2">
+      {[
+        { value: "yes", label: "Yes" },
+        { value: "no", label: "No" },
+        { value: "somewhat", label: "Somewhat" },
+      ].map((option) => (
+        <label
+          key={option.value}
+          className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
+        >
+          <input
+            type="radio"
+            name="attended-reasonable-time"
+            value={option.value}
+            checked={attendedReasonableTime === option.value}
+            onChange={() => setAttendedReasonableTime(option.value)}
+          />
+
+          <span className="text-sm">
+            {option.label}
+          </span>
+        </label>
+      ))}
+    </div>
+  </div>
+</div>
+</div>
         </div>
       </div>
     </div>
