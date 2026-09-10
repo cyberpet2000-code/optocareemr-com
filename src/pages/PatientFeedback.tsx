@@ -21,6 +21,23 @@ const [doctorExplanationClarity, setDoctorExplanationClarity] =
 
 const [concernsAddressed, setConcernsAddressed] =
   useState<string | null>(null);
+ 
+const [prescriptionExplanationSatisfaction, setPrescriptionExplanationSatisfaction] =
+  useState<number | null>(null);
+
+const [glassesVisionSatisfaction, setGlassesVisionSatisfaction] =
+  useState<number | null>(null);
+
+const [glassesVisionNotApplicable, setGlassesVisionNotApplicable] =
+  useState(false);
+
+const [prescriptionDifficulty, setPrescriptionDifficulty] =
+  useState<boolean | null>(null);
+
+const [prescriptionDifficultyDetails, setPrescriptionDifficultyDetails] =
+  useState("");
+
+  
 const ratingOptions = [
   { value: 5, label: "Excellent" },
   { value: 4, label: "Very Good" },
