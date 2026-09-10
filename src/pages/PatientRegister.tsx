@@ -386,7 +386,6 @@ export default function PatientRegister() {
       phone: normalizePhone(form.phone, form.phoneCountryCode),
       p_age: parseInt(form.age, 10),
       p_gender: form.gender,
-      phone: normalizePhone(form.phone, form.phoneCountryCode),
     });
     setLoading(false);
 
