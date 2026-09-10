@@ -241,7 +241,7 @@ export default function PatientRegister() {
 
       const responses = await Promise.all(terms.map((term) => apiClient
         .from("patients")
-        .select("id, full_name, patient_number, age, gender, phone")
+        .select("id, full_name, patient_number, age, gender, phone, date_of_birth")
         .eq("clinic_id", cid)
         .ilike("full_name", `%${escapeLikeTerm(term)}%`)
         .limit(10)));
