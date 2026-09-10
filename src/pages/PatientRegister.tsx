@@ -70,7 +70,26 @@ function highlightName(name: string, query: string) {
     ? <mark key={`${part}-${index}`} className="rounded bg-primary/10 px-0.5 text-primary">{part}</mark>
     : <Fragment key={`${part}-${index}`}>{part}</Fragment>);
 }
+function normalizePhone(phone: string, countryCode = "+234") {
+  const value = phone.trim();
 
+  if (!value) return "";
+
+  // Keep digits and an optional leading +
+  const cleaned = value.replace(/[^\d+]/g, "");
+
+  // Already international format
+  if (cleaned.startsWith("+")) {
+    return `+${cleaned.slice(1).replace(/\D/g, "")}`;
+  }
+
+  // Remove leading zero from local format
+  const localNumber = cleaned.replace(/^0+/, "");
+
+  if (!localNumber) return "";
+
+  return `${countryCode}${localNumber}`;
+}
 export default function PatientRegister() {
   const navigate = useNavigate();
   const { effectiveClinicId: cid } = useAccess();
@@ -78,7 +97,7 @@ export default function PatientRegister() {
   const [loading, setLoading] = useState(false);
   const [hmos, setHmos] = useState<HmoRow[]>([]);
   const [form, setForm] = useState({
-    fullName: "", dateOfBirth: "", age: "", ageUnit: "years", gender: "", phone: "",
+    fullName: "", dateOfBirth: "", age: "", ageUnit: "years", gender: "", phone: "", phoneCountryCode: "+234",
     address: "", nextOfKin: "",
     paymentType: "private" as "private" | "hmo",
     activeHmoId: "",
@@ -364,7 +383,7 @@ export default function PatientRegister() {
     const { data, error } = await apiClient.rpc("check_duplicate_patient", {
       p_clinic_id: cid,
       p_full_name: form.fullName.trim(),
-      p_phone: form.phone.trim(),
+      phone: normalizePhone(form.phone, form.phoneCountryCode),
       p_age: parseInt(form.age, 10),
       p_gender: form.gender,
     });
@@ -533,7 +552,47 @@ export default function PatientRegister() {
               </Select>
             </div>
           </div>
-          <div className="space-y-1"><Label className="text-xs">Phone</Label><Input className="rounded-xl" value={form.phone} onChange={e => set("phone", e.target.value)} /></div>
+          <div className="space-y-1">
+  <Label className="text-xs">WhatsApp / Phone</Label>
+
+  <div className="flex gap-2">
+    <Select
+      value={form.phoneCountryCode}
+      onValueChange={(value) => set("phoneCountryCode", value)}
+    >
+      <SelectTrigger className="w-[105px] rounded-xl shrink-0">
+        <SelectValue />
+      </SelectTrigger>
+
+      <SelectContent>
+        <SelectItem value="+234">🇳🇬 +234</SelectItem>
+        <SelectItem value="+1">🇺🇸 +1</SelectItem>
+        <SelectItem value="+44">🇬🇧 +44</SelectItem>
+        <SelectItem value="+27">🇿🇦 +27</SelectItem>
+        <SelectItem value="+233">🇬🇭 +233</SelectItem>
+        <SelectItem value="+254">🇰🇪 +254</SelectItem>
+        <SelectItem value="+971">🇦🇪 +971</SelectItem>
+        <SelectItem value="+91">🇮🇳 +91</SelectItem>
+      </SelectContent>
+    </Select>
+
+    <Input
+      className="rounded-xl flex-1"
+      type="tel"
+      inputMode="tel"
+      placeholder="8061234567"
+      value={form.phone}
+      onChange={(e) => {
+        const value = e.target.value.replace(/[^\d+]/g, "");
+        set("phone", value);
+      }}
+    />
+  </div>
+
+  <p className="text-[11px] text-muted-foreground">
+    Stored in international format for WhatsApp messaging.
+  </p>
+</div>
           <div className="space-y-1"><Label className="text-xs">Next of Kin</Label><Input className="rounded-xl" value={form.nextOfKin} onChange={e => set("nextOfKin", e.target.value)} /></div>
           <div className="space-y-1 sm:col-span-2"><Label className="text-xs">Address</Label><Textarea className="rounded-xl" value={form.address} onChange={e => set("address", e.target.value)} rows={2} /></div>
           <div className="space-y-1"><Label className="text-xs">Payment Type *</Label>
