@@ -345,7 +345,7 @@ duration-200
   </span>
 
   <span className="text-xs text-muted-foreground">
-    {p.age} yrs
+    {getCurrentPatientAge(p.date_of_birth, p.age)}
   </span>
 </div>
 
