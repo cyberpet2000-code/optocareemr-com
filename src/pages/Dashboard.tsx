@@ -619,6 +619,7 @@ export default function Dashboard() {
                       <p className="text-xs text-muted-foreground">
                         {p.gender}, {p.age} yrs • {p.phone}
                       </p>
+                       <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} compact />
                     </div>
                     <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                   </Link>
@@ -695,6 +696,7 @@ export default function Dashboard() {
                       <p className="text-xs text-muted-foreground">
                         {p.payment_type ? `${p.payment_type} • ` : ""}{p.phone}
                       </p>
+                       <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} compact />
                     </div>
                     <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                   </Link>
@@ -819,6 +821,7 @@ export default function Dashboard() {
                       <p className="text-xs text-muted-foreground">
                         {p.gender}, {p.age} yrs • {p.phone}
                       </p>
+                       <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} compact />
                     </div>
                     <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                   </Link>
