@@ -520,6 +520,28 @@ hmo_relationship:
   if (loading) return <div className="flex items-center justify-center py-12"><OptoLoader size={40} /></div>;
   if (!patient) return <p className="text-center py-12 text-muted-foreground">Patient not found.</p>;
 
+  function normalizeWhatsAppNumber(phone: string | null | undefined) {
+  if (!phone) return "";
+
+  const cleaned = phone.trim();
+
+  if (!cleaned) return "";
+
+  if (cleaned.startsWith("+")) {
+    return cleaned.replace(/\D/g, "");
+  }
+
+  if (cleaned.startsWith("234")) {
+    return cleaned.replace(/\D/g, "");
+  }
+
+  if (cleaned.startsWith("0")) {
+    return `234${cleaned.slice(1).replace(/\D/g, "")}`;
+  }
+
+  return `234${cleaned.replace(/\D/g, "")}`;
+  }
+
   const totalVisits = visits.length;
   const lastVisit = visits.length > 0 ? visits[0] : null;
   const lastRx =
@@ -529,9 +551,7 @@ hmo_relationship:
       v.sub_os_sphere
   ) || null;
 
-  const whatsappNumber = patient?.phone
-  ?.replace(/\D/g, "")
-  ?.replace(/^0/, "234");
+  const whatsappNumber = normalizeWhatsAppNumber(patient?.phone);
   
   const hmoEntry = patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : null;
   const isHmo = patient.payment_type === "hmo";
