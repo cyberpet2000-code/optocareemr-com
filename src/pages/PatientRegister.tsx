@@ -88,6 +88,30 @@ export default function PatientRegister() {
     priority: "normal" as "normal" | "follow_up" | "emergency",
   });
 
+  const calculateAge = (dateOfBirth: string) => {
+  if (!dateOfBirth) return "";
+
+  const dob = new Date(dateOfBirth);
+  const today = new Date();
+
+  if (Number.isNaN(dob.getTime()) || dob > today) {
+    return "";
+  }
+
+  let age = today.getFullYear() - dob.getFullYear();
+
+  const monthDifference = today.getMonth() - dob.getMonth();
+
+  if (
+    monthDifference < 0 ||
+    (monthDifference === 0 && today.getDate() < dob.getDate())
+  ) {
+    age--;
+  }
+
+  return age >= 0 ? String(age) : "";
+};
+
   // Verification state
   const [verifyStatus, setVerifyStatus] = useState<VerificationStatus>("not_verified");
   const [verifyNotes, setVerifyNotes] = useState("");
@@ -221,6 +245,7 @@ export default function PatientRegister() {
     const { data, error } = await apiClient.from("patients").insert({
       clinic_id: cid,
       full_name: form.fullName.trim(),
+      date_of_birth: form.dateOfBirth,
       age: parseInt(form.age),
       gender: form.gender,
       phone: form.phone.trim(),
@@ -299,8 +324,14 @@ export default function PatientRegister() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.fullName.trim() || !form.age || !form.gender) {
-      toast.error("Fill required fields (Name, Age, Gender)"); return;
+    if (
+  !form.fullName.trim() ||
+  !form.dateOfBirth ||
+  !form.age ||
+  !form.gender
+) {
+  toast.error("Please enter the patient's name, date of birth and gender");
+  return;
     }
     if (form.paymentType === "hmo" && !form.activeHmoId) {
       toast.error("Select HMO provider"); return;
@@ -378,10 +409,16 @@ export default function PatientRegister() {
 
           <Input
   className="rounded-xl h-11 text-sm font-medium"
-  type="text"
-  placeholder="DD/MM/YYYY"
+  type="date"
   value={form.dateOfBirth}
-  onChange={(e) => set("dateOfBirth", e.target.value)}
+  max={new Date().toISOString().split("T")[0]}
+  onChange={(e) => {
+    const dateOfBirth = e.target.value;
+    const age = calculateAge(dateOfBirth);
+
+    set("dateOfBirth", dateOfBirth);
+    set("age", age);
+  }}
 />
 </div>
 
@@ -389,14 +426,12 @@ export default function PatientRegister() {
   <div className="space-y-1">
     <Label className="text-xs">Age *</Label>
     <Input
-      className="rounded-xl h-11"
-      type="number"
-      min={0}
-      max={150}
-      placeholder="Enter age"
-      value={form.age}
-      onChange={(e) => set("age", e.target.value)}
-    />
+  className="rounded-xl h-11 bg-muted/50"
+  type="number"
+  value={form.age}
+  readOnly
+  placeholder="Calculated from date of birth"
+/>
   </div>
 
   <div className="space-y-1">
