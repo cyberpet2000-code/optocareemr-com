@@ -735,7 +735,7 @@ export default function PatientRegister() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{patient.full_name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {patient.patient_number || "No patient number"} • {patient.age ?? "—"} • {patient.gender || "—"}
+                      {patient.patient_number || "No patient number"} • {getPatientDisplayAge(patient.date_of_birth, patient.age)} • {patient.gender || "—"}
                     </p>
                     {patient.phone && <p className="text-xs text-muted-foreground">{patient.phone}</p>}
                   </div>
