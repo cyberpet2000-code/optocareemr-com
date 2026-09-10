@@ -1489,6 +1489,65 @@ shadow-sm
   {new Date(v.created_at).toLocaleDateString()}
 </p>
 
+{patient.date_of_birth && (
+  <p className="text-xs text-muted-foreground mt-1">
+    Age at visit:{" "}
+    {(() => {
+      const dob = new Date(patient.date_of_birth);
+      const visitDate = new Date(v.created_at);
+
+      if (
+        Number.isNaN(dob.getTime()) ||
+        Number.isNaN(visitDate.getTime()) ||
+        visitDate < dob
+      ) {
+        return "—";
+      }
+
+      let years = visitDate.getFullYear() - dob.getFullYear();
+      const monthDifference =
+        visitDate.getMonth() - dob.getMonth();
+
+      if (
+        monthDifference < 0 ||
+        (monthDifference === 0 &&
+          visitDate.getDate() < dob.getDate())
+      ) {
+        years--;
+      }
+
+      if (years >= 1) {
+        return `${years} ${years === 1 ? "year" : "years"}`;
+      }
+
+      const differenceInDays = Math.floor(
+        (visitDate.getTime() - dob.getTime()) /
+          (1000 * 60 * 60 * 24)
+      );
+
+      if (differenceInDays < 7) {
+        return `${differenceInDays} ${
+          differenceInDays === 1 ? "day" : "days"
+        }`;
+      }
+
+      if (differenceInDays < 30) {
+        const weeks = Math.floor(differenceInDays / 7);
+        return `${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+      }
+
+      const months =
+        (visitDate.getFullYear() - dob.getFullYear()) * 12 +
+        (visitDate.getMonth() - dob.getMonth()) -
+        (visitDate.getDate() < dob.getDate() ? 1 : 0);
+
+      return `${Math.max(1, months)} ${
+        months === 1 ? "month" : "months"
+      }`;
+    })()}
+  </p>
+)}
+
         {v.diagnosis && (
   <div className="mt-1">
     <span
