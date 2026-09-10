@@ -219,7 +219,7 @@ export default function PatientRegister() {
   useEffect(() => {
     if (!cid) return;
     apiClient.from("hmos")
-      .select("id, name, website, claims_portal_url, phone, email , date_of_birth")
+      .select("id, name, website, claims_portal_url, phone, email")
       .eq("clinic_id", cid).eq("status", "active").order("name")
       .then(({ data }) => { if (data) setHmos(data as any); });
   }, [cid]);
