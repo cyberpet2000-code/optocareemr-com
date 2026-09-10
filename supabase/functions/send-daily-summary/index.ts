@@ -6,13 +6,7 @@ import { renderShell, htmlToText, escapeHtml as esc, BRAND_NAME, dailyLimitFor }
 const FROM_ADDRESS = Deno.env.get("INVITE_FROM_ADDRESS") || `${BRAND_NAME} <noreply@optocareemr.com>`;
 const REPLY_TO = Deno.env.get("INVITE_REPLY_TO") || "support@optocareemr.com";
 const TIMEZONE = "Africa/Lagos";
-
-function escapeHtml(s: unknown) { return esc(s); }
-const TIMEZONE = "Africa/Lagos";
-
-function escapeHtml(s: unknown) {
-  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
-}
+const escapeHtml = esc;
 
 function fmtMoney(n: number) {
   return "₦" + (Number(n) || 0).toLocaleString("en-NG", { maximumFractionDigits: 2 });

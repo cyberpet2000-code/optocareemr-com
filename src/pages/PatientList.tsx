@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { useAccess } from "@/hooks/useAccess";
 import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
+import PatientHistoryMeta from "@/components/patients/PatientHistoryMeta";
+import { buildBillingSummaryMap, buildVisitSummaryMap, getPaymentStatus, type PatientBillingSummary, type PatientVisitSummary } from "@/lib/patientHistory";
 
 interface PatientRow {
   id: string;
@@ -24,6 +26,8 @@ interface PatientRow {
   last_visit?: string | null;
   hmo_verification_status?: string | null;
   balance?: number;
+  visitSummary: PatientVisitSummary;
+  billingSummary: PatientBillingSummary;
 }
 
 export default function PatientList() {
@@ -81,11 +85,18 @@ const { data, error } =
         }
         const patientIds = data.map(p => p.id);
 
-const { data: bills } = await apiClient
-  .from("billing")
-  .select("patient_id, balance")
-  .eq("clinic_id", cid)
-  .in("patient_id", patientIds);
+ const [{ data: bills }, { data: visitRows }] = await Promise.all([
+   apiClient
+     .from("billing")
+     .select("patient_id, balance, amount_paid, status, payer_type")
+     .eq("clinic_id", cid)
+     .in("patient_id", patientIds),
+   apiClient
+     .from("visits")
+     .select("patient_id, created_at")
+     .eq("clinic_id", cid)
+     .in("patient_id", patientIds),
+ ]);
 
 const balanceMap = new Map<string, number>();
 
@@ -98,10 +109,15 @@ const balanceMap = new Map<string, number>();
     current + (bill.balance || 0)
   );
 });
-        const rows = data.map((p: any) => ({
+         const paymentTypes = new Map(data.map((p: any) => [p.id, p.payment_type]));
+         const visitSummaryMap = buildVisitSummaryMap(visitRows || []);
+         const billingSummaryMap = buildBillingSummaryMap(bills || [], paymentTypes);
+         const rows = data.map((p: any) => ({
           ...p,
           hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined,
           balance: balanceMap.get(p.id) || 0,
+           visitSummary: visitSummaryMap.get(p.id) || { visitCount: 0, lastVisit: null },
+           billingSummary: billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type),
         }));
         setPatients(rows);
         offlineStore.save(cacheKey, rows);
@@ -249,6 +265,7 @@ duration-200
     {p.phone}
   </span>
 </div>
+ <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} />
    </div>             
                 </Link>
                 <div className="flex items-center gap-1 shrink-0">
