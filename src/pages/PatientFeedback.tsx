@@ -327,7 +327,50 @@ const ratingOptions = [
       Were you attended to within a reasonable time?
     </p>
 
+    <div 
+      <div className="mt-8 border-t pt-6">
+  <h2 className="text-lg font-semibold text-foreground">
+    4. Your Prescription
+  </h2>
+
+  <div className="mt-6">
+    <p className="text-sm font-medium text-foreground">
+      How satisfied are you with the explanation of your prescription?
+    </p>
+
     <div className="mt-3 space-y-2">
+      {[
+        { value: 5, label: "Very satisfied" },
+        { value: 4, label: "Satisfied" },
+        { value: 3, label: "Neutral" },
+        { value: 2, label: "Dissatisfied" },
+        { value: 1, label: "Very dissatisfied" },
+      ].map((option) => (
+        <label
+          key={option.value}
+          className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
+        >
+          <input
+            type="radio"
+            name="prescription-explanation-satisfaction"
+            value={option.value}
+            checked={
+              prescriptionExplanationSatisfaction === option.value
+            }
+            onChange={() =>
+              setPrescriptionExplanationSatisfaction(option.value)
+            }
+          />
+
+          <span className="text-sm">
+            {option.label}
+          </span>
+        </label>
+      ))}
+    </div>
+  </div>
+</div>
+      className="mt-3 space-y-2">
       {[
         { value: "yes", label: "Yes" },
         { value: "no", label: "No" },
