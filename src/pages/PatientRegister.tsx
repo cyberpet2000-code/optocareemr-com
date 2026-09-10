@@ -339,7 +339,7 @@ export default function PatientRegister() {
       date_of_birth: form.dateOfBirth,
       age: parseInt(form.age),
       gender: form.gender,
-      phone: form.phone.trim(),
+      phone: normalizePhone(form.phone, form.phoneCountryCode),
       address: form.address.trim(),
       next_of_kin: form.nextOfKin.trim(),
       payment_type: form.paymentType,
