@@ -8,6 +8,53 @@ export interface PatientBillingSummary {
   outstandingBalance: number;
 }
 
+export function buildVisitSummaryMap(
+  visits: Array<{ patient_id?: string | null; created_at?: string | null }>,
+): Map<string, PatientVisitSummary> {
+  const summaries = new Map<string, PatientVisitSummary>();
+
+  visits.forEach((visit) => {
+    if (!visit.patient_id) return;
+    const current = summaries.get(visit.patient_id);
+    const lastVisit = visit.created_at || null;
+
+    summaries.set(visit.patient_id, {
+      visitCount: (current?.visitCount || 0) + 1,
+      lastVisit: !current?.lastVisit || (lastVisit && lastVisit > current.lastVisit)
+        ? lastVisit
+        : current.lastVisit,
+    });
+  });
+
+  return summaries;
+}
+
+export function buildBillingSummaryMap(
+  bills: Array<{
+    patient_id?: string | null;
+    balance?: number | null;
+    amount_paid?: number | null;
+    status?: string | null;
+    payer_type?: string | null;
+  }>,
+  paymentTypes = new Map<string, string>(),
+): Map<string, PatientBillingSummary> {
+  const grouped = new Map<string, Array<{ balance?: number | null; amount_paid?: number | null; status?: string | null }>>();
+
+  bills.forEach((bill) => {
+    if (!bill.patient_id) return;
+    const current = grouped.get(bill.patient_id) || [];
+    current.push(bill);
+    grouped.set(bill.patient_id, current);
+  });
+
+  const summaries = new Map<string, PatientBillingSummary>();
+  grouped.forEach((patientBills, patientId) => {
+    summaries.set(patientId, getPaymentStatus(patientBills, paymentTypes.get(patientId)));
+  });
+  return summaries;
+}
+
 export function formatPatientDate(value: string | null | undefined): string {
   if (!value) return "No visits yet";
 

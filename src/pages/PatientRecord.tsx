@@ -40,6 +40,7 @@ import {
   isValidPower, isValidAxis, isValidVaDistance, isValidVaNear,
 } from "@/components/QuickPicker";
 import { MedicationPicker, type MedItem } from "@/components/MedicationPicker";
+import { getPaymentStatus, getPaymentStatusClass } from "@/lib/patientHistory";
 import { AbbrTip } from "@/components/AbbrTip";
 import { HMOVerificationCard, type HmoVerifStatus } from "@/components/HMOVerificationCard";
 import {
@@ -75,6 +76,19 @@ interface PatientData {
   queue_status: string;
   priority: string;
   patient_number?: string | null;
+}
+
+interface PaymentHistoryRow {
+  id: string;
+  visit_id: string | null;
+  total_amount: number;
+  amount_paid: number;
+  balance: number;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  description: string;
+  payments: Array<{ amount: number; method: string; created_at: string; paid_by: string }>;
 }
 
 const emptyVisitForm = () => ({
@@ -117,6 +131,7 @@ export default function PatientRecord() {
   const [editForm, setEditForm] = useState<Partial<PatientData>>({});
   const [form, setForm] = useState(emptyVisitForm());
   const [medications, setMedications] = useState<MedItem[]>([]);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryRow[]>([]);
 
 
   useEffect(() => {
@@ -167,6 +182,41 @@ export default function PatientRecord() {
   console.log("VISITS FROM DB", visRes.data);
   setVisits(visRes.data);
       }
+
+      const { data: billingRows } = await apiClient
+        .from("billing")
+        .select("id, visit_id, total_amount, amount_paid, balance, status, notes, created_at")
+        .eq("clinic_id", cid)
+        .eq("patient_id", patientId)
+        .order("created_at", { ascending: false });
+      const billingIds = (billingRows || []).map((bill: any) => bill.id);
+      const [{ data: billingItems }, { data: paymentRows }] = billingIds.length > 0
+        ? await Promise.all([
+            apiClient.from("billing_items").select("billing_id, item_name, quantity").eq("clinic_id", cid).in("billing_id", billingIds),
+            apiClient.from("payments").select("billing_id, amount, method, paid_by, created_at").eq("clinic_id", cid).in("billing_id", billingIds).order("created_at", { ascending: false }),
+          ])
+        : [{ data: [] }, { data: [] }];
+      const itemMap = new Map<string, string[]>();
+      (billingItems || []).forEach((item: any) => {
+        const names = itemMap.get(item.billing_id) || [];
+        names.push(`${item.item_name}${item.quantity > 1 ? ` × ${item.quantity}` : ""}`);
+        itemMap.set(item.billing_id, names);
+      });
+      const paymentsMap = new Map<string, PaymentHistoryRow["payments"]>();
+      (paymentRows || []).forEach((payment: any) => {
+        const rows = paymentsMap.get(payment.billing_id) || [];
+        rows.push(payment);
+        paymentsMap.set(payment.billing_id, rows);
+      });
+      setPaymentHistory((billingRows || []).map((bill: any) => {
+        const visit = (visRes.data || []).find((entry: any) => entry.id === bill.visit_id);
+        const description = itemMap.get(bill.id)?.join(", ") || bill.notes || visit?.diagnosis || visit?.chief_complaint || "Clinical care";
+        return {
+          ...bill,
+          description,
+          payments: paymentsMap.get(bill.id) || [],
+        };
+      }));
       if (hmoRes.data) {
         setHmos(hmoRes.data as any);
         setHmoMap(new Map((hmoRes.data as any[]).map(h => [h.id, { name: h.name, website: h.website }])));
@@ -487,6 +537,7 @@ hmo_relationship:
   const isHmo = patient.payment_type === "hmo";
   const hmoName = hmoEntry?.name || null;
   const hmoWebsite = hmoEntry?.website || null;
+  const paymentSummary = getPaymentStatus(paymentHistory, patient.payment_type);
 
   console.log("Current editingVisitId:", editingVisitId);
 
@@ -559,6 +610,9 @@ shadow-sm
       ).toLocaleDateString()}
     </span>
   )}
+               <span className={`text-[10px] px-2 py-1 rounded-full font-medium ${getPaymentStatusClass(paymentSummary.paymentStatus)}`}>
+                 Payment: {paymentSummary.paymentStatus}
+               </span>
 </div>
 
 {isHmo && patient.enrollee_number && (
@@ -924,6 +978,7 @@ shadow-sm
           <TabsTrigger value="exam" className="flex items-center gap-1 text-[11px] rounded-xl"><Gauge size={12} /> Exam</TabsTrigger>
           <TabsTrigger value="dx" className="flex items-center gap-1 text-[11px] rounded-xl"><Stethoscope size={12} /> Dx & Tx</TabsTrigger>
           <TabsTrigger value="visits" className="flex items-center gap-1 text-[11px] rounded-xl"><History size={12} /> Past</TabsTrigger>
+           <TabsTrigger value="payments" className="flex items-center gap-1 text-[11px] rounded-xl"><FileText size={12} /> Payments</TabsTrigger>
         </TabsList>
 
         <TabsContent value="history" className="space-y-4">
@@ -1608,6 +1663,55 @@ shadow-sm
             )}
           </div>
         </TabsContent>
+         <TabsContent value="payments">
+           <div className="medical-card">
+             <div className="flex items-center justify-between gap-3 mb-4">
+               <div>
+                 <h2 className="section-title text-sm"><FileText size={16} /> Payment History</h2>
+                 <p className="text-xs text-muted-foreground mt-1">
+                   {paymentSummary.outstandingBalance > 0
+                     ? `Outstanding balance: ₦${paymentSummary.outstandingBalance.toLocaleString()}`
+                     : "No outstanding balance"}
+                 </p>
+               </div>
+               <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${getPaymentStatusClass(paymentSummary.paymentStatus)}`}>
+                 {paymentSummary.paymentStatus}
+               </span>
+             </div>
+             {paymentHistory.length === 0 ? (
+               <p className="text-sm text-muted-foreground text-center py-8">No payment history recorded.</p>
+             ) : (
+               <div className="space-y-3">
+                 {paymentHistory.map((bill) => (
+                   <div key={bill.id} className="rounded-2xl border bg-card p-4">
+                     <div className="flex items-start justify-between gap-3">
+                       <div className="min-w-0">
+                         <p className="font-semibold truncate">{bill.description}</p>
+                         <p className="text-xs text-muted-foreground mt-1">
+                           {new Date(bill.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                           {` • Invoice ${bill.id.slice(0, 8).toUpperCase()}`}
+                         </p>
+                       </div>
+                       <span className={`shrink-0 text-[11px] px-2 py-1 rounded-md font-medium ${getPaymentStatusClass(bill.status === "paid" || bill.balance <= 0 ? "Paid" : bill.status)}`}>
+                         {bill.balance <= 0 ? "Paid" : bill.status || "Due"}
+                       </span>
+                     </div>
+                     <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
+                       <div><p className="text-muted-foreground">Amount</p><p className="font-medium">₦{Number(bill.total_amount).toLocaleString()}</p></div>
+                       <div><p className="text-muted-foreground">Paid</p><p className="font-medium">₦{Number(bill.amount_paid).toLocaleString()}</p></div>
+                       <div><p className="text-muted-foreground">Balance</p><p className={`font-medium ${bill.balance > 0 ? "text-warning" : "text-success"}`}>₦{Number(bill.balance).toLocaleString()}</p></div>
+                     </div>
+                     {bill.payments.length > 0 && (
+                       <p className="text-[11px] text-muted-foreground mt-3">
+                         Payments: {bill.payments.map((payment) => `${payment.method} ₦${Number(payment.amount).toLocaleString()}`).join(" • ")}
+                       </p>
+                     )}
+                   </div>
+                 ))}
+               </div>
+             )}
+           </div>
+         </TabsContent>
       </Tabs>
 
       <div className="sticky bottom-20 lg:bottom-4 mt-6 flex justify-end gap-2">

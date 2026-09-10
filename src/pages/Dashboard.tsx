@@ -19,6 +19,8 @@ import { useRole } from "@/hooks/useRole";
 import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
 import FinanceOverview from "@/components/dashboard/FinanceOverview";
+import PatientHistoryMeta from "@/components/patients/PatientHistoryMeta";
+import { buildBillingSummaryMap, buildVisitSummaryMap, getPaymentStatus } from "@/lib/patientHistory";
 
 interface DashboardSnapshot {
   todayVisits: number;
@@ -218,12 +220,12 @@ export default function Dashboard() {
 
     try {
       // Build role-appropriate queries - only fetch data the user's role needs
-      const queries: Promise<any>[] = [];
+       const queries: any[] = [];
       const queryKeys: string[] = [];
 
       // All roles need: patients, visits, appointments, upcoming appointments
       queries.push(
-        apiClient.from("patients").select("id, full_name, age, gender, phone, payment_type, queue_number").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(5)
+         apiClient.from("patients").select("id, full_name, age, gender, phone, payment_type, queue_number, patient_number").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(5)
       );
       queryKeys.push("patients");
 
@@ -384,7 +386,24 @@ export default function Dashboard() {
         }
       }
 
-      const snap: DashboardSnapshot = {
+       const recentPatientRows = (patientsRes?.data as any[]) ?? [];
+       const recentPatientIds = recentPatientRows.map((p) => p.id).filter(Boolean);
+       const [recentVisitsRes, recentBillsRes] = recentPatientIds.length > 0
+         ? await Promise.all([
+             apiClient.from("visits").select("patient_id, created_at").eq("clinic_id", cid).in("patient_id", recentPatientIds),
+             apiClient.from("billing").select("patient_id, balance, amount_paid, status, payer_type").eq("clinic_id", cid).in("patient_id", recentPatientIds),
+           ])
+         : [{ data: [] }, { data: [] }];
+       const paymentTypes = new Map(recentPatientRows.map((p) => [p.id, p.payment_type]));
+       const visitSummaryMap = buildVisitSummaryMap(recentVisitsRes.data || []);
+       const billingSummaryMap = buildBillingSummaryMap(recentBillsRes.data || [], paymentTypes);
+       const recentPatientsWithHistory = recentPatientRows.map((p) => ({
+         ...p,
+         visitSummary: visitSummaryMap.get(p.id) || { visitCount: 0, lastVisit: null },
+         billingSummary: billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type),
+       }));
+
+       const snap: DashboardSnapshot = {
         monthPatients: patientStats.patients_seen,
         patientsSeen: patientStats.patients_seen,
         newPatientsSeen: patientStats.new_patients_seen,
@@ -396,7 +415,7 @@ export default function Dashboard() {
         previousMonthRevenue: Number(previousRevenueRes?.data ?? 0),
         lowStockCount: invRes?.count ?? 0,
         drugAlerts: drugRes?.count ?? 0,
-        recentPatients: (patientsRes?.data as any[]) ?? [],
+         recentPatients: recentPatientsWithHistory,
         upcomingAppts: (upcomingApptRes?.data as any[]) ?? [],
       };
 
