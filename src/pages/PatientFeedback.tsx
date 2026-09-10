@@ -281,124 +281,303 @@ const ratingOptions = [
             type="radio"
             name="concerns-addressed"
             value={option.value}
-            checked={concernsAddressed === option.value}
-            onChange={() =>
-              setConcernsAddressed(option.value)
-            }
-          />
 
-          <span className="text-sm">
-            {option.label}
-          </span>
-        </label>
-      ))}
-    </div>
-  </div>
-</div>
-    className="mt-6">
-    <p className="text-sm font-medium text-foreground">
-      How would you rate the attitude and professionalism of our front-desk staff?
-    </p>
+return (
+  <div className="min-h-screen bg-background px-4 py-8">
+    <div className="mx-auto w-full max-w-2xl">
+      <div className="rounded-xl border bg-card p-6 shadow-sm">
+        <p className="text-sm font-medium text-muted-foreground">
+          {clinicName || "Our Clinic"}
+        </p>
 
-    <div className="mt-3 space-y-2">
-      {ratingOptions.map((option) => (
-        <label
-          key={option.value}
-          className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
-        >
-          <input
-            type="radio"
-            name="front-desk-rating"
-            value={option.value}
-            checked={frontDeskRating === option.value}
-            onChange={() => setFrontDeskRating(option.value)}
-          />
+        <h1 className="mt-2 text-2xl font-semibold text-foreground">
+          Patient Feedback Form
+        </h1>
 
-          <span className="text-sm">
-            {option.label}
-          </span>
-        </label>
-      ))}
-    </div>
-  </div>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Thank you for choosing our clinic.
+        </p>
 
-  <div className="mt-8">
-    <p className="text-sm font-medium text-foreground">
-      Were you attended to within a reasonable time?
-    </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          We value your feedback and use it to improve our services,
+          patient care and overall experience.
+        </p>
 
-    <div 
-      <div className="mt-8 border-t pt-6">
-  <h2 className="text-lg font-semibold text-foreground">
-    4. Your Prescription
-  </h2>
+        {/* SECTION 1: YOUR VISIT */}
+        <div className="mt-8 border-t pt-6">
+          <h2 className="text-lg font-semibold text-foreground">
+            1. Your Visit
+          </h2>
 
-  <div className="mt-6">
-    <p className="text-sm font-medium text-foreground">
-      How satisfied are you with the explanation of your prescription?
-    </p>
+          <div className="mt-6">
+            <p className="text-sm font-medium text-foreground">
+              How would you rate your overall experience at the clinic?
+            </p>
 
-    <div className="mt-3 space-y-2">
-      {[
-        { value: 5, label: "Very satisfied" },
-        { value: 4, label: "Satisfied" },
-        { value: 3, label: "Neutral" },
-        { value: 2, label: "Dissatisfied" },
-        { value: 1, label: "Very dissatisfied" },
-      ].map((option) => (
-        <label
-          key={option.value}
-          className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
-        >
-          <input
-            type="radio"
-            name="prescription-explanation-satisfaction"
-            value={option.value}
-            checked={
-              prescriptionExplanationSatisfaction === option.value
-            }
-            onChange={() =>
-              setPrescriptionExplanationSatisfaction(option.value)
-            }
-          />
+            <div className="mt-3 space-y-2">
+              {ratingOptions.map((option) => (
+                <label
+                  key={option.value}
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
+                >
+                  <input
+                    type="radio"
+                    name="overall-rating"
+                    value={option.value}
+                    checked={overallRating === option.value}
+                    onChange={() => setOverallRating(option.value)}
+                  />
 
-          <span className="text-sm">
-            {option.label}
-          </span>
-        </label>
-      ))}
-    </div>
-  </div>
-</div>
-      className="mt-3 space-y-2">
-      {[
-        { value: "yes", label: "Yes" },
-        { value: "no", label: "No" },
-        { value: "somewhat", label: "Somewhat" },
-      ].map((option) => (
-        <label
-          key={option.value}
-          className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
-        >
-          <input
-            type="radio"
-            name="attended-reasonable-time"
-            value={option.value}
-            checked={attendedReasonableTime === option.value}
-            onChange={() => setAttendedReasonableTime(option.value)}
-          />
+                  <span className="text-sm">
+                    {option.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
 
-          <span className="text-sm">
-            {option.label}
-          </span>
-        </label>
-      ))}
-    </div>
-  </div>
-</div>
-</div>
+          <div className="mt-8">
+            <p className="text-sm font-medium text-foreground">
+              How would you rate the cleanliness and comfort of the clinic?
+            </p>
+
+            <div className="mt-3 space-y-2">
+              {ratingOptions.map((option) => (
+                <label
+                  key={option.value}
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
+                >
+                  <input
+                    type="radio"
+                    name="cleanliness-rating"
+                    value={option.value}
+                    checked={cleanlinessRating === option.value}
+                    onChange={() => setCleanlinessRating(option.value)}
+                  />
+
+                  <span className="text-sm">
+                    {option.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 2: RECEPTION & STAFF */}
+        <div className="mt-8 border-t pt-6">
+          <h2 className="text-lg font-semibold text-foreground">
+            2. Reception & Staff
+          </h2>
+
+          <div className="mt-6">
+            <p className="text-sm font-medium text-foreground">
+              How would you rate the attitude and professionalism of our front-desk staff?
+            </p>
+
+            <div className="mt-3 space-y-2">
+              {ratingOptions.map((option) => (
+                <label
+                  key={option.value}
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
+                >
+                  <input
+                    type="radio"
+                    name="front-desk-rating"
+                    value={option.value}
+                    checked={frontDeskRating === option.value}
+                    onChange={() => setFrontDeskRating(option.value)}
+                  />
+
+                  <span className="text-sm">
+                    {option.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <p className="text-sm font-medium text-foreground">
+              Were you attended to within a reasonable time?
+            </p>
+
+            <div className="mt-3 space-y-2">
+              {[
+                { value: "yes", label: "Yes" },
+                { value: "no", label: "No" },
+                { value: "somewhat", label: "Somewhat" },
+              ].map((option) => (
+                <label
+                  key={option.value}
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
+                >
+                  <input
+                    type="radio"
+                    name="attended-reasonable-time"
+                    value={option.value}
+                    checked={attendedReasonableTime === option.value}
+                    onChange={() =>
+                      setAttendedReasonableTime(option.value)
+                    }
+                  />
+
+                  <span className="text-sm">
+                    {option.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 3: DOCTOR / OPTOMETRIST */}
+        <div className="mt-8 border-t pt-6">
+          <h2 className="text-lg font-semibold text-foreground">
+            3. Doctor / Optometrist
+          </h2>
+
+          <div className="mt-6">
+            <p className="text-sm font-medium text-foreground">
+              How would you rate the professionalism of the doctor/optometrist?
+            </p>
+
+            <div className="mt-3 space-y-2">
+              {ratingOptions.map((option) => (
+                <label
+                  key={option.value}
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
+                >
+                  <input
+                    type="radio"
+                    name="doctor-professionalism-rating"
+                    value={option.value}
+                    checked={doctorProfessionalismRating === option.value}
+                    onChange={() =>
+                      setDoctorProfessionalismRating(option.value)
+                    }
+                  />
+
+                  <span className="text-sm">
+                    {option.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <p className="text-sm font-medium text-foreground">
+              Did the doctor explain your eye condition and findings clearly?
+            </p>
+
+            <div className="mt-3 space-y-2">
+              {[
+                { value: "very_clearly", label: "Very clearly" },
+                { value: "clearly", label: "Clearly" },
+                { value: "somewhat_clearly", label: "Somewhat clearly" },
+                { value: "not_clearly", label: "Not clearly" },
+              ].map((option) => (
+                <label
+                  key={option.value}
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
+                >
+                  <input
+                    type="radio"
+                    name="doctor-explanation-clarity"
+                    value={option.value}
+                    checked={doctorExplanationClarity === option.value}
+                    onChange={() =>
+                      setDoctorExplanationClarity(option.value)
+                    }
+                  />
+
+                  <span className="text-sm">
+                    {option.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <p className="text-sm font-medium text-foreground">
+              Did you feel that your concerns were properly listened to and addressed?
+            </p>
+
+            <div className="mt-3 space-y-2">
+              {[
+                { value: "yes", label: "Yes" },
+                { value: "no", label: "No" },
+                { value: "somewhat", label: "Somewhat" },
+              ].map((option) => (
+                <label
+                  key={option.value}
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
+                >
+                  <input
+                    type="radio"
+                    name="concerns-addressed"
+                    value={option.value}
+                    checked={concernsAddressed === option.value}
+                    onChange={() =>
+                      setConcernsAddressed(option.value)
+                    }
+                  />
+
+                  <span className="text-sm">
+                    {option.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 4: YOUR PRESCRIPTION */}
+        <div className="mt-8 border-t pt-6">
+          <h2 className="text-lg font-semibold text-foreground">
+            4. Your Prescription
+          </h2>
+
+          <div className="mt-6">
+            <p className="text-sm font-medium text-foreground">
+              How satisfied are you with the explanation of your prescription?
+            </p>
+
+            <div className="mt-3 space-y-2">
+              {[
+                { value: 5, label: "Very satisfied" },
+                { value: 4, label: "Satisfied" },
+                { value: 3, label: "Neutral" },
+                { value: 2, label: "Dissatisfied" },
+                { value: 1, label: "Very dissatisfied" },
+              ].map((option) => (
+                <label
+                  key={option.value}
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/50"
+                >
+                  <input
+                    type="radio"
+                    name="prescription-explanation-satisfaction"
+                    value={option.value}
+                    checked={
+                      prescriptionExplanationSatisfaction === option.value
+                    }
+                    onChange={() =>
+                      setPrescriptionExplanationSatisfaction(option.value)
+                    }
+                  />
+
+                  <span className="text-sm">
+                    {option.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  );
-}
+  </div>
+);
