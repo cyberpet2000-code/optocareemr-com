@@ -15,6 +15,7 @@ import { buildBillingSummaryMap, buildVisitSummaryMap, getPaymentStatus, type Pa
 interface PatientRow {
   id: string;
   full_name: string;
+  date_of_birth: string | null;
   age: number | null;
   gender: string | null;
   phone: string;
@@ -56,6 +57,79 @@ function normalizeWhatsAppNumber(phone: string | null | undefined) {
   // Fallback
   return `234${cleaned.replace(/\D/g, "")}`;
 }
+function getCurrentPatientAge(
+  dateOfBirth: string | null | undefined,
+  storedAge: number | null | undefined
+) {
+  if (!dateOfBirth) {
+    return storedAge !== null && storedAge !== undefined
+      ? `${storedAge} years`
+      : "—";
+  }
+
+  const dob = new Date(dateOfBirth);
+  const today = new Date();
+
+  if (
+    Number.isNaN(dob.getTime()) ||
+    dob > today
+  ) {
+    return storedAge !== null && storedAge !== undefined
+      ? `${storedAge} years`
+      : "—";
+  }
+
+  let years =
+    today.getFullYear() -
+    dob.getFullYear();
+
+  const monthDifference =
+    today.getMonth() -
+    dob.getMonth();
+
+  if (
+    monthDifference < 0 ||
+    (monthDifference === 0 &&
+      today.getDate() < dob.getDate())
+  ) {
+    years--;
+  }
+
+  if (years >= 1) {
+    return `${years} ${years === 1 ? "year" : "years"}`;
+  }
+
+  const differenceInDays = Math.floor(
+    (today.getTime() - dob.getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
+
+  if (differenceInDays < 7) {
+    return `${differenceInDays} ${
+      differenceInDays === 1 ? "day" : "days"
+    }`;
+  }
+
+  if (differenceInDays < 30) {
+    const weeks = Math.floor(
+      differenceInDays / 7
+    );
+
+    return `${weeks} ${
+      weeks === 1 ? "week" : "weeks"
+    }`;
+  }
+
+  const months =
+    (today.getFullYear() - dob.getFullYear()) *
+      12 +
+    (today.getMonth() - dob.getMonth()) -
+    (today.getDate() < dob.getDate() ? 1 : 0);
+
+  return `${Math.max(1, months)} ${
+    months === 1 ? "month" : "months"
+  }`;
+}
 
 export default function PatientList() {
   const { effectiveClinicId: cid } = useAccess();
@@ -82,7 +156,7 @@ const filter = searchParams.get("filter");
       try {
         let query = apiClient
   .from("patients",)
-  .select("id, full_name, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number")
+ .select("id, full_name, date_of_birth, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number")
   .eq("clinic_id", cid);
 
 if (filter === "thismonth") {
