@@ -529,9 +529,9 @@ export default function PatientRegister() {
   <div className="space-y-1">
     <Label className="text-xs">Age Unit *</Label>
     <Select
-      value={form.ageUnit}
-      onValueChange={(v) => set("ageUnit", v)}
-    >
+  value={form.ageUnit}
+  disabled
+>
       <SelectTrigger className="rounded-xl">
         <SelectValue />
       </SelectTrigger>
