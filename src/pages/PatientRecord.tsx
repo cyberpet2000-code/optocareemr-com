@@ -61,6 +61,7 @@ import {
 interface PatientData {
   id: string;
   full_name: string;
+  date_of_birth: string | null;
   age: number | null;
   gender: string | null;
   phone: string;
