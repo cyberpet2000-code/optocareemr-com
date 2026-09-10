@@ -490,7 +490,7 @@ if (
       full_name: editForm.full_name,
       age: editForm.age,
       gender: editForm.gender,
-      phone: editForm.phone,
+      phone: normalizePhone(editForm.phone || ""),
       address: editForm.address,
       next_of_kin: editForm.next_of_kin,
       payment_type: editForm.payment_type,
