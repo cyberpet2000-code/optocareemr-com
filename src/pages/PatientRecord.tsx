@@ -543,6 +543,80 @@ hmo_relationship:
   return `234${cleaned.replace(/\D/g, "")}`;
   }
 
+  function getCurrentPatientAge(
+  dateOfBirth: string | null | undefined,
+  storedAge: number | null | undefined
+) {
+  if (!dateOfBirth) {
+    return storedAge !== null && storedAge !== undefined
+      ? `${storedAge} years`
+      : "—";
+  }
+
+  const dob = new Date(dateOfBirth);
+  const today = new Date();
+
+  if (
+    Number.isNaN(dob.getTime()) ||
+    dob > today
+  ) {
+    return storedAge !== null && storedAge !== undefined
+      ? `${storedAge} years`
+      : "—";
+  }
+
+  let years =
+    today.getFullYear() -
+    dob.getFullYear();
+
+  const monthDifference =
+    today.getMonth() -
+    dob.getMonth();
+
+  if (
+    monthDifference < 0 ||
+    (monthDifference === 0 &&
+      today.getDate() < dob.getDate())
+  ) {
+    years--;
+  }
+
+  if (years >= 1) {
+    return `${years} ${years === 1 ? "year" : "years"}`;
+  }
+
+  const differenceInDays = Math.floor(
+    (today.getTime() - dob.getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
+
+  if (differenceInDays < 7) {
+    return `${differenceInDays} ${
+      differenceInDays === 1 ? "day" : "days"
+    }`;
+  }
+
+  if (differenceInDays < 30) {
+    const weeks = Math.floor(
+      differenceInDays / 7
+    );
+
+    return `${weeks} ${
+      weeks === 1 ? "week" : "weeks"
+    }`;
+  }
+
+  const months =
+    (today.getFullYear() - dob.getFullYear()) *
+      12 +
+    (today.getMonth() - dob.getMonth()) -
+    (today.getDate() < dob.getDate() ? 1 : 0);
+
+  return `${Math.max(1, months)} ${
+    months === 1 ? "month" : "months"
+  }`;
+  }
+
   const totalVisits = visits.length;
   const lastVisit = visits.length > 0 ? visits[0] : null;
   const lastRx =
@@ -611,7 +685,7 @@ shadow-sm
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-  {patient.gender}, {patient.age} yrs • {patient.phone}
+  {patient.gender},{getCurrentPatientAge(patient.date_of_birth, patient.age)}• {patient.phone}
 </p>
 
               <div className="flex flex-wrap gap-2 mt-2">
