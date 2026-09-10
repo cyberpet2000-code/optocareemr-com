@@ -316,10 +316,10 @@ duration-200
                         <Phone size={14} className="text-success" />
                       </a>
                       <a
-                        href={`https://wa.me/${p.phone.replace(/[^0-9]/g, "")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="
+  href={`https://wa.me/${normalizeWhatsAppNumber(p.phone)}`}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="
 w-9
 h-9
 rounded-full
@@ -330,10 +330,10 @@ justify-center
 hover:bg-green-100
 transition-colors
 "
-                        title="WhatsApp"
-                      >
-                        <MessageCircle size={14} className="text-success" />
-                      </a>
+  title="WhatsApp"
+>
+  <MessageCircle size={14} className="text-success" />
+</a>
                     </>
                   )}
                   <Link
