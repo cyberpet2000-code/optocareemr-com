@@ -30,6 +30,33 @@ interface PatientRow {
   billingSummary: PatientBillingSummary;
 }
 
+function normalizeWhatsAppNumber(phone: string | null | undefined) {
+  if (!phone) return "";
+
+  const cleaned = phone.trim();
+
+  if (!cleaned) return "";
+
+  // Already international format: +2348032590109
+  if (cleaned.startsWith("+")) {
+    return cleaned.replace(/\D/g, "");
+  }
+
+  // International format without +: 2348032590109
+  if (cleaned.startsWith("234")) {
+    return cleaned.replace(/\D/g, "");
+  }
+
+  // Nigerian local format: 08032590109
+  // Becomes: 2348032590109
+  if (cleaned.startsWith("0")) {
+    return `234${cleaned.slice(1).replace(/\D/g, "")}`;
+  }
+
+  // Fallback
+  return `234${cleaned.replace(/\D/g, "")}`;
+}
+
 export default function PatientList() {
   const { effectiveClinicId: cid } = useAccess();
   const { isOffline } = useOffline();
