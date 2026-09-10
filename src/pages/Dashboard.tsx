@@ -614,7 +614,7 @@ export default function Dashboard() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium truncate">{p.full_name}</p>
-                        <span className="text-[10px] font-mono text-muted-foreground">#{p.queue_number}</span>
+                         <span className="text-[10px] font-mono text-muted-foreground">{p.patient_number || `#${p.queue_number}`}</span>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {p.gender}, {p.age} yrs • {p.phone}
@@ -691,7 +691,7 @@ export default function Dashboard() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium truncate">{p.full_name}</p>
-                        <span className="text-[10px] font-mono text-muted-foreground">#{p.queue_number}</span>
+                         <span className="text-[10px] font-mono text-muted-foreground">{p.patient_number || `#${p.queue_number}`}</span>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {p.payment_type ? `${p.payment_type} • ` : ""}{p.phone}
@@ -816,7 +816,7 @@ export default function Dashboard() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium truncate">{p.full_name}</p>
-                        <span className="text-[10px] font-mono text-muted-foreground">#{p.queue_number}</span>
+                         <span className="text-[10px] font-mono text-muted-foreground">{p.patient_number || `#${p.queue_number}`}</span>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {p.gender}, {p.age} yrs • {p.phone}
