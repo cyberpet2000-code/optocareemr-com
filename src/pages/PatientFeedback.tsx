@@ -35,10 +35,12 @@ function RatingGroup({
   value,
   onChange,
   options = ratingOptions,
+  name,
 }: {
   value: number | null;
   onChange: (value: number) => void;
-  options?: { value: number; label: string }[];name: string;
+  options?: { value: number; label: string }[];
+  name: string;
 }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-3">
@@ -53,7 +55,7 @@ function RatingGroup({
         >
           <input
             type="radio"
-            name={`rating-${options.map((item) => item.value).join("-")}`}
+            name={name}
             value={option.value}
             checked={value === option.value}
             onChange={() => onChange(option.value)}
@@ -196,28 +198,30 @@ export default function PatientFeedback() {
 
       try {
         const { data, error } = await apiClient.rpc(
-  "get_public_feedback_request",
-  {
-    p_token: token,
-  }
-);
+          "get_public_feedback_request",
+          {
+            p_token: token,
+          }
+        );
 
-if (error || !data || data.length === 0) {
-  if (mounted) {
-    setValid(false);
-    setLoading(false);
-  }
-  return;
-}
+        if (error || !data || data.length === 0) {
+          if (mounted) {
+            setValid(false);
+            setLoading(false);
+          }
+          return;
+        }
 
-const request = data[0];
+        const request = data[0];
 
-if (mounted) {
-  setClinicName(request.clinic_name || "Our Clinic");
-  setValid(true);
-  setLoading(false);
-}
-      } catch {
+        if (mounted) {
+          setClinicName(request.clinic_name || "Our Clinic");
+          setValid(true);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Feedback request error:", error);
+
         if (mounted) {
           setValid(false);
           setLoading(false);
@@ -405,7 +409,9 @@ if (mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="w-full max-w-md rounded-2xl border bg-card p-8 text-center shadow-sm">
-          <h1 className="text-xl font-semibold">Feedback link unavailable</h1>
+          <h1 className="text-xl font-semibold">
+            Feedback link unavailable
+          </h1>
 
           <p className="mt-3 text-sm text-muted-foreground">
             This feedback link may have expired, already been used, or is no
@@ -454,7 +460,9 @@ if (mounted) {
       <div className="mx-auto max-w-3xl">
         <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
           <div className="border-b px-5 py-6 sm:px-8">
-            <p className="text-sm font-medium text-primary">{clinicName}</p>
+            <p className="text-sm font-medium text-primary">
+              {clinicName}
+            </p>
 
             <h1 className="mt-2 text-2xl sm:text-3xl font-bold">
               Patient Feedback Form
@@ -469,10 +477,13 @@ if (mounted) {
           </div>
 
           <form onSubmit={handleSubmit} className="px-5 py-6 sm:px-8">
+
             {/* SECTION 1 */}
             <section className="space-y-6">
               <div>
-                <h2 className="text-lg font-semibold">1. Your Visit</h2>
+                <h2 className="text-lg font-semibold">
+                  1. Your Visit
+                </h2>
               </div>
 
               <div>
@@ -481,6 +492,7 @@ if (mounted) {
                 </p>
 
                 <RatingGroup
+                  name="overall-rating"
                   value={overallRating}
                   onChange={setOverallRating}
                 />
@@ -492,6 +504,7 @@ if (mounted) {
                 </p>
 
                 <RatingGroup
+                  name="cleanliness-rating"
                   value={cleanlinessRating}
                   onChange={setCleanlinessRating}
                 />
@@ -515,6 +528,7 @@ if (mounted) {
                 </p>
 
                 <RatingGroup
+                  name="front-desk-rating"
                   value={frontDeskRating}
                   onChange={setFrontDeskRating}
                 />
@@ -550,6 +564,7 @@ if (mounted) {
                 </p>
 
                 <RatingGroup
+                  name="doctor-professionalism-rating"
                   value={doctorProfessionalismRating}
                   onChange={setDoctorProfessionalismRating}
                 />
@@ -600,6 +615,7 @@ if (mounted) {
                 </p>
 
                 <RatingGroup
+                  name="prescription-explanation-satisfaction"
                   value={prescriptionExplanationSatisfaction}
                   onChange={setPrescriptionExplanationSatisfaction}
                   options={satisfactionOptions}
@@ -613,6 +629,7 @@ if (mounted) {
                 </p>
 
                 <RatingGroup
+                  name="glasses-vision-satisfaction"
                   value={glassesVisionSatisfaction}
                   onChange={setGlassesVisionSatisfaction}
                   options={satisfactionOptions}
@@ -624,6 +641,7 @@ if (mounted) {
                     checked={glassesVisionNotApplicable}
                     onChange={(event) => {
                       const checked = event.target.checked;
+
                       setGlassesVisionNotApplicable(checked);
 
                       if (checked) {
@@ -709,6 +727,7 @@ if (mounted) {
                 </p>
 
                 <RatingGroup
+                  name="optical-service-rating"
                   value={opticalServiceRating}
                   onChange={setOpticalServiceRating}
                 />
@@ -719,6 +738,7 @@ if (mounted) {
                     checked={opticalServiceNotApplicable}
                     onChange={(event) => {
                       const checked = event.target.checked;
+
                       setOpticalServiceNotApplicable(checked);
 
                       if (checked) {
@@ -738,6 +758,7 @@ if (mounted) {
                 </p>
 
                 <RatingGroup
+                  name="glasses-fitting-satisfaction"
                   value={glassesFittingSatisfaction}
                   onChange={setGlassesFittingSatisfaction}
                   options={satisfactionOptions}
@@ -749,6 +770,7 @@ if (mounted) {
                     checked={glassesFittingNotApplicable}
                     onChange={(event) => {
                       const checked = event.target.checked;
+
                       setGlassesFittingNotApplicable(checked);
 
                       if (checked) {
@@ -767,7 +789,9 @@ if (mounted) {
             {/* SECTION 6 */}
             <section className="space-y-6">
               <div>
-                <h2 className="text-lg font-semibold">6. Overall</h2>
+                <h2 className="text-lg font-semibold">
+                  6. Overall
+                </h2>
               </div>
 
               <div>
@@ -854,7 +878,9 @@ if (mounted) {
             {/* SECTION 7 */}
             <section className="space-y-5">
               <div>
-                <h2 className="text-lg font-semibold">7. Follow-up</h2>
+                <h2 className="text-lg font-semibold">
+                  7. Follow-up
+                </h2>
               </div>
 
               <div>
@@ -912,7 +938,9 @@ if (mounted) {
                 disabled={submitting}
                 className="w-full rounded-xl bg-primary px-5 py-3.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {submitting ? "Submitting feedback..." : "Submit Feedback"}
+                {submitting
+                  ? "Submitting feedback..."
+                  : "Submit Feedback"}
               </button>
             </div>
 
@@ -928,4 +956,4 @@ if (mounted) {
       </div>
     </div>
   );
-  }
+            }
