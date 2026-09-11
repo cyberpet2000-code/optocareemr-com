@@ -827,6 +827,27 @@ transition-colors
     className="text-success"
   />
 </a>
+
+                <Button
+  variant="outline"
+  size="sm"
+  className="rounded-xl h-10 px-3 gap-1"
+  onClick={() => {
+    if (visits.length === 0) {
+      toast.error("No visit available for feedback");
+      return;
+    }
+
+    const latestCompletedVisit =
+      visits.find(v => v.status === "completed") || visits[0];
+
+    handleSendFeedback(latestCompletedVisit.id);
+  }}
+  disabled={sendingFeedback}
+>
+  <MessageCircle size={14} />
+  {sendingFeedback ? "Sending..." : "Send Feedback"}
+</Button>
               </>
             )}
             
