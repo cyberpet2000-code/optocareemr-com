@@ -496,7 +496,7 @@ if (
       full_name: editForm.full_name,
       age: editForm.age,
       gender: editForm.gender,
-      phone: normalizePhone(editForm.phone || ""),
+      phone: (editForm.phone || "").trim(),
       address: editForm.address,
       next_of_kin: editForm.next_of_kin,
       payment_type: editForm.payment_type,
