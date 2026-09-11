@@ -195,43 +195,28 @@ export default function PatientFeedback() {
       }
 
       try {
-        const { data, error } = await apiClient
-          .from("feedback_requests")
-          .select("id, clinic_id, status")
-          .eq("token", token)
-          .eq("status", "pending")
-          .maybeSingle();
+        const { data, error } = await apiClient.rpc(
+  "get_public_feedback_request",
+  {
+    p_token: token,
+  }
+);
 
-        if (error || !data) {
-          if (mounted) {
-            setValid(false);
-            setLoading(false);
-          }
-          return;
-        }
+if (error || !data || data.length === 0) {
+  if (mounted) {
+    setValid(false);
+    setLoading(false);
+  }
+  return;
+}
 
-        const { data: clinic, error: clinicError } = await apiClient
-          .from("clinics")
-          .select("name")
-          .eq("id", data.clinic_id)
-          .maybeSingle();
+const request = data[0];
 
-        if (clinicError) {
-          console.error("Failed to load clinic:", clinicError);
-        }
-
-        if (mounted) {
-          setClinicName(clinic?.name || "Our Clinic");
-          setValid(true);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Feedback request error:", error);
-
-        if (mounted) {
-          setValid(false);
-          setLoading(false);
-        }
+if (mounted) {
+  setClinicName(request.clinic_name || "Our Clinic");
+  setValid(true);
+  setLoading(false);
+}
       }
     }
 
