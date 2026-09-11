@@ -668,6 +668,10 @@ hmo_relationship:
     toast.error("No active clinic or patient");
     return;
   }
+      if (feedbackStatus === "completed") {
+    toast.info("Feedback has already been completed for this visit");
+    return;
+      }
 
   setSendingFeedback(true);
 
@@ -856,7 +860,7 @@ transition-colors
   />
 </a>
 
-                <Button
+    <Button
   variant="outline"
   size="sm"
   className="rounded-xl h-10 px-3 gap-1"
@@ -874,8 +878,15 @@ transition-colors
   disabled={sendingFeedback}
 >
   <MessageCircle size={14} />
-  {sendingFeedback ? "Sending..." : "Send Feedback"}
-</Button>
+
+  {sendingFeedback
+    ? "Sending..."
+    : feedbackStatus === "completed"
+      ? "Feedback Completed"
+      : feedbackStatus === "pending"
+        ? "Resend Feedback"
+        : "Send Feedback"}
+</Button>            
               </>
             )}
             
