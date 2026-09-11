@@ -294,22 +294,12 @@ duration-200
 " >
                 <Link to={`/patient/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="relative shrink-0">
-                    <div
-  title={
-    p.balance > 0
-      ? "Outstanding Balance"
-      : isHmo
-      ? "HMO Patient"
-      : "Private Patient"
-  }
-                      className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full z-20 ${
-                        p.balance > 0
-                          ? "bg-red-500"
-                          : isHmo
-                          ? "bg-amber-500"
-                          : "bg-green-500"
-                      }`}
-                    />
+                     <div
+                       title={isHmo ? "HMO Patient" : "Private Patient"}
+                       className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full z-20 ${
+                         isHmo ? "bg-amber-500" : "bg-green-500"
+                       }`}
+                     />
                     <div
   className="
   w-14
@@ -374,7 +364,7 @@ duration-200
     {p.phone}
   </span>
 </div>
- <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} />
+ <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} paymentType={p.payment_type} hmoName={p.hmo_name} />
    </div>             
                 </Link>
                 <div className="flex items-center gap-1 shrink-0">

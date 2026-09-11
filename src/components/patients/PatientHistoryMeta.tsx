@@ -10,10 +10,12 @@ import { useRole } from "@/hooks/useRole";
 interface PatientHistoryMetaProps {
   visits: PatientVisitSummary;
   billing: PatientBillingSummary;
+  paymentType?: string | null;
+  hmoName?: string | null;
   compact?: boolean;
 }
 
-export default function PatientHistoryMeta({ visits, billing, compact = false }: PatientHistoryMetaProps) {
+export default function PatientHistoryMeta({ visits, billing, paymentType, hmoName, compact = false }: PatientHistoryMetaProps) {
   const { isAdmin, isReceptionist } = useRole();
   const canViewPayments = isAdmin || isReceptionist;
 
@@ -26,6 +28,9 @@ export default function PatientHistoryMeta({ visits, billing, compact = false }:
       <span className="inline-flex items-center gap-1">
         <CalendarDays size={12} />
         Last: {formatPatientDate(visits.lastVisit)}
+      </span>
+      <span className={`inline-flex items-center gap-1 font-medium ${paymentType === "hmo" ? "text-accent" : "text-muted-foreground"}`}>
+        {paymentType === "hmo" ? `HMO: ${hmoName || "HMO"}` : "Private"}
       </span>
       {canViewPayments && (
         <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium ${getPaymentStatusClass(billing.paymentStatus)}`}>

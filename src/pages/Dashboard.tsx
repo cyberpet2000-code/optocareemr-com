@@ -629,7 +629,7 @@ export default function Dashboard() {
                       <p className="text-xs text-muted-foreground">
                         {p.gender}, {p.age} yrs • {p.phone}
                       </p>
-                       <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} compact />
+                       <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} paymentType={p.payment_type} hmoName={p.hmo_name} compact />
                     </div>
                     <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                   </Link>
@@ -703,10 +703,10 @@ export default function Dashboard() {
                         <p className="text-sm font-medium truncate">{p.full_name}</p>
                          <span className="text-[10px] font-mono text-muted-foreground">{p.patient_number || `#${p.queue_number}`}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {p.payment_type ? `${p.payment_type} • ` : ""}{p.phone}
-                      </p>
-                       <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} compact />
+                       <p className="text-xs text-muted-foreground">
+                         {p.gender}, {p.age} yrs • {p.phone}
+                       </p>
+                        <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} paymentType={p.payment_type} hmoName={p.hmo_name} compact />
                     </div>
                     <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                   </Link>
@@ -831,7 +831,7 @@ export default function Dashboard() {
                       <p className="text-xs text-muted-foreground">
                         {p.gender}, {p.age} yrs • {p.phone}
                       </p>
-                       <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} compact />
+                       <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} paymentType={p.payment_type} hmoName={p.hmo_name} compact />
                     </div>
                     <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                   </Link>
