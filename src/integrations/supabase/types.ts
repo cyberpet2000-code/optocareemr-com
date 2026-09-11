@@ -1494,6 +1494,213 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback_requests: {
+        Row: {
+          clinic_id: string
+          completed_at: string | null
+          created_at: string
+          doctor_id: string | null
+          id: string
+          patient_id: string
+          status: string
+          token: string
+          visit_id: string | null
+        }
+        Insert: {
+          clinic_id: string
+          completed_at?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          id?: string
+          patient_id: string
+          status?: string
+          token: string
+          visit_id?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          completed_at?: string | null
+          created_at?: string
+          doctor_id?: string | null
+          id?: string
+          patient_id?: string
+          status?: string
+          token?: string
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_requests_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_requests_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_requests_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback_responses: {
+        Row: {
+          anything_else: string | null
+          attended_reasonable_time: string | null
+          cleanliness_rating: number | null
+          clinic_id: string
+          concerns_addressed: string | null
+          doctor_explanation_clarity: string | null
+          doctor_id: string | null
+          doctor_professionalism_rating: number | null
+          doctor_rating: number | null
+          eye_exam_rating: number | null
+          feedback_request_id: string
+          follow_up_notes: string | null
+          front_desk_rating: number | null
+          glasses_fitting_not_applicable: boolean
+          glasses_fitting_satisfaction: number | null
+          glasses_vision_not_applicable: boolean
+          glasses_vision_satisfaction: number | null
+          id: string
+          improvement_feedback: string | null
+          optical_service_not_applicable: boolean
+          optical_service_rating: number | null
+          overall_rating: number
+          patient_id: string
+          positive_feedback: string | null
+          prescription_difficulty: boolean
+          prescription_difficulty_details: string | null
+          prescription_explanation_satisfaction: number | null
+          recommendation_score: number | null
+          requires_follow_up: boolean
+          service_rating: number | null
+          submitted_at: string
+          visit_id: string | null
+          waiting_time_rating: number | null
+          wants_follow_up: boolean | null
+          what_can_improve: string | null
+          what_did_well: string | null
+          would_recommend: boolean | null
+        }
+        Insert: {
+          anything_else?: string | null
+          attended_reasonable_time?: string | null
+          cleanliness_rating?: number | null
+          clinic_id: string
+          concerns_addressed?: string | null
+          doctor_explanation_clarity?: string | null
+          doctor_id?: string | null
+          doctor_professionalism_rating?: number | null
+          doctor_rating?: number | null
+          eye_exam_rating?: number | null
+          feedback_request_id: string
+          follow_up_notes?: string | null
+          front_desk_rating?: number | null
+          glasses_fitting_not_applicable?: boolean
+          glasses_fitting_satisfaction?: number | null
+          glasses_vision_not_applicable?: boolean
+          glasses_vision_satisfaction?: number | null
+          id?: string
+          improvement_feedback?: string | null
+          optical_service_not_applicable?: boolean
+          optical_service_rating?: number | null
+          overall_rating: number
+          patient_id: string
+          positive_feedback?: string | null
+          prescription_difficulty?: boolean
+          prescription_difficulty_details?: string | null
+          prescription_explanation_satisfaction?: number | null
+          recommendation_score?: number | null
+          requires_follow_up?: boolean
+          service_rating?: number | null
+          submitted_at?: string
+          visit_id?: string | null
+          waiting_time_rating?: number | null
+          wants_follow_up?: boolean | null
+          what_can_improve?: string | null
+          what_did_well?: string | null
+          would_recommend?: boolean | null
+        }
+        Update: {
+          anything_else?: string | null
+          attended_reasonable_time?: string | null
+          cleanliness_rating?: number | null
+          clinic_id?: string
+          concerns_addressed?: string | null
+          doctor_explanation_clarity?: string | null
+          doctor_id?: string | null
+          doctor_professionalism_rating?: number | null
+          doctor_rating?: number | null
+          eye_exam_rating?: number | null
+          feedback_request_id?: string
+          follow_up_notes?: string | null
+          front_desk_rating?: number | null
+          glasses_fitting_not_applicable?: boolean
+          glasses_fitting_satisfaction?: number | null
+          glasses_vision_not_applicable?: boolean
+          glasses_vision_satisfaction?: number | null
+          id?: string
+          improvement_feedback?: string | null
+          optical_service_not_applicable?: boolean
+          optical_service_rating?: number | null
+          overall_rating?: number
+          patient_id?: string
+          positive_feedback?: string | null
+          prescription_difficulty?: boolean
+          prescription_difficulty_details?: string | null
+          prescription_explanation_satisfaction?: number | null
+          recommendation_score?: number | null
+          requires_follow_up?: boolean
+          service_rating?: number | null
+          submitted_at?: string
+          visit_id?: string | null
+          waiting_time_rating?: number | null
+          wants_follow_up?: boolean | null
+          what_can_improve?: string | null
+          what_did_well?: string | null
+          would_recommend?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_responses_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_responses_feedback_request_id_fkey"
+            columns: ["feedback_request_id"]
+            isOneToOne: true
+            referencedRelation: "feedback_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_responses_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_responses_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       followups: {
         Row: {
           clinic_id: string | null
@@ -2268,6 +2475,7 @@ export type Database = {
           clinic_id: string | null
           created_at: string
           created_by: string | null
+          date_of_birth: string | null
           enrollee_number: string | null
           full_name: string
           gender: string | null
@@ -2302,6 +2510,7 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string
           created_by?: string | null
+          date_of_birth?: string | null
           enrollee_number?: string | null
           full_name?: string
           gender?: string | null
@@ -2336,6 +2545,7 @@ export type Database = {
           clinic_id?: string | null
           created_at?: string
           created_by?: string | null
+          date_of_birth?: string | null
           enrollee_number?: string | null
           full_name?: string
           gender?: string | null
@@ -3581,6 +3791,14 @@ export type Database = {
             }
             Returns: string
           }
+      create_feedback_request: {
+        Args: { p_visit_id: string }
+        Returns: {
+          feedback_link: string
+          feedback_request_id: string
+          feedback_token: string
+        }[]
+      }
       current_clinic_id: { Args: never; Returns: string }
       deactivate_clinic: {
         Args: { _clinic_id: string; _reason?: string }
@@ -3594,6 +3812,7 @@ export type Database = {
         Returns: undefined
       }
       freeze_extra_branches: { Args: { p_org_id: string }; Returns: undefined }
+      generate_feedback_token: { Args: never; Returns: string }
       get_active_clinic_id: { Args: never; Returns: string }
       get_dashboard_patient_stats: {
         Args: { p_clinic_id: string; p_month: number; p_year: number }
@@ -3737,6 +3956,49 @@ export type Database = {
         Args: { _clinic_id: string; _clinic_type: string }
         Returns: Json
       }
+      submit_patient_feedback:
+        | {
+            Args: {
+              p_anything_else?: string
+              p_attended_reasonable_time?: string
+              p_cleanliness_rating?: number
+              p_concerns_addressed?: string
+              p_doctor_explanation_clarity?: string
+              p_doctor_professionalism_rating?: number
+              p_front_desk_rating?: number
+              p_glasses_fitting_not_applicable?: boolean
+              p_glasses_fitting_satisfaction?: number
+              p_glasses_vision_not_applicable?: boolean
+              p_glasses_vision_satisfaction?: number
+              p_optical_service_not_applicable?: boolean
+              p_optical_service_rating?: number
+              p_overall_rating: number
+              p_prescription_difficulty?: boolean
+              p_prescription_difficulty_details?: string
+              p_prescription_explanation_satisfaction?: number
+              p_recommendation_score?: number
+              p_token: string
+              p_wants_follow_up?: boolean
+              p_what_can_improve?: string
+              p_what_did_well?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_doctor_rating?: number
+              p_eye_exam_rating?: number
+              p_front_desk_rating?: number
+              p_improvement_feedback?: string
+              p_overall_rating: number
+              p_positive_feedback?: string
+              p_service_rating?: number
+              p_token: string
+              p_waiting_time_rating?: number
+              p_would_recommend?: boolean
+            }
+            Returns: string
+          }
       suggest_query_fix: { Args: { q: string }; Returns: string }
       try_consume_email_quota: {
         Args: { _category: string; _limit: number }

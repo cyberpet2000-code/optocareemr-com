@@ -7,6 +7,7 @@ import { apiClient } from "@/lib/apiClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAccess } from "@/hooks/useAccess";
+import { useRole } from "@/hooks/useRole";
 import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
 import PatientHistoryMeta from "@/components/patients/PatientHistoryMeta";
@@ -133,6 +134,8 @@ function getCurrentPatientAge(
 
 export default function PatientList() {
   const { effectiveClinicId: cid } = useAccess();
+  const { isAdmin, isReceptionist, loading: roleLoading } = useRole();
+  const canViewPayments = isAdmin || isReceptionist;
   const { isOffline } = useOffline();
   const [patients, setPatients] = useState<PatientRow[]>([]);
   const [search, setSearch] = useState("");
@@ -142,6 +145,7 @@ const filter = searchParams.get("filter");
 
   useEffect(() => {
     if (!cid) { setPatients([]); setLoading(false); return; }
+    if (roleLoading) return;
     const cacheKey = `patients:${cid}`;
 
     const loadFromCache = () => {
@@ -186,18 +190,22 @@ const { data, error } =
         }
         const patientIds = data.map(p => p.id);
 
- const [{ data: bills }, { data: visitRows }] = await Promise.all([
-   apiClient
-     .from("billing")
-     .select("patient_id, balance, amount_paid, status, payer_type")
-     .eq("clinic_id", cid)
-     .in("patient_id", patientIds),
-   apiClient
+  const [visitResponse, billingResponse] = await Promise.all([
+    apiClient
      .from("visits")
      .select("patient_id, created_at")
      .eq("clinic_id", cid)
      .in("patient_id", patientIds),
+    canViewPayments
+      ? apiClient
+          .from("billing")
+          .select("patient_id, balance, amount_paid, status, payer_type")
+          .eq("clinic_id", cid)
+          .in("patient_id", patientIds)
+      : Promise.resolve({ data: [] }),
  ]);
+ const visitRows = visitResponse.data || [];
+ const bills = billingResponse.data || [];
 
 const balanceMap = new Map<string, number>();
 
@@ -227,7 +235,7 @@ const balanceMap = new Map<string, number>();
         loadFromCache();
       }
     })();
-  }, [cid, isOffline]);
+  }, [cid, isOffline, canViewPayments, roleLoading]);
 
   const filtered = patients.filter(p =>
     p.full_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -286,22 +294,12 @@ duration-200
 " >
                 <Link to={`/patient/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="relative shrink-0">
-                    <div
-  title={
-    p.balance > 0
-      ? "Outstanding Balance"
-      : isHmo
-      ? "HMO Patient"
-      : "Private Patient"
-  }
-                      className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full z-20 ${
-                        p.balance > 0
-                          ? "bg-red-500"
-                          : isHmo
-                          ? "bg-amber-500"
-                          : "bg-green-500"
-                      }`}
-                    />
+                     <div
+                       title={isHmo ? "HMO Patient" : "Private Patient"}
+                       className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full z-20 ${
+                         isHmo ? "bg-amber-500" : "bg-green-500"
+                       }`}
+                     />
                     <div
   className="
   w-14
@@ -366,7 +364,7 @@ duration-200
     {p.phone}
   </span>
 </div>
- <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} />
+ <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} paymentType={p.payment_type} hmoName={p.hmo_name} />
    </div>             
                 </Link>
                 <div className="flex items-center gap-1 shrink-0">

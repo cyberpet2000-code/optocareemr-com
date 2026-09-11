@@ -225,7 +225,7 @@ export default function Dashboard() {
 
       // All roles need: patients, visits, appointments, upcoming appointments
       queries.push(
-         apiClient.from("patients").select("id, full_name, age, gender, phone, payment_type, queue_number, patient_number").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(5)
+         apiClient.from("patients").select("id, full_name, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number").eq("clinic_id", cid).order("created_at", { ascending: false }).limit(5)
       );
       queryKeys.push("patients");
 
@@ -391,16 +391,26 @@ export default function Dashboard() {
        const [recentVisitsRes, recentBillsRes] = recentPatientIds.length > 0
          ? await Promise.all([
              apiClient.from("visits").select("patient_id, created_at").eq("clinic_id", cid).in("patient_id", recentPatientIds),
-             apiClient.from("billing").select("patient_id, balance, amount_paid, status, payer_type").eq("clinic_id", cid).in("patient_id", recentPatientIds),
+             showBillingMetrics
+               ? apiClient.from("billing").select("patient_id, balance, amount_paid, status, payer_type").eq("clinic_id", cid).in("patient_id", recentPatientIds)
+               : Promise.resolve({ data: [] }),
            ])
          : [{ data: [] }, { data: [] }];
+        const recentHmoIds = [...new Set(recentPatientRows.map((p) => p.active_hmo_id).filter(Boolean))];
+        const { data: recentHmos } = recentHmoIds.length > 0
+          ? await apiClient.from("hmos").select("id, name").eq("clinic_id", cid).in("id", recentHmoIds)
+          : { data: [] };
+        const recentHmoMap = new Map((recentHmos || []).map((h: any) => [h.id, h.name]));
        const paymentTypes = new Map(recentPatientRows.map((p) => [p.id, p.payment_type]));
        const visitSummaryMap = buildVisitSummaryMap(recentVisitsRes.data || []);
        const billingSummaryMap = buildBillingSummaryMap(recentBillsRes.data || [], paymentTypes);
        const recentPatientsWithHistory = recentPatientRows.map((p) => ({
          ...p,
+          hmo_name: p.active_hmo_id ? recentHmoMap.get(p.active_hmo_id) : undefined,
          visitSummary: visitSummaryMap.get(p.id) || { visitCount: 0, lastVisit: null },
-         billingSummary: billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type),
+          billingSummary: showBillingMetrics
+            ? billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type)
+            : getPaymentStatus([], p.payment_type),
        }));
 
        const snap: DashboardSnapshot = {
@@ -619,7 +629,7 @@ export default function Dashboard() {
                       <p className="text-xs text-muted-foreground">
                         {p.gender}, {p.age} yrs • {p.phone}
                       </p>
-                       <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} compact />
+                       <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} paymentType={p.payment_type} hmoName={p.hmo_name} compact />
                     </div>
                     <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                   </Link>
@@ -693,10 +703,10 @@ export default function Dashboard() {
                         <p className="text-sm font-medium truncate">{p.full_name}</p>
                          <span className="text-[10px] font-mono text-muted-foreground">{p.patient_number || `#${p.queue_number}`}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {p.payment_type ? `${p.payment_type} • ` : ""}{p.phone}
-                      </p>
-                       <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} compact />
+                       <p className="text-xs text-muted-foreground">
+                         {p.gender}, {p.age} yrs • {p.phone}
+                       </p>
+                        <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} paymentType={p.payment_type} hmoName={p.hmo_name} compact />
                     </div>
                     <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                   </Link>
@@ -821,7 +831,7 @@ export default function Dashboard() {
                       <p className="text-xs text-muted-foreground">
                         {p.gender}, {p.age} yrs • {p.phone}
                       </p>
-                       <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} compact />
+                       <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} paymentType={p.payment_type} hmoName={p.hmo_name} compact />
                     </div>
                     <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                   </Link>

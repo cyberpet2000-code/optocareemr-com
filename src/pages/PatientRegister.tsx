@@ -34,7 +34,6 @@ type PatientMatch = {
   phone: string | null;
   age: number | null;
   gender: string | null;
-  date_of_birth: string | null;
   match_type?: string | null;
   match_score?: number | null;
 };
@@ -70,26 +69,7 @@ function highlightName(name: string, query: string) {
     ? <mark key={`${part}-${index}`} className="rounded bg-primary/10 px-0.5 text-primary">{part}</mark>
     : <Fragment key={`${part}-${index}`}>{part}</Fragment>);
 }
-function normalizePhone(phone: string, countryCode = "+234") {
-  const value = phone.trim();
 
-  if (!value) return "";
-
-  // Keep digits and an optional leading +
-  const cleaned = value.replace(/[^\d+]/g, "");
-
-  // Already international format
-  if (cleaned.startsWith("+")) {
-    return `+${cleaned.slice(1).replace(/\D/g, "")}`;
-  }
-
-  // Remove leading zero from local format
-  const localNumber = cleaned.replace(/^0+/, "");
-
-  if (!localNumber) return "";
-
-  return `${countryCode}${localNumber}`;
-}
 export default function PatientRegister() {
   const navigate = useNavigate();
   const { effectiveClinicId: cid } = useAccess();
@@ -97,7 +77,7 @@ export default function PatientRegister() {
   const [loading, setLoading] = useState(false);
   const [hmos, setHmos] = useState<HmoRow[]>([]);
   const [form, setForm] = useState({
-    fullName: "", dateOfBirth: "", age: "", ageUnit: "years", gender: "", phone: "", phoneCountryCode: "+234",
+    fullName: "", dateOfBirth: "", age: "", ageUnit: "years", gender: "", phone: "",
     address: "", nextOfKin: "",
     paymentType: "private" as "private" | "hmo",
     activeHmoId: "",
@@ -107,100 +87,6 @@ export default function PatientRegister() {
     hmoRelationship: "",
     priority: "normal" as "normal" | "follow_up" | "emergency",
   });
-
-  const calculateAgeDetails = (dateOfBirth: string) => {
-  if (!dateOfBirth) {
-    return {
-      age: "",
-      ageUnit: "years",
-    };
-  }
-
-  const dob = new Date(dateOfBirth);
-  const today = new Date();
-
-  if (Number.isNaN(dob.getTime()) || dob > today) {
-    return {
-      age: "",
-      ageUnit: "years",
-    };
-  }
-
-  // Calculate completed years
-  let years = today.getFullYear() - dob.getFullYear();
-
-  const monthDifference = today.getMonth() - dob.getMonth();
-
-  if (
-    monthDifference < 0 ||
-    (monthDifference === 0 && today.getDate() < dob.getDate())
-  ) {
-    years--;
-  }
-
-  // If at least 1 year old, use years
-  if (years >= 1) {
-    return {
-      age: String(years),
-      ageUnit: "years",
-    };
-  }
-
-  // Calculate difference in days
-  const millisecondsPerDay = 1000 * 60 * 60 * 24;
-  const differenceInDays = Math.floor(
-    (today.getTime() - dob.getTime()) / millisecondsPerDay
-  );
-
-  // Less than 1 week
-  if (differenceInDays < 7) {
-    return {
-      age: String(differenceInDays),
-      ageUnit: "days",
-    };
-  }
-
-  // Less than 1 month
-  if (differenceInDays < 30) {
-    return {
-      age: String(Math.floor(differenceInDays / 7)),
-      ageUnit: "weeks",
-    };
-  }
-
-  // Less than 1 year
-  let months =
-    (today.getFullYear() - dob.getFullYear()) * 12 +
-    (today.getMonth() - dob.getMonth());
-
-  if (today.getDate() < dob.getDate()) {
-    months--;
-  }
-
-  months = Math.max(1, months);
-
-  return {
-    age: String(months),
-    ageUnit: "months",
-  };
-};
-
-  const getPatientDisplayAge = (
-  dateOfBirth: string | null,
-  storedAge: number | null
-) => {
-  if (dateOfBirth) {
-    const calculatedAge = calculateAgeDetails(dateOfBirth);
-
-    if (calculatedAge.age !== "") {
-      return `${calculatedAge.age} ${calculatedAge.ageUnit}`;
-    }
-  }
-
-  return storedAge !== null && storedAge !== undefined
-    ? `${storedAge} years`
-    : "—";
-};
 
   // Verification state
   const [verifyStatus, setVerifyStatus] = useState<VerificationStatus>("not_verified");
@@ -241,7 +127,7 @@ export default function PatientRegister() {
 
       const responses = await Promise.all(terms.map((term) => apiClient
         .from("patients")
-        .select("id, full_name, patient_number, age, gender, phone, date_of_birth")
+        .select("id, full_name, patient_number, age, gender, phone")
         .eq("clinic_id", cid)
         .ilike("full_name", `%${escapeLikeTerm(term)}%`)
         .limit(10)));
@@ -258,7 +144,6 @@ export default function PatientRegister() {
             phone: patient.phone,
             age: patient.age,
             gender: patient.gender,
-            date_of_birth: patient.date_of_birth,
           } satisfies PatientMatch;
           const normalizedName = normalizeSearchText(match.full_name);
           if (normalizedQuery.split(" ").every((term) => normalizedName.includes(term))) {
@@ -336,10 +221,9 @@ export default function PatientRegister() {
     const { data, error } = await apiClient.from("patients").insert({
       clinic_id: cid,
       full_name: form.fullName.trim(),
-      date_of_birth: form.dateOfBirth,
       age: parseInt(form.age),
       gender: form.gender,
-      phone: normalizePhone(form.phone, form.phoneCountryCode),
+      phone: form.phone.trim(),
       address: form.address.trim(),
       next_of_kin: form.nextOfKin.trim(),
       payment_type: form.paymentType,
@@ -383,7 +267,7 @@ export default function PatientRegister() {
     const { data, error } = await apiClient.rpc("check_duplicate_patient", {
       p_clinic_id: cid,
       p_full_name: form.fullName.trim(),
-      phone: normalizePhone(form.phone, form.phoneCountryCode),
+      p_phone: form.phone.trim(),
       p_age: parseInt(form.age, 10),
       p_gender: form.gender,
     });
@@ -415,14 +299,8 @@ export default function PatientRegister() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-  !form.fullName.trim() ||
-  !form.dateOfBirth ||
-  !form.age ||
-  !form.gender
-) {
-  toast.error("Please enter the patient's name, date of birth and gender");
-  return;
+    if (!form.fullName.trim() || !form.age || !form.gender) {
+      toast.error("Fill required fields (Name, Age, Gender)"); return;
     }
     if (form.paymentType === "hmo" && !form.activeHmoId) {
       toast.error("Select HMO provider"); return;
@@ -484,7 +362,7 @@ export default function PatientRegister() {
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-medium">{highlightName(patient.full_name, form.fullName)}</span>
                           <span className="block truncate text-xs text-muted-foreground">
-                            {patient.patient_number || "No patient number"} • {getPatientDisplayAge(patient.date_of_birth, patient.age)} • {patient.gender || "—"}
+                            {patient.patient_number || "No patient number"} • {patient.age ?? "—"} • {patient.gender || "—"}
                           </span>
                           {patient.phone && <span className="block truncate text-xs text-muted-foreground">{patient.phone}</span>}
                         </span>
@@ -500,17 +378,10 @@ export default function PatientRegister() {
 
           <Input
   className="rounded-xl h-11 text-sm font-medium"
-  type="date"
+  type="text"
+  placeholder="DD/MM/YYYY"
   value={form.dateOfBirth}
-  max={new Date().toISOString().split("T")[0]}
-  onChange={(e) => {
-  const dateOfBirth = e.target.value;
-  const ageDetails = calculateAgeDetails(dateOfBirth);
-
-  set("dateOfBirth", dateOfBirth);
-  set("age", ageDetails.age);
-  set("ageUnit", ageDetails.ageUnit);
-}}
+  onChange={(e) => set("dateOfBirth", e.target.value)}
 />
 </div>
 
@@ -518,20 +389,22 @@ export default function PatientRegister() {
   <div className="space-y-1">
     <Label className="text-xs">Age *</Label>
     <Input
-  className="rounded-xl h-11 bg-muted/50"
-  type="number"
-  value={form.age}
-  readOnly
-  placeholder="Calculated from date of birth"
-/>
+      className="rounded-xl h-11"
+      type="number"
+      min={0}
+      max={150}
+      placeholder="Enter age"
+      value={form.age}
+      onChange={(e) => set("age", e.target.value)}
+    />
   </div>
 
   <div className="space-y-1">
     <Label className="text-xs">Age Unit *</Label>
     <Select
-  value={form.ageUnit}
-  disabled
->
+      value={form.ageUnit}
+      onValueChange={(v) => set("ageUnit", v)}
+    >
       <SelectTrigger className="rounded-xl">
         <SelectValue />
       </SelectTrigger>
@@ -552,47 +425,7 @@ export default function PatientRegister() {
               </Select>
             </div>
           </div>
-          <div className="space-y-1">
-  <Label className="text-xs">WhatsApp / Phone</Label>
-
-  <div className="flex gap-2">
-    <Select
-      value={form.phoneCountryCode}
-      onValueChange={(value) => set("phoneCountryCode", value)}
-    >
-      <SelectTrigger className="w-[105px] rounded-xl shrink-0">
-        <SelectValue />
-      </SelectTrigger>
-
-      <SelectContent>
-        <SelectItem value="+234">🇳🇬 +234</SelectItem>
-        <SelectItem value="+1">🇺🇸 +1</SelectItem>
-        <SelectItem value="+44">🇬🇧 +44</SelectItem>
-        <SelectItem value="+27">🇿🇦 +27</SelectItem>
-        <SelectItem value="+233">🇬🇭 +233</SelectItem>
-        <SelectItem value="+254">🇰🇪 +254</SelectItem>
-        <SelectItem value="+971">🇦🇪 +971</SelectItem>
-        <SelectItem value="+91">🇮🇳 +91</SelectItem>
-      </SelectContent>
-    </Select>
-
-    <Input
-      className="rounded-xl flex-1"
-      type="tel"
-      inputMode="tel"
-      placeholder="8061234567"
-      value={form.phone}
-      onChange={(e) => {
-        const value = e.target.value.replace(/[^\d+]/g, "");
-        set("phone", value);
-      }}
-    />
-  </div>
-
-  <p className="text-[11px] text-muted-foreground">
-    Stored in international format for WhatsApp messaging.
-  </p>
-</div>
+          <div className="space-y-1"><Label className="text-xs">Phone</Label><Input className="rounded-xl" value={form.phone} onChange={e => set("phone", e.target.value)} /></div>
           <div className="space-y-1"><Label className="text-xs">Next of Kin</Label><Input className="rounded-xl" value={form.nextOfKin} onChange={e => set("nextOfKin", e.target.value)} /></div>
           <div className="space-y-1 sm:col-span-2"><Label className="text-xs">Address</Label><Textarea className="rounded-xl" value={form.address} onChange={e => set("address", e.target.value)} rows={2} /></div>
           <div className="space-y-1"><Label className="text-xs">Payment Type *</Label>
@@ -794,7 +627,7 @@ export default function PatientRegister() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{patient.full_name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {patient.patient_number || "No patient number"} • {getPatientDisplayAge(patient.date_of_birth, patient.age)} • {patient.gender || "—"}
+                      {patient.patient_number || "No patient number"} • {patient.age ?? "—"} • {patient.gender || "—"}
                     </p>
                     {patient.phone && <p className="text-xs text-muted-foreground">{patient.phone}</p>}
                   </div>
