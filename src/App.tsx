@@ -237,7 +237,10 @@ export function AppRoutes() {
   }, [location.pathname]);
 
   const isLegalRoute = location.pathname === "/legal" || location.pathname.startsWith("/legal/");
-  const isPublicRoute = isLegalRoute || ["/login", "/reset-password", "/accept-invite", "/signup", "/no-access"].includes(location.pathname);
+  const isPublicRoute =
+  isLegalRoute ||
+  location.pathname.startsWith("/feedback/") ||
+  ["/login", "/reset-password", "/accept-invite", "/signup", "/no-access"].includes(location.pathname);
 
   if (!isAuthReady) return <FullScreenLoader />;
 
@@ -250,6 +253,7 @@ export function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
+      <Route path="/feedback/:token" element={<PatientFeedback />} />
       <Route path="/signup" element={<AcceptInvite />} />
       <Route path="/no-access" element={<NoAccess />} />
       <Route path="/legal" element={<LegalIndex />} />
