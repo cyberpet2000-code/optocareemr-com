@@ -217,6 +217,11 @@ if (mounted) {
   setValid(true);
   setLoading(false);
 }
+      } catch {
+        if (mounted) {
+          setValid(false);
+          setLoading(false);
+        }
       }
     }
 

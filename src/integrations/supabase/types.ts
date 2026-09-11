@@ -3870,6 +3870,14 @@ export type Database = {
           pharmacy: boolean
         }[]
       }
+      get_public_feedback_request: {
+        Args: { p_token: string }
+        Returns: {
+          clinic_id: string
+          clinic_name: string
+          feedback_request_id: string
+        }[]
+      }
       has_clinic_access: {
         Args: { target_clinic: string; uid: string }
         Returns: boolean
