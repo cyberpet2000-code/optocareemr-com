@@ -61,6 +61,7 @@ import {
 interface PatientData {
   id: string;
   full_name: string;
+  date_of_birth: string | null;
   age: number | null;
   gender: string | null;
   phone: string;
@@ -119,6 +120,7 @@ export default function PatientRecord() {
   const { id } = useParams<{ id: string }>();
   const patientId = id || "";
   const { effectiveClinicId: cid, role } = useAccess();
+  const canViewFinancials = role === "admin" || role === "super_admin" || role === "receptionist";
   const [patient, setPatient] = useState<PatientData | null>(null);
   const [hmos, setHmos] = useState<{ id: string; name: string; website?: string | null }[]>([]);
   const [hmoMap, setHmoMap] = useState<Map<string, { name: string; website?: string | null }>>(new Map());
@@ -183,40 +185,44 @@ export default function PatientRecord() {
   setVisits(visRes.data);
       }
 
-      const { data: billingRows } = await apiClient
-        .from("billing")
-        .select("id, visit_id, total_amount, amount_paid, balance, status, notes, created_at")
-        .eq("clinic_id", cid)
-        .eq("patient_id", patientId)
-        .order("created_at", { ascending: false });
-      const billingIds = (billingRows || []).map((bill: any) => bill.id);
-      const [{ data: billingItems }, { data: paymentRows }] = billingIds.length > 0
-        ? await Promise.all([
-            apiClient.from("billing_items").select("billing_id, item_name, quantity").eq("clinic_id", cid).in("billing_id", billingIds),
-            apiClient.from("payments").select("billing_id, amount, method, paid_by, created_at").eq("clinic_id", cid).in("billing_id", billingIds).order("created_at", { ascending: false }),
-          ])
-        : [{ data: [] }, { data: [] }];
-      const itemMap = new Map<string, string[]>();
-      (billingItems || []).forEach((item: any) => {
-        const names = itemMap.get(item.billing_id) || [];
-        names.push(`${item.item_name}${item.quantity > 1 ? ` × ${item.quantity}` : ""}`);
-        itemMap.set(item.billing_id, names);
-      });
-      const paymentsMap = new Map<string, PaymentHistoryRow["payments"]>();
-      (paymentRows || []).forEach((payment: any) => {
-        const rows = paymentsMap.get(payment.billing_id) || [];
-        rows.push(payment);
-        paymentsMap.set(payment.billing_id, rows);
-      });
-      setPaymentHistory((billingRows || []).map((bill: any) => {
-        const visit = (visRes.data || []).find((entry: any) => entry.id === bill.visit_id);
-        const description = itemMap.get(bill.id)?.join(", ") || bill.notes || visit?.diagnosis || visit?.chief_complaint || "Clinical care";
-        return {
-          ...bill,
-          description,
-          payments: paymentsMap.get(bill.id) || [],
-        };
-      }));
+      if (canViewFinancials) {
+        const { data: billingRows } = await apiClient
+          .from("billing")
+          .select("id, visit_id, total_amount, amount_paid, balance, status, notes, created_at")
+          .eq("clinic_id", cid)
+          .eq("patient_id", patientId)
+          .order("created_at", { ascending: false });
+        const billingIds = (billingRows || []).map((bill: any) => bill.id);
+        const [{ data: billingItems }, { data: paymentRows }] = billingIds.length > 0
+          ? await Promise.all([
+              apiClient.from("billing_items").select("billing_id, item_name, quantity").eq("clinic_id", cid).in("billing_id", billingIds),
+              apiClient.from("payments").select("billing_id, amount, method, paid_by, created_at").eq("clinic_id", cid).in("billing_id", billingIds).order("created_at", { ascending: false }),
+            ])
+          : [{ data: [] }, { data: [] }];
+        const itemMap = new Map<string, string[]>();
+        (billingItems || []).forEach((item: any) => {
+          const names = itemMap.get(item.billing_id) || [];
+          names.push(`${item.item_name}${item.quantity > 1 ? ` × ${item.quantity}` : ""}`);
+          itemMap.set(item.billing_id, names);
+        });
+        const paymentsMap = new Map<string, PaymentHistoryRow["payments"]>();
+        (paymentRows || []).forEach((payment: any) => {
+          const rows = paymentsMap.get(payment.billing_id) || [];
+          rows.push(payment);
+          paymentsMap.set(payment.billing_id, rows);
+        });
+        setPaymentHistory((billingRows || []).map((bill: any) => {
+          const visit = (visRes.data || []).find((entry: any) => entry.id === bill.visit_id);
+          const description = itemMap.get(bill.id)?.join(", ") || bill.notes || visit?.diagnosis || visit?.chief_complaint || "Clinical care";
+          return {
+            ...bill,
+            description,
+            payments: paymentsMap.get(bill.id) || [],
+          };
+        }));
+      } else {
+        setPaymentHistory([]);
+      }
       if (hmoRes.data) {
         setHmos(hmoRes.data as any);
         setHmoMap(new Map((hmoRes.data as any[]).map(h => [h.id, { name: h.name, website: h.website }])));
@@ -245,7 +251,7 @@ if (medRes) {
       
       setLoading(false);
     })();
-  }, [patientId, cid]);
+  }, [patientId, cid, canViewFinancials]);
 
 
   const setField = (k: string, v: string) =>
@@ -490,7 +496,7 @@ if (
       full_name: editForm.full_name,
       age: editForm.age,
       gender: editForm.gender,
-      phone: editForm.phone,
+      phone: normalizePhone(editForm.phone || ""),
       address: editForm.address,
       next_of_kin: editForm.next_of_kin,
       payment_type: editForm.payment_type,
@@ -520,6 +526,102 @@ hmo_relationship:
   if (loading) return <div className="flex items-center justify-center py-12"><OptoLoader size={40} /></div>;
   if (!patient) return <p className="text-center py-12 text-muted-foreground">Patient not found.</p>;
 
+  function normalizeWhatsAppNumber(phone: string | null | undefined) {
+  if (!phone) return "";
+
+  const cleaned = phone.trim();
+
+  if (!cleaned) return "";
+
+  if (cleaned.startsWith("+")) {
+    return cleaned.replace(/\D/g, "");
+  }
+
+  if (cleaned.startsWith("234")) {
+    return cleaned.replace(/\D/g, "");
+  }
+
+  if (cleaned.startsWith("0")) {
+    return `234${cleaned.slice(1).replace(/\D/g, "")}`;
+  }
+
+  return `234${cleaned.replace(/\D/g, "")}`;
+  }
+
+  function getCurrentPatientAge(
+  dateOfBirth: string | null | undefined,
+  storedAge: number | null | undefined
+) {
+  if (!dateOfBirth) {
+    return storedAge !== null && storedAge !== undefined
+      ? `${storedAge} years`
+      : "—";
+  }
+
+  const dob = new Date(dateOfBirth);
+  const today = new Date();
+
+  if (
+    Number.isNaN(dob.getTime()) ||
+    dob > today
+  ) {
+    return storedAge !== null && storedAge !== undefined
+      ? `${storedAge} years`
+      : "—";
+  }
+
+  let years =
+    today.getFullYear() -
+    dob.getFullYear();
+
+  const monthDifference =
+    today.getMonth() -
+    dob.getMonth();
+
+  if (
+    monthDifference < 0 ||
+    (monthDifference === 0 &&
+      today.getDate() < dob.getDate())
+  ) {
+    years--;
+  }
+
+  if (years >= 1) {
+    return `${years} ${years === 1 ? "year" : "years"}`;
+  }
+
+  const differenceInDays = Math.floor(
+    (today.getTime() - dob.getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
+
+  if (differenceInDays < 7) {
+    return `${differenceInDays} ${
+      differenceInDays === 1 ? "day" : "days"
+    }`;
+  }
+
+  if (differenceInDays < 30) {
+    const weeks = Math.floor(
+      differenceInDays / 7
+    );
+
+    return `${weeks} ${
+      weeks === 1 ? "week" : "weeks"
+    }`;
+  }
+
+  const months =
+    (today.getFullYear() - dob.getFullYear()) *
+      12 +
+    (today.getMonth() - dob.getMonth()) -
+    (today.getDate() < dob.getDate() ? 1 : 0);
+
+  return `${Math.max(1, months)} ${
+    months === 1 ? "month" : "months"
+  }`;
+  }
+
   const totalVisits = visits.length;
   const lastVisit = visits.length > 0 ? visits[0] : null;
   const lastRx =
@@ -529,9 +631,7 @@ hmo_relationship:
       v.sub_os_sphere
   ) || null;
 
-  const whatsappNumber = patient?.phone
-  ?.replace(/\D/g, "")
-  ?.replace(/^0/, "234");
+  const whatsappNumber = normalizeWhatsAppNumber(patient?.phone);
   
   const hmoEntry = patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : null;
   const isHmo = patient.payment_type === "hmo";
@@ -590,7 +690,7 @@ shadow-sm
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-  {patient.gender}, {patient.age} yrs • {patient.phone}
+  {patient.gender},{getCurrentPatientAge(patient.date_of_birth, patient.age)}• {patient.phone}
 </p>
 
               <div className="flex flex-wrap gap-2 mt-2">
@@ -610,9 +710,11 @@ shadow-sm
       ).toLocaleDateString()}
     </span>
   )}
-               <span className={`text-[10px] px-2 py-1 rounded-full font-medium ${getPaymentStatusClass(paymentSummary.paymentStatus)}`}>
-                 Payment: {paymentSummary.paymentStatus}
-               </span>
+                {canViewFinancials && (
+                  <span className={`text-[10px] px-2 py-1 rounded-full font-medium ${getPaymentStatusClass(paymentSummary.paymentStatus)}`}>
+                    Payment: {paymentSummary.paymentStatus}
+                  </span>
+                )}
 </div>
 
 {isHmo && patient.enrollee_number && (
@@ -978,7 +1080,9 @@ shadow-sm
           <TabsTrigger value="exam" className="flex items-center gap-1 text-[11px] rounded-xl"><Gauge size={12} /> Exam</TabsTrigger>
           <TabsTrigger value="dx" className="flex items-center gap-1 text-[11px] rounded-xl"><Stethoscope size={12} /> Dx & Tx</TabsTrigger>
           <TabsTrigger value="visits" className="flex items-center gap-1 text-[11px] rounded-xl"><History size={12} /> Past</TabsTrigger>
-           <TabsTrigger value="payments" className="flex items-center gap-1 text-[11px] rounded-xl"><FileText size={12} /> Payments</TabsTrigger>
+           {canViewFinancials && (
+             <TabsTrigger value="payments" className="flex items-center gap-1 text-[11px] rounded-xl"><FileText size={12} /> Payments</TabsTrigger>
+           )}
         </TabsList>
 
         <TabsContent value="history" className="space-y-4">
@@ -1469,6 +1573,65 @@ shadow-sm
   {new Date(v.created_at).toLocaleDateString()}
 </p>
 
+{patient.date_of_birth && (
+  <p className="text-xs text-muted-foreground mt-1">
+    Age at visit:{" "}
+    {(() => {
+      const dob = new Date(patient.date_of_birth);
+      const visitDate = new Date(v.created_at);
+
+      if (
+        Number.isNaN(dob.getTime()) ||
+        Number.isNaN(visitDate.getTime()) ||
+        visitDate < dob
+      ) {
+        return "—";
+      }
+
+      let years = visitDate.getFullYear() - dob.getFullYear();
+      const monthDifference =
+        visitDate.getMonth() - dob.getMonth();
+
+      if (
+        monthDifference < 0 ||
+        (monthDifference === 0 &&
+          visitDate.getDate() < dob.getDate())
+      ) {
+        years--;
+      }
+
+      if (years >= 1) {
+        return `${years} ${years === 1 ? "year" : "years"}`;
+      }
+
+      const differenceInDays = Math.floor(
+        (visitDate.getTime() - dob.getTime()) /
+          (1000 * 60 * 60 * 24)
+      );
+
+      if (differenceInDays < 7) {
+        return `${differenceInDays} ${
+          differenceInDays === 1 ? "day" : "days"
+        }`;
+      }
+
+      if (differenceInDays < 30) {
+        const weeks = Math.floor(differenceInDays / 7);
+        return `${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+      }
+
+      const months =
+        (visitDate.getFullYear() - dob.getFullYear()) * 12 +
+        (visitDate.getMonth() - dob.getMonth()) -
+        (visitDate.getDate() < dob.getDate() ? 1 : 0);
+
+      return `${Math.max(1, months)} ${
+        months === 1 ? "month" : "months"
+      }`;
+    })()}
+  </p>
+)}
+
         {v.diagnosis && (
   <div className="mt-1">
     <span
@@ -1663,7 +1826,7 @@ shadow-sm
             )}
           </div>
         </TabsContent>
-         <TabsContent value="payments">
+         {canViewFinancials && <TabsContent value="payments">
            <div className="medical-card">
              <div className="flex items-center justify-between gap-3 mb-4">
                <div>
@@ -1711,7 +1874,7 @@ shadow-sm
                </div>
              )}
            </div>
-         </TabsContent>
+          </TabsContent>}
       </Tabs>
 
       <div className="sticky bottom-20 lg:bottom-4 mt-6 flex justify-end gap-2">

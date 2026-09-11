@@ -7,6 +7,7 @@ import { apiClient } from "@/lib/apiClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAccess } from "@/hooks/useAccess";
+import { useRole } from "@/hooks/useRole";
 import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
 import PatientHistoryMeta from "@/components/patients/PatientHistoryMeta";
@@ -15,6 +16,7 @@ import { buildBillingSummaryMap, buildVisitSummaryMap, getPaymentStatus, type Pa
 interface PatientRow {
   id: string;
   full_name: string;
+  date_of_birth: string | null;
   age: number | null;
   gender: string | null;
   phone: string;
@@ -30,8 +32,110 @@ interface PatientRow {
   billingSummary: PatientBillingSummary;
 }
 
+function normalizeWhatsAppNumber(phone: string | null | undefined) {
+  if (!phone) return "";
+
+  const cleaned = phone.trim();
+
+  if (!cleaned) return "";
+
+  // Already international format: +2348032590109
+  if (cleaned.startsWith("+")) {
+    return cleaned.replace(/\D/g, "");
+  }
+
+  // International format without +: 2348032590109
+  if (cleaned.startsWith("234")) {
+    return cleaned.replace(/\D/g, "");
+  }
+
+  // Nigerian local format: 08032590109
+  // Becomes: 2348032590109
+  if (cleaned.startsWith("0")) {
+    return `234${cleaned.slice(1).replace(/\D/g, "")}`;
+  }
+
+  // Fallback
+  return `234${cleaned.replace(/\D/g, "")}`;
+}
+function getCurrentPatientAge(
+  dateOfBirth: string | null | undefined,
+  storedAge: number | null | undefined
+) {
+  if (!dateOfBirth) {
+    return storedAge !== null && storedAge !== undefined
+      ? `${storedAge} years`
+      : "—";
+  }
+
+  const dob = new Date(dateOfBirth);
+  const today = new Date();
+
+  if (
+    Number.isNaN(dob.getTime()) ||
+    dob > today
+  ) {
+    return storedAge !== null && storedAge !== undefined
+      ? `${storedAge} years`
+      : "—";
+  }
+
+  let years =
+    today.getFullYear() -
+    dob.getFullYear();
+
+  const monthDifference =
+    today.getMonth() -
+    dob.getMonth();
+
+  if (
+    monthDifference < 0 ||
+    (monthDifference === 0 &&
+      today.getDate() < dob.getDate())
+  ) {
+    years--;
+  }
+
+  if (years >= 1) {
+    return `${years} ${years === 1 ? "year" : "years"}`;
+  }
+
+  const differenceInDays = Math.floor(
+    (today.getTime() - dob.getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
+
+  if (differenceInDays < 7) {
+    return `${differenceInDays} ${
+      differenceInDays === 1 ? "day" : "days"
+    }`;
+  }
+
+  if (differenceInDays < 30) {
+    const weeks = Math.floor(
+      differenceInDays / 7
+    );
+
+    return `${weeks} ${
+      weeks === 1 ? "week" : "weeks"
+    }`;
+  }
+
+  const months =
+    (today.getFullYear() - dob.getFullYear()) *
+      12 +
+    (today.getMonth() - dob.getMonth()) -
+    (today.getDate() < dob.getDate() ? 1 : 0);
+
+  return `${Math.max(1, months)} ${
+    months === 1 ? "month" : "months"
+  }`;
+}
+
 export default function PatientList() {
   const { effectiveClinicId: cid } = useAccess();
+  const { isAdmin, isReceptionist, loading: roleLoading } = useRole();
+  const canViewPayments = isAdmin || isReceptionist;
   const { isOffline } = useOffline();
   const [patients, setPatients] = useState<PatientRow[]>([]);
   const [search, setSearch] = useState("");
@@ -41,6 +145,7 @@ const filter = searchParams.get("filter");
 
   useEffect(() => {
     if (!cid) { setPatients([]); setLoading(false); return; }
+    if (roleLoading) return;
     const cacheKey = `patients:${cid}`;
 
     const loadFromCache = () => {
@@ -55,7 +160,7 @@ const filter = searchParams.get("filter");
       try {
         let query = apiClient
   .from("patients",)
-  .select("id, full_name, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number")
+ .select("id, full_name, date_of_birth, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number")
   .eq("clinic_id", cid);
 
 if (filter === "thismonth") {
@@ -85,18 +190,22 @@ const { data, error } =
         }
         const patientIds = data.map(p => p.id);
 
- const [{ data: bills }, { data: visitRows }] = await Promise.all([
-   apiClient
-     .from("billing")
-     .select("patient_id, balance, amount_paid, status, payer_type")
-     .eq("clinic_id", cid)
-     .in("patient_id", patientIds),
-   apiClient
+  const [visitResponse, billingResponse] = await Promise.all([
+    apiClient
      .from("visits")
      .select("patient_id, created_at")
      .eq("clinic_id", cid)
      .in("patient_id", patientIds),
+    canViewPayments
+      ? apiClient
+          .from("billing")
+          .select("patient_id, balance, amount_paid, status, payer_type")
+          .eq("clinic_id", cid)
+          .in("patient_id", patientIds)
+      : Promise.resolve({ data: [] }),
  ]);
+ const visitRows = visitResponse.data || [];
+ const bills = billingResponse.data || [];
 
 const balanceMap = new Map<string, number>();
 
@@ -126,7 +235,7 @@ const balanceMap = new Map<string, number>();
         loadFromCache();
       }
     })();
-  }, [cid, isOffline]);
+  }, [cid, isOffline, canViewPayments, roleLoading]);
 
   const filtered = patients.filter(p =>
     p.full_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -244,7 +353,7 @@ duration-200
   </span>
 
   <span className="text-xs text-muted-foreground">
-    {p.age} yrs
+    {getCurrentPatientAge(p.date_of_birth, p.age)}
   </span>
 </div>
 
@@ -289,10 +398,10 @@ duration-200
                         <Phone size={14} className="text-success" />
                       </a>
                       <a
-                        href={`https://wa.me/${p.phone.replace(/[^0-9]/g, "")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="
+  href={`https://wa.me/${normalizeWhatsAppNumber(p.phone)}`}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="
 w-9
 h-9
 rounded-full
@@ -303,10 +412,10 @@ justify-center
 hover:bg-green-100
 transition-colors
 "
-                        title="WhatsApp"
-                      >
-                        <MessageCircle size={14} className="text-success" />
-                      </a>
+  title="WhatsApp"
+>
+  <MessageCircle size={14} className="text-success" />
+</a>
                     </>
                   )}
                   <Link
