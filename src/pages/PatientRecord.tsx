@@ -136,6 +136,9 @@ export default function PatientRecord() {
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryRow[]>([]);
   const [sendingFeedback, setSendingFeedback] = useState(false);
   const [feedbackLink, setFeedbackLink] = useState<string | null>(null);
+  const [feedbackStatus, setFeedbackStatus] = useState<
+  "none" | "pending" | "completed"
+>("none");
 
 
   useEffect(() => {
@@ -185,6 +188,31 @@ export default function PatientRecord() {
       if (visRes.data) {
   console.log("VISITS FROM DB", visRes.data);
   setVisits(visRes.data);
+      }
+
+            // Load feedback status for the latest visit
+      if (visRes.data && visRes.data.length > 0) {
+        const latestVisit = visRes.data[0];
+
+        const { data: feedbackRequest } = await apiClient
+          .from("feedback_requests")
+          .select("status")
+          .eq("clinic_id", cid)
+          .eq("patient_id", patientId)
+          .eq("visit_id", latestVisit.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (feedbackRequest?.status === "completed") {
+          setFeedbackStatus("completed");
+        } else if (feedbackRequest?.status === "pending") {
+          setFeedbackStatus("pending");
+        } else {
+          setFeedbackStatus("none");
+        }
+      } else {
+        setFeedbackStatus("none");
       }
 
       if (canViewFinancials) {
