@@ -38,7 +38,7 @@ function RatingGroup({
 }: {
   value: number | null;
   onChange: (value: number) => void;
-  options?: { value: number; label: string }[];
+  options?: { value: number; label: string }[];name: string;
 }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-3">
