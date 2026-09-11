@@ -190,30 +190,32 @@ export default function PatientRecord() {
   setVisits(visRes.data);
       }
 
-            // Load feedback status for the latest visit
-      if (visRes.data && visRes.data.length > 0) {
-        const latestVisit = visRes.data[0];
+            // Load feedback status for the latest completed visit
+if (visRes.data && visRes.data.length > 0) {
+  const latestCompletedVisit =
+    visRes.data.find((v: any) => v.status === "completed") ||
+    visRes.data[0];
 
-        const { data: feedbackRequest } = await apiClient
-          .from("feedback_requests")
-          .select("status")
-          .eq("clinic_id", cid)
-          .eq("patient_id", patientId)
-          .eq("visit_id", latestVisit.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+  const { data: feedbackRequest } = await apiClient
+    .from("feedback_requests")
+    .select("status")
+    .eq("clinic_id", cid)
+    .eq("patient_id", patientId)
+    .eq("visit_id", latestCompletedVisit.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-        if (feedbackRequest?.status === "completed") {
-          setFeedbackStatus("completed");
-        } else if (feedbackRequest?.status === "pending") {
-          setFeedbackStatus("pending");
-        } else {
-          setFeedbackStatus("none");
-        }
-      } else {
-        setFeedbackStatus("none");
-      }
+  if (feedbackRequest?.status === "completed") {
+    setFeedbackStatus("completed");
+  } else if (feedbackRequest?.status === "pending") {
+    setFeedbackStatus("pending");
+  } else {
+    setFeedbackStatus("none");
+  }
+} else {
+  setFeedbackStatus("none");
+}
 
       if (canViewFinancials) {
         const { data: billingRows } = await apiClient
