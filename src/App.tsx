@@ -40,6 +40,7 @@ import LegalSecurity from "./pages/legal/Security";
 import LegalCompliance from "./pages/legal/Compliance";
 import LegalMedical from "./pages/legal/MedicalDisclaimer";
 import LegalContact from "./pages/legal/Contact";
+import PatientFeedback from "./pages/PatientFeedback";
 import Expenses from "./pages/Expenses";
 import InventoryAudit from "./pages/InventoryAudit";
 import AccountSettings from "./pages/AccountSettings";
