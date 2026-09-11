@@ -134,6 +134,8 @@ export default function PatientRecord() {
   const [form, setForm] = useState(emptyVisitForm());
   const [medications, setMedications] = useState<MedItem[]>([]);
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryRow[]>([]);
+  const [sendingFeedback, setSendingFeedback] = useState(false);
+  const [feedbackLink, setFeedbackLink] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -632,6 +634,65 @@ hmo_relationship:
   ) || null;
 
   const whatsappNumber = normalizeWhatsAppNumber(patient?.phone);
+
+  const handleSendFeedback = async (visitId: string) => {
+  if (!cid || !patient) {
+    toast.error("No active clinic or patient");
+    return;
+  }
+
+  setSendingFeedback(true);
+
+  try {
+    const { data, error } = await apiClient.rpc(
+      "create_feedback_request",
+      {
+        p_visit_id: visitId,
+      }
+    );
+
+    if (error) {
+      console.error("Feedback request error:", error);
+      toast.error(error.message || "Could not create feedback request");
+      return;
+    }
+
+    const request = Array.isArray(data) ? data[0] : data;
+
+    if (!request?.feedback_link) {
+      toast.error("Feedback link could not be generated");
+      return;
+    }
+
+    const link = request.feedback_link;
+
+    setFeedbackLink(link);
+
+    if (!patient.phone) {
+      toast.success("Feedback link created");
+      return;
+    }
+
+    const message = encodeURIComponent(
+      `Hello ${patient.full_name},\n\nThank you for visiting our clinic. We would appreciate it if you could take a moment to share your feedback about your visit:\n\n${link}\n\nThank you.`
+    );
+
+    const phoneNumber = normalizeWhatsAppNumber(patient.phone);
+
+    window.open(
+      `https://wa.me/${phoneNumber}?text=${message}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+
+    toast.success("Feedback link ready to send on WhatsApp");
+  } catch (err: any) {
+    console.error("Feedback error:", err);
+    toast.error(err?.message || "Could not send feedback request");
+  } finally {
+    setSendingFeedback(false);
+  }
+};
   
   const hmoEntry = patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : null;
   const isHmo = patient.payment_type === "hmo";
