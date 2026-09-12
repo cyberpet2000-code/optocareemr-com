@@ -1963,6 +1963,183 @@ shadow-sm
 
 </div>
 
+    {feedbackDetails[v.id] && (
+  <div className="mt-4 rounded-2xl border bg-muted/30 p-4">
+    <div className="flex items-center justify-between gap-2 mb-3">
+      <div className="flex items-center gap-2 font-semibold text-primary">
+        <MessageCircle size={15} />
+        Patient Feedback
+      </div>
+
+      <span className="text-[10px] px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">
+        Completed
+      </span>
+    </div>
+
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+
+      <div>
+        <p className="text-muted-foreground">Overall Experience</p>
+        <p className="font-semibold">
+          {feedbackDetails[v.id].overall_rating}/5
+        </p>
+      </div>
+
+      <div>
+        <p className="text-muted-foreground">Cleanliness & Comfort</p>
+        <p className="font-semibold">
+          {feedbackDetails[v.id].cleanliness_rating}/5
+        </p>
+      </div>
+
+      <div>
+        <p className="text-muted-foreground">Front Desk</p>
+        <p className="font-semibold">
+          {feedbackDetails[v.id].front_desk_rating}/5
+        </p>
+      </div>
+
+      <div>
+        <p className="text-muted-foreground">Doctor Professionalism</p>
+        <p className="font-semibold">
+          {feedbackDetails[v.id].doctor_professionalism_rating}/5
+        </p>
+      </div>
+
+      <div>
+        <p className="text-muted-foreground">Prescription Explanation</p>
+        <p className="font-semibold">
+          {feedbackDetails[v.id].prescription_explanation_satisfaction}/5
+        </p>
+      </div>
+
+      {!feedbackDetails[v.id].glasses_vision_not_applicable && (
+        <div>
+          <p className="text-muted-foreground">Glasses Vision</p>
+          <p className="font-semibold">
+            {feedbackDetails[v.id].glasses_vision_satisfaction}/5
+          </p>
+        </div>
+      )}
+
+      {!feedbackDetails[v.id].optical_service_not_applicable && (
+        <div>
+          <p className="text-muted-foreground">Optical Service</p>
+          <p className="font-semibold">
+            {feedbackDetails[v.id].optical_service_rating}/5
+          </p>
+        </div>
+      )}
+
+      {!feedbackDetails[v.id].glasses_fitting_not_applicable && (
+        <div>
+          <p className="text-muted-foreground">Glasses Fitting</p>
+          <p className="font-semibold">
+            {feedbackDetails[v.id].glasses_fitting_satisfaction}/5
+          </p>
+        </div>
+      )}
+
+      <div>
+        <p className="text-muted-foreground">Recommendation</p>
+        <p className="font-semibold">
+          {feedbackDetails[v.id].recommendation_score}/10
+        </p>
+      </div>
+
+      <div>
+        <p className="text-muted-foreground">Follow-up Requested</p>
+        <p className={`font-semibold ${
+          feedbackDetails[v.id].wants_follow_up
+            ? "text-red-600"
+            : "text-green-600"
+        }`}>
+          {feedbackDetails[v.id].wants_follow_up ? "Yes" : "No"}
+        </p>
+      </div>
+
+    </div>
+
+    {feedbackDetails[v.id].doctor_explanation_clarity && (
+      <div className="mt-3">
+        <p className="text-xs text-muted-foreground">
+          Doctor Explanation
+        </p>
+        <p className="text-xs font-medium">
+          {feedbackDetails[v.id].doctor_explanation_clarity}
+        </p>
+      </div>
+    )}
+
+    {feedbackDetails[v.id].concerns_addressed && (
+      <div className="mt-3">
+        <p className="text-xs text-muted-foreground">
+          Concerns Addressed
+        </p>
+        <p className="text-xs font-medium">
+          {feedbackDetails[v.id].concerns_addressed}
+        </p>
+      </div>
+    )}
+
+    {feedbackDetails[v.id].prescription_difficulty && (
+      <div className="mt-3 rounded-xl bg-amber-50 p-3">
+        <p className="text-xs font-semibold text-amber-800">
+          Prescription Difficulty
+        </p>
+
+        {feedbackDetails[v.id].prescription_difficulty_details && (
+          <p className="text-xs text-amber-700 mt-1">
+            {feedbackDetails[v.id].prescription_difficulty_details}
+          </p>
+        )}
+      </div>
+    )}
+
+    {feedbackDetails[v.id].what_did_well && (
+      <div className="mt-3">
+        <p className="text-xs font-semibold">
+          What We Did Well
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {feedbackDetails[v.id].what_did_well}
+        </p>
+      </div>
+    )}
+
+    {feedbackDetails[v.id].what_can_improve && (
+      <div className="mt-3">
+        <p className="text-xs font-semibold">
+          What We Can Improve
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {feedbackDetails[v.id].what_can_improve}
+        </p>
+      </div>
+    )}
+
+    {feedbackDetails[v.id].anything_else && (
+      <div className="mt-3">
+        <p className="text-xs font-semibold">
+          Additional Comments
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {feedbackDetails[v.id].anything_else}
+        </p>
+      </div>
+    )}
+
+    {feedbackDetails[v.id].submitted_at && (
+      <p className="text-[10px] text-muted-foreground mt-4">
+        Submitted{" "}
+        {new Date(
+          feedbackDetails[v.id].submitted_at
+        ).toLocaleString()}
+      </p>
+    )}
+  </div>
+)}
+
     <div className="mt-3 flex flex-wrap gap-2">
   <Button
     size="sm"
