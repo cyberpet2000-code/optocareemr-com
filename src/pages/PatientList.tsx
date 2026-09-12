@@ -143,6 +143,7 @@ export default function PatientList() {
   const [feedbackStatusMap, setFeedbackStatusMap] = useState<
   Record<string, "none" | "pending" | "completed">
 >({});
+  const [feedbackFollowups, setFeedbackFollowups] = useState<any[]>([]);
   const [searchParams] = useSearchParams();
 const filter = searchParams.get("filter");
 
@@ -161,6 +162,19 @@ const filter = searchParams.get("filter");
 
     (async () => {
       try {
+        
+        if (filter === "followup") {
+  const { data: followupData, error: followupError } =
+    await apiClient.rpc("get_dashboard_feedback_followups", {
+      p_clinic_id: cid,
+    });
+
+  if (!followupError) {
+    setFeedbackFollowups(followupData ?? []);
+  } else {
+    setFeedbackFollowups([]);
+  }
+        }
         let query = apiClient
   .from("patients",)
  .select("id, full_name, date_of_birth, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number")
