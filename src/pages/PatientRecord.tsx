@@ -1904,25 +1904,30 @@ shadow-sm
   Subjective Refraction
 </div>
 
-      <p>
-  OD: {v.sub_od_sphere ?? "Plano"}
-  {" / "}
-  {v.sub_od_cyl ?? "0.00"}
-  {" × "}
-  {v.sub_od_axis ?? "—"}
-</p>
-
-<p>
-  OS: {v.sub_os_sphere ?? "Plano"}
-  {" / "}
-  {v.sub_os_cyl ?? "0.00"}
-  {" × "}
-  {v.sub_os_axis ?? "—"}
-</p>
+      {(eyeHasRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis) ||
+        eyeHasRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis)) &&
+        (sameEyeRx(v) ? (
+          <p className="font-mono text-sm">
+            OU {fmtEyeRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis)}
+          </p>
+        ) : (
+          <>
+            {eyeHasRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis) && (
+              <p className="font-mono text-sm">
+                OD {fmtEyeRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis)}
+              </p>
+            )}
+            {eyeHasRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis) && (
+              <p className="font-mono text-sm">
+                OS {fmtEyeRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis)}
+              </p>
+            )}
+          </>
+        ))}
 
       {v.sub_reading_add && (
-        <p>
-          ADD: {v.sub_reading_add}
+        <p className="font-mono text-sm">
+          ADD {v.sub_reading_add}
         </p>
       )}
     </div>
