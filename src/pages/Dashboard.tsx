@@ -94,6 +94,7 @@ export default function Dashboard() {
   const [upcomingAppts, setUpcomingAppts] = useState<any[]>([]);
   const [drugAlerts, setDrugAlerts] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [feedbackFollowups, setFeedbackFollowups] = useState<any[]>([]);
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -185,6 +186,18 @@ export default function Dashboard() {
     checkClinicSubscription(
       clinic?.subscription_status
     );
+    const { data: feedbackFollowupData, error: feedbackFollowupError } =
+  await apiClient.rpc("get_dashboard_feedback_followups", {
+    p_clinic_id: cid,
+  });
+
+checkQueryFailure(
+  "get_dashboard_feedback_followups",
+  "feedback follow-ups",
+  feedbackFollowupError
+);
+
+setFeedbackFollowups(feedbackFollowupData ?? []);
     const cacheKey = `dashboard:${cid}`;
 
     const hydrateFromCache = () => {
@@ -556,7 +569,7 @@ export default function Dashboard() {
             <Metric icon={Users} label="Patients This Month" value={monthPatients} gradient={tealGrad} iconGradient={tealIcon} iconColor="hsl(184 78% 40%)" accentClass="accent-teal" to="/patients?filter=month" />
             <Metric icon={Clock} label="Today's Visits" value={todayVisits} gradient={blueGrad} iconGradient={blueIcon} iconColor="hsl(217 91% 55%)" accentClass="accent-navy" to="/visits?filter=today" />
             <Metric icon={Clock} label="Appointments" value={todayAppointments} gradient={amberGrad} iconGradient={amberIcon} iconColor="hsl(38 92% 50%)" accentClass="accent-warning" to="/appointments" />
-            <Metric icon={TrendingUp} label="Follow-ups" value={returningPatients} gradient={navyGrad} iconGradient={navyIcon} iconColor="hsl(217 91% 55%)" accentClass="accent-navy" to="/patients?filter=followup" />
+            <Metric icon={TrendingUp} label="Follow-ups" value={feedbackFollowups} gradient={navyGrad} iconGradient={navyIcon} iconColor="hsl(217 91% 55%)" accentClass="accent-navy" to="/patients?filter=followup" />
           </div>
 
           {(lowStockCount > 0 || drugAlerts > 0) && (
