@@ -285,6 +285,7 @@ export function AppRoutes() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/visits" element={<Visits />} />
           <Route path="/register" element={<PatientRegister />} />
+          <Route path="/patients/followups" element={<PatientList />} />
           <Route path="/patients" element={<PatientList />} />
           <Route path="/patient/:id" element={<PatientRecord />} />
           <Route path="/hmos" element={<HmoManagement />} />
