@@ -435,6 +435,7 @@ const balanceMap = new Map<string, number>();
     }
   />
 ) : ( 
+      <div className="space-y-2">
           {filtered.map(p => {
             const isHmo = p.payment_type === "hmo";
             return (
