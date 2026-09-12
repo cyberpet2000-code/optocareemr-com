@@ -164,6 +164,9 @@ export default function PatientRecord() {
   const [feedbackStatus, setFeedbackStatus] = useState<
   "none" | "pending" | "completed"
 >("none");
+  const [visitFeedbackStatus, setVisitFeedbackStatus] = useState<
+  Record<string, "none" | "pending" | "completed">
+>({});
 
 
   useEffect(() => {
@@ -215,31 +218,43 @@ export default function PatientRecord() {
   setVisits(visRes.data);
       }
 
-            // Load feedback status for the latest completed visit
+            // Load feedback status for each visit
 if (visRes.data && visRes.data.length > 0) {
-  const latestCompletedVisit =
-    visRes.data.find((v: any) => v.status === "completed") ||
-    visRes.data[0];
+  const visitIds = visRes.data.map((v: any) => v.id);
 
-  const { data: feedbackRequest } = await apiClient
+  const { data: feedbackRequests } = await apiClient
     .from("feedback_requests")
-    .select("status")
+    .select("visit_id, status, created_at")
     .eq("clinic_id", cid)
     .eq("patient_id", patientId)
-    .eq("visit_id", latestCompletedVisit.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .in("visit_id", visitIds)
+    .order("created_at", { ascending: false });
 
-  if (feedbackRequest?.status === "completed") {
-    setFeedbackStatus("completed");
-  } else if (feedbackRequest?.status === "pending") {
-    setFeedbackStatus("pending");
-  } else {
-    setFeedbackStatus("none");
-  }
+  const statusMap: Record<
+    string,
+    "none" | "pending" | "completed"
+  > = {};
+
+  visitIds.forEach((visitId: string) => {
+    statusMap[visitId] = "none";
+  });
+
+  (feedbackRequests || []).forEach((request: any) => {
+    if (
+      request.visit_id &&
+      statusMap[request.visit_id] === "none"
+    ) {
+      if (request.status === "completed") {
+        statusMap[request.visit_id] = "completed";
+      } else if (request.status === "pending") {
+        statusMap[request.visit_id] = "pending";
+      }
+    }
+  });
+
+  setVisitFeedbackStatus(statusMap);
 } else {
-  setFeedbackStatus("none");
+  setVisitFeedbackStatus({});
 }
 
       if (canViewFinancials) {
@@ -1951,7 +1966,7 @@ shadow-sm
 
 </div>
 
-    <div className="mt-3 flex gap-2">
+    <div className="mt-3 flex flex-wrap gap-2">
   <Button
     size="sm"
     variant="outline"
@@ -1968,6 +1983,27 @@ shadow-sm
     onClick={() => generateVisitPdf(patient, v)}
   >
     Export
+  </Button>
+
+  <Button
+    size="sm"
+    variant="outline"
+    className="rounded-xl gap-1"
+    onClick={() => handleSendFeedback(v.id)}
+    disabled={
+      sendingFeedback ||
+      visitFeedbackStatus[v.id] === "completed"
+    }
+  >
+    <MessageCircle size={14} />
+
+    {sendingFeedback
+      ? "Sending..."
+      : visitFeedbackStatus[v.id] === "completed"
+        ? "Feedback Completed"
+        : visitFeedbackStatus[v.id] === "pending"
+          ? "Resend Feedback"
+          : "Send Feedback"}
   </Button>
 </div>
 
