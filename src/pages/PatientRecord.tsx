@@ -167,6 +167,7 @@ export default function PatientRecord() {
   const [visitFeedbackStatus, setVisitFeedbackStatus] = useState<
   Record<string, "none" | "pending" | "completed">
 >({});
+  const [feedbackDetails, setFeedbackDetails] = useState<Record<string, any>>({});
 
 
   useEffect(() => {
@@ -251,6 +252,32 @@ if (visRes.data && visRes.data.length > 0) {
   });
 
   setVisitFeedbackStatus(statusMap);
+  const feedbackDetailEntries = await Promise.all(
+  visRes.data.map(async (visit: any) => {
+    const { data: feedback } = await apiClient.rpc(
+      "get_feedback_details_for_visit",
+      {
+        p_visit_id: visit.id,
+      }
+    );
+
+    const detail = Array.isArray(feedback)
+      ? feedback[0]
+      : feedback;
+
+    return [visit.id, detail || null] as const;
+  })
+);
+
+const feedbackDetailMap: Record<string, any> = {};
+
+feedbackDetailEntries.forEach(([visitId, detail]) => {
+  if (detail) {
+    feedbackDetailMap[visitId] = detail;
+  }
+});
+
+setFeedbackDetails(feedbackDetailMap);
 } else {
   setVisitFeedbackStatus({});
 }
