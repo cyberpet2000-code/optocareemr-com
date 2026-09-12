@@ -310,11 +310,12 @@ const balanceMap = new Map<string, number>();
 
   return (
     <>
-      <div className="flex items-center justify-between gap-3 mb-5">
-        <h1 className="page-header">
+      <h1 className="page-header">
   {filter === "thismonth"
     ? "Patients This Month"
-    : "Patients"}
+    : filter === "followup"
+      ? "Patient Follow-ups"
+      : "Patients"}
 </h1>
         <Link to="/register">
           <Button size="sm" className="rounded-xl gap-1.5">
@@ -328,7 +329,91 @@ const balanceMap = new Map<string, number>();
         <Input placeholder="Search name or phone..." className="pl-9 rounded-xl bg-card" value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
-      {loading ? (
+      {filter === "followup" ? (
+        <div className="space-y-3">
+  {feedbackFollowups.length === 0 ? (
+    <EmptyState
+      icon={MessageCircle}
+      title="No pending follow-ups"
+      description="Patient feedback follow-ups that need attention will appear here."
+    />
+  ) : (
+    feedbackFollowups.map((followup: any) => (
+      <div
+        key={followup.id}
+        className="medical-card p-4 rounded-3xl border border-slate-100 shadow-md bg-white"
+      >
+        <div className="flex items-start gap-3">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0 bg-gradient-to-br from-blue-600 to-cyan-400">
+            <span className="text-lg font-bold">
+              {(followup.patient_name || "?")[0]}
+            </span>
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-base font-bold truncate">
+                {followup.patient_name}
+              </p>
+
+              {followup.patient_number && (
+                <span className="text-xs font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-lg">
+                  {followup.patient_number}
+                </span>
+              )}
+            </div>
+
+            {followup.phone && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {followup.phone}
+              </p>
+            )}
+
+            <div className="mt-3">
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                  followup.status === "in_progress"
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-amber-100 text-amber-700"
+                }`}
+              >
+                {followup.status === "in_progress"
+                  ? "In Progress"
+                  : "Pending"}
+              </span>
+            </div>
+
+            <div className="mt-3 rounded-xl bg-muted/40 p-3">
+              <p className="text-xs font-semibold text-foreground mb-1">
+                Follow-up reason
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {followup.reason}
+              </p>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground mt-3">
+              Created{" "}
+              {new Date(followup.created_at).toLocaleDateString("en-US", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </p>
+          </div>
+
+          <Link
+            to={`/patient/${followup.patient_id}`}
+            className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors shrink-0"
+            title="Open patient"
+          >
+            <ChevronRight size={16} className="text-primary" />
+          </Link>
+        </div>
+      </div>
+    ))
+  )}
+</div>
         <div className="flex items-center justify-center py-12">
           <OptoLoader size={40} />
         </div>
