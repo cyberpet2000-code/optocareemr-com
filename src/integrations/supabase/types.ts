@@ -3835,6 +3835,10 @@ export type Database = {
           reminder_type: string
         }[]
       }
+      get_feedback_status_for_visit: {
+        Args: { p_visit_id: string }
+        Returns: string
+      }
       get_monthly_report_summary: {
         Args: { p_clinic_id: string; p_month: number; p_year: number }
         Returns: {
