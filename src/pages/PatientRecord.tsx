@@ -113,8 +113,33 @@ const emptyVisitForm = () => ({
   diagnosis: "",
 lensType: "",
 medication: "",
-notes: "",
+  notes: "",
 });
+
+// ---- Subjective refraction display formatter (display only) ----
+const normRx = (s?: string | null) => (s == null ? "" : String(s).trim());
+const isBlankCyl = (c?: string | null) => {
+  const n = normRx(c);
+  if (n === "") return true;
+  const num = parseFloat(n.replace(/[^\d.\-+]/g, ""));
+  return !isNaN(num) && num === 0;
+};
+// Format one eye: drop meaningless cylinder/axis.
+const fmtEyeRx = (sph?: string | null, cyl?: string | null, axis?: string | null) => {
+  const s = normRx(sph) || "Plano";
+  const c = normRx(cyl);
+  const a = normRx(axis);
+  if (isBlankCyl(c)) return s;
+  const ax = a === "" ? "—" : a;
+  return `${s} / ${c} × ${ax}`;
+};
+// True when both eyes share the complete sphere/cyl/axis prescription.
+const sameEyeRx = (v: any) =>
+  normRx(v.sub_od_sphere) === normRx(v.sub_os_sphere) &&
+  normRx(v.sub_od_cyl) === normRx(v.sub_os_cyl) &&
+  normRx(v.sub_od_axis) === normRx(v.sub_os_axis);
+const eyeHasRx = (sph?: string | null, cyl?: string | null, axis?: string | null) =>
+  normRx(sph) !== "" || normRx(cyl) !== "" || normRx(axis) !== "";
 
 export default function PatientRecord() {
   const { id } = useParams<{ id: string }>();
