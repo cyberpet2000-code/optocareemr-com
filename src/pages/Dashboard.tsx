@@ -660,6 +660,16 @@ setFeedbackFollowups(feedbackFollowupData ?? []);
             <Metric icon={Clock} label="Today's Appointments" value={todayAppointments} gradient={tealGrad} iconGradient={tealIcon} iconColor="hsl(184 78% 40%)" accentClass="accent-teal" to="/appointments" />
             <Metric icon={Users} label="Recent Patients" value={recentPatients.length} gradient={blueGrad} iconGradient={blueIcon} iconColor="hsl(217 91% 55%)" accentClass="accent-navy" to="/patients" />
             <Metric icon={DollarSign} label="Pending Bills" value={pendingBills} gradient={amberGrad} iconGradient={amberIcon} iconColor="hsl(38 92% 50%)" accentClass="accent-warning" to="/billing" />
+            <Metric
+  icon={TrendingUp}
+  label="Follow-ups"
+  value={feedbackFollowups.length}
+  gradient={navyGrad}
+  iconGradient={navyIcon}
+  iconColor="hsl(217 91% 55%)"
+  accentClass="accent-navy"
+  to="/patients?filter=followup"
+/>
           </div>
 
           {upcomingAppts.length > 0 && (
