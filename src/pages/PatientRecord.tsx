@@ -220,36 +220,34 @@ export default function PatientRecord() {
 
             // Load feedback status for each visit
 if (visRes.data && visRes.data.length > 0) {
-  const visitIds = visRes.data.map((v: any) => v.id);
+  const statusEntries = await Promise.all(
+    visRes.data.map(async (visit: any) => {
+      const { data: status } = await apiClient.rpc(
+        "get_feedback_status_for_visit",
+        {
+          p_visit_id: visit.id,
+        }
+      );
 
-  const { data: feedbackRequests } = await apiClient
-    .from("feedback_requests")
-    .select("visit_id, status, created_at")
-    .eq("clinic_id", cid)
-    .eq("patient_id", patientId)
-    .in("visit_id", visitIds)
-    .order("created_at", { ascending: false });
+      return [
+        visit.id,
+        status || "none",
+      ] as const;
+    })
+  );
 
   const statusMap: Record<
     string,
     "none" | "pending" | "completed"
   > = {};
 
-  visitIds.forEach((visitId: string) => {
-    statusMap[visitId] = "none";
-  });
-
-  (feedbackRequests || []).forEach((request: any) => {
-    if (
-      request.visit_id &&
-      statusMap[request.visit_id] === "none"
-    ) {
-      if (request.status === "completed") {
-        statusMap[request.visit_id] = "completed";
-      } else if (request.status === "pending") {
-        statusMap[request.visit_id] = "pending";
-      }
-    }
+  statusEntries.forEach(([visitId, status]) => {
+    statusMap[visitId] =
+      status === "completed"
+        ? "completed"
+        : status === "pending"
+          ? "pending"
+          : "none";
   });
 
   setVisitFeedbackStatus(statusMap);
