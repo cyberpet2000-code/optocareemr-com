@@ -757,6 +757,16 @@ setFeedbackFollowups(feedbackFollowupData ?? []);
               accentClass="accent-navy"
               to="/billing?month=previous"
             />
+            <Metric
+  icon={TrendingUp}
+  label="Follow-ups"
+  value={feedbackFollowups.length}
+  gradient={navyGrad}
+  iconGradient={navyIcon}
+  iconColor="hsl(217 91% 55%)"
+  accentClass="accent-navy"
+  to="/patients?filter=followup"
+/>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-6">
