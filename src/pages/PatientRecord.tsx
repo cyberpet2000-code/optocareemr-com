@@ -189,6 +189,11 @@ export default function PatientRecord() {
   console.log("VISITS FROM DB", visRes.data);
   setVisits(visRes.data);
       }
+      console.log("FEEDBACK DEBUG - VISIT IDS", visRes.data?.map((v: any) => ({
+  visit_id: v.id,
+  status: v.status,
+  created_at: v.created_at,
+})));
 
             // Load feedback status for the latest completed visit
 if (visRes.data && visRes.data.length > 0) {
