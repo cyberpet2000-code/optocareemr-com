@@ -140,6 +140,9 @@ export default function PatientList() {
   const [patients, setPatients] = useState<PatientRow[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [feedbackStatusMap, setFeedbackStatusMap] = useState<
+  Record<string, "none" | "pending" | "completed">
+>({});
   const [searchParams] = useSearchParams();
 const filter = searchParams.get("filter");
 
@@ -192,10 +195,11 @@ const { data, error } =
 
   const [visitResponse, billingResponse] = await Promise.all([
     apiClient
-     .from("visits")
-     .select("patient_id, created_at")
-     .eq("clinic_id", cid)
-     .in("patient_id", patientIds),
+  .from("visits")
+  .select("id, patient_id, created_at, status")
+  .eq("clinic_id", cid)
+  .in("patient_id", patientIds)
+  .order("created_at", { ascending: false }),
     canViewPayments
       ? apiClient
           .from("billing")
