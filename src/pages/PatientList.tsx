@@ -209,6 +209,47 @@ const { data, error } =
       : Promise.resolve({ data: [] }),
  ]);
  const visitRows = visitResponse.data || [];
+        const latestVisitByPatient = new Map<string, any>();
+
+visitRows.forEach((visit: any) => {
+  if (!latestVisitByPatient.has(visit.patient_id)) {
+    latestVisitByPatient.set(visit.patient_id, visit);
+  }
+});
+
+const feedbackStatusEntries = await Promise.all(
+  Array.from(latestVisitByPatient.entries()).map(
+    async ([patientId, visit]: [string, any]) => {
+      const { data: status } = await apiClient.rpc(
+        "get_feedback_status_for_visit",
+        {
+          p_visit_id: visit.id,
+        }
+      );
+
+      return [
+        patientId,
+        status || "none",
+      ] as const;
+    }
+  )
+);
+
+const nextFeedbackStatusMap: Record<
+  string,
+  "none" | "pending" | "completed"
+> = {};
+
+feedbackStatusEntries.forEach(([patientId, status]) => {
+  nextFeedbackStatusMap[patientId] =
+    status === "completed"
+      ? "completed"
+      : status === "pending"
+        ? "pending"
+        : "none";
+});
+
+setFeedbackStatusMap(nextFeedbackStatusMap);
  const bills = billingResponse.data || [];
 
 const balanceMap = new Map<string, number>();
@@ -226,12 +267,19 @@ const balanceMap = new Map<string, number>();
          const visitSummaryMap = buildVisitSummaryMap(visitRows || []);
          const billingSummaryMap = buildBillingSummaryMap(bills || [], paymentTypes);
          const rows = data.map((p: any) => ({
-          ...p,
-          hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined,
-          balance: balanceMap.get(p.id) || 0,
-           visitSummary: visitSummaryMap.get(p.id) || { visitCount: 0, lastVisit: null },
-           billingSummary: billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type),
-        }));
+  ...p,
+  hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined,
+  balance: balanceMap.get(p.id) || 0,
+  visitSummary: visitSummaryMap.get(p.id) || {
+    visitCount: 0,
+    lastVisit: null,
+  },
+  billingSummary:
+    billingSummaryMap.get(p.id) ||
+    getPaymentStatus([], p.payment_type),
+  feedbackStatus:
+    nextFeedbackStatusMap[p.id] || "none",
+}));
         setPatients(rows);
         offlineStore.save(cacheKey, rows);
         setLoading(false);
@@ -368,7 +416,21 @@ duration-200
     {p.phone}
   </span>
 </div>
- <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} paymentType={p.payment_type} hmoName={p.hmo_name} />
+<div className="mt-2">
+  {p.feedbackStatus === "completed" ? (
+    <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-[11px] font-medium text-green-700">
+      ✓ Feedback Completed
+    </span>
+  ) : p.feedbackStatus === "pending" ? (
+    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-700">
+      ● Feedback Pending
+    </span>
+  ) : p.visitSummary.visitCount > 0 ? (
+    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
+      ○ No Feedback
+    </span>
+  ) : null}
+</div>
    </div>             
                 </Link>
                 <div className="flex items-center gap-1 shrink-0">
