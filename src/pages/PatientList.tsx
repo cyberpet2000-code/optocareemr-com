@@ -301,7 +301,7 @@ const balanceMap = new Map<string, number>();
         loadFromCache();
       }
     })();
-  }, [cid, isOffline, canViewPayments, roleLoading]);
+  }, [cid, isOffline, canViewPayments, roleLoading,filter]);
 
   const filtered = patients.filter(p =>
     p.full_name.toLowerCase().includes(search.toLowerCase()) ||
