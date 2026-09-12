@@ -310,6 +310,7 @@ const balanceMap = new Map<string, number>();
 
   return (
     <>
+      <div className="flex items-center justify-between gap-3 mb-5">
       <h1 className="page-header">
   {filter === "thismonth"
     ? "Patients This Month"
