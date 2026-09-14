@@ -494,6 +494,93 @@ const balanceMap = new Map<string, number>();
                   year: "numeric",
                 })}
               </p>
+              <div className="flex flex-wrap gap-2 mt-4">
+  {followup.status === "pending" && (
+    <Button
+      size="sm"
+      className="rounded-xl gap-1.5"
+      onClick={async () => {
+        setUpdatingFollowup(true);
+
+        try {
+          const { error } = await apiClient.rpc(
+            "update_feedback_followup",
+            {
+              p_followup_id: followup.id,
+              p_status: "in_progress",
+              p_assigned_to: followup.assigned_to || null,
+              p_notes: followup.notes || null,
+            }
+          );
+
+          if (error) throw error;
+
+          setFeedbackFollowups(prev =>
+            prev.map(item =>
+              item.id === followup.id
+                ? {
+                    ...item,
+                    status: "in_progress",
+                  }
+                : item
+            )
+          );
+        } catch (error) {
+          console.error(
+            "Failed to start follow-up:",
+            error
+          );
+
+          alert(
+            "Unable to start this follow-up. Please try again."
+          );
+        } finally {
+          setUpdatingFollowup(false);
+        }
+      }}
+      disabled={updatingFollowup}
+    >
+      <Play size={14} />
+      {updatingFollowup
+        ? "Starting..."
+        : "Start Follow-up"}
+    </Button>
+  )}
+
+  {followup.status === "in_progress" && (
+    <Button
+      size="sm"
+      variant="outline"
+      className="rounded-xl gap-1.5"
+      onClick={() =>
+        openFollowupAction(
+          followup,
+          "complete"
+        )
+      }
+      disabled={updatingFollowup}
+    >
+      <CheckCircle size={14} />
+      Complete
+    </Button>
+  )}
+
+  <Button
+    size="sm"
+    variant="outline"
+    className="rounded-xl gap-1.5 text-destructive"
+    onClick={() =>
+      openFollowupAction(
+        followup,
+        "cancel"
+      )
+    }
+    disabled={updatingFollowup}
+  >
+    <XCircle size={14} />
+    Cancel
+  </Button>
+</div>
             </div>
 
             <Link
