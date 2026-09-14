@@ -778,6 +778,105 @@ transition-colors
           })}
         </div>
       )}
+
+      <Dialog
+        open={followupDialogOpen}
+        onOpenChange={(open) => {
+          if (!updatingFollowup) {
+            setFollowupDialogOpen(open);
+
+            if (!open) {
+              setSelectedFollowup(null);
+              setFollowupAction(null);
+              setFollowupNotes("");
+            }
+          }
+        }}
+      >
+        <DialogContent className="rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              {followupAction === "complete"
+                ? "Complete Follow-up"
+                : "Cancel Follow-up"}
+            </DialogTitle>
+
+            <DialogDescription>
+              {followupAction === "complete"
+                ? "Confirm that this patient follow-up has been resolved."
+                : "Are you sure you want to cancel this patient follow-up?"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-semibold">
+                Patient
+              </p>
+
+              <p className="text-sm text-muted-foreground">
+                {selectedFollowup?.patient_name || "—"}
+              </p>
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold">
+                {followupAction === "complete"
+                  ? "Resolution notes"
+                  : "Cancellation reason"}
+              </label>
+
+              <Textarea
+                value={followupNotes}
+                onChange={(e) =>
+                  setFollowupNotes(e.target.value)
+                }
+                placeholder={
+                  followupAction === "complete"
+                    ? "Describe what was done to resolve the patient's issue..."
+                    : "Enter the reason for cancelling this follow-up..."
+                }
+                className="mt-2 min-h-[120px] rounded-xl"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => {
+                if (updatingFollowup) return;
+
+                setFollowupDialogOpen(false);
+                setSelectedFollowup(null);
+                setFollowupAction(null);
+                setFollowupNotes("");
+              }}
+              disabled={updatingFollowup}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              type="button"
+              className="rounded-xl"
+              onClick={handleUpdateFollowup}
+              disabled={
+                updatingFollowup ||
+                followupNotes.trim().length === 0
+              }
+            >
+              {updatingFollowup
+                ? "Saving..."
+                : followupAction === "complete"
+                  ? "Complete Follow-up"
+                  : "Cancel Follow-up"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
