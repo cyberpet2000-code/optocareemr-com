@@ -393,6 +393,7 @@ const balanceMap = new Map<string, number>();
     } finally {
       setUpdatingFollowup(false);
     }
+   };
     
   const filtered = patients.filter(p =>
     p.full_name.toLowerCase().includes(search.toLowerCase()) ||
