@@ -2,10 +2,21 @@ import OptoLoader from "@/components/OptoLoader";
 import EmptyState from "@/components/EmptyState";
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search, ChevronRight, UserPlus, Phone, MessageCircle, Users, FileText} from "lucide-react";
+import { Search, ChevronRight, UserPlus, Phone, MessageCircle, Users, FileText, Play,
+  CheckCircle,
+  XCircle,} from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { useAccess } from "@/hooks/useAccess";
 import { useRole } from "@/hooks/useRole";
 import { offlineStore } from "@/lib/offlineStore";
@@ -144,6 +155,13 @@ export default function PatientList() {
   Record<string, "none" | "pending" | "completed">
 >({});
   const [feedbackFollowups, setFeedbackFollowups] = useState<any[]>([]);
+  const [selectedFollowup, setSelectedFollowup] = useState<any | null>(null);
+const [followupDialogOpen, setFollowupDialogOpen] = useState(false);
+const [followupAction, setFollowupAction] = useState<
+  "complete" | "cancel" | null
+>(null);
+const [followupNotes, setFollowupNotes] = useState("");
+const [updatingFollowup, setUpdatingFollowup] = useState(false);
   const [searchParams] = useSearchParams();
 const filter = searchParams.get("filter");
 
@@ -303,6 +321,79 @@ const balanceMap = new Map<string, number>();
     })();
   }, [cid, isOffline, canViewPayments, roleLoading,filter]);
 
+  const openFollowupAction = (
+    followup: any,
+    action: "complete" | "cancel"
+  ) => {
+    setSelectedFollowup(followup);
+    setFollowupAction(action);
+    setFollowupNotes("");
+    setFollowupDialogOpen(true);
+  };
+
+  const handleUpdateFollowup = async () => {
+    if (!selectedFollowup || !followupAction) return;
+
+    const notes = followupNotes.trim();
+
+    if (!notes) {
+      alert(
+        followupAction === "complete"
+          ? "Please enter the resolution notes."
+          : "Please enter the cancellation reason."
+      );
+      return;
+    }
+
+    setUpdatingFollowup(true);
+
+    try {
+      const status =
+        followupAction === "complete"
+          ? "completed"
+          : "cancelled";
+
+      const { error } = await apiClient.rpc(
+        "update_feedback_followup",
+        {
+          p_followup_id: selectedFollowup.id,
+          p_status: status,
+          p_assigned_to: selectedFollowup.assigned_to || null,
+          p_notes: notes,
+        }
+      );
+
+      if (error) {
+        console.error(
+          "update_feedback_followup error:",
+          error
+        );
+        throw error;
+      }
+
+      setFeedbackFollowups(prev =>
+        prev.filter(
+          item => item.id !== selectedFollowup.id
+        )
+      );
+
+      setFollowupDialogOpen(false);
+      setSelectedFollowup(null);
+      setFollowupAction(null);
+      setFollowupNotes("");
+    } catch (error) {
+      console.error(
+        "Failed to update follow-up:",
+        error
+      );
+
+      alert(
+        "Unable to update this follow-up. Please try again."
+      );
+    } finally {
+      setUpdatingFollowup(false);
+    }
+    
   const filtered = patients.filter(p =>
     p.full_name.toLowerCase().includes(search.toLowerCase()) ||
     p.phone?.includes(search)
