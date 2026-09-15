@@ -150,6 +150,7 @@ export default function PatientRecord() {
   const [hmos, setHmos] = useState<{ id: string; name: string; website?: string | null }[]>([]);
   const [hmoMap, setHmoMap] = useState<Map<string, { name: string; website?: string | null }>>(new Map());
   const [visits, setVisits] = useState<any[]>([]);
+  const [doctorMap, setDoctorMap] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -217,7 +218,32 @@ export default function PatientRecord() {
       if (visRes.data) {
   console.log("VISITS FROM DB", visRes.data);
   setVisits(visRes.data);
-      }
+
+       const doctorIds = [
+    ...new Set(
+      visRes.data
+        .map((visit: any) => visit.doctor_id)
+        .filter(Boolean)
+    ),
+  ];
+
+  if (doctorIds.length > 0) {
+    const { data: doctorProfiles } = await apiClient
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", doctorIds);
+
+    const nextDoctorMap = new Map<string, string>();
+
+    (doctorProfiles || []).forEach((doctor: any) => {
+      nextDoctorMap.set(doctor.id, doctor.full_name);
+    });
+
+    setDoctorMap(nextDoctorMap);
+  } else {
+    setDoctorMap(new Map());
+  }
+      } 
 
             // Load feedback status for each visit
 if (visRes.data && visRes.data.length > 0) {
@@ -1746,6 +1772,14 @@ shadow-sm
         <p className="font-bold text-base">
   {new Date(v.created_at).toLocaleDateString()}
 </p>
+
+        {v.doctor_id && doctorMap.get(v.doctor_id) && (
+  <p className="text-xs text-muted-foreground mt-1">
+    Doctor: <span className="font-medium text-foreground">
+      {doctorMap.get(v.doctor_id)}
+    </span>
+  </p>
+)}
 
 {patient.date_of_birth && (
   <p className="text-xs text-muted-foreground mt-1">
