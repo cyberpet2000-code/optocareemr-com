@@ -162,6 +162,8 @@ const [followupAction, setFollowupAction] = useState<
 >(null);
 const [followupNotes, setFollowupNotes] = useState("");
 const [updatingFollowup, setUpdatingFollowup] = useState(false);
+  const [clinicStaff, setClinicStaff] = useState<any[]>([]);
+const [assigningFollowup, setAssigningFollowup] = useState(false);
   const [searchParams] = useSearchParams();
 const filter = searchParams.get("filter");
 
@@ -193,6 +195,52 @@ const filter = searchParams.get("filter");
     setFeedbackFollowups([]);
   }
         }
+        const { data: clinicStaffRows, error: clinicStaffError } =
+  await apiClient
+    .from("clinic_users")
+    .select("user_id, role")
+    .eq("clinic_id", cid);
+
+if (!clinicStaffError && clinicStaffRows) {
+  const staffUserIds = clinicStaffRows
+    .map((staff: any) => staff.user_id)
+    .filter(Boolean);
+
+  if (staffUserIds.length > 0) {
+    const { data: staffProfiles } = await apiClient
+      .from("profiles")
+      .select("id, full_name, role, is_active")
+      .in("id", staffUserIds)
+      .eq("is_active", true);
+
+    const profileMap = new Map(
+      (staffProfiles || []).map((profile: any) => [
+        profile.id,
+        profile,
+      ])
+    );
+
+    const staffList = clinicStaffRows
+      .map((staff: any) => {
+        const profile = profileMap.get(staff.user_id);
+
+        if (!profile) return null;
+
+        return {
+          id: staff.user_id,
+          full_name: profile.full_name,
+          role: staff.role || profile.role,
+        };
+      })
+      .filter(Boolean);
+
+    setClinicStaff(staffList);
+  } else {
+    setClinicStaff([]);
+  }
+} else {
+  setClinicStaff([]);
+}
         let query = apiClient
   .from("patients",)
  .select("id, full_name, date_of_birth, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number")
@@ -565,21 +613,165 @@ const balanceMap = new Map<string, number>();
     </Button>
   )}
 
-  <Button
-    size="sm"
-    variant="outline"
-    className="rounded-xl gap-1.5 text-destructive"
-    onClick={() =>
-      openFollowupAction(
-        followup,
-        "cancel"
-      )
-    }
-    disabled={updatingFollowup}
-  >
-    <XCircle size={14} />
-    Cancel
-  </Button>
+<div className="mt-4 space-y-3">
+
+  <div className="space-y-1.5">
+    <label className="text-xs font-semibold text-foreground">
+      Assigned to
+    </label>
+
+    <select
+      value={followup.assigned_to || ""}
+      disabled={assigningFollowup}
+      onChange={async (e) => {
+        const staffId = e.target.value || null;
+
+        setAssigningFollowup(true);
+
+        try {
+          const { error } = await apiClient.rpc(
+            "update_feedback_followup",
+            {
+              p_followup_id: followup.id,
+              p_status: followup.status,
+              p_assigned_to: staffId,
+              p_notes: followup.notes || null,
+            }
+          );
+
+          if (error) throw error;
+
+          setFeedbackFollowups(prev =>
+            prev.map(item =>
+              item.id === followup.id
+                ? {
+                    ...item,
+                    assigned_to: staffId,
+                  }
+                : item
+            )
+          );
+        } catch (error) {
+          console.error(
+            "Failed to assign follow-up:",
+            error
+          );
+
+          alert(
+            "Unable to assign this follow-up. Please try again."
+          );
+        } finally {
+          setAssigningFollowup(false);
+        }
+      }}
+      className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
+    >
+      <option value="">
+        Unassigned
+      </option>
+
+      {clinicStaff.map((staff: any) => (
+        <option
+          key={staff.id}
+          value={staff.id}
+        >
+          {staff.full_name} — {staff.role}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <div className="flex flex-wrap gap-2">
+
+    {followup.status === "pending" && (
+      <Button
+        size="sm"
+        className="rounded-xl gap-1.5"
+        onClick={async () => {
+          setUpdatingFollowup(true);
+
+          try {
+            const { error } = await apiClient.rpc(
+              "update_feedback_followup",
+              {
+                p_followup_id: followup.id,
+                p_status: "in_progress",
+                p_assigned_to:
+                  followup.assigned_to || null,
+                p_notes:
+                  followup.notes || null,
+              }
+            );
+
+            if (error) throw error;
+
+            setFeedbackFollowups(prev =>
+              prev.map(item =>
+                item.id === followup.id
+                  ? {
+                      ...item,
+                      status: "in_progress",
+                    }
+                  : item
+              )
+            );
+          } catch (error) {
+            console.error(
+              "Failed to start follow-up:",
+              error
+            );
+
+            alert(
+              "Unable to start this follow-up. Please try again."
+            );
+          } finally {
+            setUpdatingFollowup(false);
+          }
+        }}
+        disabled={updatingFollowup}
+      >
+        <Play size={14} />
+        {updatingFollowup
+          ? "Starting..."
+          : "Start Follow-up"}
+      </Button>
+    )}
+
+    {followup.status === "in_progress" && (
+      <Button
+        size="sm"
+        variant="outline"
+        className="rounded-xl gap-1.5"
+        onClick={() =>
+          openFollowupAction(
+            followup,
+            "complete"
+          )
+        }
+        disabled={updatingFollowup}
+      >
+        <CheckCircle size={14} />
+        Complete
+      </Button>
+    )}
+
+    <Button
+      size="sm"
+      variant="outline"
+      className="rounded-xl gap-1.5 text-destructive"
+      onClick={() =>
+        openFollowupAction(
+          followup,
+          "cancel"
+        )
+      }
+      disabled={updatingFollowup}
+    >
+      <XCircle size={14} />
+      Cancel
+    </Button>
+
+  </div>
 </div>
             </div>
 
