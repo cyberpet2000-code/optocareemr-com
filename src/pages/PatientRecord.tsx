@@ -423,6 +423,15 @@ subVaOutcome: v.sub_va_outcome || "",
   const handleSaveVisit = async (markCompleted: boolean) => {
     if (!patient) return;
     if (!cid) { toast.error("No active clinic"); return; }
+    const {
+    data: { user },
+    error: authError,
+  } = await apiClient.auth.getUser();
+
+  if (authError || !user) {
+    toast.error("Unable to identify the logged-in user");
+    return;
+  }
 
     // Validation
     const vaDistFields: [string, string][] = [
@@ -465,6 +474,11 @@ subVaOutcome: v.sub_va_outcome || "",
 const visitPayload = {
   clinic_id: cid,
   patient_id: patient.id,
+  doctor_id: markCompleted
+  ? (editingVisitId
+      ? visits.find(v => v.id === editingVisitId)?.doctor_id || user.id
+      : user.id)
+  : null,
   payment_type: patient.payment_type,
   active_hmo_id: patient.active_hmo_id,
 
