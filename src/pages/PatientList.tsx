@@ -542,358 +542,180 @@ const balanceMap = new Map<string, number>();
                   year: "numeric",
                 })}
               </p>
-              <div className="flex flex-wrap gap-2 mt-4">
-  {followup.status === "pending" && (
-    <Button
-      size="sm"
-      className="rounded-xl gap-1.5"
-      onClick={async () => {
-        setUpdatingFollowup(true);
 
-        try {
-          const { error } = await apiClient.rpc(
-            "update_feedback_followup",
-            {
-              p_followup_id: followup.id,
-              p_status: "in_progress",
-              p_assigned_to: followup.assigned_to || null,
-              p_notes: followup.notes || null,
-            }
-          );
+              <div className="mt-4 space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">
+                    Assigned to
+                  </label>
 
-          if (error) throw error;
+                  <select
+                    value={followup.assigned_to || ""}
+                    disabled={assigningFollowup}
+                    onChange={async (e) => {
+                      const staffId = e.target.value || null;
 
-          setFeedbackFollowups(prev =>
-            prev.map(item =>
-              item.id === followup.id
-                ? {
-                    ...item,
-                    status: "in_progress",
-                  }
-                : item
-            )
-          );
-        } catch (error) {
-          console.error(
-            "Failed to start follow-up:",
-            error
-          );
+                      setAssigningFollowup(true);
 
-          alert(
-            "Unable to start this follow-up. Please try again."
-          );
-        } finally {
-          setUpdatingFollowup(false);
-        }
-      }}
-      disabled={updatingFollowup}
-    >
-      <Play size={14} />
-      {updatingFollowup
-        ? "Starting..."
-        : "Start Follow-up"}
-    </Button>
-  )}
+                      try {
+                        const { error } = await apiClient.rpc(
+                          "update_feedback_followup",
+                          {
+                            p_followup_id: followup.id,
+                            p_status: followup.status,
+                            p_assigned_to: staffId,
+                            p_notes: followup.notes || null,
+                          }
+                        );
 
-  {followup.status === "in_progress" && (
-    <Button
-      size="sm"
-      variant="outline"
-      className="rounded-xl gap-1.5"
-      onClick={() =>
-        openFollowupAction(
-          followup,
-          "complete"
-        )
-      }
-      disabled={updatingFollowup}
-    >
-      <CheckCircle size={14} />
-      Complete
-    </Button>
-  )}
+                        if (error) throw error;
 
-<div className="mt-4 space-y-3">
+                        setFeedbackFollowups(prev =>
+                          prev.map(item =>
+                            item.id === followup.id
+                              ? {
+                                  ...item,
+                                  assigned_to: staffId,
+                                }
+                              : item
+                          )
+                        );
+                      } catch (error) {
+                        console.error(
+                          "Failed to assign follow-up:",
+                          error
+                        );
 
-  <div className="space-y-1.5">
-    <label className="text-xs font-semibold text-foreground">
-      Assigned to
-    </label>
+                        alert(
+                          "Unable to assign this follow-up. Please try again."
+                        );
+                      } finally {
+                        setAssigningFollowup(false);
+                      }
+                    }}
+                    className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">
+                      Unassigned
+                    </option>
 
-    <select
-      value={followup.assigned_to || ""}
-      disabled={assigningFollowup}
-      onChange={async (e) => {
-        const staffId = e.target.value || null;
+                    {clinicStaff.map((staff: any) => (
+                      <option
+                        key={staff.id}
+                        value={staff.id}
+                      >
+                        {staff.full_name} — {staff.role}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-        setAssigningFollowup(true);
+                <div className="flex flex-wrap gap-2">
+                  {followup.status === "pending" && (
+                    <Button
+                      size="sm"
+                      className="rounded-xl gap-1.5"
+                      onClick={async () => {
+                        setUpdatingFollowup(true);
 
-        try {
-          const { error } = await apiClient.rpc(
-            "update_feedback_followup",
-            {
-              p_followup_id: followup.id,
-              p_status: followup.status,
-              p_assigned_to: staffId,
-              p_notes: followup.notes || null,
-            }
-          );
+                        try {
+                          const { error } = await apiClient.rpc(
+                            "update_feedback_followup",
+                            {
+                              p_followup_id: followup.id,
+                              p_status: "in_progress",
+                              p_assigned_to:
+                                followup.assigned_to || null,
+                              p_notes:
+                                followup.notes || null,
+                            }
+                          );
 
-          if (error) throw error;
+                          if (error) throw error;
 
-          setFeedbackFollowups(prev =>
-            prev.map(item =>
-              item.id === followup.id
-                ? {
-                    ...item,
-                    assigned_to: staffId,
-                  }
-                : item
-            )
-          );
-        } catch (error) {
-          console.error(
-            "Failed to assign follow-up:",
-            error
-          );
+                          setFeedbackFollowups(prev =>
+                            prev.map(item =>
+                              item.id === followup.id
+                                ? {
+                                    ...item,
+                                    status: "in_progress",
+                                  }
+                                : item
+                            )
+                          );
+                        } catch (error) {
+                          console.error(
+                            "Failed to start follow-up:",
+                            error
+                          );
 
-          alert(
-            "Unable to assign this follow-up. Please try again."
-          );
-        } finally {
-          setAssigningFollowup(false);
-        }
-      }}
-      className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
-    >
-      <option value="">
-        Unassigned
-      </option>
-
-      {clinicStaff.map((staff: any) => (
-        <option
-          key={staff.id}
-          value={staff.id}
-        >
-          {staff.full_name} — {staff.role}
-        </option>
-      ))}
-    </select>
-  </div>
-
-  <div className="flex flex-wrap gap-2">
-
-    {followup.status === "pending" && (
-      <Button
-        size="sm"
-        className="rounded-xl gap-1.5"
-        onClick={async () => {
-          setUpdatingFollowup(true);
-
-          try {
-            const { error } = await apiClient.rpc(
-              "update_feedback_followup",
-              {
-                p_followup_id: followup.id,
-                p_status: "in_progress",
-                p_assigned_to:
-                  followup.assigned_to || null,
-                p_notes:
-                  followup.notes || null,
-              }
-            );
-
-            if (error) throw error;
-
-            setFeedbackFollowups(prev =>
-              prev.map(item =>
-                item.id === followup.id
-                  ? {
-                      ...item,
-                      status: "in_progress",
-                    }
-                  : item
-              )
-            );
-          } catch (error) {
-            console.error(
-              "Failed to start follow-up:",
-              error
-            );
-
-            alert(
-              "Unable to start this follow-up. Please try again."
-            );
-          } finally {
-            setUpdatingFollowup(false);
-          }
-        }}
-        disabled={updatingFollowup}
-      >
-        <Play size={14} />
-        {updatingFollowup
-          ? "Starting..."
-          : "Start Follow-up"}
-      </Button>
-<div
-  key={followup.id}
-  className="medical-card p-4 rounded-3xl border border-slate-100 shadow-md bg-white"
->
-  <div className="flex items-start gap-3">
-    <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0 bg-gradient-to-br from-blue-600 to-cyan-400">
-      <span className="text-lg font-bold">
-        {(followup.patient_name || "?")[0]}
-      </span>
-    </div>
-
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center gap-2 flex-wrap">
-        <p className="text-base font-bold truncate">
-          {followup.patient_name}
-        </p>
-
-        {followup.patient_number && (
-          <span className="text-xs font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-lg">
-            {followup.patient_number}
-          </span>
-        )}
-      </div>
-
-      {followup.phone && (
-        <p className="text-xs text-muted-foreground mt-1">
-          {followup.phone}
-        </p>
-      )}
-
-      <div className="mt-3">
-        <span
-          className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${
-            followup.status === "in_progress"
-              ? "bg-blue-100 text-blue-700"
-              : "bg-amber-100 text-amber-700"
-          }`}
-        >
-          {followup.status === "in_progress"
-            ? "In Progress"
-            : "Pending"}
-        </span>
-      </div>
-
-      <div className="mt-3 rounded-xl bg-muted/40 p-3">
-        <p className="text-xs font-semibold text-foreground mb-1">
-          Follow-up reason
-        </p>
-
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          {followup.reason}
-        </p>
-      </div>
-
-      <p className="text-[11px] text-muted-foreground mt-3">
-        Created{" "}
-        {new Date(followup.created_at).toLocaleDateString("en-US", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        })}
-      </p>
-
-      <div className="mt-4 space-y-3">
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-foreground">
-            Assigned to
-          </label>
-
-          <select
-            value={followup.assigned_to || ""}
-            disabled={assigningFollowup}
-            onChange={async (e) => {
-              const staffId = e.target.value || null;
-
-              setAssigningFollowup(true);
-
-              try {
-                const { error } = await apiClient.rpc(
-                  "update_feedback_followup",
-                  {
-                    p_followup_id: followup.id,
-                    p_status: followup.status,
-                    p_assigned_to: staffId,
-                    p_notes: followup.notes || null,
-                  }
-                );
-
-                if (error) throw error;
-
-                setFeedbackFollowups(prev =>
-                  prev.map(item =>
-                    item.id === followup.id
-                      ? {
-                          ...item,
-                          assigned_to: staffId,
+                          alert(
+                            "Unable to start this follow-up. Please try again."
+                          );
+                        } finally {
+                          setUpdatingFollowup(false);
                         }
-                      : item
-                  )
-                );
-              } catch (error) {
-                console.error(
-                  "Failed to assign follow-up:",
-                  error
-                );
+                      }}
+                      disabled={updatingFollowup}
+                    >
+                      <Play size={14} />
+                      {updatingFollowup
+                        ? "Starting..."
+                        : "Start Follow-up"}
+                    </Button>
+                  )}
 
-                alert(
-                  "Unable to assign this follow-up. Please try again."
-                );
-              } finally {
-                setAssigningFollowup(false);
-              }
-            }}
-            className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
-          >
-            <option value="">
-              Unassigned
-            </option>
+                  {followup.status === "in_progress" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-xl gap-1.5"
+                      onClick={() =>
+                        openFollowupAction(
+                          followup,
+                          "complete"
+                        )
+                      }
+                      disabled={updatingFollowup}
+                    >
+                      <CheckCircle size={14} />
+                      Complete
+                    </Button>
+                  )}
 
-            {clinicStaff.map((staff: any) => (
-              <option
-                key={staff.id}
-                value={staff.id}
-              >
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="rounded-xl gap-1.5 text-destructive"
+                    onClick={() =>
+                      openFollowupAction(
+                        followup,
+                        "cancel"
+                      )
+                    }
+                    disabled={updatingFollowup}
+                  >
+                    <XCircle size={14} />
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
 
-          )}
-
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-xl gap-1.5 text-destructive"
-            onClick={() =>
-              openFollowupAction(
-                followup,
-                "cancel"
-              )
-            }
-            disabled={updatingFollowup}
-          >
-            <XCircle size={14} />
-            Cancel
-          </Button>
+            <Link
+              to={`/patient/${followup.patient_id}`}
+              className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors shrink-0"
+              title="Open patient"
+            >
+              <ChevronRight
+                size={16}
+                className="text-primary"
+              />
+            </Link>
+          </div>
         </div>
-      </div>
-    </div>
-
-    <Link
-      to={`/patient/${followup.patient_id}`}
-      className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors shrink-0"
-      title="Open patient"
-    >
-      <ChevronRight
-        size={16}
-        className="text-primary"
-      />
-    </Link>
-  </div>
-</div>
-       ))}
+      ))
+    )}
   </div>
 ) : loading ? (
   <div className="flex items-center justify-center py-12">
