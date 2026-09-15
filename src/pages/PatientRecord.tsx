@@ -471,16 +471,6 @@ subVaOutcome: v.sub_va_outcome || "",
 
     setSaving(true);
 
-    const {
-  data: { user },
-  error: authError,
-} = await apiClient.auth.getUser();
-
-if (authError || !user) {
-  toast.error("Unable to identify the logged-in user");
-  return;
-}
-
 const visitPayload = {
   clinic_id: cid,
   patient_id: patient.id,
