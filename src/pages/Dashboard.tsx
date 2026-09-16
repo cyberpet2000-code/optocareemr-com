@@ -44,13 +44,13 @@ export default function Dashboard() {
   }, []);
   const { user } = useAuth();
   const { effectiveClinicId } = useClinic();
-  const { isAdmin, isDoctor, isReceptionist, loading: roleLoading } = useRole();
+  const { isAdmin, isDoctor, isReceptionist, isSuperAdmin, loading: roleLoading } = useRole();
   
   // Determine which sections to show based on role
-  const showClinicalMetrics = isDoctor || isAdmin;
-  const showBillingMetrics = isReceptionist || isAdmin;
-  const showFinanceOverview = isAdmin;
-  const showInventoryAlerts = isAdmin || isDoctor;
+  const showClinicalMetrics = isDoctor || isAdmin || isSuperAdmin;
+  const showBillingMetrics = isReceptionist || isAdmin || isSuperAdmin;
+  const showFinanceOverview = isAdmin || isSuperAdmin;
+  const showInventoryAlerts = isAdmin || isDoctor || isSuperAdmin;
   
   useEffect(() => {
     if (!effectiveClinicId) return;
@@ -163,7 +163,7 @@ export default function Dashboard() {
     }
     
     // Fail safely if role cannot be determined
-    if (!isAdmin && !isDoctor && !isReceptionist) {
+    if (!isAdmin && !isSuperAdmin && !isDoctor && !isReceptionist) {
       console.warn("[dashboard] user role cannot be determined, failing safely");
       stopLoadingWatch("dashboard");
       setLoading(false);
@@ -564,7 +564,7 @@ if (user?.id) {
       stopLoadingWatch("dashboard");
       setLoading(false);
     }
-  }, [effectiveClinicId, isOffline, showClinicalMetrics, showBillingMetrics, showFinanceOverview, showInventoryAlerts, roleLoading, isAdmin, isDoctor, isReceptionist]);
+  }, [effectiveClinicId, isOffline, showClinicalMetrics, showBillingMetrics, showFinanceOverview, showInventoryAlerts, roleLoading, isAdmin, isDoctor, isReceptionist, isSuperAdmin]);
 
   useEffect(() => {
     loadDashboard();
@@ -844,7 +844,7 @@ if (user?.id) {
       )}
 
       {/* ADMIN SECTION: Full dashboard with finance & operations */}
-      {isAdmin && (
+      {(isAdmin || isSuperAdmin) && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <Metric icon={Users} label="Patients This Month" value={monthPatients} gradient={tealGrad} iconGradient={tealIcon} iconColor="hsl(184 78% 40%)" accentClass="accent-teal" to="/patients?filter=month" />
