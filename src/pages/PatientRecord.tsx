@@ -626,6 +626,70 @@ if (
     else if (data) setVisits([data, ...visits]);
   };
 
+    const handleMarkDispensed = async (
+    visitId: string,
+    itemType: "optical" | "medication"
+  ) => {
+    if (!cid || !patient) {
+      toast.error("No active clinic or patient");
+      return;
+    }
+
+    try {
+      const { data, error } = await apiClient.rpc(
+        "mark_visit_item_dispensed",
+        {
+          p_visit_id: visitId,
+          p_item_type: itemType,
+          p_inventory_id: null,
+        }
+      );
+
+      if (error) {
+        console.error("Dispensing error:", error);
+        toast.error(
+          error.message || "Unable to mark item as dispensed"
+        );
+        return;
+      }
+
+      console.log("Dispensing result:", data);
+
+      toast.success(
+        itemType === "optical"
+          ? "Optical prescription marked as dispensed"
+          : "Medication marked as dispensed"
+      );
+
+      // Refresh visit history from the database
+      const { data: fresh, error: refreshError } =
+        await apiClient
+          .from("visits")
+          .select("*")
+          .eq("clinic_id", cid)
+          .eq("patient_id", patient.id)
+          .order("created_at", { ascending: false });
+
+      if (refreshError) {
+        console.error(
+          "Failed to refresh visits:",
+          refreshError
+        );
+        return;
+      }
+
+      if (fresh) {
+        setVisits(fresh);
+      }
+    } catch (err: any) {
+      console.error("Unexpected dispensing error:", err);
+
+      toast.error(
+        err?.message || "Unable to mark item as dispensed"
+      );
+    }
+  };
+
   const handleEditPatient = async () => {
     if (!patient) return;
     if (!cid) { toast.error("No active clinic"); return; }
@@ -1991,20 +2055,110 @@ shadow-sm
   {(v.lens_type || v.medication || v.notes) && (
     <div>
       <div className="flex items-center gap-2 font-semibold text-green-600">
-  <FileText size={14} />
-  Management Plan
-</div>
+        <FileText size={14} />
+        Management Plan
+      </div>
 
       {v.lens_type && (
-        <p>• {v.lens_type}</p>
+        <div className="mt-2 rounded-xl border bg-card p-3">
+          <p className="font-medium">
+            • {v.lens_type}
+          </p>
+
+          <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
+            <span
+              className={`text-[11px] px-2.5 py-1 rounded-full font-medium ${
+                v.optical_dispensed
+                  ? "bg-green-100 text-green-700"
+                  : "bg-amber-100 text-amber-700"
+              }`}
+            >
+              {v.optical_dispensed
+                ? "Optical Prescription Dispensed"
+                : "Optical Prescription Not Dispensed"}
+            </span>
+
+            {!v.optical_dispensed && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-xl"
+                onClick={() =>
+                  handleMarkDispensed(v.id, "optical")
+                }
+              >
+                <CheckCircle2 size={14} className="mr-1" />
+                Mark Glasses as Dispensed
+              </Button>
+            )}
+          </div>
+
+          {v.optical_dispensed &&
+            v.optical_dispensed_at && (
+              <p className="text-[10px] text-muted-foreground mt-2">
+                Dispensed{" "}
+                {new Date(
+                  v.optical_dispensed_at
+                ).toLocaleString()}
+              </p>
+            )}
+        </div>
       )}
 
       {v.medication && (
-        <p>• {v.medication}</p>
+        <div className="mt-2 rounded-xl border bg-card p-3">
+          <div className="flex items-start gap-2">
+            <Pill size={14} className="mt-0.5 text-green-600" />
+
+            <p className="font-medium whitespace-pre-line">
+              {v.medication}
+            </p>
+          </div>
+
+          <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
+            <span
+              className={`text-[11px] px-2.5 py-1 rounded-full font-medium ${
+                v.medication_dispensed
+                  ? "bg-green-100 text-green-700"
+                  : "bg-amber-100 text-amber-700"
+              }`}
+            >
+              {v.medication_dispensed
+                ? "Medication Dispensed"
+                : "Medication Not Dispensed"}
+            </span>
+
+            {!v.medication_dispensed && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-xl"
+                onClick={() =>
+                  handleMarkDispensed(v.id, "medication")
+                }
+              >
+                <CheckCircle2 size={14} className="mr-1" />
+                Mark Eye Drop as Dispensed
+              </Button>
+            )}
+          </div>
+
+          {v.medication_dispensed &&
+            v.medication_dispensed_at && (
+              <p className="text-[10px] text-muted-foreground mt-2">
+                Dispensed{" "}
+                {new Date(
+                  v.medication_dispensed_at
+                ).toLocaleString()}
+              </p>
+            )}
+        </div>
       )}
 
       {v.notes && (
-        <p>• {v.notes}</p>
+        <p className="mt-2">
+          • {v.notes}
+        </p>
       )}
     </div>
   )}
