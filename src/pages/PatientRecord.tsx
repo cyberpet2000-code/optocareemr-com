@@ -141,6 +141,24 @@ const sameEyeRx = (v: any) =>
 const eyeHasRx = (sph?: string | null, cyl?: string | null, axis?: string | null) =>
   normRx(sph) !== "" || normRx(cyl) !== "" || normRx(axis) !== "";
 
+function parseMedicationItems(medication: string | null | undefined) {
+  if (!medication) return [];
+
+  return medication
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const medicationName = line.split("—")[0].trim();
+
+      return {
+        name: medicationName,
+        prescribedText: line,
+      };
+    })
+    .filter((item) => item.name);
+}
+
 export default function PatientRecord() {
   const { id } = useParams<{ id: string }>();
   const patientId = id || "";
@@ -169,6 +187,17 @@ export default function PatientRecord() {
   Record<string, "none" | "pending" | "completed">
 >({});
   const [feedbackDetails, setFeedbackDetails] = useState<Record<string, any>>({});
+  const [medicationDispensingMap, setMedicationDispensingMap] =
+  useState<
+    Record<
+      string,
+      {
+        dispensed: boolean;
+        dispensed_at?: string | null;
+        dispensed_by?: string | null;
+      }
+    >
+  >({});
 
 
   useEffect(() => {
@@ -689,6 +718,91 @@ if (
       );
     }
   };
+
+  const handleMarkMedicationDispensed = async (
+  visitId: string,
+  medicationName: string
+) => {
+  if (!cid || !patient) {
+    toast.error("No active clinic or patient");
+    return;
+  }
+
+  try {
+    const { data, error } = await apiClient.rpc(
+      "mark_medication_item_dispensed",
+      {
+        p_visit_id: visitId,
+        p_medication_name: medicationName,
+        p_inventory_id: null,
+      }
+    );
+
+    if (error) {
+      console.error("Medication dispensing error:", error);
+
+      toast.error(
+        error.message || "Unable to mark medication as dispensed"
+      );
+
+      return;
+    }
+
+    console.log("Medication dispensing result:", data);
+
+    toast.success(`${medicationName} marked as dispensed`);
+
+    const { data: dispensingData, error: dispensingError } =
+      await apiClient
+        .from("visit_medication_dispensing")
+        .select(
+          "medication_name, dispensed, dispensed_at, dispensed_by"
+        )
+        .eq("visit_id", visitId);
+
+    if (dispensingError) {
+      console.error(
+        "Failed to refresh medication dispensing:",
+        dispensingError
+      );
+      return;
+    }
+
+    const nextMap: Record<
+      string,
+      {
+        dispensed: boolean;
+        dispensed_at?: string | null;
+        dispensed_by?: string | null;
+      }
+    > = {};
+
+    (dispensingData || []).forEach((item: any) => {
+      nextMap[
+        `${visitId}:${item.medication_name.toLowerCase()}`
+      ] = {
+        dispensed: item.dispensed,
+        dispensed_at: item.dispensed_at,
+        dispensed_by: item.dispensed_by,
+      };
+    });
+
+    setMedicationDispensingMap((prev) => ({
+      ...prev,
+      ...nextMap,
+    }));
+  } catch (err: any) {
+    console.error(
+      "Unexpected medication dispensing error:",
+      err
+    );
+
+    toast.error(
+      err?.message ||
+        "Unable to mark medication as dispensed"
+    );
+  }
+};
 
   const handleEditPatient = async () => {
     if (!patient) return;
