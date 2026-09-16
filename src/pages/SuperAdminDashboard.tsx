@@ -37,6 +37,11 @@ type StaffFeedbackRow = {
 
 export default function SuperAdminDashboard() {
   const { isAuthReady } = useAuth();
+    const { effectiveClinicId } = useClinic();
+
+  const [staffFeedback, setStaffFeedback] = useState<StaffFeedbackRow[]>([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [stats, setStats] = useState<{ clinics: number; patients: number; users: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
