@@ -642,6 +642,15 @@ if (user?.id) {
         <p className="text-sm text-muted-foreground mt-0.5">
           {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
         </p>
+        {!isAdmin && staffRating !== null && (
+  <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+    <span className="text-amber-500">★</span>
+    <span className="font-medium text-foreground">
+      {staffRating.toFixed(1)}
+    </span>
+    <span>· {staffRatingCount} patient rating{staffRatingCount === 1 ? "" : "s"}</span>
+  </div>
+)}
       </div>
 
       {/* DOCTOR SECTION: Clinical workflow */}
