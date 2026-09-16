@@ -581,6 +581,7 @@ const visitPayload = {
       ? visits.find(v => v.id === editingVisitId)?.doctor_id || user.id
       : user.id)
   : null,
+  registered_by: user.id,
   payment_type: patient.payment_type,
   active_hmo_id: patient.active_hmo_id,
 
