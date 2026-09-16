@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
-import { Building2, Users, Activity, Sparkles, ShieldCheck, Plus } from "lucide-react";
+import { Building2, Users, Activity, Sparkles, ShieldCheck, Plus, Star } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { diag } from "@/lib/diag";
 
@@ -80,6 +80,12 @@ if (!cancelled) {
     { to: "/super-admin/clinics", label: "Clinic Control", icon: Sparkles, desc: "Lifecycle and access oversight" },
     { to: "/super-admin/users", label: "Safety & Roles", icon: ShieldCheck, desc: "User access and safeguards" },
   ];
+  {
+  to: "/super-admin/users",
+  label: "Staff Ratings",
+  icon: Star,
+  desc: "View staff ratings for the active clinic",
+},
 
   const showSkeletons = !isAuthReady || loading || !stats;
 
