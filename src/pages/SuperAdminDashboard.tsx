@@ -100,6 +100,93 @@ if (!cancelled) {
     return () => { cancelled = true; };
   }, [isAuthReady]);
 
+    useEffect(() => {
+    if (!isAuthReady || !effectiveClinicId) {
+      setStaffFeedback([]);
+      setFeedbackLoading(false);
+      setFeedbackError(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadStaffFeedback = async () => {
+      setFeedbackLoading(true);
+      setFeedbackError(null);
+
+      try {
+        const { data, error } = await apiClient.rpc(
+          "get_admin_staff_feedback_ratings",
+          {
+            p_clinic_id: effectiveClinicId,
+          }
+        );
+
+        if (error) {
+          console.error(
+            "[SuperAdminDashboard] staff ratings error:",
+            error
+          );
+
+          if (!cancelled) {
+            setStaffFeedback([]);
+            setFeedbackError(
+              error.message || "Failed to load staff ratings"
+            );
+          }
+
+          return;
+        }
+
+        if (!cancelled) {
+          setStaffFeedback(
+            (data || []) as StaffFeedbackRow[]
+          );
+        }
+      } catch (err: any) {
+        console.error(
+          "[SuperAdminDashboard] staff ratings fetch failed:",
+          err
+        );
+
+        if (!cancelled) {
+          setStaffFeedback([]);
+          setFeedbackError(
+            err?.message || "Failed to load staff ratings"
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setFeedbackLoading(false);
+        }
+      }
+    };
+
+    loadStaffFeedback();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveClinicId, isAuthReady]);
+
+    const totalRatings = staffFeedback.length;
+
+  const doctorRatings = staffFeedback.filter(
+    (item) => item.staff_role === "doctor"
+  );
+
+  const receptionistRatings = staffFeedback.filter(
+    (item) => item.staff_role === "receptionist"
+  );
+
+  const averageRating =
+    totalRatings > 0
+      ? staffFeedback.reduce(
+          (sum, item) => sum + Number(item.rating || 0),
+          0
+        ) / totalRatings
+      : 0;
+
   const cards = [
     { label: "Total Clinics", value: stats?.clinics, icon: Building2 },
     { label: "Total Patients", value: stats?.patients, icon: Users },
