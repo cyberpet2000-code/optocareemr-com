@@ -2,7 +2,19 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
-import { Building2, Users, Activity, Sparkles, ShieldCheck, Plus, Star } from "lucide-react";
+import { useClinic } from "@/hooks/useClinic";
+import {
+  Building2,
+  Users,
+  Activity,
+  Sparkles,
+  ShieldCheck,
+  Plus,
+  Star,
+  RefreshCw,
+  MessageSquare,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { diag } from "@/lib/diag";
 
