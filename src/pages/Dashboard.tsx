@@ -9,7 +9,7 @@ import {
   checkClinicSubscription,
 } from "@/lib/diag/healthChecks";
 import { Link } from "react-router-dom";
-import { Users, ChevronRight, AlertTriangle, DollarSign, TrendingUp, Clock } from "lucide-react";
+import { Users, ChevronRight, AlertTriangle, DollarSign, TrendingUp, Clock, Star } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { startLoadingWatch,
@@ -642,13 +642,25 @@ if (user?.id) {
         <p className="text-sm text-muted-foreground mt-0.5">
           {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
         </p>
-        {!isAdmin && staffRating !== null && (
-  <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-    <span className="text-amber-500">★</span>
-    <span className="font-medium text-foreground">
-      {staffRating.toFixed(1)}
-    </span>
-    <span>· {staffRatingCount} patient rating{staffRatingCount === 1 ? "" : "s"}</span>
+        {!isAdmin && (isDoctor || isReceptionist) && (
+  <div className="mt-3 inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
+    <Star size={15} className="text-amber-500 fill-current" />
+
+    {staffRating !== null ? (
+      <>
+        <span className="text-sm font-semibold text-foreground">
+          {staffRating.toFixed(1)}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          · {staffRatingCount} patient rating
+          {staffRatingCount === 1 ? "" : "s"}
+        </span>
+      </>
+    ) : (
+      <span className="text-xs text-muted-foreground">
+        No patient ratings yet
+      </span>
+    )}
   </div>
 )}
       </div>
