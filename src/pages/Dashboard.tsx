@@ -95,6 +95,8 @@ export default function Dashboard() {
   const [drugAlerts, setDrugAlerts] = useState(0);
   const [loading, setLoading] = useState(true);
   const [feedbackFollowups, setFeedbackFollowups] = useState<any[]>([]);
+  const [staffRating, setStaffRating] = useState<number | null>(null);
+  const [staffRatingCount, setStaffRatingCount] = useState(0);
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -198,6 +200,86 @@ checkQueryFailure(
 );
 
 setFeedbackFollowups(feedbackFollowupData ?? []);
+    // Load the logged-in staff member's own patient rating
+if (user?.id) {
+  if (isDoctor && !isAdmin) {
+    const { data: ratingRows, error: ratingError } = await apiClient
+      .from("feedback_responses")
+      .select("doctor_rating")
+      .eq("clinic_id", cid)
+      .eq("doctor_id", user.id)
+      .not("doctor_rating", "is", null);
+
+    if (ratingError) {
+      console.error("Failed to load doctor rating:", ratingError);
+    } else {
+      const ratings = (ratingRows || [])
+        .map((row: any) => Number(row.doctor_rating))
+        .filter((rating: number) => Number.isFinite(rating));
+
+      setStaffRatingCount(ratings.length);
+
+      setStaffRating(
+        ratings.length > 0
+          ? Number(
+              (
+                ratings.reduce((sum, rating) => sum + rating, 0) /
+                ratings.length
+              ).toFixed(1)
+            )
+          : null
+      );
+    }
+  } else if (isReceptionist && !isAdmin) {
+    const { data: visitRows, error: visitError } = await apiClient
+      .from("visits")
+      .select("id")
+      .eq("clinic_id", cid)
+      .eq("registered_by", user.id);
+
+    if (visitError) {
+      console.error("Failed to load receptionist visits:", visitError);
+    } else {
+      const visitIds = (visitRows || []).map((row: any) => row.id);
+
+      if (visitIds.length === 0) {
+        setStaffRating(null);
+        setStaffRatingCount(0);
+      } else {
+        const { data: ratingRows, error: ratingError } = await apiClient
+          .from("feedback_responses")
+          .select("front_desk_rating")
+          .eq("clinic_id", cid)
+          .in("visit_id", visitIds)
+          .not("front_desk_rating", "is", null);
+
+        if (ratingError) {
+          console.error(
+            "Failed to load receptionist rating:",
+            ratingError
+          );
+        } else {
+          const ratings = (ratingRows || [])
+            .map((row: any) => Number(row.front_desk_rating))
+            .filter((rating: number) => Number.isFinite(rating));
+
+          setStaffRatingCount(ratings.length);
+
+          setStaffRating(
+            ratings.length > 0
+              ? Number(
+                  (
+                    ratings.reduce((sum, rating) => sum + rating, 0) /
+                    ratings.length
+                  ).toFixed(1)
+                )
+              : null
+          );
+        }
+      }
+    }
+  }
+}
     const cacheKey = `dashboard:${cid}`;
 
     const hydrateFromCache = () => {
