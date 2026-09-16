@@ -1494,6 +1494,94 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback_followups: {
+        Row: {
+          assigned_to: string | null
+          clinic_id: string
+          completed_at: string | null
+          created_at: string
+          feedback_request_id: string | null
+          feedback_response_id: string | null
+          id: string
+          notes: string | null
+          patient_id: string
+          reason: string
+          status: string
+          visit_id: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          clinic_id: string
+          completed_at?: string | null
+          created_at?: string
+          feedback_request_id?: string | null
+          feedback_response_id?: string | null
+          id?: string
+          notes?: string | null
+          patient_id: string
+          reason: string
+          status?: string
+          visit_id?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          clinic_id?: string
+          completed_at?: string | null
+          created_at?: string
+          feedback_request_id?: string | null
+          feedback_response_id?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          reason?: string
+          status?: string
+          visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_followups_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_followups_feedback_request_id_fkey"
+            columns: ["feedback_request_id"]
+            isOneToOne: false
+            referencedRelation: "feedback_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_followups_feedback_response_id_fkey"
+            columns: ["feedback_response_id"]
+            isOneToOne: false
+            referencedRelation: "feedback_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_followups_feedback_response_id_fkey"
+            columns: ["feedback_response_id"]
+            isOneToOne: false
+            referencedRelation: "staff_feedback_ratings"
+            referencedColumns: ["feedback_id"]
+          },
+          {
+            foreignKeyName: "feedback_followups_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_followups_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feedback_requests: {
         Row: {
           clinic_id: string
@@ -3411,6 +3499,67 @@ export type Database = {
         }
         Relationships: []
       }
+      visit_medication_dispensing: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          dispensed: boolean
+          dispensed_at: string | null
+          dispensed_by: string | null
+          id: string
+          medication_name: string
+          patient_id: string
+          prescribed_text: string | null
+          visit_id: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          dispensed?: boolean
+          dispensed_at?: string | null
+          dispensed_by?: string | null
+          id?: string
+          medication_name: string
+          patient_id: string
+          prescribed_text?: string | null
+          visit_id: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          dispensed?: boolean
+          dispensed_at?: string | null
+          dispensed_by?: string | null
+          id?: string
+          medication_name?: string
+          patient_id?: string
+          prescribed_text?: string | null
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_medication_dispensing_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_medication_dispensing_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_medication_dispensing_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       visits: {
         Row: {
           active_hmo_id: string | null
@@ -3437,12 +3586,19 @@ export type Database = {
           iop_time: string | null
           lens_type: string | null
           medication: string | null
+          medication_dispensed: boolean
+          medication_dispensed_at: string | null
+          medication_dispensed_by: string | null
           notes: string | null
           old_lens_prescription: string | null
+          optical_dispensed: boolean
+          optical_dispensed_at: string | null
+          optical_dispensed_by: string | null
           patient_id: string
           payment_type: string
           reading_add_aided_ou: string | null
           reading_add_unaided_ou: string | null
+          registered_by: string | null
           status: string
           sub_od_axis: string | null
           sub_od_cyl: string | null
@@ -3494,12 +3650,19 @@ export type Database = {
           iop_time?: string | null
           lens_type?: string | null
           medication?: string | null
+          medication_dispensed?: boolean
+          medication_dispensed_at?: string | null
+          medication_dispensed_by?: string | null
           notes?: string | null
           old_lens_prescription?: string | null
+          optical_dispensed?: boolean
+          optical_dispensed_at?: string | null
+          optical_dispensed_by?: string | null
           patient_id: string
           payment_type?: string
           reading_add_aided_ou?: string | null
           reading_add_unaided_ou?: string | null
+          registered_by?: string | null
           status?: string
           sub_od_axis?: string | null
           sub_od_cyl?: string | null
@@ -3551,12 +3714,19 @@ export type Database = {
           iop_time?: string | null
           lens_type?: string | null
           medication?: string | null
+          medication_dispensed?: boolean
+          medication_dispensed_at?: string | null
+          medication_dispensed_by?: string | null
           notes?: string | null
           old_lens_prescription?: string | null
+          optical_dispensed?: boolean
+          optical_dispensed_at?: string | null
+          optical_dispensed_by?: string | null
           patient_id?: string
           payment_type?: string
           reading_add_aided_ou?: string | null
           reading_add_unaided_ou?: string | null
+          registered_by?: string | null
           status?: string
           sub_od_axis?: string | null
           sub_od_cyl?: string | null
@@ -3589,6 +3759,34 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_registered_by_fkey"
+            columns: ["registered_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_registered_by_fkey"
+            columns: ["registered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_registered_by_fkey"
+            columns: ["registered_by"]
+            isOneToOne: false
+            referencedRelation: "user_access_context"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "visits_registered_by_fkey"
+            columns: ["registered_by"]
+            isOneToOne: false
+            referencedRelation: "user_active_clinic"
             referencedColumns: ["id"]
           },
         ]
@@ -3703,6 +3901,82 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_feedback_ratings: {
+        Row: {
+          anything_else: string | null
+          clinic_id: string | null
+          doctor_id: string | null
+          doctor_name: string | null
+          doctor_rating: number | null
+          doctor_role: string | null
+          feedback_id: string | null
+          front_desk_rating: number | null
+          improvement_feedback: string | null
+          overall_rating: number | null
+          patient_id: string | null
+          positive_feedback: string | null
+          receptionist_id: string | null
+          receptionist_name: string | null
+          receptionist_role: string | null
+          requires_follow_up: boolean | null
+          submitted_at: string | null
+          visit_id: string | null
+          wants_follow_up: boolean | null
+          what_can_improve: string | null
+          what_did_well: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_responses_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_responses_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_responses_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_registered_by_fkey"
+            columns: ["receptionist_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_registered_by_fkey"
+            columns: ["receptionist_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_registered_by_fkey"
+            columns: ["receptionist_id"]
+            isOneToOne: false
+            referencedRelation: "user_access_context"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "visits_registered_by_fkey"
+            columns: ["receptionist_id"]
+            isOneToOne: false
+            referencedRelation: "user_active_clinic"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_access_context: {
         Row: {
           clinic_id: string | null
@@ -3791,6 +4065,10 @@ export type Database = {
             }
             Returns: string
           }
+      create_feedback_followup: {
+        Args: { p_feedback_response_id: string }
+        Returns: string
+      }
       create_feedback_request: {
         Args: { p_visit_id: string }
         Returns: {
@@ -3814,6 +4092,40 @@ export type Database = {
       freeze_extra_branches: { Args: { p_org_id: string }; Returns: undefined }
       generate_feedback_token: { Args: never; Returns: string }
       get_active_clinic_id: { Args: never; Returns: string }
+      get_admin_staff_feedback_ratings: {
+        Args: { p_clinic_id: string }
+        Returns: {
+          anything_else: string
+          feedback_id: string
+          improvement_feedback: string
+          patient_id: string
+          patient_name: string
+          positive_feedback: string
+          rating: number
+          staff_id: string
+          staff_name: string
+          staff_role: string
+          submitted_at: string
+          visit_id: string
+          what_can_improve: string
+          what_did_well: string
+        }[]
+      }
+      get_dashboard_feedback_followups: {
+        Args: { p_clinic_id: string }
+        Returns: {
+          assigned_to: string
+          created_at: string
+          id: string
+          patient_id: string
+          patient_name: string
+          patient_number: string
+          phone: string
+          reason: string
+          status: string
+          visit_id: string
+        }[]
+      }
       get_dashboard_patient_stats: {
         Args: { p_clinic_id: string; p_month: number; p_year: number }
         Returns: {
@@ -3833,6 +4145,41 @@ export type Database = {
           email: string
           phone: string
           reminder_type: string
+        }[]
+      }
+      get_feedback_details_for_visit: {
+        Args: { p_visit_id: string }
+        Returns: {
+          anything_else: string
+          attended_reasonable_time: string
+          cleanliness_rating: number
+          clinic_id: string
+          concerns_addressed: string
+          doctor_explanation_clarity: string
+          doctor_id: string
+          doctor_professionalism_rating: number
+          feedback_request_id: string
+          feedback_response_id: string
+          front_desk_rating: number
+          glasses_fitting_not_applicable: boolean
+          glasses_fitting_satisfaction: number
+          glasses_vision_not_applicable: boolean
+          glasses_vision_satisfaction: number
+          optical_service_not_applicable: boolean
+          optical_service_rating: number
+          overall_rating: number
+          patient_id: string
+          prescription_difficulty: boolean
+          prescription_difficulty_details: string
+          prescription_explanation_satisfaction: number
+          recommendation_score: number
+          requires_follow_up: boolean
+          status: string
+          submitted_at: string
+          visit_id: string
+          wants_follow_up: boolean
+          what_can_improve: string
+          what_did_well: string
         }[]
       }
       get_feedback_status_for_visit: {
@@ -3927,6 +4274,22 @@ export type Database = {
         }
         Returns: undefined
       }
+      mark_medication_item_dispensed: {
+        Args: {
+          p_inventory_id?: string
+          p_medication_name: string
+          p_visit_id: string
+        }
+        Returns: Json
+      }
+      mark_visit_item_dispensed: {
+        Args: {
+          p_inventory_id?: string
+          p_item_type: string
+          p_visit_id: string
+        }
+        Returns: Json
+      }
       predict_clinic_load: { Args: never; Returns: undefined }
       predict_slow_clinic: {
         Args: never
@@ -4015,6 +4378,34 @@ export type Database = {
       try_consume_email_quota: {
         Args: { _category: string; _limit: number }
         Returns: number
+      }
+      update_feedback_followup: {
+        Args: {
+          p_assigned_to?: string
+          p_followup_id: string
+          p_notes?: string
+          p_status: string
+        }
+        Returns: {
+          assigned_to: string | null
+          clinic_id: string
+          completed_at: string | null
+          created_at: string
+          feedback_request_id: string | null
+          feedback_response_id: string | null
+          id: string
+          notes: string | null
+          patient_id: string
+          reason: string
+          status: string
+          visit_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "feedback_followups"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       validate_target_object: { Args: { obj: string }; Returns: undefined }
     }
