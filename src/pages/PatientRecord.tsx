@@ -274,6 +274,53 @@ export default function PatientRecord() {
   }
       } 
 
+            // Load individual medication dispensing records
+      if (visRes.data && visRes.data.length > 0) {
+        const visitIds = visRes.data.map(
+          (visit: any) => visit.id
+        );
+
+        const { data: medicationDispensingData, error: medicationDispensingError } =
+          await apiClient
+            .from("visit_medication_dispensing")
+            .select(
+              "visit_id, medication_name, dispensed, dispensed_at, dispensed_by"
+            )
+            .in("visit_id", visitIds);
+
+        if (medicationDispensingError) {
+          console.error(
+            "Failed to load medication dispensing records:",
+            medicationDispensingError
+          );
+        } else {
+          const medicationMap: Record<
+            string,
+            {
+              dispensed: boolean;
+              dispensed_at?: string | null;
+              dispensed_by?: string | null;
+            }
+          > = {};
+
+          (medicationDispensingData || []).forEach(
+            (item: any) => {
+              medicationMap[
+                `${item.visit_id}:${item.medication_name.toLowerCase()}`
+              ] = {
+                dispensed: item.dispensed,
+                dispensed_at: item.dispensed_at,
+                dispensed_by: item.dispensed_by,
+              };
+            }
+          );
+
+          setMedicationDispensingMap(medicationMap);
+        }
+      } else {
+        setMedicationDispensingMap({});
+      }
+
             // Load feedback status for each visit
 if (visRes.data && visRes.data.length > 0) {
   const statusEntries = await Promise.all(
