@@ -38,6 +38,23 @@ interface DashboardSnapshot {
   upcomingAppts: any[];
 }
 
+interface StaffFeedbackRow {
+  feedback_id: string;
+  staff_id: string | null;
+  staff_name: string;
+  staff_role: "doctor" | "receptionist";
+  rating: number | null;
+  visit_id: string;
+  patient_id: string;
+  patient_name: string;
+  submitted_at: string;
+  positive_feedback: string | null;
+  improvement_feedback: string | null;
+  what_did_well: string | null;
+  what_can_improve: string | null;
+  anything_else: string | null;
+}
+
 export default function Dashboard() {
   useEffect(() => {
     enableNotifications();
@@ -97,6 +114,9 @@ export default function Dashboard() {
   const [feedbackFollowups, setFeedbackFollowups] = useState<any[]>([]);
   const [staffRating, setStaffRating] = useState<number | null>(null);
   const [staffRatingCount, setStaffRatingCount] = useState(0);
+  const [staffFeedback, setStaffFeedback] = useState<StaffFeedbackRow[]>([]);
+  const [staffFeedbackLoading, setStaffFeedbackLoading] = useState(false);
+  const [staffFeedbackError, setStaffFeedbackError] = useState<string | null>(null);
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -200,6 +220,38 @@ checkQueryFailure(
 );
 
 setFeedbackFollowups(feedbackFollowupData ?? []);
+
+        // Admin and Super Admin see staff ratings for the active clinic.
+    // Super Admin ratings are always scoped to the currently selected clinic.
+    if (isAdmin || isSuperAdmin) {
+      setStaffFeedbackLoading(true);
+      setStaffFeedbackError(null);
+
+      const { data: staffFeedbackData, error: staffFeedbackError } =
+        await apiClient.rpc("get_admin_staff_feedback_ratings", {
+          p_clinic_id: cid,
+        });
+
+      if (staffFeedbackError) {
+        console.error(
+          "Failed to load staff ratings:",
+          staffFeedbackError
+        );
+        setStaffFeedback([]);
+        setStaffFeedbackError(
+          staffFeedbackError.message || "Failed to load staff ratings"
+        );
+      } else {
+        setStaffFeedback(
+          (staffFeedbackData || []) as StaffFeedbackRow[]
+        );
+      }
+
+      setStaffFeedbackLoading(false);
+    } else {
+      setStaffFeedback([]);
+      setStaffFeedbackError(null);
+    }
     // Load the logged-in staff member's own patient rating
 if (user?.id) {
   if (isDoctor && !isAdmin) {
@@ -976,9 +1028,252 @@ if (user?.id) {
             )}
           </div>
 
+          {/* Staff Ratings & Feedback - Admin and Super Admin */}
+{(isAdmin || isSuperAdmin) && (
+  <StaffRatingsSection
+    staffFeedback={staffFeedback}
+    loading={staffFeedbackLoading}
+    error={staffFeedbackError}
+    clinicName={localStorage.getItem("active_clinic_name") || "Active Clinic"}
+    onRefresh={loadDashboard}
+  />
+)}
+
           {/* Finance Overview - Admin only */}
           <FinanceOverview />
         </div>
+      )}
+    </div>
+  );
+}
+
+function StaffRatingsSection({
+  staffFeedback,
+  loading,
+  error,
+  clinicName,
+  onRefresh,
+}: {
+  staffFeedback: StaffFeedbackRow[];
+  loading: boolean;
+  error: string | null;
+  clinicName: string;
+  onRefresh: () => void;
+}) {
+  const doctorRatings = staffFeedback.filter(
+    (item) => item.staff_role === "doctor"
+  );
+
+  const receptionistRatings = staffFeedback.filter(
+    (item) => item.staff_role === "receptionist"
+  );
+
+  const ratings = staffFeedback
+    .map((item) => Number(item.rating))
+    .filter((rating) => Number.isFinite(rating));
+
+  const averageRating =
+    ratings.length > 0
+      ? ratings.reduce((sum, rating) => sum + rating, 0) /
+        ratings.length
+      : null;
+
+  return (
+    <div className="medical-card">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h2 className="section-title flex items-center gap-2">
+            <Star size={16} />
+            Staff Ratings & Feedback
+          </h2>
+
+          <p className="text-xs text-muted-foreground mt-1">
+            Patient feedback for {clinicName}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={loading}
+          className="text-xs text-primary font-medium hover:underline disabled:opacity-50"
+        >
+          {loading ? "Refreshing…" : "Refresh"}
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="py-8 text-center text-sm text-muted-foreground">
+          Loading staff ratings…
+        </div>
+      ) : error ? (
+        <div className="py-6 text-center">
+          <p className="text-sm text-destructive">
+            {error}
+          </p>
+        </div>
+      ) : staffFeedback.length === 0 ? (
+        <div className="py-8 text-center">
+          <Star
+            size={28}
+            className="mx-auto text-muted-foreground mb-2"
+          />
+
+          <p className="text-sm font-medium">
+            No staff ratings yet
+          </p>
+
+          <p className="text-xs text-muted-foreground mt-1">
+            Patient staff ratings and comments will appear here
+            when feedback is submitted.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Compact summary */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+            <div className="rounded-xl border p-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                Total
+              </p>
+              <p className="text-lg font-semibold">
+                {staffFeedback.length}
+              </p>
+            </div>
+
+            <div className="rounded-xl border p-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                Doctors
+              </p>
+              <p className="text-lg font-semibold">
+                {doctorRatings.length}
+              </p>
+            </div>
+
+            <div className="rounded-xl border p-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                Front Desk
+              </p>
+              <p className="text-lg font-semibold">
+                {receptionistRatings.length}
+              </p>
+            </div>
+
+            <div className="rounded-xl border p-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                Average
+              </p>
+
+              <p className="text-lg font-semibold flex items-center gap-1">
+                <Star
+                  size={14}
+                  className="text-amber-500 fill-current"
+                />
+
+                {averageRating !== null
+                  ? averageRating.toFixed(1)
+                  : "—"}
+              </p>
+            </div>
+          </div>
+
+          {/* Individual ratings */}
+          <div className="space-y-3">
+            {staffFeedback.map((feedback) => (
+              <div
+                key={feedback.feedback_id}
+                className="rounded-xl border p-3"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted capitalize">
+                        {feedback.staff_role === "doctor"
+                          ? "Doctor"
+                          : "Front Desk"}
+                      </span>
+
+                      <span className="text-sm font-semibold truncate">
+                        {feedback.staff_name}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Patient:{" "}
+                      <span className="font-medium text-foreground">
+                        {feedback.patient_name}
+                      </span>
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="flex items-center gap-1 text-sm font-semibold">
+                      <Star
+                        size={14}
+                        className="text-amber-500 fill-current"
+                      />
+                      {feedback.rating}/5
+                    </span>
+
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(
+                        feedback.submitted_at
+                      ).toLocaleDateString("en-US", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                </div>
+
+                {(
+                  feedback.positive_feedback ||
+                  feedback.what_did_well
+                ) && (
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-[10px] font-semibold text-muted-foreground mb-1">
+                      Positive feedback
+                    </p>
+
+                    <p className="text-xs leading-relaxed">
+                      {feedback.positive_feedback ||
+                        feedback.what_did_well}
+                    </p>
+                  </div>
+                )}
+
+                {(
+                  feedback.improvement_feedback ||
+                  feedback.what_can_improve
+                ) && (
+                  <div className="mt-3">
+                    <p className="text-[10px] font-semibold text-muted-foreground mb-1">
+                      Improvement feedback
+                    </p>
+
+                    <p className="text-xs leading-relaxed">
+                      {feedback.improvement_feedback ||
+                        feedback.what_can_improve}
+                    </p>
+                  </div>
+                )}
+
+                {feedback.anything_else && (
+                  <div className="mt-3">
+                    <p className="text-[10px] font-semibold text-muted-foreground mb-1">
+                      Additional comments
+                    </p>
+
+                    <p className="text-xs leading-relaxed">
+                      {feedback.anything_else}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
