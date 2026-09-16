@@ -18,6 +18,23 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { diag } from "@/lib/diag";
 
+type StaffFeedbackRow = {
+  feedback_id: string;
+  staff_id: string | null;
+  staff_name: string;
+  staff_role: "doctor" | "receptionist";
+  rating: number;
+  visit_id: string;
+  patient_id: string;
+  patient_name: string;
+  submitted_at: string;
+  positive_feedback: string | null;
+  improvement_feedback: string | null;
+  what_did_well: string | null;
+  what_can_improve: string | null;
+  anything_else: string | null;
+};
+
 export default function SuperAdminDashboard() {
   const { isAuthReady } = useAuth();
   const [stats, setStats] = useState<{ clinics: number; patients: number; users: number } | null>(null);
