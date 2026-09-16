@@ -2220,54 +2220,81 @@ shadow-sm
       )}
 
       {v.medication && (
-        <div className="mt-2 rounded-xl border bg-card p-3">
+  <div className="mt-2">
+    {parseMedicationItems(v.medication).map((medicationItem) => {
+      const medicationKey =
+        `${v.id}:${medicationItem.name.toLowerCase()}`;
+
+      const dispensing =
+        medicationDispensingMap[medicationKey];
+
+      const isDispensed =
+        dispensing?.dispensed ?? false;
+
+      return (
+        <div
+          key={`${v.id}-${medicationItem.name}`}
+          className="mt-2 rounded-xl border bg-card p-3"
+        >
           <div className="flex items-start gap-2">
-            <Pill size={14} className="mt-0.5 text-green-600" />
+            <Pill
+              size={14}
+              className="mt-0.5 text-green-600 shrink-0"
+            />
 
             <p className="font-medium whitespace-pre-line">
-              {v.medication}
+              {medicationItem.prescribedText}
             </p>
           </div>
 
           <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
             <span
               className={`text-[11px] px-2.5 py-1 rounded-full font-medium ${
-                v.medication_dispensed
+                isDispensed
                   ? "bg-green-100 text-green-700"
                   : "bg-amber-100 text-amber-700"
               }`}
             >
-              {v.medication_dispensed
+              {isDispensed
                 ? "Medication Dispensed"
                 : "Medication Not Dispensed"}
             </span>
 
-            {!v.medication_dispensed && (
+            {!isDispensed && (
               <Button
                 size="sm"
                 variant="outline"
                 className="rounded-xl"
                 onClick={() =>
-                  handleMarkDispensed(v.id, "medication")
+                  handleMarkMedicationDispensed(
+                    v.id,
+                    medicationItem.name
+                  )
                 }
               >
-                <CheckCircle2 size={14} className="mr-1" />
+                <CheckCircle2
+                  size={14}
+                  className="mr-1"
+                />
                 Mark Eye Drop as Dispensed
               </Button>
             )}
           </div>
 
-          {v.medication_dispensed &&
-            v.medication_dispensed_at && (
+          {isDispensed &&
+            dispensing?.dispensed_at && (
               <p className="text-[10px] text-muted-foreground mt-2">
                 Dispensed{" "}
                 {new Date(
-                  v.medication_dispensed_at
+                  dispensing.dispensed_at
                 ).toLocaleString()}
               </p>
             )}
         </div>
-      )}
+      );
+    })}
+  </div>
+)}
 
       {v.notes && (
         <p className="mt-2">
