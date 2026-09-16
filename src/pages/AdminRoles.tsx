@@ -232,7 +232,7 @@ const averageRating =
     setBusyId(null);
   };
 
-  if (!isAdmin) {
+  if (!isAdmin && !isSuperAdmin) {
     return (
       <div className="text-center py-12">
         <ShieldCheck size={48} className="mx-auto text-muted-foreground mb-4" />
