@@ -141,6 +141,28 @@ const sameEyeRx = (v: any) =>
 const eyeHasRx = (sph?: string | null, cyl?: string | null, axis?: string | null) =>
   normRx(sph) !== "" || normRx(cyl) !== "" || normRx(axis) !== "";
 
+const PATIENT_RECORD_TIMEOUT_MS = 8000;
+
+async function withPatientRecordTimeout<T>(
+  promise: PromiseLike<T>,
+  label: string,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`PatientRecord query timed out: ${label}`)),
+          PATIENT_RECORD_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function parseMedicationItems(medication: string | null | undefined) {
   if (!medication) return [];
 
@@ -213,40 +235,92 @@ const canViewFinancials =
     if (!patientId || !cid) { setLoading(false); return; }
     (async () => {
       try {
-      const [patRes, visRes, hmoRes, clinicRes] = await Promise.all([
-  apiClient
-    .from("patients")
-    .select("*")
-    .eq("clinic_id", cid)
-    .eq("id", patientId)
-    .maybeSingle(),
+      const [
+        patientSettled,
+        visitsSettled,
+        hmosSettled,
+        clinicSettled,
+      ] = await Promise.allSettled([
+        withPatientRecordTimeout(
+          apiClient
+            .from("patients")
+            .select("*")
+            .eq("clinic_id", cid)
+            .eq("id", patientId)
+            .maybeSingle(),
+          "patient",
+        ),
+        withPatientRecordTimeout(
+          isReceptionist
+            ? apiClient.rpc("get_receptionist_patient_visits", {
+                p_patient_id: patientId,
+              })
+            : apiClient
+                .from("visits")
+                .select("*")
+                .eq("clinic_id", cid)
+                .eq("patient_id", patientId)
+                .order("created_at", { ascending: false }),
+          "visits",
+        ),
+        withPatientRecordTimeout(
+          apiClient
+            .from("hmos")
+            .select("id, name, website")
+            .eq("clinic_id", cid)
+            .eq("status", "active"),
+          "hmos",
+        ),
+        withPatientRecordTimeout(
+          apiClient
+            .from("clinics")
+            .select("name")
+            .eq("id", cid)
+            .maybeSingle(),
+          "clinic",
+        ),
+      ]);
 
-  isReceptionist
-  ? apiClient.rpc("get_receptionist_patient_visits", {
-      p_patient_id: patientId,
-    })
-  : apiClient
-      .from("visits")
-      .select("*")
-      .eq("clinic_id", cid)
-      .eq("patient_id", patientId)
-      .order("created_at", { ascending: false }),
+      const patRes =
+        patientSettled.status === "fulfilled"
+          ? patientSettled.value
+          : { data: null, error: patientSettled.reason };
 
-  apiClient
-    .from("hmos")
-    .select("id, name, website")
-    .eq("clinic_id", cid)
-    .eq("status", "active"),
+      const visRes =
+        visitsSettled.status === "fulfilled"
+          ? visitsSettled.value
+          : { data: [], error: visitsSettled.reason };
 
-  apiClient
-    .from("clinics")
-    .select("name")
-    .eq("id", cid)
-    .maybeSingle(),
-]);
+      const hmoRes =
+        hmosSettled.status === "fulfilled"
+          ? hmosSettled.value
+          : { data: [], error: hmosSettled.reason };
+
+      const clinicRes =
+        clinicSettled.status === "fulfilled"
+          ? clinicSettled.value
+          : { data: null, error: clinicSettled.reason };
+
+      if (patientSettled.status === "rejected") {
+        console.error("[patient-record:patient-load-failed]", patientSettled.reason);
+      }
+      if (visitsSettled.status === "rejected") {
+        console.error("[patient-record:visits-load-failed]", visitsSettled.reason);
+      }
+      if (hmosSettled.status === "rejected") {
+        console.warn("[patient-record:hmo-load-failed]", hmosSettled.reason);
+      }
+      if (clinicSettled.status === "rejected") {
+        console.warn("[patient-record:clinic-load-failed]", clinicSettled.reason);
+      }
         
       console.debug("[patient-record]", { clinic_id: cid, patient_id: patientId, visits: visRes.data?.length ?? 0 });
-  if (patRes.data) {
+  if (!patRes.data) {
+    toast.error("Unable to load this patient record. Please try again.");
+    return;
+  }
+
+  {
   const activeHmo =
     hmoRes.data?.find(
       (h: any) => h.id === patRes.data.active_hmo_id
@@ -258,10 +332,18 @@ const canViewFinancials =
     hmo_name: activeHmo?.name || "",
   } as any);
   }
+
       if (visRes.data) {
   console.log("VISITS FROM DB", visRes.data);
   setVisits(visRes.data);
+      }
 
+      // The patient and visit data are the critical content required to render
+      // the record. Stop showing the page loader now; secondary data can load
+      // in the background without blocking the patient record.
+      setLoading(false);
+
+      if (visRes.data) {
        const doctorIds = [
     ...new Set(
       visRes.data
