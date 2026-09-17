@@ -334,65 +334,86 @@ const canViewFinancials =
         setMedicationDispensingMap({});
       }
 
-            // Load feedback status for each visit
+            // Load feedback separately so feedback cannot block PatientRecord
+// from displaying.
+setVisitFeedbackStatus({});
+setFeedbackDetails({});
+
 if (visRes.data && visRes.data.length > 0) {
-  const statusEntries = await Promise.all(
-    visRes.data.map(async (visit: any) => {
-      const { data: status } = await apiClient.rpc(
-        "get_feedback_status_for_visit",
-        {
-          p_visit_id: visit.id,
+  const visitsForFeedback = [...visRes.data];
+
+  // Run after the main PatientRecord has rendered.
+  setTimeout(async () => {
+    try {
+      const statusMap: Record<
+        string,
+        "none" | "pending" | "completed"
+      > = {};
+
+      for (const visit of visitsForFeedback) {
+        try {
+          const { data: status } = await apiClient.rpc(
+            "get_feedback_status_for_visit",
+            {
+              p_visit_id: visit.id,
+            }
+          );
+
+          statusMap[visit.id] =
+            status === "completed"
+              ? "completed"
+              : status === "pending"
+                ? "pending"
+                : "none";
+        } catch (error) {
+          console.warn(
+            "Feedback status failed for visit:",
+            visit.id,
+            error
+          );
+
+          statusMap[visit.id] = "none";
         }
-      );
-
-      return [
-        visit.id,
-        status || "none",
-      ] as const;
-    })
-  );
-
-  const statusMap: Record<
-    string,
-    "none" | "pending" | "completed"
-  > = {};
-
-  statusEntries.forEach(([visitId, status]) => {
-    statusMap[visitId] =
-      status === "completed"
-        ? "completed"
-        : status === "pending"
-          ? "pending"
-          : "none";
-  });
-
-  setVisitFeedbackStatus(statusMap);
-  const feedbackDetailEntries = await Promise.all(
-  visRes.data.map(async (visit: any) => {
-    const { data: feedback } = await apiClient.rpc(
-      "get_feedback_details_for_visit",
-      {
-        p_visit_id: visit.id,
       }
-    );
 
-    const detail = Array.isArray(feedback)
-      ? feedback[0]
-      : feedback;
+      setVisitFeedbackStatus(statusMap);
 
-    return [visit.id, detail || null] as const;
-  })
-);
+      const feedbackDetailMap: Record<string, any> = {};
 
-const feedbackDetailMap: Record<string, any> = {};
+      for (const visit of visitsForFeedback) {
+        try {
+          const { data: feedback } = await apiClient.rpc(
+            "get_feedback_details_for_visit",
+            {
+              p_visit_id: visit.id,
+            }
+          );
 
-feedbackDetailEntries.forEach(([visitId, detail]) => {
-  if (detail) {
-    feedbackDetailMap[visitId] = detail;
-  }
-});
+          const detail = Array.isArray(feedback)
+            ? feedback[0]
+            : feedback;
 
-setFeedbackDetails(feedbackDetailMap);
+          if (detail) {
+            feedbackDetailMap[visit.id] = detail;
+          }
+        } catch (error) {
+          console.warn(
+            "Feedback details failed for visit:",
+            visit.id,
+            error
+          );
+        }
+      }
+
+      setFeedbackDetails(feedbackDetailMap);
+    } catch (error) {
+      console.warn(
+        "Background feedback loading failed:",
+        error
+      );
+    }
+  }, 0);
+}
 } else {
   setVisitFeedbackStatus({});
 }
