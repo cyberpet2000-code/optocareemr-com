@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
-import { useAccessClinic } from "@/hooks/useAccess";
+import { useAccess } from "@/hooks/useAccess";
 
 export default function Visits() {
   const { effectiveClinicId: cid } = useAccessClinic();
