@@ -1580,7 +1580,6 @@ shadow-sm
   <History size={12} />
   {isReceptionist ? "Visit History" : "Past"}
 </TabsTrigger>
-           )}
         </TabsList>
         
          {!isReceptionist && (
