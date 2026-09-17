@@ -176,7 +176,8 @@ export function getPaymentStatus(
     return { paymentStatus: paymentType === "hmo" ? "HMO / Due" : "Due", outstandingBalance };
   }
 
-  return { paymentStatus: "Paid", outstandingBalance: 0 };
+  return { paymentStatus: "Paid", outstandingBalance: 0,
+         };
 }
 
 export function getPaymentStatusClass(status: string): string {
