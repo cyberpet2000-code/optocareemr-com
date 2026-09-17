@@ -57,7 +57,28 @@ function escapeLikeTerm(value: string) {
 }
 
 function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}");
+}
+
+function calculateAgeFromDob(value: string) {
+  const match = value.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!match) return null;
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const dob = new Date(year, month - 1, day);
+  const today = new Date();
+  if (dob.getFullYear() !== year || dob.getMonth() !== month - 1 || dob.getDate() !== day || dob > today) return null;
+  let years = today.getFullYear() - year;
+  if (today.getMonth() < month - 1 || (today.getMonth() === month - 1 && today.getDate() < day)) years--;
+  if (years >= 1) return { age: years, ageUnit: "years" as const };
+  const diffDays = Math.floor((today.getTime() - dob.getTime()) / 86400000);
+  if (diffDays < 7) return { age: diffDays, ageUnit: "days" as const };
+  if (diffDays < 30) return { age: Math.max(1, Math.floor(diffDays / 7)), ageUnit: "weeks" as const };
+  const months = (today.getFullYear() - year) * 12 + (today.getMonth() - (month - 1)) - (today.getDate() < day ? 1 : 0);
+  return { age: Math.max(1, months), ageUnit: "months" as const };
 }
 
 function highlightName(name: string, query: string) {
@@ -221,6 +242,10 @@ export default function PatientRegister() {
     const { data, error } = await apiClient.from("patients").insert({
       clinic_id: cid,
       registered_by: user?.id ?? null,
+      date_of_birth: (() => {
+        const match = form.dateOfBirth.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        return match ? `${match[3]}-${match[2].padStart(2, "0")}-${match[1].padStart(2, "0")}` : null;
+      })(),
       full_name: form.fullName.trim(),
       age: parseInt(form.age),
       gender: form.gender,
@@ -382,7 +407,15 @@ export default function PatientRegister() {
   type="text"
   placeholder="DD/MM/YYYY"
   value={form.dateOfBirth}
-  onChange={(e) => set("dateOfBirth", e.target.value)}
+  onChange={(e) => {
+    const value = e.target.value;
+    set("dateOfBirth", value);
+    const calculated = calculateAgeFromDob(value);
+    if (calculated) {
+      set("age", String(calculated.age));
+      set("ageUnit", calculated.ageUnit);
+    }
+  }}
 />
 </div>
 
