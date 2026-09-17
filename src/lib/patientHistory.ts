@@ -32,6 +32,7 @@ export function buildVisitSummaryMap(
 export function buildBillingSummaryMap(
   bills: Array<{
     patient_id?: string | null;
+    total_amount?: number | null;
     balance?: number | null;
     amount_paid?: number | null;
     status?: string | null;
@@ -39,19 +40,36 @@ export function buildBillingSummaryMap(
   }>,
   paymentTypes = new Map<string, string>(),
 ): Map<string, PatientBillingSummary> {
-  const grouped = new Map<string, Array<{ balance?: number | null; amount_paid?: number | null; status?: string | null }>>();
+  const grouped = new Map<
+    string,
+    Array<{
+      total_amount?: number | null;
+      balance?: number | null;
+      amount_paid?: number | null;
+      status?: string | null;
+    }>
+  >();
 
   bills.forEach((bill) => {
     if (!bill.patient_id) return;
+
     const current = grouped.get(bill.patient_id) || [];
     current.push(bill);
     grouped.set(bill.patient_id, current);
   });
 
   const summaries = new Map<string, PatientBillingSummary>();
+
   grouped.forEach((patientBills, patientId) => {
-    summaries.set(patientId, getPaymentStatus(patientBills, paymentTypes.get(patientId)));
+    summaries.set(
+      patientId,
+      getPaymentStatus(
+        patientBills,
+        paymentTypes.get(patientId),
+      ),
+    );
   });
+
   return summaries;
 }
 
@@ -66,9 +84,74 @@ export function formatPatientDate(value: string | null | undefined): string {
 }
 
 export function getPaymentStatus(
-  bills: Array<{ balance?: number | null; amount_paid?: number | null; status?: string | null }>,
+  bills: Array<{
+    total_amount?: number | null;
+    balance?: number | null;
+    amount_paid?: number | null;
+    status?: string | null;
+  }>,
   paymentType?: string | null,
 ): PatientBillingSummary {
+  if (bills.length === 0) {
+    return {
+      paymentStatus: paymentType === "hmo" ? "HMO" : "No billing",
+      outstandingBalance: 0,
+    };
+  }
+
+  // Ignore automatic ₦0 billing shells.
+  // A shell has no actual charge and no payment.
+  const actualBills = bills.filter(
+    (bill) =>
+      Number(bill.total_amount || 0) > 0 ||
+      Number(bill.amount_paid || 0) > 0,
+  );
+
+  // Patient has a visit but no actual bill yet.
+  if (actualBills.length === 0) {
+    return {
+      paymentStatus: paymentType === "hmo" ? "HMO" : "No billing",
+      outstandingBalance: 0,
+    };
+  }
+
+  const outstandingBalance = actualBills.reduce(
+    (total, bill) =>
+      total + Math.max(Number(bill.balance || 0), 0),
+    0,
+  );
+
+  const amountPaid = actualBills.reduce(
+    (total, bill) =>
+      total + Math.max(Number(bill.amount_paid || 0), 0),
+    0,
+  );
+
+  // Actual bill with some payment but still has balance.
+  if (outstandingBalance > 0 && amountPaid > 0) {
+    return {
+      paymentStatus:
+        paymentType === "hmo" ? "HMO / Partial" : "Partial",
+      outstandingBalance,
+    };
+  }
+
+  // Actual bill with nothing paid.
+  if (outstandingBalance > 0) {
+    return {
+      paymentStatus:
+        paymentType === "hmo" ? "HMO / Due" : "Due",
+      outstandingBalance,
+    };
+  }
+
+  // Actual bill has been completely paid.
+  return {
+    paymentStatus:
+      paymentType === "hmo" ? "HMO / Paid" : "Paid",
+    outstandingBalance: 0,
+  };
+}
   if (bills.length === 0) {
     return {
       paymentStatus: paymentType === "hmo" ? "HMO" : "No billing",
