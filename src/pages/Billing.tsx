@@ -992,15 +992,16 @@ if (error) {
                         ) : (
 
                           <Input
-                            className="rounded-lg h-8 text-xs"
-                            value={it.item_name}
-                            onChange={(e) =>
-                              updateItem(idx, {
-                                item_name: e.target.value,
-                              })
-                            }
-                            placeholder="Item name"
-                          />
+  className="rounded-lg h-8 text-xs"
+  value={it.item_name}
+  onChange={(e) =>
+    updateItem(idx, {
+      item_name: e.target.value,
+      inventory_id: null,
+    })
+  }
+  placeholder="Item name"
+/>
 
                         )}
                       </div>
