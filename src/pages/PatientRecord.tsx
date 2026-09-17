@@ -1680,6 +1680,15 @@ shadow-sm
   <History size={12} />
   {isReceptionist ? "Visit History" : "Past"}
 </TabsTrigger>
+
+{canViewFinancials && (
+  <TabsTrigger
+    value="payments"
+    className="flex items-center gap-1 text-[11px] rounded-xl"
+  >
+    <FileText size={12} /> Payment History
+  </TabsTrigger>
+)}
         </TabsList>
         
          {!isReceptionist && (
@@ -2534,19 +2543,17 @@ shadow-sm
 </div>
 
     {feedbackDetails[v.id] && (
-  <div className="mt-4 rounded-2xl border bg-muted/30 p-4">
-    <div className="flex items-center justify-between gap-2 mb-3">
-      <div className="flex items-center gap-2 font-semibold text-primary">
-        <MessageCircle size={15} />
-        Patient Feedback
-      </div>
-
+  <details className="mt-4 rounded-2xl border bg-muted/30 p-4 group">
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 font-semibold text-primary">
+      <span className="flex items-center gap-2">
+        <MessageCircle size={15} /> Patient Feedback
+      </span>
       <span className="text-[10px] px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">
         Completed
       </span>
-    </div>
+    </summary>
 
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
 
       <div>
         <p className="text-muted-foreground">Overall Experience</p>
@@ -2707,28 +2714,11 @@ shadow-sm
         ).toLocaleString()}
       </p>
     )}
-  </div>
+    </div>
+  </details>
 )}
 
-    <div className="mt-3 flex flex-wrap gap-2">
-  <Button
-    size="sm"
-    variant="outline"
-    className="rounded-xl"
-    onClick={() => startEditVisit(v)}
-  >
-    Edit
-  </Button>
-
-  <Button
-    size="sm"
-    variant="outline"
-    className="rounded-xl"
-    onClick={() => generateVisitPdf(patient, v)}
-  >
-    Export
-  </Button>
-
+    <div className="mt-3 flex items-center gap-2">
   <Button
     size="sm"
     variant="outline"
@@ -2740,15 +2730,32 @@ shadow-sm
     }
   >
     <MessageCircle size={14} />
-
     {sendingFeedback
       ? "Sending..."
       : visitFeedbackStatus[v.id] === "completed"
         ? "Feedback Completed"
         : visitFeedbackStatus[v.id] === "pending"
           ? "Resend Feedback"
-          : "Send Feedback"}
+          : "Feedback"}
   </Button>
+
+  {isClinicalUser && (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size="icon" variant="ghost" className="rounded-xl" title="More visit actions">
+          <MoreVertical size={18} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => startEditVisit(v)}>
+          <Pencil className="mr-2 h-4 w-4" /> Edit Visit
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => generateVisitPdf(patient, v)}>
+          <Download className="mr-2 h-4 w-4" /> Export Visit
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )}
 </div>
 
   </div>
