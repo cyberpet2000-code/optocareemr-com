@@ -51,7 +51,7 @@ interface Patient {
 }
 
 export default function Billing() {
-  const { effectiveClinicId: cid } = useAccess();
+  const { effectiveClinicId: cid, user } = useAccess();
   const [searchParams] = useSearchParams();
 
   const monthFilter =
@@ -436,7 +436,32 @@ setEditingBillingId(selectedBill.id);
         }
       }
 
-      
+      // Insert billing items.
+// IMPORTANT: Billing records the charge only.
+// Inventory is NOT deducted here.
+// Stock is deducted only when the item is physically dispensed.
+if (items.length > 0) {
+  const payload = items.map(it => ({
+    clinic_id: cid,
+    billing_id: billingId,
+    inventory_id: it.inventory_id || null,
+    item_type: it.item_type,
+    item_name: it.item_name || it.item_type,
+    quantity: Number(it.quantity) || 1,
+    unit_price: Number(it.unit_price) || 0,
+    total_price: Number(it.total_price) || 0,
+  }));
+
+  const { error: itemErr } = await apiClient
+    .from("billing_items")
+    .insert(payload as any);
+
+  if (itemErr) {
+    toast.error("Items: " + itemErr.message);
+    setSaving(false);
+    return;
+  }
+}
             
 
 const { error } = await apiClient
@@ -542,15 +567,16 @@ if (error) {
   // -----------------------------
   const { error: paymentError } =
     await apiClient
-      .from("payments")
-      .insert({
-        billing_id: paymentBillingId,
-        clinic_id: cid,
-        amount: amt,
-        method: paymentMethod,
-        // HMO-settled amounts are recorded as paid by the HMO, not patient cash
-        paid_by: paymentMethod === "HMO" ? "hmo" : "patient",
-      });
+  .from("payments")
+  .insert({
+    billing_id: paymentBillingId,
+    clinic_id: cid,
+    amount: amt,
+    method: paymentMethod,
+    // HMO-settled amounts are recorded as paid by the HMO, not patient cash
+    paid_by: paymentMethod === "HMO" ? "hmo" : "patient",
+    received_by: user?.id ?? null,
+  });
 
   if (paymentError) {
     toast.error(paymentError.message);
