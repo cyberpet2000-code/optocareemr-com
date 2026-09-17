@@ -611,10 +611,11 @@ subVaOutcome: v.sub_va_outcome || "",
 
     setSaving(true);
 
-registered_by: editingVisitId
-  ? visits.find(v => v.id === editingVisitId)?.registered_by || user.id
-  : user.id,
-  
+const visitPayload = {
+  registered_by: editingVisitId
+    ? visits.find(v => v.id === editingVisitId)?.registered_by || user.id
+    : user.id,
+
   payment_type: patient.payment_type,
   active_hmo_id: patient.active_hmo_id,
 
