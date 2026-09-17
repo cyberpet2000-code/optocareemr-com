@@ -165,6 +165,10 @@ export default function PatientRecord() {
   const { effectiveClinicId: cid, role } = useAccess();
 
 const isReceptionist = role === "receptionist";
+const isClinicalUser =
+  role === "doctor" ||
+  role === "admin" ||
+  role === "super_admin";  
 
 const canViewFinancials =
   role === "admin" ||
@@ -553,6 +557,10 @@ subVaOutcome: v.sub_va_outcome || "",
 
 
   const handleSaveVisit = async (markCompleted: boolean) => {
+    if (!isClinicalUser) {
+  toast.error("You do not have permission to create or edit clinical visits");
+  return;
+    }
     if (!patient) return;
     if (!cid) { toast.error("No active clinic"); return; }
     const {
