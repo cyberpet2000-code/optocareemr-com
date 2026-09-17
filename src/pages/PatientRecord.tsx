@@ -611,14 +611,9 @@ subVaOutcome: v.sub_va_outcome || "",
 
     setSaving(true);
 
-const visitPayload = {
-  clinic_id: cid,
-  patient_id: patient.id,
-  doctor_id: markCompleted
-  ? (editingVisitId
-      ? visits.find(v => v.id === editingVisitId)?.doctor_id || user.id
-      : user.id)
-  : null,
+registered_by: editingVisitId
+  ? visits.find(v => v.id === editingVisitId)?.registered_by || user.id
+  : user.id,
   registered_by: role === "receptionist"
   ? user.id
   : (editingVisitId
