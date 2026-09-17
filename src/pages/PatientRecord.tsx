@@ -413,7 +413,6 @@ if (visRes.data && visRes.data.length > 0) {
       );
     }
   }, 0);
-}
 } else {
   setVisitFeedbackStatus({});
 }
