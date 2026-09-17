@@ -1582,7 +1582,8 @@ shadow-sm
 </TabsTrigger>
            )}
         </TabsList>
-
+        
+         {!isReceptionist && (
         <TabsContent value="history" className="space-y-4">
           <div className="form-section">
             <h2 className="section-title text-sm"><ClipboardList size={16} /> Case History</h2>
@@ -1649,7 +1650,9 @@ shadow-sm
             </div>
           </div>
         </TabsContent>
+      )}
 
+        {!isReceptionist && (
         <TabsContent value="va" className="space-y-4">
           {(() => {
             const vaCell = (field: keyof ReturnType<typeof emptyVisitForm>, near = false, placeholder = "6/6") => (
@@ -1718,8 +1721,9 @@ shadow-sm
             );
           })()}
         </TabsContent>
+      )}
 
-
+        {!isReceptionist && (
         <TabsContent value="refraction" className="space-y-4">
           {(() => {
             type Kind = "sphere" | "cyl" | "axis" | "add";
@@ -1837,9 +1841,10 @@ shadow-sm
             );
           })()}
         </TabsContent>
+      )}
 
 
-
+        {!isReceptionist && (
         <TabsContent value="exam" className="space-y-4">
           <div className="form-section">
             <h2 className="section-title text-sm"><Gauge size={16} /> Examination</h2>
@@ -1922,7 +1927,9 @@ shadow-sm
             </div>
           </div>
         </TabsContent>
+      )}
 
+        {!isReceptionist && (
         <TabsContent value="dx" className="space-y-4">
           <div className="form-section">
             <h2 className="section-title text-sm"><Stethoscope size={16} /> Diagnosis & Management</h2>
@@ -2036,6 +2043,7 @@ shadow-sm
 </div>
 </div>
 </TabsContent>
+      )}
         
          <TabsContent value="visits">
           <div className="medical-card">
