@@ -2695,14 +2695,22 @@ shadow-sm
                          </p>
                        </div>
                        <span className={`shrink-0 text-[11px] px-2 py-1 rounded-md font-medium ${getPaymentStatusClass(
-  Number(bill.total_amount) > 0 &&
+
+                     <Badge
+  className={getPaymentStatusClass(
+    Number(bill.total_amount) > 0 &&
+    Number(bill.balance) <= 0
+      ? "Paid"
+      : bill.status || "Due"
+  )}
+>
+  {Number(bill.total_amount) > 0 &&
   Number(bill.balance) <= 0
     ? "Paid"
-    : bill.status
-)
-                         {Number(bill.total_amount) > 0 && Number(bill.balance) <= 0
-  ? "Paid"
-  : bill.status || "Due"}
+    : bill.status || "Due"}
+</Badge>
+
+                     
                        </span>
                      </div>
                      <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
