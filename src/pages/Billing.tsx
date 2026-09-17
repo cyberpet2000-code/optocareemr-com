@@ -960,10 +960,6 @@ if (error) {
                           it.item_type === "Drugs" ? (
 
                           <Select
-                            value={it.item_name}
-                            onValueChange={(value) => {
-
-                              <Select
   value={it.inventory_id || ""}
   onValueChange={(inventoryId) => {
     const selected = medicationItems.find(
