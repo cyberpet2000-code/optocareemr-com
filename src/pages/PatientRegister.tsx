@@ -220,6 +220,7 @@ export default function PatientRegister() {
     setLoading(true);
     const { data, error } = await apiClient.from("patients").insert({
       clinic_id: cid,
+      registered_by: user?.id ?? null,
       full_name: form.fullName.trim(),
       age: parseInt(form.age),
       gender: form.gender,
