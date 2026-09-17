@@ -196,6 +196,7 @@ const canViewFinancials =
   role === "admin" ||
   role === "super_admin" ||
   role === "receptionist";
+  const [patient, setPatient] = useState<PatientData | null>(null);
   const [hmos, setHmos] = useState<{ id: string; name: string; website?: string | null }[]>([]);
   const [hmoMap, setHmoMap] = useState<Map<string, { name: string; website?: string | null }>>(new Map());
   const [visits, setVisits] = useState<any[]>([]);
