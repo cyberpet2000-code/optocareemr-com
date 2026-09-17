@@ -300,17 +300,24 @@ visitRows.forEach((visit: any) => {
 const feedbackStatusEntries = await Promise.all(
   Array.from(latestVisitByPatient.entries()).map(
     async ([patientId, visit]: [string, any]) => {
-      const { data: status } = await apiClient.rpc(
-        "get_feedback_status_for_visit",
-        {
-          p_visit_id: visit.id,
-        }
-      );
+      try {
+        const { data: status } = await apiClient.rpc(
+          "get_feedback_status_for_visit",
+          {
+            p_visit_id: visit.id,
+          }
+        );
 
-      return [
-        patientId,
-        status || "none",
-      ] as const;
+        return [
+          patientId,
+          status || "none",
+        ] as const;
+      } catch {
+        return [
+          patientId,
+          "none",
+        ] as const;
+      }
     }
   )
 );
