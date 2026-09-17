@@ -423,7 +423,13 @@ setFeedbackDetails(feedbackDetailMap);
           rows.push(payment);
           paymentsMap.set(payment.billing_id, rows);
         });
-        setPaymentHistory((billingRows || []).map((bill: any) => {
+        const actualBillingRows = (billingRows || []).filter(
+  (bill: any) =>
+    Number(bill.total_amount) > 0 ||
+    Number(bill.amount_paid) > 0
+);
+
+setPaymentHistory(actualBillingRows.map((bill: any) => {
           const visit = (visRes.data || []).find((entry: any) => entry.id === bill.visit_id);
           const description = itemMap.get(bill.id)?.join(", ") || bill.notes || visit?.diagnosis || visit?.chief_complaint || "Clinical care";
           return {
@@ -2688,8 +2694,15 @@ shadow-sm
                            {` • Invoice ${bill.id.slice(0, 8).toUpperCase()}`}
                          </p>
                        </div>
-                       <span className={`shrink-0 text-[11px] px-2 py-1 rounded-md font-medium ${getPaymentStatusClass(bill.status === "paid" || bill.balance <= 0 ? "Paid" : bill.status)}`}>
-                         {bill.balance <= 0 ? "Paid" : bill.status || "Due"}
+                       <span className={`shrink-0 text-[11px] px-2 py-1 rounded-md font-medium ${getPaymentStatusClass(
+  Number(bill.total_amount) > 0 &&
+  Number(bill.balance) <= 0
+    ? "Paid"
+    : bill.status
+)
+                         {Number(bill.total_amount) > 0 && Number(bill.balance) <= 0
+  ? "Paid"
+  : bill.status || "Due"}
                        </span>
                      </div>
                      <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
