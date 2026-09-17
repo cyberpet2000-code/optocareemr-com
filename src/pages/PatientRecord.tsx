@@ -212,6 +212,7 @@ const canViewFinancials =
   useEffect(() => {
     if (!patientId || !cid) { setLoading(false); return; }
     (async () => {
+      try {
       const [patRes, visRes, hmoRes, clinicRes] = await Promise.all([
   apiClient
     .from("patients")
@@ -493,7 +494,12 @@ if (!isReceptionist) {
 }
 
       
+       } catch (error) {
+      console.error("[patient-record] load failed:", error);
+      toast.error("Unable to load patient record");
+    } finally {
       setLoading(false);
+      }
     })();
   }, [patientId, cid, canViewFinancials]);
 
