@@ -801,6 +801,11 @@ duration-200
     {p.phone}
   </span>
 </div>
+<div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
+  <span>Visits: {p.visitSummary.visitCount}</span>
+  <span>•</span>
+  <span>Last: {p.visitSummary.lastVisit ? new Date(p.visitSummary.lastVisit).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</span>
+</div>
 <div className="mt-2">
   {p.feedbackStatus === "completed" ? (
     <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-[11px] font-medium text-green-700">
