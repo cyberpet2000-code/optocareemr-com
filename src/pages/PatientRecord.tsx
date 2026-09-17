@@ -493,21 +493,6 @@ if (!isReceptionist) {
   setMedications([]);
 }
 
-    console.log("inventory meds:", medRes);
-
-if (medRes) {
-  const meds = (medRes as any[])
-    .filter(m => m.name)
-    .map(m => ({
-      id: m.id,
-      name: m.name,
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-
-  console.log("mapped meds:", meds);
-
-  setMedications(meds);
-}
       
       setLoading(false);
     })();
