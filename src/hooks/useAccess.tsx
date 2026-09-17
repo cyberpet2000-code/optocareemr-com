@@ -285,23 +285,55 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       try {
         const stage1Start = performance.now();
 
-        const [profileResult, userRolesResult, clinicUsersResult] = await Promise.all([
-  apiClient
-    .from("profiles")
-    .select("*")
-    .eq("id", nextUser.id)
-    .maybeSingle(),
+        const [profileSettled, userRolesSettled, clinicUsersSettled] = await Promise.allSettled([
+          withAccessTimeout(
+            apiClient
+              .from("profiles")
+              .select("*")
+              .eq("id", nextUser.id)
+              .maybeSingle(),
+            "profiles",
+          ),
+          withAccessTimeout(
+            apiClient
+              .from("user_roles")
+              .select("role, clinic_id")
+              .eq("user_id", nextUser.id),
+            "user_roles",
+          ),
+          withAccessTimeout(
+            apiClient
+              .from("clinic_users")
+              .select("role, clinic_id")
+              .eq("user_id", nextUser.id),
+            "clinic_users",
+          ),
+        ]);
 
-  apiClient
-    .from("user_roles")
-    .select("role, clinic_id")
-    .eq("user_id", nextUser.id),
+        const profileResult =
+          profileSettled.status === "fulfilled"
+            ? profileSettled.value
+            : { data: null, error: profileSettled.reason };
 
-  apiClient
-    .from("clinic_users")
-    .select("role, clinic_id")
-    .eq("user_id", nextUser.id),
-]);
+        const userRolesResult =
+          userRolesSettled.status === "fulfilled"
+            ? userRolesSettled.value
+            : { data: [], error: userRolesSettled.reason };
+
+        const clinicUsersResult =
+          clinicUsersSettled.status === "fulfilled"
+            ? clinicUsersSettled.value
+            : { data: [], error: clinicUsersSettled.reason };
+
+        if (profileSettled.status === "rejected") {
+          console.warn("[access:profile_timeout]", { message: profileSettled.reason?.message });
+        }
+        if (userRolesSettled.status === "rejected") {
+          console.warn("[access:user_roles_timeout]", { message: userRolesSettled.reason?.message });
+        }
+        if (clinicUsersSettled.status === "rejected") {
+          console.warn("[access:clinic_users_timeout]", { message: clinicUsersSettled.reason?.message });
+        }
 
 console.debug("[access:stage1_complete]", {
   durationMs: performance.now() - stage1Start,
@@ -329,14 +361,24 @@ console.debug("[access:stage1_complete]", {
         if (membershipClinicIds.length > 0) {
           const membershipsStart = performance.now();
           
-          const { data: clinicsData } = await apiClient
-            .from("clinics")
-            .select("id, name, setup_completed")
-            .in("id", membershipClinicIds);
+          let clinicsData: any[] | null = null;
+          try {
+            const membershipResult = await withAccessTimeout(
+              apiClient
+                .from("clinics")
+                .select("id, name, setup_completed")
+                .in("id", membershipClinicIds),
+              "clinic membership details",
+            );
+            clinicsData = membershipResult.data || null;
+          } catch (error: any) {
+            console.warn("[access:memberships_timeout]", { message: error?.message });
+          }
 
           console.debug("[access:memberships_complete]", {
   durationMs: performance.now() - membershipsStart,
   clinic_count: membershipClinicIds.length,
+  returned: clinicsData?.length ?? 0,
 });
 
           if (requestRef.current !== requestId) return;
@@ -448,22 +490,33 @@ console.debug("[access:stage1_complete]", {
 
         const clinicFetchStart = performance.now();
 
-        const clinicResult = await apiClient
-  .from("clinics")
-  .select(
-    "id, name, subscription_status, setup_completed, onboarding_step, is_active, lifecycle_status, logo_url"
-  )
-  .eq("id", backendResolvedClinicId)
-  .maybeSingle();
+        let clinicResult: any = { data: null, error: null };
+        try {
+          clinicResult = await withAccessTimeout(
+            apiClient
+              .from("clinics")
+              .select(
+                "id, name, subscription_status, setup_completed, onboarding_step, is_active, lifecycle_status, logo_url"
+              )
+              .eq("id", backendResolvedClinicId)
+              .maybeSingle(),
+            "active clinic details",
+          );
+        } catch (error: any) {
+          clinicResult = { data: null, error };
+          console.warn("[access:clinic_fetch_timeout]", { message: error?.message });
+        }
 
-console.debug("[access:clinic_fetch_complete]", {
+        console.debug("[access:clinic_fetch_complete]", {
   durationMs: performance.now() - clinicFetchStart,
   clinic_id: backendResolvedClinicId,
+  returned: !!clinicResult.data,
 });
 
         if (requestRef.current !== requestId) return;
 
         nextAccessState.clinic = clinicResult.data || null;
+        nextAccessState.clinicResolutionFailed = false;
         commitAccessState(nextAccessState);
 
         if (clinicResult.data) {
