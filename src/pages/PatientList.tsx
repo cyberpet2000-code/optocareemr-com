@@ -283,7 +283,7 @@ const { data, error } =
     canViewPayments
       ? apiClient
           .from("billing")
-          .select("patient_id, total_amount, balance, amount_paid, status, payer_type")
+          .select("patient_id, balance, amount_paid, status, payer_type")
           .eq("clinic_id", cid)
           .in("patient_id", patientIds)
       : Promise.resolve({ data: [] }),
