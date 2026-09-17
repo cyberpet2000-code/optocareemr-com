@@ -2708,7 +2708,6 @@ shadow-sm
     : bill.status || "Due"}
 </span>
                        
-                       </span>
                      </div>
                      <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
                        <div><p className="text-muted-foreground">Amount</p><p className="font-medium">₦{Number(bill.total_amount).toLocaleString()}</p></div>
