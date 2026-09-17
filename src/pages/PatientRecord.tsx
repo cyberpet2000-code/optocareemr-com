@@ -614,11 +614,6 @@ subVaOutcome: v.sub_va_outcome || "",
 registered_by: editingVisitId
   ? visits.find(v => v.id === editingVisitId)?.registered_by || user.id
   : user.id,
-  registered_by: role === "receptionist"
-  ? user.id
-  : (editingVisitId
-      ? visits.find(v => v.id === editingVisitId)?.registered_by || null
-      : null),
   payment_type: patient.payment_type,
   active_hmo_id: patient.active_hmo_id,
 
