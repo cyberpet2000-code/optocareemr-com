@@ -91,9 +91,9 @@ const visitsWithNames = (data || []).map(
   return (
     <>
 <h1 className="page-header mb-5">
-  {filter === "today"
-    ? `Today's Visits (${visits.length})`
-    : `All Visits (${visits.length})`}
+{filter === "today"
+  ? `${isReceptionist ? "Today's Patient Visits" : "Today's Visits"} (${visits.length})`
+  : `${isReceptionist ? "Patient Visits" : "All Visits"} (${visits.length})`}
 </h1>
       {loading ? (
         <p>Loading...</p>
@@ -128,15 +128,17 @@ const visitsWithNames = (data || []).map(
         </span>
       </div>
 
-      {visit.diagnosis && (
-        <p className="text-sm mt-1">
-          Diagnosis: {visit.diagnosis}
-        </p>
-      )}
+      {!isReceptionist && visit.diagnosis && (
+  <p className="text-sm mt-1">
+    Diagnosis: {visit.diagnosis}
+  </p>
+)}
 
-      <p className="text-xs text-muted-foreground mt-1">
-  {visit.diagnosis} • IOP {visit.iop_od || "-"} / {visit.iop_os || "-"}
-</p>
+{!isReceptionist && (
+  <p className="text-xs text-muted-foreground mt-1">
+    {visit.diagnosis} • IOP {visit.iop_od || "-"} / {visit.iop_os || "-"}
+  </p>
+)}
 
       <p className="text-xs text-muted-foreground mt-1">
         {new Date(
