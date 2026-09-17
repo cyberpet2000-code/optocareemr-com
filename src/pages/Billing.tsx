@@ -938,7 +938,18 @@ if (error) {
                     <div key={idx} className="grid grid-cols-12 gap-1.5 items-end bg-muted/40 rounded-xl p-2">
                       <div className="col-span-3">
                         <Label className="text-[10px]">Type</Label>
-                        <Select value={it.item_type} onValueChange={v => updateItem(idx, { item_type: v })}>
+                        <Select
+  value={it.item_type}
+  onValueChange={v =>
+    updateItem(idx, {
+      item_type: v,
+      inventory_id:
+        v === "Eye Drop" || v === "Drugs"
+          ? it.inventory_id
+          : null,
+    })
+  }
+>
                           <SelectTrigger className="rounded-lg h-8 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent>{ITEM_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                         </Select>
