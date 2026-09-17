@@ -163,8 +163,13 @@ export default function PatientRecord() {
   const { id } = useParams<{ id: string }>();
   const patientId = id || "";
   const { effectiveClinicId: cid, role } = useAccess();
-  const canViewFinancials = role === "admin" || role === "super_admin" || role === "receptionist";
-  const [patient, setPatient] = useState<PatientData | null>(null);
+
+const isReceptionist = role === "receptionist";
+
+const canViewFinancials =
+  role === "admin" ||
+  role === "super_admin" ||
+  role === "receptionist";
   const [hmos, setHmos] = useState<{ id: string; name: string; website?: string | null }[]>([]);
   const [hmoMap, setHmoMap] = useState<Map<string, { name: string; website?: string | null }>>(new Map());
   const [visits, setVisits] = useState<any[]>([]);
@@ -211,12 +216,16 @@ export default function PatientRecord() {
     .eq("id", patientId)
     .maybeSingle(),
 
-  apiClient
-    .from("visits")
-    .select("*")
-    .eq("clinic_id", cid)
-    .eq("patient_id", patientId)
-    .order("created_at", { ascending: false }),
+  isReceptionist
+  ? apiClient.rpc("get_receptionist_patient_visits", {
+      p_patient_id: patientId,
+    })
+  : apiClient
+      .from("visits")
+      .select("*")
+      .eq("clinic_id", cid)
+      .eq("patient_id", patientId)
+      .order("created_at", { ascending: false }),
 
   apiClient
     .from("hmos")
@@ -426,11 +435,32 @@ setFeedbackDetails(feedbackDetailMap);
         setHmos(hmoRes.data as any);
         setHmoMap(new Map((hmoRes.data as any[]).map(h => [h.id, { name: h.name, website: h.website }])));
       }
-      // Load clinic medications (drug inventory)
-      const { data: medRes } = await apiClient
-        .from("inventory")
-        .select("id, name, drug_category, category")
-        .eq("clinic_id", cid);
+      // Load clinic medications only for clinical users.
+// Receptionists do not need access to drug inventory.
+if (!isReceptionist) {
+  const { data: medRes } = await apiClient
+    .from("inventory")
+    .select("id, name, drug_category, category")
+    .eq("clinic_id", cid);
+
+  console.log("inventory meds:", medRes);
+
+  if (medRes) {
+    const meds = (medRes as any[])
+      .filter(m => m.name)
+      .map(m => ({
+        id: m.id,
+        name: m.name,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    console.log("mapped meds:", meds);
+
+    setMedications(meds);
+  }
+} else {
+  setMedications([]);
+}
 
     console.log("inventory meds:", medRes);
 
@@ -1504,14 +1534,52 @@ p-1
 shadow-sm
 "
 >
-          <TabsTrigger value="history" className="flex items-center gap-1 text-[11px] rounded-xl"><ClipboardList size={12} /> History</TabsTrigger>
-          <TabsTrigger value="va" className="flex items-center gap-1 text-[11px] rounded-xl"><Eye size={12} /> VA</TabsTrigger>
-          <TabsTrigger value="refraction" className="flex items-center gap-1 text-[11px] rounded-xl"><Eye size={12} /> Refraction</TabsTrigger>
-          <TabsTrigger value="exam" className="flex items-center gap-1 text-[11px] rounded-xl"><Gauge size={12} /> Exam</TabsTrigger>
-          <TabsTrigger value="dx" className="flex items-center gap-1 text-[11px] rounded-xl"><Stethoscope size={12} /> Dx & Tx</TabsTrigger>
-          <TabsTrigger value="visits" className="flex items-center gap-1 text-[11px] rounded-xl"><History size={12} /> Past</TabsTrigger>
-           {canViewFinancials && (
-             <TabsTrigger value="payments" className="flex items-center gap-1 text-[11px] rounded-xl"><FileText size={12} /> Payments</TabsTrigger>
+          {!isReceptionist && (
+  <>
+    <TabsTrigger
+      value="history"
+      className="flex items-center gap-1 text-[11px] rounded-xl"
+    >
+      <ClipboardList size={12} /> History
+    </TabsTrigger>
+
+    <TabsTrigger
+      value="va"
+      className="flex items-center gap-1 text-[11px] rounded-xl"
+    >
+      <Eye size={12} /> VA
+    </TabsTrigger>
+
+    <TabsTrigger
+      value="refraction"
+      className="flex items-center gap-1 text-[11px] rounded-xl"
+    >
+      <Eye size={12} /> Refraction
+    </TabsTrigger>
+
+    <TabsTrigger
+      value="exam"
+      className="flex items-center gap-1 text-[11px] rounded-xl"
+    >
+      <Gauge size={12} /> Exam
+    </TabsTrigger>
+
+    <TabsTrigger
+      value="dx"
+      className="flex items-center gap-1 text-[11px] rounded-xl"
+    >
+      <Stethoscope size={12} /> Dx & Tx
+    </TabsTrigger>
+  </>
+)}
+
+<TabsTrigger
+  value="visits"
+  className="flex items-center gap-1 text-[11px] rounded-xl"
+>
+  <History size={12} />
+  {isReceptionist ? "Visit History" : "Past"}
+</TabsTrigger>
            )}
         </TabsList>
 
