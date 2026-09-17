@@ -7,6 +7,22 @@ import { safeSupabaseStorage, setKnownSupabaseSession } from "@/lib/supabase-aut
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
 const ACTIVE_CLINIC_KEY = "active_clinic_id";
+const ACCESS_QUERY_TIMEOUT_MS = 8000;
+
+async function withAccessTimeout<T>(promise: PromiseLike<T>, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`Access query timed out: ${label}`)), ACCESS_QUERY_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 const ROLE_ORDER = new Map(VALID_ROLES.map((role, index) => [role, index]));
 
 type MembershipRow = {
@@ -377,20 +393,44 @@ console.debug("[access:stage1_complete]", {
 
         const resolveClinicStart = performance.now();
 
-        const { data: resolvedRow, error: resolvedError } = await apiClient
-          .from("user_active_clinic")
-          .select("resolved_clinic_id, is_super_admin")
-          .eq("id", nextUser.id)
-          .maybeSingle();
+        let resolvedRow: { resolved_clinic_id: string | null; is_super_admin: boolean | null } | null = null;
+        let resolvedError: any = null;
+        try {
+          const result = await withAccessTimeout(
+            apiClient
+              .from("user_active_clinic")
+              .select("resolved_clinic_id, is_super_admin")
+              .eq("id", nextUser.id)
+              .maybeSingle(),
+            "user_active_clinic",
+          );
+          resolvedRow = result.data as typeof resolvedRow;
+          resolvedError = result.error;
+        } catch (error) {
+          resolvedError = error;
+          console.warn("[access:resolve_clinic_timeout]", { message: (error as any)?.message });
+        }
 
         if (requestRef.current !== requestId) return;
-        if (resolvedError) throw resolvedError;
         console.debug("[access:resolve_clinic_complete]", {
   durationMs: performance.now() - resolveClinicStart,
   resolved_clinic_id: (resolvedRow as any)?.resolved_clinic_id ?? null,
 });
 
-        const backendResolvedClinicId = (resolvedRow as any)?.resolved_clinic_id ?? null;
+        let backendResolvedClinicId = (resolvedRow as any)?.resolved_clinic_id ?? null;
+
+        // If the active-clinic view is unavailable or times out, fall back to
+        // the clinic membership data already loaded above. This prevents the
+        // entire app shell from remaining on "Loading Clinic..." indefinitely.
+        if (!backendResolvedClinicId && membershipRows.length === 1) {
+          backendResolvedClinicId = membershipRows[0].clinic_id;
+          console.warn("[access:resolve_clinic_fallback]", {
+            user_id: nextUser.id,
+            clinic_id: backendResolvedClinicId,
+            reason: resolvedError?.message || "no resolved clinic",
+          });
+        }
+
         nextAccessState.resolvedClinicId = backendResolvedClinicId;
 
         if (overrideClinicId && overrideClinicId !== backendResolvedClinicId) {
