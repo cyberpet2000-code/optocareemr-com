@@ -5,6 +5,7 @@ import { useAccessClinic } from "@/hooks/useAccess";
 
 export default function Visits() {
   const { effectiveClinicId: cid } = useAccessClinic();
+  const isReceptionist = role === "receptionist";
 
   const [searchParams] = useSearchParams();
 const filter = searchParams.get("filter");
@@ -17,9 +18,34 @@ const filter = searchParams.get("filter");
 
     (async () => {
       let query = apiClient
-        .from("visits")
-        .select("*")
-        .eq("clinic_id", cid);
+  .from("visits")
+  .select(
+    isReceptionist
+      ? `
+        id,
+        patient_id,
+        clinic_id,
+        doctor_id,
+        created_at,
+        completed_at,
+        status,
+        sub_od_sphere,
+        sub_od_cyl,
+        sub_od_axis,
+        sub_os_sphere,
+        sub_os_cyl,
+        sub_os_axis,
+        sub_reading_add,
+        lens_type,
+        medication,
+        optical_dispensed,
+        optical_dispensed_at,
+        medication_dispensed,
+        medication_dispensed_at
+      `
+      : "*"
+  )
+  .eq("clinic_id", cid);
 
       if (filter === "today") {
         const today = new Date().toISOString().split("T")[0];
