@@ -35,6 +35,7 @@ interface BillingRow {
 
 interface BillItem {
   id?: string;
+  inventory_id?: string | null;
   item_type: string;
   item_name: string;
   quantity: number;
@@ -286,7 +287,18 @@ setEditingBillingId(selectedBill.id);
   const lookupBalance =
     lookupTotal - lookupPaid;
 
-  const addItem = () => setItems([...items, { item_type: "Lens", item_name: "", quantity: 1, unit_price: 0, total_price: 0 }]);
+  const addItem = () =>
+  setItems([
+    ...items,
+    {
+      item_type: "Lens",
+      item_name: "",
+      inventory_id: null,
+      quantity: 1,
+      unit_price: 0,
+      total_price: 0,
+    },
+  ]);
   const removeItem = (idx: number) => setItems(items.filter((_, i) => i !== idx));
   const updateItem = (idx: number, patch: Partial<BillItem>) => {
     setItems(items.map((it, i) => {
@@ -424,86 +436,8 @@ setEditingBillingId(selectedBill.id);
         }
       }
 
-      // Insert billing items (do not update existing items, only add new ones)
-      if (items.length > 0) {
-        const payload = items.map(it => ({
-          clinic_id: cid,
-          billing_id: billingId,
-          item_type: it.item_type,
-          item_name: it.item_name || it.item_type,
-          quantity: it.quantity,
-          unit_price: it.unit_price,
-          total_price: it.total_price,
-        }));
-
-        const { error: itemErr } =
-          await apiClient
-            .from("billing_items")
-            .insert(payload as any);
-
-        if (itemErr) {
-          toast.error("Items: " + itemErr.message);
-        } else {
-          // deduct inventory after billing item save
-          for (const it of items) {
-            const name =
-              (it.item_name || "").trim();
-
-            if (!name) continue;
-
-            const { data: stock } =
-              await apiClient
-                .from("inventory")
-                .select("id, stock_quantity")
-                .eq("clinic_id", cid)
-                .ilike("name", name)
-                .maybeSingle();
-
-            if (!stock) {
-              toast.error(
-                `Inventory item not found: ${name}`
-              );
-              continue;
-            }
-
-            const currentQty =
-              Number(stock.stock_quantity) || 0;
-
-            const billedQty =
-              Number(it.quantity) || 0;
-
-            const nextQty =
-              Math.max(
-                currentQty - billedQty,
-                0
-              );
-
-            console.log(
-              "[inventory deduct]",
-              {
-                item: name,
-                currentQty,
-                billedQty,
-                nextQty,
-              }
-            );
-
-            const { error: stockErr } =
-              await apiClient
-                .from("inventory")
-                .update({
-                  stock_quantity: nextQty,
-                })
-                .eq("id", stock.id);
-
-            if (stockErr) {
-              toast.error(
-                stockErr.message
-              );
-            }
-          }
-        }
-      }
+      
+            
 
 const { error } = await apiClient
   .from("billing")
@@ -992,34 +926,35 @@ if (error) {
                             value={it.item_name}
                             onValueChange={(value) => {
 
-                              const selected =
-                                medicationItems.find(
-                                  (m) => m.name === value
-                                );
+                              <Select
+  value={it.inventory_id || ""}
+  onValueChange={(inventoryId) => {
+    const selected = medicationItems.find(
+      (m) => m.id === inventoryId
+    );
 
-                              updateItem(idx, {
-                                item_name: value,
-                                unit_price:
-                                  Number(selected?.price) || 0,
-                              });
+    updateItem(idx, {
+      inventory_id: inventoryId,
+      item_name: selected?.name || "",
+      unit_price: Number(selected?.price) || 0,
+    });
+  }}
+>
+  <SelectTrigger className="rounded-lg h-8 text-xs">
+    <SelectValue placeholder="Select medication" />
+  </SelectTrigger>
 
-                            }}
-                          >
-                            <SelectTrigger className="rounded-lg h-8 text-xs">
-                              <SelectValue placeholder="Select medication" />
-                            </SelectTrigger>
-
-                            <SelectContent>
-                              {medicationItems.map((m) => (
-                                <SelectItem
-                                  key={m.id}
-                                  value={m.name}
-                                >
-                                  {m.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+  <SelectContent>
+    {medicationItems.map((m) => (
+      <SelectItem
+        key={m.id}
+        value={m.id}
+      >
+        {m.name} — Stock: {Number(m.stock_quantity) || 0}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
 
                         ) : (
 
