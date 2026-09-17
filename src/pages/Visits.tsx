@@ -4,7 +4,7 @@ import { apiClient } from "@/lib/apiClient";
 import { useAccess } from "@/hooks/useAccess";
 
 export default function Visits() {
-  const { effectiveClinicId: cid } = useAccessClinic();
+  const { effectiveClinicId: cid, role } = useAccess();
   const isReceptionist = role === "receptionist";
 
   const [searchParams] = useSearchParams();
