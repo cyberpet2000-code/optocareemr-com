@@ -370,8 +370,9 @@ const balanceMap = new Map<string, number>();
         setPatients(rows);
         offlineStore.save(cacheKey, rows);
         setLoading(false);
-      } catch {
-        loadFromCache();
+      } catch (error) {
+  console.error("PatientList loading error:", error);
+  loadFromCache();
       }
     })();
   }, [cid, isOffline, canViewPayments, roleLoading,filter]);
