@@ -1141,7 +1141,7 @@ export type Database = {
           updated_at: string | null
           upgrade_prompt_count: number | null
           website: string | null
-          wizard_skipped: boolean | null
+          wizard_skipped: boolean | null\n          daily_report_email: string | null
         }
         Insert: {
           billing_enabled?: boolean | null
@@ -1221,7 +1221,7 @@ export type Database = {
           updated_at?: string | null
           upgrade_prompt_count?: number | null
           website?: string | null
-          wizard_skipped?: boolean | null
+          wizard_skipped?: boolean | null\n          daily_report_email?: string | null
         }
         Relationships: []
       }
@@ -4092,7 +4092,7 @@ export type Database = {
       freeze_extra_branches: { Args: { p_org_id: string }; Returns: undefined }
       generate_feedback_token: { Args: never; Returns: string }
       get_active_clinic_id: { Args: never; Returns: string }
-      get_admin_staff_feedback_ratings: {
+      get_daily_front_desk_report_data: {\n        Args: { p_clinic_id: string; p_report_date: string }\n        Returns: { [key: string]: any }[]\n      }\n      get_daily_front_desk_financials: {\n        Args: { p_clinic_id: string; p_report_date: string }\n        Returns: { [key: string]: any }[]\n      }\n      open_daily_front_desk_report: {\n        Args: { p_clinic_id: string; p_report_date: string }\n        Returns: { [key: string]: any }[]\n      }\n      save_daily_front_desk_report: {\n        Args: { p_report_id: string; p_report_date: string; p_opening_cash?: number; p_report_notes?: string }\n        Returns: { [key: string]: any }[]\n      }\n      save_daily_front_desk_report_item: {\n        Args: { [key: string]: any }\n        Returns: { [key: string]: any }[]\n      }\n      save_daily_front_desk_activity: {\n        Args: { [key: string]: any }\n        Returns: { [key: string]: any }[]\n      }\n      save_daily_front_desk_expense: {\n        Args: { [key: string]: any }\n        Returns: { [key: string]: any }[]\n      }\n      submit_daily_front_desk_report: {\n        Args: { p_report_id: string }\n        Returns: { [key: string]: any }[]\n      }\n      mark_daily_front_desk_report_emailed: {\n        Args: { p_report_id: string }\n        Returns: { [key: string]: any }[]\n      }\n      get_admin_staff_feedback_ratings: {
         Args: { p_clinic_id: string }
         Returns: {
           anything_else: string
