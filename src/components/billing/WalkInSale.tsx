@@ -144,15 +144,15 @@ export default function WalkInSale() {
     });
   };
 
-  const addLensTransfer = () => {
+  const addOpticalService = (name: "Lens Transfer" | "Frame Fixing") => {
     setLines((prev) => [
       ...prev,
       {
         inventory_id: null,
-        name: "Lens Transfer",
+        name,
         quantity: 1,
         unit_price: 0,
-        available_stock: 0,
+        available_stock: Number.POSITIVE_INFINITY,
         isTransfer: true,
       },
     ]);
@@ -210,7 +210,7 @@ export default function WalkInSale() {
     if (!cid) { toast.error("No active clinic"); return; }
     if (lines.length === 0) { toast.error("Add at least one item"); return; }
     if (lines.some((l) => l.quantity < 1)) { toast.error("Quantity must be at least 1"); return; }
-    const overStock = lines.find((l) => l.quantity > l.available_stock);
+    const overStock = lines.find((l) => !l.isTransfer && l.quantity > l.available_stock);
     if (overStock) { toast.error(`Only ${overStock.available_stock} left of ${overStock.name}`); return; }
 
     const paid = amountPaid === "" ? total : Math.max(parseFloat(amountPaid) || 0, 0);
@@ -304,7 +304,10 @@ export default function WalkInSale() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button type="button" variant="outline" size="sm" className="w-full h-8 rounded-xl text-xs mb-2" onClick={addLensTransfer}>+ Lens Transfer</Button>
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <Button type="button" variant="outline" size="sm" className="h-8 rounded-xl text-xs" onClick={() => addOpticalService("Lens Transfer")}>+ Lens Transfer</Button>
+            <Button type="button" variant="outline" size="sm" className="h-8 rounded-xl text-xs" onClick={() => addOpticalService("Frame Fixing")}>+ Frame Fixing</Button>
+          </div>
           <div className="max-h-72 overflow-y-auto space-y-1">
             {filtered.length === 0 ? (
               <p className="text-xs text-muted-foreground py-6 text-center">No items in stock.</p>
@@ -359,8 +362,10 @@ export default function WalkInSale() {
                       max={l.available_stock}
                       value={l.quantity}
                       onChange={(e) => updateLine(l.inventory_id, {
-                        quantity: Math.max(1, Math.min(parseInt(e.target.value) || 1, l.available_stock)),
-                      })}
+                        quantity: l.isTransfer
+                          ? Math.max(1, parseInt(e.target.value) || 1)
+                          : Math.max(1, Math.min(parseInt(e.target.value) || 1, l.available_stock)),
+                      }, lineIndex)}
                     />
                   </div>
                   <div className="col-span-5">
@@ -370,7 +375,7 @@ export default function WalkInSale() {
                       type="number"
                       min={0}
                       value={l.unit_price}
-                      onChange={(e) => updateLine(l.inventory_id, { unit_price: Math.max(0, parseFloat(e.target.value) || 0) })}
+                      onChange={(e) => updateLine(l.inventory_id, { unit_price: Math.max(0, parseFloat(e.target.value) || 0) }, lineIndex)}
                     />
                   </div>
                   <div className="col-span-2 text-right">
