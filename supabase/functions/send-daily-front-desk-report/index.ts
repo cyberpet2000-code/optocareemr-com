@@ -128,8 +128,42 @@ Deno.serve(async (req) => {
     const expenses = expensesRes.data || [];
     const finance = Array.isArray(financeRes.data) ? financeRes.data[0] : financeRes.data;
 
+    // The report items intentionally do not duplicate clinical data.
+    // Read the final prescription directly from the completed visit for the email.
+    const visitIds = [...new Set(
+      items
+        .map((item: any) => item.visit_id)
+        .filter((id: unknown): id is string => typeof id === "string" && id.length > 0),
+    )];
+
+    const { data: visitRows, error: visitsError } = visitIds.length
+      ? await admin
+          .from("visits")
+          .select("id,sub_od_sphere,sub_od_cyl,sub_od_axis,sub_os_sphere,sub_os_cyl,sub_os_axis,sub_reading_add,lens_type")
+          .in("id", visitIds)
+      : { data: [], error: null };
+
+    if (visitsError) throw visitsError;
+
+    const visitMap = new Map<string, any>(
+      (visitRows || []).map((visit: any) => [visit.id, visit]),
+    );
+
     const patientRows = items.length
-      ? items.map((p: any) => `
+      ? items.map((p: any) => {
+          const visit = p.visit_id ? visitMap.get(p.visit_id) : null;
+          const hasPrescription = !!(
+            visit?.sub_od_sphere !== null ||
+            visit?.sub_od_cyl !== null ||
+            visit?.sub_od_axis !== null ||
+            visit?.sub_os_sphere !== null ||
+            visit?.sub_os_cyl !== null ||
+            visit?.sub_os_axis !== null ||
+            visit?.sub_reading_add !== null ||
+            visit?.lens_type
+          );
+
+          return `
         <tr>
           <td style="padding:8px;border-bottom:1px solid #e2e8f0;vertical-align:top">
             <strong>${safe(p.patient_name)}</strong><br/>
@@ -149,17 +183,18 @@ Deno.serve(async (req) => {
             ${safe(p.remarks)}
           </td>
         </tr>
-        ${p.glasses_prescription_sent || p.lens_order_required ? `
+        ${(p.glasses_prescription_sent || p.lens_order_required || hasPrescription) ? `
         <tr>
           <td colspan="5" style="padding:6px 8px 12px;background:#f8fafc;font-size:11px;color:#475569">
             <strong>Final Rx:</strong>
-            OD ${safe(refraction(p.od_sphere,p.od_cylinder,p.od_axis))} ·
-            OS ${safe(refraction(p.os_sphere,p.os_cylinder,p.os_axis))} ·
-            ADD ${safe(p.reading_add)} ·
-            Lens type: ${safe(p.lens_type)}
+            OD ${safe(refraction(visit?.sub_od_sphere,visit?.sub_od_cyl,visit?.sub_od_axis))} ·
+            OS ${safe(refraction(visit?.sub_os_sphere,visit?.sub_os_cyl,visit?.sub_os_axis))} ·
+            ADD ${safe(visit?.sub_reading_add)} ·
+            Lens type: ${safe(visit?.lens_type)}
             ${p.lens_order_remarks ? ` · Order: ${safe(p.lens_order_remarks)}` : ""}
           </td>
-        </tr>` : ""}`).join("")
+        </tr>` : ""}`;
+        }).join("")
       : `<tr><td colspan="5" style="padding:14px;color:#64748b;text-align:center">No patient entries recorded.</td></tr>`;
 
     const activityRows = activities.length
