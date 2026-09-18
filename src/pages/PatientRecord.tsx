@@ -184,7 +184,7 @@ function parseMedicationItems(medication: string | null | undefined) {
 export default function PatientRecord() {
   const { id } = useParams<{ id: string }>();
   const patientId = id || "";
-  const { effectiveClinicId: cid, role } = useAccess();
+  const { effectiveClinicId: cid, role, user } = useAccess();
 
 const isReceptionist = role === "receptionist";
 const isClinicalUser =
