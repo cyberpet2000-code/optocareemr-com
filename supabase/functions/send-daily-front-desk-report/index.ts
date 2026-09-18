@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
       to: recipient,
       subject,
       html,
-      emailType: "daily_summary",
+      emailType: "daily_front_desk_report",
       clinicId: report.clinic_id,
       clinicName: clinic.name,
       clinicLogo: clinic.logo_url,
