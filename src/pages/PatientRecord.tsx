@@ -2429,7 +2429,7 @@ shadow-sm
       {v.lens_type && (
         <div className="mt-2 flex items-center justify-between gap-2">
           <p className="min-w-0 flex-1 text-[11px] leading-tight text-muted-foreground">
-            ${v.lens_type}
+            {v.lens_type}
           </p>
 
           {v.optical_dispensed ? (
