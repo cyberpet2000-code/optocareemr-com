@@ -297,6 +297,7 @@ export function AppRoutes() {
           <Route path="/inventory/audit" element={<InventoryAudit />} />
           <Route path="/settings/account" element={<AccountSettings />} />
           <Route path="/reports/monthly" element={<MonthlyReports />} />
+          <Route path="/reports/daily-front-desk" element={<DailyFrontDeskReport />} />
           <Route path="*" element={<NotFound />} />
         </Route>
 
