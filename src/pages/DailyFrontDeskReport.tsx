@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Banknote,
-  Building2,
   CheckCircle2,
+  ChevronDown,
   ClipboardList,
   CreditCard,
-  Droplets,
   FileText,
   Glasses,
   Loader2,
@@ -13,8 +12,8 @@ import {
   MessageSquare,
   Plus,
   RefreshCw,
-  Save,
   Send,
+  Users,
   Wallet,
 } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
@@ -24,21 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 type AnyDb = any;
@@ -62,6 +48,7 @@ type PatientRow = {
   patient_id: string;
   patient_name: string;
   patient_number: string | null;
+  phone: string | null;
   patient_type: "private" | "hmo";
   hmo_id: string | null;
   hmo_name: string | null;
@@ -80,8 +67,6 @@ type PatientRow = {
   hmo_claim_remarks: string | null;
   lens_order_status: string | null;
   lens_order_remarks: string | null;
-  eye_drop_quantity: number;
-  eye_drop_dispensed: boolean;
   feedback_form_sent: boolean;
   remarks: string | null;
 };
@@ -96,12 +81,7 @@ type Financials = {
   total_inventory_sales: number;
   total_income: number;
   total_expenses: number;
-  total_expenses_cash: number;
-  total_expenses_transfer: number;
-  total_expenses_card: number;
-  total_expenses_other: number;
   daily_balance: number;
-  eye_drop_items_dispensed: number;
 };
 
 type ActivityRow = {
@@ -126,14 +106,10 @@ type ExpenseRow = {
   created_at: string;
 };
 
-const CLAIM_STATUSES = [
-  "Not sent",
-  "Sent",
-  "Awaiting reply",
-  "Replied",
-  "Other",
-];
+type ClaimMeta = { pa_code: string; claim_amount: string; response: string; remarks: string };
+type LensMeta = { lab: string; fitted_today: boolean; remarks: string };
 
+const CLAIM_STATUSES = ["Not sent", "Sent", "Awaiting reply", "Replied", "Other"];
 const LENS_ORDER_STATUSES = [
   { value: "not_required", label: "Not required" },
   { value: "pending", label: "Pending" },
@@ -142,7 +118,6 @@ const LENS_ORDER_STATUSES = [
   { value: "received", label: "Received" },
   { value: "collected", label: "Collected" },
 ];
-
 const ACTIVITY_TYPES = [
   { value: "walk_in_sale", label: "Walk-in sale" },
   { value: "optical_sale", label: "Optical sale" },
@@ -155,7 +130,6 @@ const ACTIVITY_TYPES = [
   { value: "feedback_sent", label: "Feedback sent" },
   { value: "other", label: "Other activity" },
 ];
-
 const PAYMENT_METHODS = [
   { value: "cash", label: "Cash" },
   { value: "transfer", label: "Transfer" },
@@ -163,94 +137,54 @@ const PAYMENT_METHODS = [
   { value: "other", label: "Other" },
 ];
 
-function todayInLagos() {
-  return new Date().toLocaleDateString("en-CA", {
-    timeZone: "Africa/Lagos",
-  });
-}
-
-function formatMoney(value: number | null | undefined) {
-  return "₦" + (Number(value) || 0).toLocaleString("en-NG", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function formatDate(date: string | null | undefined) {
-  if (!date) return "—";
-  const [y, m, d] = date.slice(0, 10).split("-").map(Number);
-  if (!y || !m || !d) return date;
-  return new Date(y, m - 1, d).toLocaleDateString("en-NG", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function formatDateTime(value: string | null | undefined) {
-  if (!value) return "";
-  return new Date(value).toLocaleString("en-NG", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
-
-function formatRefraction(
-  sphere: string | number | null,
-  cylinder: string | number | null,
-  axis: string | number | null,
-) {
-  const parts: string[] = [];
-  if (sphere !== null && sphere !== undefined && sphere !== "") {
-    parts.push(String(sphere));
-  }
-  if (cylinder !== null && cylinder !== undefined && cylinder !== "") {
-    parts.push(String(cylinder));
-  }
-  if (axis !== null && axis !== undefined && axis !== "") {
-    parts.push(`×${axis}`);
-  }
-  return parts.length ? parts.join(" / ") : "—";
-}
-
-function asArray<T>(data: any): T[] {
-  if (!data) return [];
-  return Array.isArray(data) ? data : [data];
-}
-
-function validEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-}
-
-function statusBadge(value: string | null | undefined) {
-  return value ? value : "Not set";
-}
-
 const EMPTY_ACTIVITY = {
   activity_type: "walk_in_sale",
   description: "",
   quantity: "1",
   amount: "",
   payment_method: "cash",
-  patient_id: "",
   customer_name: "",
   remarks: "",
 };
+const EMPTY_EXPENSE = { description: "", amount: "", payment_method: "cash", paid_to: "", remarks: "" };
 
-const EMPTY_EXPENSE = {
-  description: "",
-  amount: "",
-  payment_method: "cash",
-  paid_to: "",
-  remarks: "",
-};
+function todayInLagos() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
+}
+function asArray<T>(data: any): T[] {
+  return !data ? [] : Array.isArray(data) ? data : [data];
+}
+function formatMoney(value: number | null | undefined) {
+  return "₦" + (Number(value) || 0).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function formatDate(value: string) {
+  const [y, m, d] = value.slice(0, 10).split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+function formatDateTime(value: string | null) {
+  return value ? new Date(value).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" }) : "—";
+}
+function parseMeta<T>(value: string | null | undefined, fallback: T): T {
+  if (!value) return fallback;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" ? { ...fallback, ...parsed } : fallback;
+  } catch {
+    return fallback;
+  }
+}
+function encodeMeta(value: object) {
+  return JSON.stringify(value);
+}
+function refraction(s: any, c: any, a: any) {
+  if (s === null && c === null && a === null) return "—";
+  return [s, c, a ? `×${a}` : null].filter((v) => v !== null && v !== undefined && v !== "").join(" / ") || "—";
+}
 
 export default function DailyFrontDeskReport() {
   const { effectiveClinicId, clinic } = useClinic();
   const { isAdmin, isReceptionist, isSuperAdmin } = useRole();
   const db = apiClient as AnyDb;
-
   const canOperate = isReceptionist || isAdmin || isSuperAdmin;
   const canConfigureEmail = isAdmin || isSuperAdmin;
 
@@ -262,13 +196,14 @@ export default function DailyFrontDeskReport() {
   const [financials, setFinancials] = useState<Financials | null>(null);
   const [clinicEmail, setClinicEmail] = useState("");
   const [emailDraft, setEmailDraft] = useState("");
-
+  const [reportNotes, setReportNotes] = useState("");
+  const [openSection, setOpenSection] = useState<string | null>("patients");
   const [loading, setLoading] = useState(true);
-  const [savingHeader, setSavingHeader] = useState(false);
   const [savingPatient, setSavingPatient] = useState<string | null>(null);
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [savingEmail, setSavingEmail] = useState(false);
-
   const [activityOpen, setActivityOpen] = useState(false);
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [activitySaving, setActivitySaving] = useState(false);
@@ -276,89 +211,39 @@ export default function DailyFrontDeskReport() {
   const [activityForm, setActivityForm] = useState({ ...EMPTY_ACTIVITY });
   const [expenseForm, setExpenseForm] = useState({ ...EMPTY_EXPENSE });
 
-  const [reportNotes, setReportNotes] = useState("");
-
   const isSubmitted = report?.status === "submitted";
   const canEdit = canOperate && !isSubmitted;
 
   const load = useCallback(async () => {
-    if (!effectiveClinicId || !reportDate || !canOperate) return;
-
+    if (!effectiveClinicId || !canOperate) return;
     setLoading(true);
     try {
-      const opened = await db.rpc("open_daily_front_desk_report", {
-        p_clinic_id: effectiveClinicId,
-        p_report_date: reportDate,
-      });
+      const opened = await db.rpc("open_daily_front_desk_report", { p_clinic_id: effectiveClinicId, p_report_date: reportDate });
       if (opened.error) throw opened.error;
-
       const header = asArray<DailyReport>(opened.data)[0];
       if (!header) throw new Error("Daily report could not be opened");
 
-      const [
-        patientsRes,
-        itemsRes,
-        activitiesRes,
-        expensesRes,
-        financialsRes,
-        clinicRes,
-      ] = await Promise.all([
-        db.rpc("get_daily_front_desk_report_data", {
-          p_clinic_id: effectiveClinicId,
-          p_report_date: reportDate,
-        }),
-        db
-          .from("daily_front_desk_report_items")
-          .select("*")
-          .eq("report_id", header.id)
-          .order("created_at", { ascending: true }),
-        db
-          .from("daily_front_desk_activities")
-          .select("*")
-          .eq("report_id", header.id)
-          .order("created_at", { ascending: true }),
-        db
-          .from("daily_front_desk_expenses")
-          .select("*")
-          .eq("report_id", header.id)
-          .order("created_at", { ascending: true }),
-        db.rpc("get_daily_front_desk_financials", {
-          p_clinic_id: effectiveClinicId,
-          p_report_date: reportDate,
-        }),
-        db
-          .from("clinics")
-          .select("id,name,daily_report_email")
-          .eq("id", effectiveClinicId)
-          .maybeSingle(),
+      const [patientsRes, itemsRes, activitiesRes, expensesRes, financialsRes, clinicRes] = await Promise.all([
+        db.rpc("get_daily_front_desk_report_data", { p_clinic_id: effectiveClinicId, p_report_date: reportDate }),
+        db.from("daily_front_desk_report_items").select("*").eq("report_id", header.id).order("created_at", { ascending: true }),
+        db.from("daily_front_desk_activities").select("*").eq("report_id", header.id).order("created_at", { ascending: true }),
+        db.from("daily_front_desk_expenses").select("*").eq("report_id", header.id).order("created_at", { ascending: true }),
+        db.rpc("get_daily_front_desk_financials", { p_clinic_id: effectiveClinicId, p_report_date: reportDate }),
+        db.from("clinics").select("id,name,daily_report_email").eq("id", effectiveClinicId).maybeSingle(),
       ]);
-
-      if (patientsRes.error) throw patientsRes.error;
-      if (itemsRes.error) throw itemsRes.error;
-      if (activitiesRes.error) throw activitiesRes.error;
-      if (expensesRes.error) throw expensesRes.error;
-      if (financialsRes.error) throw financialsRes.error;
-      if (clinicRes.error) throw clinicRes.error;
+      for (const result of [patientsRes, itemsRes, activitiesRes, expensesRes, financialsRes, clinicRes]) if (result.error) throw result.error;
 
       const savedItems = (itemsRes.data || []) as any[];
-      const itemMap = new Map<string, any>(
-        savedItems.map((item: any) => [
-          `${item.patient_id}:${item.visit_id || ""}`,
-          item,
-        ]),
-      );
-
-      const basePatients = asArray<any>(patientsRes.data);
-      const mergedPatients: PatientRow[] = basePatients.map((p: any) => {
-        const key = `${p.patient_id}:${p.visit_id || ""}`;
-        const saved = itemMap.get(key);
-
+      const itemMap = new Map(savedItems.map((item: any) => [`${item.patient_id}:${item.visit_id || ""}`, item]));
+      const merged: PatientRow[] = asArray<any>(patientsRes.data).map((p: any) => {
+        const saved = itemMap.get(`${p.patient_id}:${p.visit_id || ""}`);
         return {
-          key,
+          key: `${p.patient_id}:${p.visit_id || ""}`,
           visit_id: p.visit_id || null,
           patient_id: p.patient_id,
           patient_name: p.patient_name || "Unknown patient",
           patient_number: p.patient_number || null,
+          phone: p.phone || p.phone_number || null,
           patient_type: p.patient_type === "hmo" ? "hmo" : "private",
           hmo_id: p.hmo_id || null,
           hmo_name: p.hmo_name || null,
@@ -371,40 +256,26 @@ export default function DailyFrontDeskReport() {
           os_axis: p.os_axis ?? null,
           reading_add: p.reading_add ?? null,
           lens_type: p.lens_type || null,
-          glasses_prescription_sent:
-            saved?.glasses_prescription_sent ??
-            !!p.glasses_prescription_sent,
+          glasses_prescription_sent: saved?.glasses_prescription_sent ?? !!p.glasses_prescription_sent,
           lens_order_required: !!p.lens_order_required,
-          hmo_claim_status:
-            saved?.hmo_claim_status ??
-            (p.patient_type === "hmo" ? "Not sent" : null),
+          hmo_claim_status: saved?.hmo_claim_status ?? (p.patient_type === "hmo" ? "Not sent" : null),
           hmo_claim_remarks: saved?.hmo_claim_remarks ?? null,
-          lens_order_status:
-            saved?.lens_order_status ??
-            (p.lens_order_required ? "pending" : "not_required"),
+          lens_order_status: saved?.lens_order_status ?? (p.lens_order_required ? "pending" : "not_required"),
           lens_order_remarks: saved?.lens_order_remarks ?? null,
-          eye_drop_quantity: Number(p.eye_drop_quantity || 0),
-          eye_drop_dispensed:
-            Number(p.eye_drop_quantity || 0) > 0 ||
-            !!p.eye_drop_dispensed,
-          feedback_form_sent:
-            saved?.feedback_form_sent ?? !!p.feedback_form_sent,
+          feedback_form_sent: saved?.feedback_form_sent ?? !!p.feedback_form_sent,
           remarks: saved?.remarks ?? null,
         };
       });
 
       setReport(header);
       setReportNotes(header.report_notes || "");
-      setPatients(mergedPatients);
+      setPatients(merged);
       setActivities((activitiesRes.data || []) as ActivityRow[]);
       setExpenses((expensesRes.data || []) as ExpenseRow[]);
-
-      const finance = asArray<Financials>(financialsRes.data)[0] || null;
-      setFinancials(finance);
-
-      const configuredEmail = String(clinicRes.data?.daily_report_email || "");
-      setClinicEmail(configuredEmail);
-      setEmailDraft(configuredEmail);
+      setFinancials(asArray<Financials>(financialsRes.data)[0] || null);
+      const configured = String(clinicRes.data?.daily_report_email || "");
+      setClinicEmail(configured);
+      setEmailDraft(configured);
     } catch (error: any) {
       console.error("Failed to load daily front desk report:", error);
       toast.error(error?.message || "Failed to load daily report");
@@ -418,42 +289,25 @@ export default function DailyFrontDeskReport() {
     }
   }, [canOperate, db, effectiveClinicId, reportDate]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
-  const reportDateLabel = useMemo(() => formatDate(reportDate), [reportDate]);
-  const activityTotal = useMemo(
-    () => activities.reduce((sum, row) => sum + Number(row.amount || 0), 0),
-    [activities],
-  );
-  const expenseTotal = useMemo(
-    () => expenses.reduce((sum, row) => sum + Number(row.amount || 0), 0),
-    [expenses],
-  );
-  const hmoPatients = useMemo(
-    () => patients.filter((p) => p.patient_type === "hmo").length,
-    [patients],
-  );
-  const prescriptionCount = useMemo(
-    () => patients.filter((p) => p.prescription_available).length,
-    [patients],
-  );
-  const prescriptionsSent = useMemo(
-    () => patients.filter((p) => p.glasses_prescription_sent).length,
-    [patients],
-  );
+  const hmoPatients = useMemo(() => patients.filter((p) => p.patient_type === "hmo"), [patients]);
+  const privatePatients = useMemo(() => patients.filter((p) => p.patient_type === "private"), [patients]);
+  const prescriptionCount = useMemo(() => patients.filter((p) => p.prescription_available).length, [patients]);
+  const prescriptionsSent = useMemo(() => patients.filter((p) => p.glasses_prescription_sent).length, [patients]);
+  const lensOrders = useMemo(() => patients.filter((p) => p.lens_order_required).length, [patients]);
+  const fittedToday = useMemo(() => patients.filter((p) => parseMeta<LensMeta>(p.lens_order_remarks, { lab: "", fitted_today: false, remarks: "" }).fitted_today).length, [patients]);
+  const claimsPending = useMemo(() => hmoPatients.filter((p) => (p.hmo_claim_status || "").toLowerCase() !== "replied").length, [hmoPatients]);
+  const activityTotal = useMemo(() => activities.reduce((sum, row) => sum + Number(row.amount || 0), 0), [activities]);
+  const expenseTotal = useMemo(() => expenses.reduce((sum, row) => sum + Number(row.amount || 0), 0), [expenses]);
 
   function updatePatient(key: string, patch: Partial<PatientRow>) {
-    setPatients((rows) =>
-      rows.map((row) => (row.key === key ? { ...row, ...patch } : row)),
-    );
+    setPatients((rows) => rows.map((row) => row.key === key ? { ...row, ...patch } : row));
   }
 
   async function savePatient(row: PatientRow) {
-    if (!report || !effectiveClinicId || !canEdit) return;
+    if (!report || !canEdit) return;
     setSavingPatient(row.key);
-
     try {
       const { error } = await db.rpc("save_daily_front_desk_report_item", {
         p_report_id: report.id,
@@ -462,19 +316,13 @@ export default function DailyFrontDeskReport() {
         p_hmo_id: row.hmo_id,
         p_patient_type: row.patient_type,
         p_glasses_prescription_sent: row.glasses_prescription_sent,
-        p_hmo_claim_status:
-          row.patient_type === "hmo" ? row.hmo_claim_status : null,
-        p_hmo_claim_remarks:
-          row.patient_type === "hmo" ? row.hmo_claim_remarks : null,
+        p_hmo_claim_status: row.patient_type === "hmo" ? row.hmo_claim_status : null,
+        p_hmo_claim_remarks: row.patient_type === "hmo" ? row.hmo_claim_remarks : null,
         p_lens_order_required: row.lens_order_required,
-        p_lens_order_status: row.lens_order_required
-          ? row.lens_order_status || "pending"
-          : "not_required",
-        p_lens_order_remarks: row.lens_order_required
-          ? row.lens_order_remarks
-          : null,
+        p_lens_order_status: row.lens_order_required ? row.lens_order_status || "pending" : "not_required",
+        p_lens_order_remarks: row.lens_order_required ? row.lens_order_remarks : null,
         p_feedback_form_sent: row.feedback_form_sent,
-        p_eye_drop_dispensed: row.eye_drop_quantity > 0,
+        p_eye_drop_dispensed: false,
         p_remarks: row.remarks,
       });
       if (error) throw error;
@@ -487,8 +335,8 @@ export default function DailyFrontDeskReport() {
   }
 
   async function saveNotes() {
-    if (!report || !effectiveClinicId || !canEdit) return;
-    setSavingHeader(true);
+    if (!report || !canEdit) return;
+    setSavingNotes(true);
     try {
       const { data, error } = await db.rpc("save_daily_front_desk_report", {
         p_report_id: report.id,
@@ -497,59 +345,44 @@ export default function DailyFrontDeskReport() {
         p_report_notes: reportNotes || null,
       });
       if (error) throw error;
-      const updated = asArray<DailyReport>(data)[0] || report;
-      setReport(updated);
-      setReportNotes(updated.report_notes || "");
-      toast.success("Daily report notes saved");
+      setReport(asArray<DailyReport>(data)[0] || report);
+      toast.success("Report notes saved");
     } catch (error: any) {
-      toast.error(error?.message || "Failed to save report notes");
+      toast.error(error?.message || "Failed to save notes");
     } finally {
-      setSavingHeader(false);
+      setSavingNotes(false);
     }
   }
 
   async function submitReport() {
     if (!report || !canEdit) return;
-    if (!window.confirm("Submit this daily report? You will not be able to edit it afterwards.")) {
-      return;
-    }
-
-    setSavingHeader(true);
+    if (!window.confirm("Submit this daily report? It will become read-only.")) return;
+    setSubmitting(true);
     try {
-      const { data, error } = await db.rpc(
-        "submit_daily_front_desk_report",
-        { p_report_id: report.id },
-      );
+      const { data, error } = await db.rpc("submit_daily_front_desk_report", { p_report_id: report.id });
       if (error) throw error;
-      const updated = asArray<DailyReport>(data)[0] || report;
-      setReport(updated);
+      setReport(asArray<DailyReport>(data)[0] || report);
       toast.success("Daily report submitted and locked");
     } catch (error: any) {
-      toast.error(error?.message || "Failed to submit daily report");
+      toast.error(error?.message || "Failed to submit report");
     } finally {
-      setSavingHeader(false);
+      setSubmitting(false);
     }
   }
 
   async function saveRecipientEmail() {
     if (!effectiveClinicId || !canConfigureEmail) return;
-
     const value = emailDraft.trim().toLowerCase();
-    if (value && !validEmail(value)) {
+    if (value && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value)) {
       toast.error("Enter a valid email address");
       return;
     }
-
     setSavingEmail(true);
     try {
-      const { error } = await db
-        .from("clinics")
-        .update({ daily_report_email: value || null })
-        .eq("id", effectiveClinicId);
+      const { error } = await db.from("clinics").update({ daily_report_email: value || null }).eq("id", effectiveClinicId);
       if (error) throw error;
       setClinicEmail(value);
-      setEmailDraft(value);
-      toast.success(value ? "Daily report email saved" : "Daily report email cleared");
+      toast.success("Daily report email saved");
     } catch (error: any) {
       toast.error(error?.message || "Failed to save email");
     } finally {
@@ -563,25 +396,14 @@ export default function DailyFrontDeskReport() {
       toast.error("Ask an Admin to configure the daily report email first");
       return;
     }
-
     setSendingEmail(true);
     try {
-      const { data, error } = await apiClient.functions.invoke(
-        "send-daily-front-desk-report",
-        { body: { report_id: report.id } },
-      );
-      if (error || (data as any)?.error) {
-        throw new Error((data as any)?.error || error?.message || "Email failed");
-      }
-
-      toast.success(
-        (data as any)?.recipient
-          ? `Daily report sent to ${(data as any).recipient}`
-          : "Daily report sent",
-      );
+      const { data, error } = await apiClient.functions.invoke("send-daily-front-desk-report", { body: { report_id: report.id } });
+      if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message || "Email failed");
+      toast.success(`Daily report sent to ${(data as any)?.recipient || clinicEmail}`);
       await load();
     } catch (error: any) {
-      toast.error(error?.message || "Failed to send daily report");
+      toast.error(error?.message || "Failed to send report");
     } finally {
       setSendingEmail(false);
     }
@@ -589,46 +411,28 @@ export default function DailyFrontDeskReport() {
 
   async function addActivity() {
     if (!report || !canEdit) return;
-    if (!activityForm.description.trim()) {
-      toast.error("Activity description is required");
-      return;
-    }
-
+    if (!activityForm.description.trim()) return toast.error("Activity description is required");
     const quantity = Number(activityForm.quantity);
     const amount = Number(activityForm.amount || 0);
-    if (!Number.isFinite(quantity) || quantity < 1) {
-      toast.error("Quantity must be at least 1");
-      return;
-    }
-    if (!Number.isFinite(amount) || amount < 0) {
-      toast.error("Amount cannot be negative");
-      return;
-    }
-
+    if (!Number.isFinite(quantity) || quantity < 1) return toast.error("Quantity must be at least 1");
+    if (!Number.isFinite(amount) || amount < 0) return toast.error("Amount cannot be negative");
     setActivitySaving(true);
     try {
-      const { data, error } = await db.rpc(
-        "save_daily_front_desk_activity",
-        {
-          p_report_id: report.id,
-          p_activity_type: activityForm.activity_type,
-          p_description: activityForm.description.trim(),
-          p_quantity: quantity,
-          p_amount: amount,
-          p_payment_method: activityForm.payment_method || null,
-          p_patient_id: activityForm.patient_id || null,
-          p_customer_name: activityForm.customer_name.trim() || null,
-          p_remarks: activityForm.remarks.trim() || null,
-        },
-      );
+      const { error } = await db.rpc("save_daily_front_desk_activity", {
+        p_report_id: report.id,
+        p_activity_type: activityForm.activity_type,
+        p_description: activityForm.description.trim(),
+        p_quantity: quantity,
+        p_amount: amount,
+        p_payment_method: activityForm.payment_method,
+        p_customer_name: activityForm.customer_name.trim() || null,
+        p_remarks: activityForm.remarks.trim() || null,
+      });
       if (error) throw error;
-
-      const activity = asArray<ActivityRow>(data)[0];
-      if (activity) setActivities((rows) => [...rows, activity]);
-      setActivityOpen(false);
       setActivityForm({ ...EMPTY_ACTIVITY });
-      toast.success("Activity added to report");
+      setActivityOpen(false);
       await load();
+      toast.success("Activity added");
     } catch (error: any) {
       toast.error(error?.message || "Failed to add activity");
     } finally {
@@ -638,20 +442,12 @@ export default function DailyFrontDeskReport() {
 
   async function addExpense() {
     if (!report || !canEdit) return;
-    if (!expenseForm.description.trim()) {
-      toast.error("Expense description is required");
-      return;
-    }
-
+    if (!expenseForm.description.trim()) return toast.error("Expense description is required");
     const amount = Number(expenseForm.amount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error("Enter a valid expense amount");
-      return;
-    }
-
+    if (!Number.isFinite(amount) || amount <= 0) return toast.error("Enter a valid expense amount");
     setExpenseSaving(true);
     try {
-      const { data, error } = await db.rpc("save_daily_front_desk_expense", {
+      const { error } = await db.rpc("save_daily_front_desk_expense", {
         p_report_id: report.id,
         p_description: expenseForm.description.trim(),
         p_amount: amount,
@@ -660,13 +456,10 @@ export default function DailyFrontDeskReport() {
         p_remarks: expenseForm.remarks.trim() || null,
       });
       if (error) throw error;
-
-      const expense = asArray<ExpenseRow>(data)[0];
-      if (expense) setExpenses((rows) => [...rows, expense]);
-      setExpenseOpen(false);
       setExpenseForm({ ...EMPTY_EXPENSE });
-      toast.success("Expense added to report");
+      setExpenseOpen(false);
       await load();
+      toast.success("Expense added");
     } catch (error: any) {
       toast.error(error?.message || "Failed to add expense");
     } finally {
@@ -674,879 +467,229 @@ export default function DailyFrontDeskReport() {
     }
   }
 
-  if (!canOperate) {
-    return (
-      <div className="form-section py-12 text-center">
-        <h1 className="text-lg font-semibold">Daily Front Desk Report</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          This report is available to front-desk staff and clinic administrators.
-        </p>
-      </div>
-    );
+  function section(id: string) {
+    setOpenSection((current) => current === id ? null : id);
   }
 
-  if (loading && !report) {
-    return (
-      <div className="space-y-5">
-        <Skeleton className="h-10 w-72" />
-        <Skeleton className="h-28 w-full" />
-        <Skeleton className="h-80 w-full" />
-      </div>
-    );
+  if (!canOperate) {
+    return <div className="p-6 text-sm text-muted-foreground">This report is available to front-desk and administrative staff.</div>;
   }
+
+  const summary = [
+    { label: "Patients Seen", value: patients.length, detail: `${privatePatients.length} Private  |  ${hmoPatients.length} HMO`, icon: Users },
+    { label: "Total Income", value: formatMoney(financials?.total_income), detail: `${formatMoney(financials?.total_patient_payments)} patient payments`, icon: Wallet },
+    { label: "Claims", value: hmoPatients.length, detail: `${Math.max(0, hmoPatients.length - claimsPending)} Replied  |  ${claimsPending} Pending`, icon: FileText },
+    { label: "Prescriptions", value: prescriptionCount, detail: `${lensOrders} Lens Orders  |  ${fittedToday} Fitted Today`, icon: Glasses },
+    { label: "Walk-in Sales", value: formatMoney(financials?.walk_in_sales || activityTotal), detail: "Optical shop", icon: CreditCard },
+    { label: "Expenses", value: formatMoney(financials?.total_expenses || expenseTotal), detail: `${expenses.length} items`, icon: Banknote },
+  ];
+
+  const sections = [
+    { id: "patients", title: "Patients Seen Today", subtitle: "All patients seen today — private and HMO", count: `${patients.length} patients`, detail: `${privatePatients.length} Private  |  ${hmoPatients.length} HMO`, icon: Users },
+    { id: "income", title: "Payments & Income (Private)", subtitle: "Payments received from private patients", count: formatMoney(financials?.total_patient_payments), detail: "Auto-calculated from billing", icon: Wallet },
+    { id: "claims", title: "HMO & Insurance Claims", subtitle: "Patient claims, PA codes, claim status and HMO response", count: `${hmoPatients.length} claims`, detail: `${Math.max(0, hmoPatients.length - claimsPending)} Replied  |  ${claimsPending} Pending`, icon: FileText },
+    { id: "prescriptions", title: "Prescriptions & Lens Orders", subtitle: "Prescriptions, lens type, lab orders and fittings", count: `${prescriptionCount} prescriptions`, detail: `${lensOrders} Orders  |  ${fittedToday} Fitted Today`, icon: Glasses },
+    { id: "sales", title: "Optical Shop / Walk-in Sales", subtitle: "Sales of frames, lenses and other items", count: formatMoney(financials?.walk_in_sales || activityTotal), detail: "Billing and manual activities", icon: CreditCard },
+    { id: "expenses", title: "Expenses & Disbursements", subtitle: "Daily expenses and payments made", count: `${expenses.length} items`, detail: formatMoney(financials?.total_expenses || expenseTotal), icon: Banknote },
+    { id: "activities", title: "Other Activities", subtitle: "Feedback, follow-ups, calls, restocking and other work", count: `${activities.length} activities`, detail: "Front-desk activity log", icon: ClipboardList },
+    { id: "remarks", title: "Issues / Remarks", subtitle: "Challenges, important notes or observations", count: reportNotes ? "Notes added" : "No notes", detail: "Management attention", icon: MessageSquare },
+    { id: "finish", title: "End of Day Confirmation", subtitle: "Review and submit your report", count: isSubmitted ? "Submitted" : "Not Submitted", detail: isSubmitted ? formatDateTime(report?.submitted_at || null) : "Ready for review", icon: CheckCircle2 },
+  ];
 
   return (
-    <div className="space-y-6 max-w-7xl">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <ClipboardList className="h-5 w-5 text-primary" />
-            <h1 className="text-2xl font-bold">Daily Front Desk Report</h1>
+    <div className="min-h-full bg-background">
+      <div className="mx-auto max-w-[1500px] p-4 md:p-6 space-y-5">
+        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Front Desk Operations</div>
+            <h1 className="mt-1 text-2xl md:text-3xl font-bold tracking-tight">Daily Front Desk Report</h1>
+            <p className="text-sm text-muted-foreground mt-1">{clinic?.name || "Clinic"} · Patient Activity, Financial Summary & Operational Update</p>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            {clinic?.name || "Active clinic"} · {reportDateLabel}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Input
-            type="date"
-            value={reportDate}
-            max={todayInLagos()}
-            onChange={(e) => setReportDate(e.target.value)}
-            className="w-[160px]"
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void load()}
-            disabled={loading}
-          >
-            <RefreshCw size={14} className={loading ? "mr-1 animate-spin" : "mr-1"} />
-            Refresh
-          </Button>
-          <span
-            className={
-              isSubmitted
-                ? "text-xs px-2.5 py-1 rounded-full bg-success/10 text-success"
-                : "text-xs px-2.5 py-1 rounded-full bg-warning/10 text-warning"
-            }
-          >
-            {isSubmitted ? "Submitted" : "Draft"}
-          </span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4">
-        <div className="form-section">
-          <div className="flex items-start gap-3">
-            <div className="rounded-xl bg-primary/10 p-2.5">
-              <Mail size={18} className="text-primary" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="font-semibold">Report Email</h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                The receptionist clicks <strong>Send Report to Admin</strong> after submission.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-col sm:flex-row gap-2">
-            <Input
-              type="email"
-              value={emailDraft}
-              disabled={!canConfigureEmail}
-              onChange={(e) => setEmailDraft(e.target.value)}
-              placeholder="admin@clinic.com"
-              className="sm:max-w-md"
-            />
-            {canConfigureEmail && (
-              <Button
-                variant="outline"
-                onClick={() => void saveRecipientEmail()}
-                disabled={savingEmail || emailDraft.trim().toLowerCase() === clinicEmail}
-              >
-                {savingEmail ? (
-                  <Loader2 size={15} className="mr-1 animate-spin" />
-                ) : (
-                  <Save size={15} className="mr-1" />
-                )}
-                Save email
+          <div className="flex flex-wrap items-center gap-2">
+            <Input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)} className="w-[190px]" disabled={loading} />
+            <Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw size={15} className={loading ? "mr-1 animate-spin" : "mr-1"} />Refresh</Button>
+            {isSubmitted && clinicEmail && (
+              <Button variant="outline" onClick={() => void sendReportEmail()} disabled={sendingEmail}>
+                {sendingEmail ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Mail size={15} className="mr-1" />}
+                Email Report
               </Button>
             )}
+            <Button onClick={() => void submitReport()} disabled={!canEdit || submitting}>
+              {submitting ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Send size={15} className="mr-1" />}
+              Submit Report
+            </Button>
           </div>
-
-          {!clinicEmail ? (
-            <p className="mt-2 text-xs text-warning">
-              No recipient is configured yet. An Admin must enter the recipient email.
-            </p>
-          ) : (
-            <p className="mt-2 text-xs text-muted-foreground">
-              Reports will be sent to <strong>{clinicEmail}</strong>.
-            </p>
-          )}
         </div>
 
-        <div className="form-section min-w-[280px]">
-          <div className="text-xs text-muted-foreground">Email status</div>
-          <div className="mt-2 flex items-center gap-2">
-            {report?.email_sent_at ? (
-              <>
-                <CheckCircle2 size={17} className="text-success" />
-                <div>
-                  <div className="text-sm font-medium">Sent</div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatDateTime(report.email_sent_at)}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <Mail size={17} className="text-muted-foreground" />
-                <div>
-                  <div className="text-sm font-medium">Not emailed</div>
-                  <div className="text-xs text-muted-foreground">
-                    Submit the report before emailing it.
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          <Button
-            className="w-full mt-4"
-            onClick={() => void sendReportEmail()}
-            disabled={
-              sendingEmail ||
-              !isSubmitted ||
-              !clinicEmail
-            }
-          >
-            {sendingEmail ? (
-              <Loader2 size={16} className="mr-1 animate-spin" />
-            ) : report?.email_sent_at ? (
-              <RefreshCw size={16} className="mr-1" />
-            ) : (
-              <Send size={16} className="mr-1" />
-            )}
-            {sendingEmail
-              ? "Sending..."
-              : report?.email_sent_at
-                ? "Resend Report to Admin"
-                : "Send Report to Admin"}
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-        <div className="form-section p-3">
-          <div className="text-[11px] text-muted-foreground">Patients</div>
-          <div className="text-xl font-bold mt-1">{patients.length}</div>
-        </div>
-        <div className="form-section p-3">
-          <div className="text-[11px] text-muted-foreground">HMO</div>
-          <div className="text-xl font-bold mt-1">{hmoPatients}</div>
-        </div>
-        <div className="form-section p-3">
-          <div className="text-[11px] text-muted-foreground">Rx available</div>
-          <div className="text-xl font-bold mt-1">{prescriptionCount}</div>
-        </div>
-        <div className="form-section p-3">
-          <div className="text-[11px] text-muted-foreground">Rx sent</div>
-          <div className="text-xl font-bold mt-1">{prescriptionsSent}</div>
-        </div>
-        <div className="form-section p-3">
-          <div className="text-[11px] text-muted-foreground">Eye drops</div>
-          <div className="text-xl font-bold mt-1">{financials?.eye_drop_items_dispensed || 0}</div>
-        </div>
-        <div className="form-section p-3">
-          <div className="text-[11px] text-muted-foreground">Patient payments</div>
-          <div className="text-sm font-bold mt-1">{formatMoney(financials?.total_patient_payments)}</div>
-        </div>
-        <div className="form-section p-3">
-          <div className="text-[11px] text-muted-foreground">Walk-in sales</div>
-          <div className="text-sm font-bold mt-1">{formatMoney(financials?.walk_in_sales)}</div>
-        </div>
-        <div className="form-section p-3">
-          <div className="text-[11px] text-muted-foreground">Daily balance</div>
-          <div className="text-sm font-bold mt-1">{formatMoney(financials?.daily_balance)}</div>
-        </div>
-      </div>
-
-      <div className="form-section">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="font-semibold flex items-center gap-2">
-              <Building2 size={16} className="text-primary" />
-              Patient-by-Patient Operations
-            </h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              Front-desk details only. Final optical prescription is read-only from the completed visit.
-            </p>
-          </div>
-          {loading && <Loader2 size={16} className="animate-spin text-muted-foreground" />}
-        </div>
-
-        <div className="mt-4 space-y-3">
-          {patients.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground">
-              <ClipboardList className="mx-auto h-8 w-8 opacity-40" />
-              <p className="mt-2 text-sm">No completed patient visits found for this date.</p>
-            </div>
-          ) : (
-            patients.map((row) => (
-              <div key={row.key} className="rounded-xl border border-border/60 p-4 space-y-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="font-semibold">{row.patient_name}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      {row.patient_number || "No patient number"} ·{" "}
-                      <span className="capitalize">{row.patient_type}</span>
-                      {row.patient_type === "hmo" && row.hmo_name ? ` · ${row.hmo_name}` : ""}
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {row.eye_drop_quantity > 0 && (
-                      <span className="text-[10px] px-2 py-1 rounded-full bg-primary/10 text-primary inline-flex items-center gap-1">
-                        <Droplets size={11} /> {row.eye_drop_quantity} eye drop item{row.eye_drop_quantity === 1 ? "" : "s"} dispensed
-                      </span>
-                    )}
-                    {row.lens_order_required && (
-                      <span className="text-[10px] px-2 py-1 rounded-full bg-muted inline-flex items-center gap-1">
-                        <Glasses size={11} /> Lens order
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {row.prescription_available && (
-                  <div className="rounded-lg bg-muted/40 border p-3">
-                    <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-                      Final optical prescription
-                    </div>
-                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                      <div>
-                        <span className="text-muted-foreground">OD</span>{" "}
-                        <span className="font-medium">
-                          {formatRefraction(row.od_sphere, row.od_cylinder, row.od_axis)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">OS</span>{" "}
-                        <span className="font-medium">
-                          {formatRefraction(row.os_sphere, row.os_cylinder, row.os_axis)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">ADD</span>{" "}
-                        <span className="font-medium">{row.reading_add ?? "—"}</span>
-                      </div>
-                    </div>
-                    <div className="mt-2 text-xs">
-                      <span className="text-muted-foreground">Lens type:</span>{" "}
-                      <span className="font-medium">{row.lens_type || "Not specified"}</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-                  {row.patient_type === "hmo" && (
-                    <div>
-                      <Label className="text-xs">HMO claim status</Label>
-                      <Select
-                        value={row.hmo_claim_status || "Not sent"}
-                        onValueChange={(value) =>
-                          updatePatient(row.key, { hmo_claim_status: value })
-                        }
-                        disabled={!canEdit}
-                      >
-                        <SelectTrigger className="mt-1 h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CLAIM_STATUSES.map((value) => (
-                            <SelectItem key={value} value={value}>
-                              {value}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  <div>
-                    <Label className="text-xs">Prescription sent</Label>
-                    <Button
-                      type="button"
-                      variant={row.glasses_prescription_sent ? "default" : "outline"}
-                      className="w-full mt-1 h-9"
-                      disabled={!canEdit || !row.prescription_available}
-                      onClick={() =>
-                        updatePatient(row.key, {
-                          glasses_prescription_sent: !row.glasses_prescription_sent,
-                        })
-                      }
-                    >
-                      {row.glasses_prescription_sent ? "Sent" : "Not sent"}
-                    </Button>
-                  </div>
-
-                  {row.lens_order_required && (
-                    <div>
-                      <Label className="text-xs">Lens order status</Label>
-                      <Select
-                        value={row.lens_order_status || "pending"}
-                        onValueChange={(value) =>
-                          updatePatient(row.key, { lens_order_status: value })
-                        }
-                        disabled={!canEdit}
-                      >
-                        <SelectTrigger className="mt-1 h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {LENS_ORDER_STATUSES.map((item) => (
-                            <SelectItem key={item.value} value={item.value}>
-                              {item.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  <div>
-                    <Label className="text-xs">Feedback form</Label>
-                    <Button
-                      type="button"
-                      variant={row.feedback_form_sent ? "default" : "outline"}
-                      className="w-full mt-1 h-9"
-                      disabled={!canEdit}
-                      onClick={() =>
-                        updatePatient(row.key, {
-                          feedback_form_sent: !row.feedback_form_sent,
-                        })
-                      }
-                    >
-                      {row.feedback_form_sent ? "Sent" : "Not sent"}
-                    </Button>
-                  </div>
-
-                  <div>
-                    <Label className="text-xs">Eye drops / medication</Label>
-                    <div className="mt-1 h-9 rounded-md border bg-muted/30 px-3 flex items-center text-xs">
-                      {row.eye_drop_quantity > 0
-                        ? `${row.eye_drop_quantity} item${row.eye_drop_quantity === 1 ? "" : "s"} actually dispensed`
-                        : "None dispensed"}
-                    </div>
-                  </div>
-                </div>
-
-                {row.patient_type === "hmo" && (
-                  <div>
-                    <Label className="text-xs">HMO claim remarks</Label>
-                    <Textarea
-                      value={row.hmo_claim_remarks || ""}
-                      onChange={(e) =>
-                        updatePatient(row.key, {
-                          hmo_claim_remarks: e.target.value,
-                        })
-                      }
-                      disabled={!canEdit}
-                      placeholder="Example: claim emailed, awaiting response..."
-                      className="mt-1 min-h-[70px]"
-                    />
-                  </div>
-                )}
-
-                {row.lens_order_required && (
-                  <div>
-                    <Label className="text-xs">Lens order remarks</Label>
-                    <Textarea
-                      value={row.lens_order_remarks || ""}
-                      onChange={(e) =>
-                        updatePatient(row.key, {
-                          lens_order_remarks: e.target.value,
-                        })
-                      }
-                      disabled={!canEdit}
-                      placeholder="Example: order sent to lab..."
-                      className="mt-1 min-h-[70px]"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <Label className="text-xs">Remarks</Label>
-                  <Textarea
-                    value={row.remarks || ""}
-                    onChange={(e) =>
-                      updatePatient(row.key, { remarks: e.target.value })
-                    }
-                    disabled={!canEdit}
-                    placeholder="Anything relevant the front desk should record..."
-                    className="mt-1 min-h-[70px]"
-                  />
-                </div>
-
-                <div className="flex justify-end">
-                  <Button
-                    size="sm"
-                    onClick={() => void savePatient(row)}
-                    disabled={!canEdit || savingPatient === row.key}
-                  >
-                    {savingPatient === row.key ? (
-                      <Loader2 size={14} className="mr-1 animate-spin" />
-                    ) : (
-                      <Save size={14} className="mr-1" />
-                    )}
-                    Save patient entry
-                  </Button>
-                </div>
+        <div className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3">
+          {summary.map((item) => {
+            const Icon = item.icon;
+            return <div key={item.label} className="rounded-2xl border bg-card p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="rounded-xl bg-primary/10 p-2.5"><Icon size={19} className="text-primary" /></div>
+                <span className="text-[11px] font-medium text-muted-foreground">{formatDate(reportDate)}</span>
               </div>
-            ))
-          )}
+              <div className="mt-3 text-xl font-bold">{item.value}</div>
+              <div className="text-sm font-medium">{item.label}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{item.detail}</div>
+            </div>;
+          })}
+        </div>
+
+        <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+          {sections.map((item, index) => {
+            const Icon = item.icon;
+            const open = openSection === item.id;
+            return <div key={item.id} className={index ? "border-t" : ""}>
+              <button type="button" onClick={() => section(item.id)} className={`w-full px-4 md:px-5 py-4 flex items-center gap-3 text-left hover:bg-muted/40 transition ${open ? "bg-muted/20" : ""}`}>
+                <span className="shrink-0 rounded-xl bg-primary/10 p-2.5"><Icon size={19} className="text-primary" /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold text-sm md:text-base">{index + 1}. {item.title}</span>
+                  <span className="block text-xs text-muted-foreground mt-0.5 truncate">{item.subtitle}</span>
+                </span>
+                <span className="hidden md:block text-right mr-2 shrink-0">
+                  <span className="block text-sm font-semibold">{item.count}</span>
+                  <span className="block text-[11px] text-muted-foreground">{item.detail}</span>
+                </span>
+                <ChevronDown size={18} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+              </button>
+              {open && <div className="border-t bg-background p-4 md:p-5">{renderSection(item.id)}</div>}
+            </div>;
+          })}
         </div>
       </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <div className="form-section">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="font-semibold flex items-center gap-2">
-                <Wallet size={16} className="text-primary" />
-                Financial Overview
-              </h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                Recorded payments, walk-in sales and daily expenses.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-lg border p-3">
-              <div className="text-[11px] text-muted-foreground">Cash</div>
-              <div className="font-semibold mt-1">{formatMoney(financials?.cash_received)}</div>
-            </div>
-            <div className="rounded-lg border p-3">
-              <div className="text-[11px] text-muted-foreground">Transfer</div>
-              <div className="font-semibold mt-1">{formatMoney(financials?.transfer_received)}</div>
-            </div>
-            <div className="rounded-lg border p-3">
-              <div className="text-[11px] text-muted-foreground">POS/Card</div>
-              <div className="font-semibold mt-1">{formatMoney(financials?.card_received)}</div>
-            </div>
-            <div className="rounded-lg border p-3">
-              <div className="text-[11px] text-muted-foreground">HMO</div>
-              <div className="font-semibold mt-1">{formatMoney(financials?.hmo_received)}</div>
-            </div>
-            <div className="rounded-lg border p-3 col-span-2">
-              <div className="text-[11px] text-muted-foreground">Total income</div>
-              <div className="text-xl font-bold mt-1">{formatMoney(financials?.total_income)}</div>
-            </div>
-            <div className="rounded-lg border p-3">
-              <div className="text-[11px] text-muted-foreground">Expenses</div>
-              <div className="font-semibold mt-1">{formatMoney(financials?.total_expenses)}</div>
-            </div>
-            <div className="rounded-lg border p-3">
-              <div className="text-[11px] text-muted-foreground">Daily balance</div>
-              <div className="font-semibold mt-1">{formatMoney(financials?.daily_balance)}</div>
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-lg bg-muted/30 border p-3">
-            <div className="text-xs font-medium">Recorded activity total</div>
-            <div className="mt-1 text-sm">
-              Other activities/sales entered manually: <strong>{formatMoney(activityTotal)}</strong>
-            </div>
-          </div>
-        </div>
-
-        <div className="form-section">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="font-semibold flex items-center gap-2">
-                <CreditCard size={16} className="text-primary" />
-                Sales & Other Activities
-              </h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                Use this for walk-in sales and other operational activity not already represented in patient rows.
-              </p>
-            </div>
-            <Button size="sm" onClick={() => setActivityOpen(true)} disabled={!canEdit}>
-              <Plus size={14} className="mr-1" /> Add activity
-            </Button>
-          </div>
-
-          <div className="mt-4 space-y-2 max-h-[430px] overflow-auto">
-            {activities.length === 0 ? (
-              <div className="text-sm text-muted-foreground py-8 text-center">
-                No manually recorded activities.
-              </div>
-            ) : (
-              activities.map((row) => (
-                <div key={row.id} className="rounded-lg border p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="font-medium text-sm">{row.description}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {ACTIVITY_TYPES.find((x) => x.value === row.activity_type)?.label || row.activity_type}
-                        {" · "}Qty {row.quantity}
-                        {row.payment_method ? ` · ${row.payment_method}` : ""}
-                      </div>
-                      {row.customer_name && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Customer: {row.customer_name}
-                        </div>
-                      )}
-                      {row.remarks && (
-                        <div className="text-xs text-muted-foreground mt-1">{row.remarks}</div>
-                      )}
-                    </div>
-                    <div className="font-semibold text-sm shrink-0">{formatMoney(row.amount)}</div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="form-section">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="font-semibold flex items-center gap-2">
-              <Banknote size={16} className="text-primary" />
-              Expenses
-            </h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              Record actual expenses paid during the day. Keep financial notes below for anything that does not fit a structured field.
-            </p>
-          </div>
-          <Button size="sm" onClick={() => setExpenseOpen(true)} disabled={!canEdit}>
-            <Plus size={14} className="mr-1" /> Add expense
-          </Button>
-        </div>
-
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs text-muted-foreground border-b">
-              <tr>
-                <th className="py-2 pr-3">Description</th>
-                <th className="py-2 pr-3">Paid to</th>
-                <th className="py-2 pr-3">Method</th>
-                <th className="py-2 pr-3 text-right">Amount</th>
-                <th className="py-2 pr-3">Remarks</th>
-              </tr>
-            </thead>
-            <tbody>
-              {expenses.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                    No expenses recorded.
-                  </td>
-                </tr>
-              ) : (
-                expenses.map((row) => (
-                  <tr key={row.id} className="border-b border-border/50">
-                    <td className="py-2 pr-3">{row.description}</td>
-                    <td className="py-2 pr-3">{row.paid_to || "—"}</td>
-                    <td className="py-2 pr-3 capitalize">{row.payment_method}</td>
-                    <td className="py-2 pr-3 text-right font-medium">{formatMoney(row.amount)}</td>
-                    <td className="py-2 pr-3 text-muted-foreground">{row.remarks || "—"}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="mt-3 text-right text-sm font-semibold">
-          Total structured expenses: {formatMoney(expenseTotal)}
-        </div>
-      </div>
-
-      <div className="form-section">
-        <div className="flex items-start gap-3">
-          <div className="rounded-xl bg-primary/10 p-2.5">
-            <MessageSquare size={18} className="text-primary" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="font-semibold">Financial / Operational Notes</h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              Open area for cash given to front desk, unusual transactions, unresolved issues, stock notes, or anything else the manager should know.
-            </p>
-            <Textarea
-              value={reportNotes}
-              onChange={(e) => setReportNotes(e.target.value)}
-              disabled={!canEdit}
-              placeholder="Type any additional financial or operational notes for the day..."
-              className="mt-3 min-h-[130px]"
-            />
-            <div className="flex justify-end mt-3">
-              <Button
-                variant="outline"
-                onClick={() => void saveNotes()}
-                disabled={!canEdit || savingHeader}
-              >
-                {savingHeader ? (
-                  <Loader2 size={15} className="mr-1 animate-spin" />
-                ) : (
-                  <Save size={15} className="mr-1" />
-                )}
-                Save notes
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="form-section border-primary/20 bg-primary/[0.03]">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="font-semibold flex items-center gap-2">
-              <FileText size={16} className="text-primary" />
-              Finish today's report
-            </h2>
-            <p className="text-xs text-muted-foreground mt-1">
-              Review patient entries, activities, expenses and notes before submitting.
-            </p>
-          </div>
-          <Button
-            onClick={() => void submitReport()}
-            disabled={!canEdit || savingHeader}
-          >
-            {savingHeader ? (
-              <Loader2 size={16} className="mr-1 animate-spin" />
-            ) : (
-              <CheckCircle2 size={16} className="mr-1" />
-            )}
-            Submit & Lock Report
-          </Button>
-        </div>
-
-        {isSubmitted && (
-          <div className="mt-3 text-xs text-success flex items-center gap-1.5">
-            <CheckCircle2 size={13} />
-            Submitted {formatDateTime(report?.submitted_at)}.
-            The report is now read-only.
-          </div>
-        )}
-      </div>
-
-      <Dialog open={activityOpen} onOpenChange={setActivityOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add activity / sale</DialogTitle>
-          </DialogHeader>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <Label>Activity type</Label>
-              <Select
-                value={activityForm.activity_type}
-                onValueChange={(value) =>
-                  setActivityForm((f) => ({ ...f, activity_type: value }))
-                }
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ACTIVITY_TYPES.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="col-span-2">
-              <Label>Description</Label>
-              <Input
-                value={activityForm.description}
-                onChange={(e) =>
-                  setActivityForm((f) => ({ ...f, description: e.target.value }))
-                }
-                placeholder="Example: Walk-in frame sale"
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label>Quantity</Label>
-              <Input
-                type="number"
-                min="1"
-                value={activityForm.quantity}
-                onChange={(e) =>
-                  setActivityForm((f) => ({ ...f, quantity: e.target.value }))
-                }
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label>Amount (₦)</Label>
-              <Input
-                type="number"
-                min="0"
-                value={activityForm.amount}
-                onChange={(e) =>
-                  setActivityForm((f) => ({ ...f, amount: e.target.value }))
-                }
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label>Payment method</Label>
-              <Select
-                value={activityForm.payment_method}
-                onValueChange={(value) =>
-                  setActivityForm((f) => ({ ...f, payment_method: value }))
-                }
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_METHODS.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Customer name</Label>
-              <Input
-                value={activityForm.customer_name}
-                onChange={(e) =>
-                  setActivityForm((f) => ({ ...f, customer_name: e.target.value }))
-                }
-                placeholder="Optional"
-                className="mt-1"
-              />
-            </div>
-
-            <div className="col-span-2">
-              <Label>Remarks</Label>
-              <Textarea
-                value={activityForm.remarks}
-                onChange={(e) =>
-                  setActivityForm((f) => ({ ...f, remarks: e.target.value }))
-                }
-                placeholder="Optional"
-                className="mt-1"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setActivityOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => void addActivity()} disabled={activitySaving}>
-              {activitySaving && <Loader2 size={15} className="mr-1 animate-spin" />}
-              Save activity
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={expenseOpen} onOpenChange={setExpenseOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add expense</DialogTitle>
-          </DialogHeader>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <Label>Description</Label>
-              <Input
-                value={expenseForm.description}
-                onChange={(e) =>
-                  setExpenseForm((f) => ({ ...f, description: e.target.value }))
-                }
-                placeholder="Example: Cleaning supplies"
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label>Amount (₦)</Label>
-              <Input
-                type="number"
-                min="0.01"
-                value={expenseForm.amount}
-                onChange={(e) =>
-                  setExpenseForm((f) => ({ ...f, amount: e.target.value }))
-                }
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label>Payment method</Label>
-              <Select
-                value={expenseForm.payment_method}
-                onValueChange={(value) =>
-                  setExpenseForm((f) => ({ ...f, payment_method: value }))
-                }
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_METHODS.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="col-span-2">
-              <Label>Paid to</Label>
-              <Input
-                value={expenseForm.paid_to}
-                onChange={(e) =>
-                  setExpenseForm((f) => ({ ...f, paid_to: e.target.value }))
-                }
-                placeholder="Optional"
-                className="mt-1"
-              />
-            </div>
-
-            <div className="col-span-2">
-              <Label>Remarks</Label>
-              <Textarea
-                value={expenseForm.remarks}
-                onChange={(e) =>
-                  setExpenseForm((f) => ({ ...f, remarks: e.target.value }))
-                }
-                placeholder="Optional"
-                className="mt-1"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setExpenseOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => void addExpense()} disabled={expenseSaving}>
-              {expenseSaving && <Loader2 size={15} className="mr-1 animate-spin" />}
-              Save expense
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
+
+  function renderSection(id: string) {
+    if (id === "patients") {
+      if (!patients.length) return <Empty text="No patients were recorded for this date." />;
+      return <div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-sm">
+        <thead><tr className="border-b text-left text-xs text-muted-foreground">
+          <th className="p-2">#</th><th className="p-2">Patient</th><th className="p-2">Clinic ID</th><th className="p-2">Type</th><th className="p-2">HMO</th><th className="p-2">Service / Rx</th><th className="p-2">Prescription</th><th className="p-2">Lens Order</th><th className="p-2">Feedback</th>
+        </tr></thead>
+        <tbody>{patients.map((row, i) => <tr key={row.key} className="border-b last:border-0">
+          <td className="p-2">{i + 1}</td><td className="p-2 font-medium">{row.patient_name}<div className="text-[11px] text-muted-foreground">{row.phone || "No phone"}</div></td><td className="p-2">{row.patient_number || "—"}</td><td className="p-2"><Badge text={row.patient_type === "hmo" ? "HMO" : "Private"} tone={row.patient_type === "hmo" ? "blue" : "gray"} /></td><td className="p-2">{row.hmo_name || "—"}</td><td className="p-2">{row.prescription_available ? "Consultation + Rx" : "Consultation / visit"}</td><td className="p-2"><Badge text={row.glasses_prescription_sent ? "Sent" : row.prescription_available ? "Available" : "—"} tone={row.glasses_prescription_sent ? "green" : "gray"} /></td><td className="p-2"><Badge text={row.lens_order_required ? (row.lens_order_status || "Pending") : "No order"} tone={row.lens_order_required ? "orange" : "gray"} /></td><td className="p-2"><Badge text={row.feedback_form_sent ? "Sent" : "Pending"} tone={row.feedback_form_sent ? "green" : "orange"} /></td>
+        </tr>)}</tbody>
+      </table></div>;
+    }
+
+    if (id === "income") {
+      return <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <MoneyCard label="Cash" value={financials?.cash_received} /><MoneyCard label="Transfer" value={financials?.transfer_received} /><MoneyCard label="POS / Card" value={financials?.card_received} /><MoneyCard label="Total private payments" value={financials?.total_patient_payments} />
+      </div>;
+    }
+
+    if (id === "claims") {
+      return <div className="space-y-4">
+        <div className="rounded-xl border bg-muted/20 p-3 text-xs text-muted-foreground">HMO systems are not directly connected to OptoCare. Patient details are supplied automatically; the front desk records PA codes, claim status, HMO responses and claim remarks here.</div>
+        {hmoPatients.length === 0 ? <Empty text="No HMO patients for this date." /> : <div className="space-y-3">
+          {hmoPatients.map((row) => <ClaimEditor key={row.key} row={row} canEdit={canEdit} saving={savingPatient === row.key} updatePatient={updatePatient} savePatient={savePatient} />)}
+        </div>}
+      </div>;
+    }
+
+    if (id === "prescriptions") {
+      const rows = patients.filter((p) => p.prescription_available || p.lens_order_required);
+      if (!rows.length) return <Empty text="No prescriptions or lens orders for this date." />;
+      return <div className="space-y-3">{rows.map((row) => <LensEditor key={row.key} row={row} canEdit={canEdit} saving={savingPatient === row.key} updatePatient={updatePatient} savePatient={savePatient} />)}</div>;
+    }
+
+    if (id === "sales") {
+      return <div className="space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3"><MoneyCard label="Walk-in sales" value={financials?.walk_in_sales || activityTotal} /><MoneyCard label="Inventory sales" value={financials?.total_inventory_sales} /><MoneyCard label="Total income" value={financials?.total_income} /></div>
+        <div className="flex justify-end"><Button size="sm" onClick={() => setActivityOpen(true)} disabled={!canEdit}><Plus size={15} className="mr-1" /> Add sale / activity</Button></div>
+        <ActivityList rows={activities} />
+      </div>;
+    }
+
+    if (id === "expenses") {
+      return <div className="space-y-4"><div className="flex justify-end"><Button size="sm" onClick={() => setExpenseOpen(true)} disabled={!canEdit}><Plus size={15} className="mr-1" /> Add expense</Button></div><ExpenseTable rows={expenses} total={financials?.total_expenses || expenseTotal} /></div>;
+    }
+
+    if (id === "activities") {
+      return <div className="space-y-4"><div className="flex justify-end"><Button size="sm" onClick={() => setActivityOpen(true)} disabled={!canEdit}><Plus size={15} className="mr-1" /> Add activity</Button></div><ActivityList rows={activities} /></div>;
+    }
+
+    if (id === "remarks") {
+      return <div><Label>Issues / Remarks</Label><Textarea value={reportNotes} onChange={(e) => setReportNotes(e.target.value)} disabled={!canEdit} placeholder="Record issues, HMO follow-ups, patient requests, stock concerns or anything management should know." className="mt-2 min-h-[160px]" /><div className="flex justify-end mt-3"><Button variant="outline" onClick={() => void saveNotes()} disabled={!canEdit || savingNotes}>{savingNotes ? <Loader2 size={15} className="mr-1 animate-spin" /> : <MessageSquare size={15} className="mr-1" />} Save remarks</Button></div></div>;
+    }
+
+    if (id === "finish") {
+      return <div className="grid md:grid-cols-2 gap-4">
+        <div className="rounded-xl border p-4"><div className="text-sm font-semibold">Report status</div><div className="mt-2"><Badge text={isSubmitted ? "Submitted & Locked" : "Draft"} tone={isSubmitted ? "green" : "orange"} /></div><div className="mt-3 text-xs text-muted-foreground">{isSubmitted ? `Submitted ${formatDateTime(report?.submitted_at || null)}` : "Review each section before submitting."}</div></div>
+        <div className="rounded-xl border p-4"><div className="text-sm font-semibold">Daily balance</div><div className="mt-2 text-2xl font-bold">{formatMoney(financials?.daily_balance)}</div><div className="text-xs text-muted-foreground mt-1">Income less recorded expenses</div></div>
+        {!isSubmitted && <div className="md:col-span-2 flex justify-end"><Button onClick={() => void submitReport()} disabled={submitting}>{submitting ? <Loader2 size={15} className="mr-1 animate-spin" /> : <CheckCircle2 size={15} className="mr-1" />} Submit & Lock Report</Button></div>}
+        {isSubmitted && clinicEmail && <div className="md:col-span-2 flex items-center justify-between gap-3 rounded-xl bg-muted/30 p-4"><div><div className="font-medium text-sm">Email recipient</div><div className="text-xs text-muted-foreground">{clinicEmail}</div></div><Button variant="outline" onClick={() => void sendReportEmail()} disabled={sendingEmail}>{sendingEmail ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Mail size={15} className="mr-1" />} Send Report</Button></div>}
+        {canConfigureEmail && <div className="md:col-span-2 rounded-xl border p-4"><Label>Daily report email (Admin)</Label><div className="mt-2 flex gap-2"><Input value={emailDraft} onChange={(e) => setEmailDraft(e.target.value)} placeholder="manager@clinic.com" /><Button variant="outline" onClick={() => void saveRecipientEmail()} disabled={savingEmail}>{savingEmail ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Mail size={15} className="mr-1" />} Save recipient</Button></div></div>}
+      </div>;
+    }
+    return null;
+  }
+
+  function ClaimEditor({ row, canEdit: editable, saving, updatePatient: update, savePatient: save }: { row: PatientRow; canEdit: boolean; saving: boolean; updatePatient: (key: string, patch: Partial<PatientRow>) => void; savePatient: (row: PatientRow) => Promise<void> }) {
+    const meta = parseMeta<ClaimMeta>(row.hmo_claim_remarks, { pa_code: "", claim_amount: "", response: "", remarks: "" });
+    const setMeta = (patch: Partial<ClaimMeta>) => update(row.key, { hmo_claim_remarks: encodeMeta({ ...meta, ...patch }) });
+    return <div className="rounded-xl border p-4 space-y-4">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 text-xs">
+        <Info label="Patient" value={row.patient_name} /><Info label="Clinic ID" value={row.patient_number || "—"} /><Info label="Phone" value={row.phone || "—"} /><Info label="HMO" value={row.hmo_name || "—"} /><Info label="Service" value={row.prescription_available ? "Consultation + Rx" : "Eye visit"} /><Info label="Claim amount" value={meta.claim_amount ? formatMoney(Number(meta.claim_amount)) : "Not entered"} />
+      </div>
+      <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3">
+        <Field label="PA / Authorization code"><Input value={meta.pa_code} onChange={(e) => setMeta({ pa_code: e.target.value })} disabled={!editable} placeholder="Enter PA code" /></Field>
+        <Field label="Claim amount (₦)"><Input type="number" min="0" value={meta.claim_amount} onChange={(e) => setMeta({ claim_amount: e.target.value })} disabled={!editable} placeholder="Amount claimed" /></Field>
+        <Field label="Claim status"><Select value={row.hmo_claim_status || "Not sent"} onValueChange={(v) => update(row.key, { hmo_claim_status: v })} disabled={!editable}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CLAIM_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></Field>
+        <Field label="HMO response"><Input value={meta.response} onChange={(e) => setMeta({ response: e.target.value })} disabled={!editable} placeholder="e.g. Approved / rejected" /></Field>
+      </div>
+      <Field label="Claim remarks"><Textarea value={meta.remarks} onChange={(e) => setMeta({ remarks: e.target.value })} disabled={!editable} placeholder="Record authorization issues, HMO reply, follow-up or other claim remarks." className="min-h-[80px]" /></Field>
+      <div className="flex justify-end"><Button size="sm" onClick={() => void save(row)} disabled={!editable || saving}>{saving ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CheckCircle2 size={14} className="mr-1" />} Save claim</Button></div>
+    </div>;
+  }
+
+  function LensEditor({ row, canEdit: editable, saving, updatePatient: update, savePatient: save }: { row: PatientRow; canEdit: boolean; saving: boolean; updatePatient: (key: string, patch: Partial<PatientRow>) => void; savePatient: (row: PatientRow) => Promise<void> }) {
+    const meta = parseMeta<LensMeta>(row.lens_order_remarks, { lab: "", fitted_today: false, remarks: "" });
+    const setMeta = (patch: Partial<LensMeta>) => update(row.key, { lens_order_remarks: encodeMeta({ ...meta, ...patch }) });
+    return <div className="rounded-xl border p-4">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+        <div><div className="font-semibold">{row.patient_name}</div><div className="text-xs text-muted-foreground">{row.patient_number || "No clinic ID"} · {row.phone || "No phone"}</div></div>
+        <Badge text={row.lens_order_required ? (row.lens_order_status || "Pending") : "Prescription only"} tone={row.lens_order_required ? "orange" : "blue"} />
+      </div>
+      <div className="mt-4 grid md:grid-cols-2 gap-4">
+        <div className="rounded-lg bg-muted/30 p-3"><div className="text-xs font-medium">Prescription</div><div className="mt-2 text-sm">OD: {refraction(row.od_sphere, row.od_cylinder, row.od_axis)}</div><div className="text-sm">OS: {refraction(row.os_sphere, row.os_cylinder, row.os_axis)}</div><div className="text-sm">ADD: {row.reading_add || "—"}</div><div className="mt-2 text-xs text-muted-foreground">Lens type: {row.lens_type || "Not specified"}</div></div>
+        <div className="grid gap-3">
+          <Field label="Lens order status"><Select value={row.lens_order_status || "pending"} onValueChange={(v) => update(row.key, { lens_order_status: v })} disabled={!editable || !row.lens_order_required}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{LENS_ORDER_STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent></Select></Field>
+          <Field label="Laboratory"><Input value={meta.lab} onChange={(e) => setMeta({ lab: e.target.value })} disabled={!editable} placeholder="Lab / glazing centre" /></Field>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-5">
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={row.glasses_prescription_sent} onChange={(e) => update(row.key, { glasses_prescription_sent: e.target.checked })} disabled={!editable} /> Prescription sent to lab</label>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={meta.fitted_today} onChange={(e) => setMeta({ fitted_today: e.target.checked })} disabled={!editable} /> Lens fitted today at lab</label>
+      </div>
+      <div className="mt-3"><Field label="Lens order remarks"><Textarea value={meta.remarks} onChange={(e) => setMeta({ remarks: e.target.value })} disabled={!editable} placeholder="Order details, lab response, fitting notes..." /></Field></div>
+      <div className="flex justify-end mt-3"><Button size="sm" onClick={() => void save(row)} disabled={!editable || saving}>{saving ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CheckCircle2 size={14} className="mr-1" />} Save lens record</Button></div>
+    </div>;
+  }
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div><Label className="text-xs">{label}</Label><div className="mt-1">{children}</div></div>;
+}
+function Info({ label, value }: { label: string; value: string }) {
+  return <div><div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div><div className="mt-1 font-medium truncate">{value}</div></div>;
+}
+function Badge({ text, tone }: { text: string; tone: "green" | "orange" | "blue" | "gray" }) {
+  const cls = { green: "bg-green-100 text-green-700", orange: "bg-orange-100 text-orange-700", blue: "bg-blue-100 text-blue-700", gray: "bg-muted text-muted-foreground" }[tone];
+  return <span className={`inline-flex items-center rounded-full px-2 py-1 text-[11px] font-medium ${cls}`}>{text}</span>;
+}
+function MoneyCard({ label, value }: { label: string; value: number | undefined | null }) {
+  return <div className="rounded-xl border bg-muted/20 p-4"><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1 text-lg font-bold">{formatMoney(value)}</div></div>;
+}
+function Empty({ text }: { text: string }) {
+  return <div className="py-10 text-center text-sm text-muted-foreground">{text}</div>;
+}
+function ActivityList({ rows }: { rows: ActivityRow[] }) {
+  if (!rows.length) return <Empty text="No activities recorded." />;
+  return <div className="divide-y rounded-xl border">{rows.map((row) => <div key={row.id} className="p-3 flex items-start justify-between gap-4"><div><div className="font-medium text-sm">{row.description}</div><div className="text-xs text-muted-foreground mt-1">{row.customer_name || "No customer"} · Qty {row.quantity} · {row.payment_method || "—"}</div>{row.remarks && <div className="text-xs text-muted-foreground mt-1">{row.remarks}</div>}</div><div className="font-semibold text-sm">{formatMoney(row.amount)}</div></div>)}</div>;
+}
+function ExpenseTable({ rows, total }: { rows: ExpenseRow[]; total: number }) {
+  return <div><div className="overflow-x-auto rounded-xl border"><table className="w-full min-w-[650px] text-sm"><thead className="text-xs text-muted-foreground bg-muted/30"><tr><th className="p-3 text-left">Expense</th><th className="p-3 text-left">Paid to</th><th className="p-3 text-left">Method</th><th className="p-3 text-right">Amount</th><th className="p-3 text-left">Remarks</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id} className="border-t"><td className="p-3">{row.description}</td><td className="p-3">{row.paid_to || "—"}</td><td className="p-3 capitalize">{row.payment_method}</td><td className="p-3 text-right font-medium">{formatMoney(row.amount)}</td><td className="p-3 text-muted-foreground">{row.remarks || "—"}</td></tr>)}</tbody></table>{!rows.length && <Empty text="No expenses recorded." />}</div><div className="text-right mt-3 font-semibold">Total expenses: {formatMoney(total)}</div></div>;
 }
