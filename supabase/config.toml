@@ -9,6 +9,9 @@ verify_jwt = false
 [functions.send-daily-summary]
 verify_jwt = false
 
+[functions.send-daily-front-desk-report]
+verify_jwt = false
+
 [functions.resend-webhook]
 verify_jwt = false
 
