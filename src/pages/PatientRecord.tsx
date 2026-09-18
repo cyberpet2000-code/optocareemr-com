@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -214,7 +215,7 @@ const canViewFinancials =
   const [hmoMap, setHmoMap] = useState<Map<string, { name: string; website?: string | null }>>(new Map());
   const [visits, setVisits] = useState<any[]>([]);
   const [doctorMap, setDoctorMap] = useState<Map<string, string>>(new Map());
-  const [doctorOptions, setDoctorOptions] = useState<{ id: string; full_name: string }[]>([]);
+  const [responsibleDoctor, setResponsibleDoctor] = useState<{ id: string; full_name: string } | null>(null);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -625,8 +626,17 @@ if (!isReceptionist) {
   }, [patientId, cid, canViewFinancials]);
 
 
+  // Resolve the operational doctor for the active clinic automatically.
+  // Super-admin identities are intentionally excluded from the clinic's clinical
+  // doctor list, even when a super-admin also has a legacy doctor membership.
   useEffect(() => {
-    if (!cid) return;
+    let cancelled = false;
+
+    if (!cid) {
+      setResponsibleDoctor(null);
+      setSelectedDoctorId(null);
+      return;
+    }
 
     (async () => {
       const { data: staffRows, error: staffError } = await apiClient
@@ -635,41 +645,77 @@ if (!isReceptionist) {
         .eq("clinic_id", cid)
         .eq("role", "doctor");
 
+      if (cancelled) return;
+
       if (staffError) {
-        console.warn("[patient-record:doctor-list-failed]", staffError);
-        setDoctorOptions([]);
+        console.warn("[patient-record:doctor-resolve-failed]", staffError);
+        setResponsibleDoctor(null);
+        setSelectedDoctorId(null);
         return;
       }
 
-      const doctorIds = [...new Set((staffRows || []).map((row: any) => row.user_id).filter(Boolean))];
+      const doctorIds = [...new Set(
+        (staffRows || [])
+          .map((row: any) => row.user_id)
+          .filter(Boolean)
+      )];
+
       if (doctorIds.length === 0) {
-        setDoctorOptions([]);
+        setResponsibleDoctor(null);
+        setSelectedDoctorId(null);
         return;
       }
 
-      const { data: profiles } = await apiClient
+      const { data: profiles, error: profileError } = await apiClient
         .from("profiles")
-        .select("id, full_name")
+        .select("id, full_name, is_super_admin")
         .in("id", doctorIds);
 
-      const options = (profiles || [])
+      if (cancelled) return;
+
+      if (profileError) {
+        console.warn("[patient-record:doctor-profile-failed]", profileError);
+        setResponsibleDoctor(null);
+        setSelectedDoctorId(null);
+        return;
+      }
+
+      const operationalDoctors = (profiles || [])
+        .filter((profile: any) => profile.is_super_admin !== true)
         .map((profile: any) => ({
           id: profile.id,
           full_name: profile.full_name || "Doctor",
         }))
         .sort((a, b) => a.full_name.localeCompare(b.full_name));
 
-      setDoctorOptions(options);
-    })();
-  }, [cid]);
+      // If the logged-in user is a clinic doctor, keep attribution on that
+      // doctor. Otherwise use the clinic's first operational doctor.
+      const currentDoctor = user?.id
+        ? operationalDoctors.find((doctor) => doctor.id === user.id)
+        : null;
 
-  useEffect(() => {
-    if (role === "doctor" && user?.id) {
-      setSelectedDoctorId(user.id);
-    } else if (!editingVisitId) {
-      setSelectedDoctorId(null);
-    }
-  }, [role, user?.id, editingVisitId]);
+      const editingDoctorId = editingVisitId
+        ? visits.find((visit: any) => visit.id === editingVisitId)?.doctor_id
+        : null;
+
+      const existingOperationalDoctor = editingDoctorId
+        ? operationalDoctors.find((doctor) => doctor.id === editingDoctorId)
+        : null;
+
+      const preferredDoctor =
+        currentDoctor ||
+        existingOperationalDoctor ||
+        operationalDoctors[0] ||
+        null;
+
+      setResponsibleDoctor(preferredDoctor);
+      setSelectedDoctorId(preferredDoctor?.id || null);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cid, user?.id, role, editingVisitId, visits]);
 
   const setField = (k: string, v: string) =>
   setForm(prev => ({
@@ -772,9 +818,10 @@ subVaOutcome: v.sub_va_outcome || "",
 
       setAppointmentCreated(true);
       toast.success("Follow-up appointment booked and added to Appointments.");
+      setShowAppointmentBooking(false);
       setAppointmentDate("");
       setAppointmentTime("");
-      setAppointmentReason("Follow-up");
+      setAppointmentReason("");
     } finally {
       setSavingAppointment(false);
     }
@@ -833,8 +880,8 @@ subVaOutcome: v.sub_va_outcome || "",
       if (!isValidAxis(val)) { toast.error(`${label} must be 1–180: "${val}"`); return; }
     }
 
-    if (role !== "doctor" && !selectedDoctorId) {
-      toast.error("Select the responsible doctor for this visit");
+    if (!selectedDoctorId) {
+      toast.error("No clinic doctor is available for this visit");
       return;
     }
 
@@ -1868,27 +1915,20 @@ shadow-sm
 
             {(role === "admin" || role === "super_admin") && (
               <div className="mb-4 rounded-xl border bg-muted/20 p-3">
-                <Label className="text-xs">Responsible Doctor *</Label>
-                <Select
-                  value={selectedDoctorId || ""}
-                  onValueChange={setSelectedDoctorId}
-                >
-                  <SelectTrigger className="mt-1 rounded-xl">
-                    <SelectValue placeholder="Select doctor responsible for this visit" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {doctorOptions.map((doctor) => (
-                      <SelectItem key={doctor.id} value={doctor.id}>
-                        {doctor.full_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {doctorOptions.length === 0 && (
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    No doctor is currently assigned to this clinic.
-                  </p>
-                )}
+                <Label className="text-xs">Responsible Doctor</Label>
+                <div className="mt-1 rounded-xl border bg-background px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-medium">
+                      {responsibleDoctor?.full_name || "No clinic doctor available"}
+                    </span>
+                    <span className="text-[10px] rounded-full bg-primary/10 text-primary px-2 py-1">
+                      Auto-selected
+                    </span>
+                  </div>
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Uses the active clinic's doctor account, not the super-admin account.
+                </p>
               </div>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2336,7 +2376,9 @@ shadow-sm
           className="h-7 rounded-lg px-2 text-[10px] font-medium"
           onClick={() => {
             setAppointmentType("Follow-up");
-            setAppointmentReason("");
+            setAppointmentReason("Follow-up");
+            setAppointmentDate("");
+            setAppointmentTime("");
             setAppointmentCreated(false);
             setShowAppointmentBooking(true);
           }}
@@ -3019,6 +3061,115 @@ shadow-sm
            </div>
           </TabsContent>}
       </Tabs>
+
+      <Dialog
+        open={showAppointmentBooking}
+        onOpenChange={(open) => {
+          if (savingAppointment) return;
+          setShowAppointmentBooking(open);
+          if (!open) {
+            setAppointmentCreated(false);
+            setAppointmentDate("");
+            setAppointmentTime("");
+            setAppointmentReason("");
+          }
+        }}
+      >
+        <DialogContent className="rounded-3xl max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarPlus size={18} />
+              Book appointment
+            </DialogTitle>
+            <DialogDescription>
+              Schedule a follow-up, advice or referral appointment for this patient.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-2xl border bg-muted/30 p-3">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                Patient
+              </p>
+              <p className="text-sm font-semibold mt-1">{patient.full_name}</p>
+            </div>
+
+            <div className="rounded-2xl border bg-primary/5 p-3">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                Responsible doctor
+              </p>
+              <p className="text-sm font-semibold mt-1">
+                {responsibleDoctor?.full_name || "No clinic doctor available"}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Automatically selected from the active clinic's clinical staff.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="patient-appointment-date">Date</Label>
+                <Input
+                  id="patient-appointment-date"
+                  type="date"
+                  className="rounded-xl"
+                  value={appointmentDate}
+                  min={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setAppointmentDate(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="patient-appointment-time">Time</Label>
+                <Input
+                  id="patient-appointment-time"
+                  type="time"
+                  className="rounded-xl"
+                  value={appointmentTime}
+                  onChange={(e) => setAppointmentTime(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="patient-appointment-reason">Reason</Label>
+              <Textarea
+                id="patient-appointment-reason"
+                className="rounded-xl"
+                rows={3}
+                value={appointmentReason}
+                onChange={(e) => setAppointmentReason(e.target.value)}
+                placeholder="e.g. IOP follow-up, glaucoma follow-up, advice, referral..."
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => setShowAppointmentBooking(false)}
+              disabled={savingAppointment}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl"
+              onClick={bookFollowUpAppointment}
+              disabled={
+                savingAppointment ||
+                !appointmentDate ||
+                !appointmentTime ||
+                !selectedDoctorId
+              }
+            >
+              {savingAppointment ? "Booking..." : "Book appointment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="sticky bottom-20 lg:bottom-4 mt-6 flex justify-end gap-2">
         
