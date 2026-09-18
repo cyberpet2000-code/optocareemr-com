@@ -150,9 +150,9 @@ export default function HmoManagement() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => { setPlanHmo(h); setPlanOpen(true); }}><FileText size={14} /></Button>
-                        <Button variant="ghost" size="sm" className="rounded-xl" onClick={() => openEdit(h)}><Pencil size={14} /></Button>
-                        <Button variant="ghost" size="sm" className="rounded-xl text-destructive" onClick={() => deleteHmo(h.id)}><Trash2 size={14} /></Button>
+                        <Button variant="ghost" size="sm" className="rounded-xl" title="Manage HMO plans" onClick={() => { setPlanHmo(h); setPlanOpen(true); }}><FileText size={14} /></Button>
+                        <Button variant="ghost" size="sm" className="rounded-xl" title="Edit HMO" onClick={() => openEdit(h)}><Pencil size={14} /></Button>
+                        <Button variant="ghost" size="sm" className="rounded-xl text-destructive" title="Delete HMO" onClick={() => deleteHmo(h.id)}><Trash2 size={14} /></Button>
                       </div>
                     </div>
                   </div>
