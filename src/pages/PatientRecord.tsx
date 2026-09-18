@@ -2482,6 +2482,7 @@ shadow-sm
               variant="outline"
               className="h-7 shrink-0 rounded-lg px-2 text-[10px] font-medium"
               onClick={() => handleMarkDispensed(v.id, "optical")}
+              title="Dispense optical prescription"
             >
               ✔️ Dispense
             </Button>
@@ -2529,6 +2530,7 @@ shadow-sm
                         medicationItem.name
                       )
                     }
+                    title={`Dispense medication: ${medicationItem.name}`}
                   >
                     ✔️ Dispense
                   </Button>
@@ -2550,7 +2552,10 @@ shadow-sm
 </div>
 
     {feedbackDetails[v.id] && (
-  <details className="mt-2 rounded-xl border bg-muted/30 px-3 py-2 group">
+  <details
+    className="mt-2 rounded-xl border bg-muted/30 px-3 py-2 group"
+    title="View feedback report"
+  >
     <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-semibold text-primary">
       <span className="flex items-center gap-1.5">
         <MessageCircle size={14} /> Feedback Report
@@ -2729,6 +2734,13 @@ shadow-sm
     size="sm"
     variant="outline"
     className="h-7 rounded-lg px-2 text-[10px] font-medium gap-1"
+    title={
+      visitFeedbackStatus[v.id] === "completed"
+        ? "Feedback report already completed"
+        : !isPrescriptionReadyForFeedback(v)
+          ? "Dispense all prescribed items first"
+          : "View feedback report"
+    }
     onClick={() => handleSendFeedback(v.id)}
     disabled={
       sendingFeedback ||
