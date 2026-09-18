@@ -2722,7 +2722,7 @@ shadow-sm
   <Button
     size="sm"
     variant="outline"
-    className="rounded-xl gap-1"
+    className="h-7 rounded-lg px-2 text-[10px] gap-1"
     onClick={() => handleSendFeedback(v.id)}
     disabled={
       sendingFeedback ||
