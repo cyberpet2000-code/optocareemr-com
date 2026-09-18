@@ -2714,7 +2714,6 @@ shadow-sm
         ).toLocaleString()}
       </p>
     )}
-    </div>
   </details>
 )}
 
