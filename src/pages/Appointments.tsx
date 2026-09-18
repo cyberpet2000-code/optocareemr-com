@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { CalendarIcon, Plus, X, Clock, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { CalendarIcon, Plus, X, Clock, CheckCircle2, XCircle, AlertCircle, Bell, BellRing } from "lucide-react";
 import { format } from "date-fns";
 import { useAccessClinic } from "@/hooks/useAccess";
 import { diag } from "@/lib/diag";
@@ -25,6 +25,11 @@ interface Appointment {
   status: string;
   source: string;
   clinic_id: string | null;
+  doctor_id?: string | null;
+  visit_id?: string | null;
+  priority?: string | null;
+  reminder_sent_at?: string | null;
+  reminder_channel?: string | null;
   patient_name?: string;
 }
 
@@ -45,6 +50,7 @@ export default function Appointments() {
   const [filterDate, setFilterDate] = useState<Date>(new Date());
   const [form, setForm] = useState({ patientId: "", date: new Date(), time: "", reason: "" });
   const [saving, setSaving] = useState(false);
+  const [remindingId, setRemindingId] = useState<string | null>(null);
 
   const filterDateStr = useMemo(() => format(filterDate, "yyyy-MM-dd"), [filterDate]);
 
@@ -76,7 +82,7 @@ export default function Appointments() {
       const end = diag.time("query", "appointments.list", { clinic_id: cid, from: filterDateStr });
       const { data, error: qErr } = await apiClient
         .from("appointments")
-        .select("id, patient_id, appointment_date, appointment_time, reason, status, source, clinic_id")
+        .select("id, patient_id, appointment_date, appointment_time, reason, status, source, clinic_id, doctor_id, visit_id, priority, reminder_sent_at, reminder_channel")
         .eq("clinic_id", cid)
         .gte("appointment_date", filterDateStr)
         .order("appointment_date", { ascending: true })
@@ -215,6 +221,35 @@ export default function Appointments() {
     loadAppointments();
   };
 
+  const sendReminder = async (appointment: Appointment) => {
+    if (!cid || !appointment.patient_id) {
+      toast.error("A patient-linked appointment is required for reminders.");
+      return;
+    }
+    setRemindingId(appointment.id);
+    try {
+      const { data: patient, error } = await apiClient
+        .from("patients")
+        .select("id, full_name, phone")
+        .eq("clinic_id", cid)
+        .eq("id", appointment.patient_id)
+        .maybeSingle();
+      if (error || !patient) {
+        toast.error(error?.message || "Patient not found.");
+        return;
+      }
+      const phone = String(patient.phone || "").replace(/[^0-9]/g, "");
+      if (!phone) { toast.error("This patient has no phone number saved."); return; }
+      const dateLabel = new Date(appointment.appointment_date + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+      const message = "Hello " + patient.full_name + ", this is a reminder from the clinic about your appointment on " + dateLabel + (appointment.appointment_time ? " at " + appointment.appointment_time : "") + ". Please arrive 10 minutes early. If you need to reschedule, please contact the clinic.";
+      window.open("https://wa.me/" + phone + "?text=" + encodeURIComponent(message), "_blank", "noopener,noreferrer");
+      const { error: trackError } = await apiClient.from("appointments").update({ reminder_sent_at: new Date().toISOString(), reminder_channel: "whatsapp" } as any).eq("clinic_id", cid).eq("id", appointment.id);
+      if (trackError) console.warn("Failed to track reminder:", trackError);
+      toast.success("WhatsApp reminder opened.");
+      loadAppointments();
+    } finally { setRemindingId(null); }
+  };
+
   const updateStatus = async (id: string, status: string) => {
     if (!cid) return;
     const { error: uErr } = await apiClient
@@ -336,30 +371,30 @@ export default function Appointments() {
       ) : (
         <div className="space-y-2">
           {appointments.map(a => (
-            <div key={a.id} className="medical-card p-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Clock size={16} className="text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-bold">{a.appointment_time ?? "—"}</span>
-                  <span className="text-sm font-medium truncate">{a.patient_name}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${statusStyle(a.status)}`}>{a.status}</span>
-                  {a.source === "auto" && <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">auto</span>}
+            <div key={a.id} className="medical-card p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0"><Clock size={17} className="text-primary" /></div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-bold">{a.appointment_time ?? "—"}</span>
+                    <span className="text-sm font-semibold truncate">{a.patient_name}</span>
+                    <span className={`text-[10px] px-2 py-1 rounded-full capitalize ${statusStyle(a.status)}`}>{a.status}</span>
+                    {a.priority && a.priority !== "normal" && <span className="text-[10px] px-2 py-1 rounded-full bg-amber-100 text-amber-700 capitalize">{a.priority}</span>}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{a.appointment_date}{a.reason ? " • " + a.reason : ""}</p>
+                  <div className="mt-2 flex items-center gap-1.5">
+                    {a.reminder_sent_at ? <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-success/10 text-success"><Bell size={11} /> Reminder sent</span> : <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-amber-100 text-amber-700"><BellRing size={11} /> Reminder due</span>}
+                    {a.source === "auto" && <span className="text-[10px] px-2 py-1 rounded-full bg-primary/10 text-primary">From visit</span>}
+                  </div>
                 </div>
-                {a.reason && <p className="text-xs text-muted-foreground mt-0.5 truncate">{a.reason}</p>}
-                <p className="text-[10px] text-muted-foreground/70 mt-0.5">{a.appointment_date}</p>
-              </div>
-              {(a.status === "pending" || a.status === "confirmed") && (
                 <div className="flex gap-1 shrink-0">
-                  <button onClick={() => updateStatus(a.id, "completed")} className="p-2 rounded-xl hover:bg-muted transition-colors" aria-label="Mark completed" title="Mark appointment as completed">
-                    <CheckCircle2 size={16} className="text-success" />
-                  </button>
-                  <button onClick={() => updateStatus(a.id, "cancelled")} className="p-2 rounded-xl hover:bg-muted transition-colors" aria-label="Cancel">
-                    <XCircle size={16} className="text-destructive" />
-                  </button>
+                  {(a.status === "pending" || a.status === "confirmed") && <>
+                    <button onClick={() => updateStatus(a.id, "completed")} className="p-2 rounded-xl hover:bg-muted" title="Mark appointment as completed"><CheckCircle2 size={16} className="text-success" /></button>
+                    <button onClick={() => updateStatus(a.id, "cancelled")} className="p-2 rounded-xl hover:bg-muted" title="Cancel appointment"><XCircle size={16} className="text-destructive" /></button>
+                  </>}
+                  <button onClick={() => sendReminder(a)} disabled={remindingId === a.id || a.status === "cancelled" || a.status === "completed"} className="p-2 rounded-xl hover:bg-muted disabled:opacity-50" title={a.reminder_sent_at ? "Resend appointment reminder on WhatsApp" : "Send appointment reminder on WhatsApp"}>{remindingId === a.id ? <Clock size={16} className="text-primary animate-spin" /> : <Bell size={16} className="text-primary" />}</button>
                 </div>
-              )}
+              </div>
             </div>
           ))}
         </div>
