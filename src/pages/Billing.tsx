@@ -185,7 +185,8 @@ export default function Billing() {
 
   const selectedPatient = patients.find(p => p.id === form.patientId);
   const loadPatientBilling = async (
-    patient: Patient
+    patient: Patient,
+    targetVisitId?: string | null
   ) => {
     if (!cid) return;
 
@@ -231,9 +232,9 @@ export default function Billing() {
       );
 
       // Select the latest pending bill, or if no pending bills, the newest bill
-const selectedBill =
-  billsRes.find((b) => b.status !== "paid") ??
-  billsRes[0];
+const selectedBill = targetVisitId
+  ? (billsRes.find((b) => b.visit_id === targetVisitId) ?? null)
+  : (billsRes.find((b) => b.status !== "paid") ?? billsRes[0]);
 
 if (!selectedBill) {
   setEditingBillingId(null);
@@ -279,6 +280,16 @@ setEditingBillingId(selectedBill.id);
       setLoadingBilling(false);
     }
   };
+
+  useEffect(() => {
+    if (!cid || patients.length === 0) return;
+    const patientId = searchParams.get("patient_id");
+    const visitId = searchParams.get("visit_id");
+    if (!patientId) return;
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient) return;
+    loadPatientBilling(patient, visitId);
+  }, [cid, patients, searchParams]);
 
   const filteredPatients =
     patientSearch.trim() === ""
