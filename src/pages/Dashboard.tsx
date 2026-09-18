@@ -743,12 +743,19 @@ if (user?.id) {
           {upcomingAppts.length > 0 && (
             <div className="medical-card mb-6">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="section-title"><Clock size={16} /> Today's Schedule</h2>
+                <Link to="/appointments" className="section-title hover:text-primary transition-colors">
+                  <Clock size={16} /> Today's Schedule
+                </Link>
                 <Link to="/appointments" className="text-xs text-primary font-medium hover:underline">View all</Link>
               </div>
               <div className="space-y-2">
                 {upcomingAppts.map((a: any) => (
-                  <div key={a.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/50 hover:bg-muted transition-all">
+                  <Link
+                    key={a.id}
+                    to="/appointments"
+                    className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/50 hover:bg-muted transition-all group"
+                    title="Open appointments"
+                  >
                     <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                       <Clock size={14} className="text-primary" />
                     </div>
@@ -756,7 +763,8 @@ if (user?.id) {
                       <p className="text-sm font-medium truncate">{a.patient_name}</p>
                       <p className="text-xs text-muted-foreground">{a.appointment_time}{a.reason ? ` • ${a.reason}` : ""}</p>
                     </div>
-                  </div>
+                    <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground" />
+                  </Link>
                 ))}
               </div>
             </div>
