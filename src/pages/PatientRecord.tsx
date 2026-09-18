@@ -866,6 +866,21 @@ if (
 
       console.log("Dispensing result:", data);
 
+      if (itemType === "optical") {
+        setVisits(prev =>
+          prev.map(v =>
+            v.id === visitId
+              ? {
+                  ...v,
+                  optical_dispensed: true,
+                  optical_dispensed_at:
+                    v.optical_dispensed_at || new Date().toISOString(),
+                }
+              : v
+          )
+        );
+      }
+
       toast.success(
         itemType === "optical"
           ? "Optical prescription marked as dispensed"
@@ -931,6 +946,17 @@ if (
     }
 
     console.log("Medication dispensing result:", data);
+
+    const medicationKey = `${visitId}:${medicationName.toLowerCase()}`;
+    setMedicationDispensingMap(prev => ({
+      ...prev,
+      [medicationKey]: {
+        ...(prev[medicationKey] || {}),
+        dispensed: true,
+        dispensed_at:
+          prev[medicationKey]?.dispensed_at || new Date().toISOString(),
+      },
+    }));
 
     toast.success(`${medicationName} marked as dispensed`);
 
@@ -2367,11 +2393,11 @@ shadow-sm
   v.sub_os_axis ||
   v.sub_reading_add
 ) && (
-    <div className="rounded-xl bg-primary/5 p-3">
+        <div className="rounded-xl bg-primary/5 p-3">
       <div className="flex items-center gap-2 font-medium text-indigo-600 mb-2">
-  <Eye size={14} />
-  Subjective Refraction
-</div>
+        <Eye size={14} />
+        Subjective Refraction
+      </div>
 
       {(eyeHasRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis) ||
         eyeHasRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis)) &&
@@ -2399,161 +2425,101 @@ shadow-sm
           ADD {v.sub_reading_add}
         </p>
       )}
+
+      {v.lens_type && (
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <p className="min-w-0 flex-1 text-[11px] leading-tight text-muted-foreground">
+            ${v.lens_type}
+          </p>
+
+          {v.optical_dispensed ? (
+            <span className="shrink-0 inline-flex h-7 items-center rounded-lg bg-green-100 px-2 text-[10px] font-medium text-green-700">
+              ✅️ Dispensed
+            </span>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 shrink-0 rounded-lg px-2 text-[10px] font-medium"
+              onClick={() => handleMarkDispensed(v.id, "optical")}
+            >
+              ✔️ Dispense
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   )}
 
-  {(v.lens_type || v.medication || v.notes) && (
+  {(v.medication || v.notes) && (
     <div>
       <div className="flex items-center gap-2 font-semibold text-green-600">
         <FileText size={14} />
         Management Plan
       </div>
 
-      {v.lens_type && (
-        <div className="mt-2 rounded-xl border bg-card p-3">
-          <p className="font-medium">
-            • {v.lens_type}
-          </p>
+      {v.medication && (
+        <div className="mt-2 space-y-1.5">
+          {parseMedicationItems(v.medication).map((medicationItem) => {
+            const medicationKey = `${v.id}:${medicationItem.name.toLowerCase()}`;
+            const dispensing = medicationDispensingMap[medicationKey];
+            const isDispensed = dispensing?.dispensed ?? false;
 
-          <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
-            <span
-              className={`text-[11px] px-2.5 py-1 rounded-full font-medium ${
-                v.optical_dispensed
-                  ? "bg-green-100 text-green-700"
-                  : "bg-amber-100 text-amber-700"
-              }`}
-            >
-              {v.optical_dispensed
-                ? "Optical Prescription Dispensed"
-                : "Optical Prescription Not Dispensed"}
-            </span>
-
-            {!v.optical_dispensed && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-xl"
-                onClick={() =>
-                  handleMarkDispensed(v.id, "optical")
-                }
+            return (
+              <div
+                key={`${v.id}-${medicationItem.name}`}
+                className="flex items-center justify-between gap-2"
               >
-                <CheckCircle2 size={14} className="mr-1" />
-                Mark Glasses as Dispensed
-              </Button>
-            )}
-          </div>
+                <p className="min-w-0 flex-1 text-[11px] leading-tight font-medium">
+                  {medicationItem.prescribedText}
+                </p>
 
-          {v.optical_dispensed &&
-            v.optical_dispensed_at && (
-              <p className="text-[10px] text-muted-foreground mt-2">
-                Dispensed{" "}
-                {new Date(
-                  v.optical_dispensed_at
-                ).toLocaleString()}
-              </p>
-            )}
+                {isDispensed ? (
+                  <span className="shrink-0 inline-flex h-7 items-center rounded-lg bg-green-100 px-2 text-[10px] font-medium text-green-700">
+                    ✅️ Dispensed
+                  </span>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 shrink-0 rounded-lg px-2 text-[10px] font-medium"
+                    onClick={() =>
+                      handleMarkMedicationDispensed(
+                        v.id,
+                        medicationItem.name
+                      )
+                    }
+                  >
+                    ✔️ Dispense
+                  </Button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {v.medication && (
-  <div className="mt-2">
-    {parseMedicationItems(v.medication).map((medicationItem) => {
-      const medicationKey =
-        `${v.id}:${medicationItem.name.toLowerCase()}`;
-
-      const dispensing =
-        medicationDispensingMap[medicationKey];
-
-      const isDispensed =
-        dispensing?.dispensed ?? false;
-
-      return (
-        <div
-          key={`${v.id}-${medicationItem.name}`}
-          className="mt-2 rounded-xl border bg-card p-3"
-        >
-          <div className="flex items-start gap-2">
-            <Pill
-              size={14}
-              className="mt-0.5 text-green-600 shrink-0"
-            />
-
-            <p className="font-medium whitespace-pre-line">
-              {medicationItem.prescribedText}
-            </p>
-          </div>
-
-          <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
-            <span
-              className={`text-[11px] px-2.5 py-1 rounded-full font-medium ${
-                isDispensed
-                  ? "bg-green-100 text-green-700"
-                  : "bg-amber-100 text-amber-700"
-              }`}
-            >
-              {isDispensed
-                ? "Medication Dispensed"
-                : "Medication Not Dispensed"}
-            </span>
-
-            {!isDispensed && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-xl"
-                onClick={() =>
-                  handleMarkMedicationDispensed(
-                    v.id,
-                    medicationItem.name
-                  )
-                }
-              >
-                <CheckCircle2
-                  size={14}
-                  className="mr-1"
-                />
-                Mark Eye Drop as Dispensed
-              </Button>
-            )}
-          </div>
-
-          {isDispensed &&
-            dispensing?.dispensed_at && (
-              <p className="text-[10px] text-muted-foreground mt-2">
-                Dispensed{" "}
-                {new Date(
-                  dispensing.dispensed_at
-                ).toLocaleString()}
-              </p>
-            )}
-        </div>
-      );
-    })}
-  </div>
-)}
-
       {v.notes && (
-        <p className="mt-2">
+        <p className="mt-2 text-[11px] leading-tight">
           • {v.notes}
         </p>
       )}
     </div>
   )}
 
-</div>
 
     {feedbackDetails[v.id] && (
-  <details className="mt-4 rounded-2xl border bg-muted/30 p-4 group">
-    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 font-semibold text-primary">
-      <span className="flex items-center gap-2">
-        <MessageCircle size={15} /> Patient Feedback
+  <details className="mt-2 rounded-xl border bg-muted/30 px-3 py-2 group">
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-semibold text-primary">
+      <span className="flex items-center gap-1.5">
+        <MessageCircle size={14} /> Feedback Report
       </span>
       <span className="text-[10px] px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">
         Completed
       </span>
     </summary>
 
-    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
 
       <div>
         <p className="text-muted-foreground">Overall Experience</p>
@@ -2721,7 +2687,7 @@ shadow-sm
   <Button
     size="sm"
     variant="outline"
-    className="h-7 rounded-lg px-2 text-[10px] gap-1"
+    className="h-7 rounded-lg px-2 text-[10px] font-medium gap-1"
     onClick={() => handleSendFeedback(v.id)}
     disabled={
       sendingFeedback ||
@@ -2731,11 +2697,9 @@ shadow-sm
     <MessageCircle size={14} />
     {sendingFeedback
       ? "Sending..."
-      : visitFeedbackStatus[v.id] === "completed"
-        ? "Feedback Completed"
-        : visitFeedbackStatus[v.id] === "pending"
-          ? "Resend Feedback"
-          : "Feedback"}
+      : visitFeedbackStatus[v.id] === "pending"
+        ? "Resend Report"
+        : "Feedback Report"}
   </Button>
 
   {isClinicalUser && (
