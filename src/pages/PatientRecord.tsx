@@ -3071,60 +3071,6 @@ shadow-sm
   ) : (
     <>
 
-      <div className="mr-auto w-full sm:w-auto sm:min-w-[360px]">
-        {!showAppointmentBooking ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-8 rounded-xl px-3 text-xs"
-            onClick={() => {
-              setAppointmentType("Follow-up");
-              setAppointmentReason("");
-              setAppointmentCreated(false);
-              setShowAppointmentBooking(true);
-            }}
-          >
-            <CalendarPlus size={14} className="mr-1.5" />
-            Book appointment
-          </Button>
-        ) : (
-          <div className="rounded-2xl border bg-card p-3">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <div className="flex items-center gap-2">
-                <CalendarPlus size={15} className="text-primary" />
-                <div>
-                  <p className="text-xs font-semibold">Book appointment</p>
-                  <p className="text-[10px] text-muted-foreground">It will appear on the Appointments page automatically.</p>
-                </div>
-              </div>
-              <Button type="button" size="icon" variant="ghost" className="h-7 w-7 rounded-lg" onClick={() => setShowAppointmentBooking(false)} title="Close">
-                ×
-              </Button>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Select value={appointmentType} onValueChange={setAppointmentType}>
-                <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="Appointment type" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Follow-up">Follow-up</SelectItem>
-                  <SelectItem value="Advice">Advice</SelectItem>
-                  <SelectItem value="Referral">Referral</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input type="date" className="h-8 rounded-lg text-xs" value={appointmentDate} onChange={e => setAppointmentDate(e.target.value)} />
-              <Input type="time" className="h-8 rounded-lg text-xs" value={appointmentTime} onChange={e => setAppointmentTime(e.target.value)} />
-              <Input className="h-8 rounded-lg text-xs" value={appointmentReason} onChange={e => setAppointmentReason(e.target.value)} placeholder="Appointment notes / reason" />
-            </div>
-            <div className="flex justify-end gap-2 mt-2">
-              <Button type="button" size="sm" variant="ghost" className="h-8 rounded-lg text-xs" onClick={() => setShowAppointmentBooking(false)}>Cancel</Button>
-              <Button type="button" size="sm" className="h-8 rounded-lg text-xs" onClick={bookFollowUpAppointment} disabled={savingAppointment || !appointmentDate || !appointmentTime}>
-                {savingAppointment ? "Booking..." : appointmentCreated ? "Booked" : "Book"}
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
       <Button
         onClick={() => handleSaveVisit(true)}
         size="lg"
