@@ -213,6 +213,8 @@ const canViewFinancials =
   const [hmoMap, setHmoMap] = useState<Map<string, { name: string; website?: string | null }>>(new Map());
   const [visits, setVisits] = useState<any[]>([]);
   const [doctorMap, setDoctorMap] = useState<Map<string, string>>(new Map());
+  const [doctorOptions, setDoctorOptions] = useState<{ id: string; full_name: string }[]>([]);
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -615,6 +617,52 @@ if (!isReceptionist) {
   }, [patientId, cid, canViewFinancials]);
 
 
+  useEffect(() => {
+    if (!cid) return;
+
+    (async () => {
+      const { data: staffRows, error: staffError } = await apiClient
+        .from("clinic_users")
+        .select("user_id, role")
+        .eq("clinic_id", cid)
+        .eq("role", "doctor");
+
+      if (staffError) {
+        console.warn("[patient-record:doctor-list-failed]", staffError);
+        setDoctorOptions([]);
+        return;
+      }
+
+      const doctorIds = [...new Set((staffRows || []).map((row: any) => row.user_id).filter(Boolean))];
+      if (doctorIds.length === 0) {
+        setDoctorOptions([]);
+        return;
+      }
+
+      const { data: profiles } = await apiClient
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", doctorIds);
+
+      const options = (profiles || [])
+        .map((profile: any) => ({
+          id: profile.id,
+          full_name: profile.full_name || "Doctor",
+        }))
+        .sort((a, b) => a.full_name.localeCompare(b.full_name));
+
+      setDoctorOptions(options);
+    })();
+  }, [cid]);
+
+  useEffect(() => {
+    if (role === "doctor" && user?.id) {
+      setSelectedDoctorId(user.id);
+    } else if (!editingVisitId) {
+      setSelectedDoctorId(null);
+    }
+  }, [role, user?.id, editingVisitId]);
+
   const setField = (k: string, v: string) =>
   setForm(prev => ({
     ...prev,
@@ -622,6 +670,7 @@ if (!isReceptionist) {
   }));
   const startEditVisit = (v: any) => {
   setEditingVisitId(v.id);
+  setSelectedDoctorId(v.doctor_id || (role === "doctor" ? user?.id ?? null : null));
     console.log("Editing visit:", v.id);
 
   setForm({
@@ -737,11 +786,17 @@ subVaOutcome: v.sub_va_outcome || "",
       if (!isValidAxis(val)) { toast.error(`${label} must be 1–180: "${val}"`); return; }
     }
 
+    if (role !== "doctor" && !selectedDoctorId) {
+      toast.error("Select the responsible doctor for this visit");
+      return;
+    }
+
     setSaving(true);
 
 const visitPayload = {
   clinic_id: cid,
   patient_id: patient.id,
+  doctor_id: selectedDoctorId || null,
   registered_by: editingVisitId
     ? visits.find(v => v.id === editingVisitId)?.registered_by || user.id
     : user.id,
@@ -1763,6 +1818,32 @@ shadow-sm
         <TabsContent value="history" className="space-y-4">
           <div className="form-section">
             <h2 className="section-title text-sm"><ClipboardList size={16} /> Case History</h2>
+
+            {(role === "admin" || role === "super_admin") && (
+              <div className="mb-4 rounded-xl border bg-muted/20 p-3">
+                <Label className="text-xs">Responsible Doctor *</Label>
+                <Select
+                  value={selectedDoctorId || ""}
+                  onValueChange={setSelectedDoctorId}
+                >
+                  <SelectTrigger className="mt-1 rounded-xl">
+                    <SelectValue placeholder="Select doctor responsible for this visit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {doctorOptions.map((doctor) => (
+                      <SelectItem key={doctor.id} value={doctor.id}>
+                        {doctor.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {doctorOptions.length === 0 && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    No doctor is currently assigned to this clinic.
+                  </p>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1 sm:col-span-2">
   <div className="flex items-center justify-between gap-2 flex-wrap">
