@@ -480,28 +480,26 @@ export default function DailyFrontDeskReport() {
   }
 
   const summary = [
-    { label: "Patients Seen", value: patients.length, detail: \`${privatePatients.length} Private  |  ${hmoPatients.length} HMO\`, icon: Users },
-    { label: "Total Income", value: formatMoney(financials?.total_income), detail: \`${formatMoney(financials?.total_patient_payments)} patient payments\`, icon: Wallet },
-    { label: "HMO Claims", value: hmoPatients.length, detail: \`${Math.max(0, hmoPatients.length - claimsPending)} Replied  |  ${claimsPending} Pending\`, icon: FileText },
-    { label: "Prescriptions", value: prescriptionCount, detail: \`${lensOrders} Orders  |  ${fittedToday} Fitted Today\`, icon: Glasses },
+    { label: "Patients Seen", value: patients.length, detail: `${privatePatients.length} Private  |  ${hmoPatients.length} HMO`, icon: Users },
+    { label: "Total Income", value: formatMoney(financials?.total_income), detail: `${formatMoney(financials?.total_patient_payments)} patient payments`, icon: Wallet },
+    { label: "HMO Claims", value: hmoPatients.length, detail: `${Math.max(0, hmoPatients.length - claimsPending)} Replied  |  ${claimsPending} Pending`, icon: FileText },
+    { label: "Prescriptions", value: prescriptionCount, detail: `${lensOrders} Orders  |  ${fittedToday} Fitted Today`, icon: Glasses },
     { label: "Walk-in Sales", value: formatMoney(financials?.walk_in_sales || activityTotal), detail: "Optical shop", icon: CreditCard },
-    { label: "Expenses", value: formatMoney(financials?.total_expenses || expenseTotal), detail: \`${expenses.length} items\`, icon: Banknote },
+    { label: "Expenses", value: formatMoney(financials?.total_expenses || expenseTotal), detail: `${expenses.length} items`, icon: Banknote },
     { label: "Report Status", value: isSubmitted ? "Submitted" : "Not Submitted", detail: isSubmitted ? formatDateTime(report?.submitted_at || null) : "Ready for review", icon: CheckCircle2 },
   ];
 
   const sections = [
-    { id: "patients", title: "Patients Seen Today", subtitle: "All patients seen today — private and HMO", count: \`${patients.length} patients\`, detail: \`${privatePatients.length} Private  |  ${hmoPatients.length} HMO\`, icon: Users },
+    { id: "patients", title: "Patients Seen Today", subtitle: "All patients seen today — private and HMO", count: `${patients.length} patients`, detail: `${privatePatients.length} Private  |  ${hmoPatients.length} HMO`, icon: Users },
     { id: "income", title: "Payments & Income (Private)", subtitle: "Payments received from private patients", count: formatMoney(financials?.total_patient_payments), detail: "Auto-calculated from billing", icon: Wallet },
-    { id: "claims", title: "HMO & Insurance Claims", subtitle: "Patient claims, PA codes, claim status and HMO response", count: \`${hmoPatients.length} claims\`, detail: \`${Math.max(0, hmoPatients.length - claimsPending)} Replied  |  ${claimsPending} Pending\`, icon: FileText },
-    { id: "prescriptions", title: "Prescriptions & Lens Orders", subtitle: "Prescriptions, lens type, lab orders and fittings", count: \`${prescriptionCount} prescriptions\`, detail: \`${lensOrders} Orders  |  ${fittedToday} Fitted Today\`, icon: Glasses },
+    { id: "claims", title: "HMO & Insurance Claims", subtitle: "Patient claims, PA codes, claim status and HMO response", count: `${hmoPatients.length} claims`, detail: `${Math.max(0, hmoPatients.length - claimsPending)} Replied  |  ${claimsPending} Pending`, icon: FileText },
+    { id: "prescriptions", title: "Prescriptions & Lens Orders", subtitle: "Prescriptions, lens type, lab orders and fittings", count: `${prescriptionCount} prescriptions`, detail: `${lensOrders} Orders  |  ${fittedToday} Fitted Today`, icon: Glasses },
     { id: "sales", title: "Optical Shop / Walk-in Sales", subtitle: "Sales of frames, lenses and other items", count: formatMoney(financials?.walk_in_sales || activityTotal), detail: "Billing and manual activities", icon: CreditCard },
-    { id: "expenses", title: "Expenses & Disbursements", subtitle: "Daily expenses and payments made", count: \`${expenses.length} items\`, detail: formatMoney(financials?.total_expenses || expenseTotal), icon: Banknote },
-    { id: "activities", title: "Other Activities", subtitle: "Feedback, follow-ups, calls, restocking and other work", count: \`${activities.length} activities\`, detail: "Front-desk activity log", icon: ClipboardList },
-    { id: "claims_followup", title: "Claims", subtitle: "Claim follow-ups requiring attention or external confirmation", count: \`${claimsPending} pending\`, detail: "Review outstanding claims", icon: FileText },
+    { id: "expenses", title: "Expenses & Disbursements", subtitle: "Daily expenses and payments made", count: `${expenses.length} items`, detail: formatMoney(financials?.total_expenses || expenseTotal), icon: Banknote },
+    { id: "activities", title: "Other Activities", subtitle: "Feedback, follow-ups, calls, restocking and other work", count: `${activities.length} activities`, detail: "Front-desk activity log", icon: ClipboardList },
+    { id: "claims_followup", title: "Claims", subtitle: "Claim follow-ups requiring attention or external confirmation", count: `${claimsPending} pending`, detail: "Review outstanding claims", icon: FileText },
     { id: "remarks", title: "Issues / Remarks", subtitle: "Challenges, important notes or observations", count: reportNotes ? "Notes added" : "No notes", detail: "Management attention", icon: MessageSquare },
     { id: "finish", title: "End of Day Confirmation", subtitle: "Review and submit your report", count: isSubmitted ? "Submitted" : "Not Submitted", detail: isSubmitted ? formatDateTime(report?.submitted_at || null) : "Ready for review", icon: CheckCircle2 },
-  ];
-
   ];
 
   return (
