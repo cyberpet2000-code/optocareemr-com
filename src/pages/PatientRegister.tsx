@@ -60,8 +60,7 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function calculateAgeFromDob");
-}
+
 
 function calculateAgeFromDob(value: string) {
   const match = value.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
