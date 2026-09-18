@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Banknote,
   CheckCircle2,
@@ -476,24 +476,28 @@ export default function DailyFrontDeskReport() {
   }
 
   const summary = [
-    { label: "Patients Seen", value: patients.length, detail: `${privatePatients.length} Private  |  ${hmoPatients.length} HMO`, icon: Users },
-    { label: "Total Income", value: formatMoney(financials?.total_income), detail: `${formatMoney(financials?.total_patient_payments)} patient payments`, icon: Wallet },
-    { label: "Claims", value: hmoPatients.length, detail: `${Math.max(0, hmoPatients.length - claimsPending)} Replied  |  ${claimsPending} Pending`, icon: FileText },
-    { label: "Prescriptions", value: prescriptionCount, detail: `${lensOrders} Lens Orders  |  ${fittedToday} Fitted Today`, icon: Glasses },
+    { label: "Patients Seen", value: patients.length, detail: \`${privatePatients.length} Private  |  ${hmoPatients.length} HMO\`, icon: Users },
+    { label: "Total Income", value: formatMoney(financials?.total_income), detail: \`${formatMoney(financials?.total_patient_payments)} patient payments\`, icon: Wallet },
+    { label: "HMO Claims", value: hmoPatients.length, detail: \`${Math.max(0, hmoPatients.length - claimsPending)} Replied  |  ${claimsPending} Pending\`, icon: FileText },
+    { label: "Prescriptions", value: prescriptionCount, detail: \`${lensOrders} Orders  |  ${fittedToday} Fitted Today\`, icon: Glasses },
     { label: "Walk-in Sales", value: formatMoney(financials?.walk_in_sales || activityTotal), detail: "Optical shop", icon: CreditCard },
-    { label: "Expenses", value: formatMoney(financials?.total_expenses || expenseTotal), detail: `${expenses.length} items`, icon: Banknote },
+    { label: "Expenses", value: formatMoney(financials?.total_expenses || expenseTotal), detail: \`${expenses.length} items\`, icon: Banknote },
+    { label: "Report Status", value: isSubmitted ? "Submitted" : "Not Submitted", detail: isSubmitted ? formatDateTime(report?.submitted_at || null) : "Ready for review", icon: CheckCircle2 },
   ];
 
   const sections = [
-    { id: "patients", title: "Patients Seen Today", subtitle: "All patients seen today — private and HMO", count: `${patients.length} patients`, detail: `${privatePatients.length} Private  |  ${hmoPatients.length} HMO`, icon: Users },
+    { id: "patients", title: "Patients Seen Today", subtitle: "All patients seen today — private and HMO", count: \`${patients.length} patients\`, detail: \`${privatePatients.length} Private  |  ${hmoPatients.length} HMO\`, icon: Users },
     { id: "income", title: "Payments & Income (Private)", subtitle: "Payments received from private patients", count: formatMoney(financials?.total_patient_payments), detail: "Auto-calculated from billing", icon: Wallet },
-    { id: "claims", title: "HMO & Insurance Claims", subtitle: "Patient claims, PA codes, claim status and HMO response", count: `${hmoPatients.length} claims`, detail: `${Math.max(0, hmoPatients.length - claimsPending)} Replied  |  ${claimsPending} Pending`, icon: FileText },
-    { id: "prescriptions", title: "Prescriptions & Lens Orders", subtitle: "Prescriptions, lens type, lab orders and fittings", count: `${prescriptionCount} prescriptions`, detail: `${lensOrders} Orders  |  ${fittedToday} Fitted Today`, icon: Glasses },
+    { id: "claims", title: "HMO & Insurance Claims", subtitle: "Patient claims, PA codes, claim status and HMO response", count: \`${hmoPatients.length} claims\`, detail: \`${Math.max(0, hmoPatients.length - claimsPending)} Replied  |  ${claimsPending} Pending\`, icon: FileText },
+    { id: "prescriptions", title: "Prescriptions & Lens Orders", subtitle: "Prescriptions, lens type, lab orders and fittings", count: \`${prescriptionCount} prescriptions\`, detail: \`${lensOrders} Orders  |  ${fittedToday} Fitted Today\`, icon: Glasses },
     { id: "sales", title: "Optical Shop / Walk-in Sales", subtitle: "Sales of frames, lenses and other items", count: formatMoney(financials?.walk_in_sales || activityTotal), detail: "Billing and manual activities", icon: CreditCard },
-    { id: "expenses", title: "Expenses & Disbursements", subtitle: "Daily expenses and payments made", count: `${expenses.length} items`, detail: formatMoney(financials?.total_expenses || expenseTotal), icon: Banknote },
-    { id: "activities", title: "Other Activities", subtitle: "Feedback, follow-ups, calls, restocking and other work", count: `${activities.length} activities`, detail: "Front-desk activity log", icon: ClipboardList },
+    { id: "expenses", title: "Expenses & Disbursements", subtitle: "Daily expenses and payments made", count: \`${expenses.length} items\`, detail: formatMoney(financials?.total_expenses || expenseTotal), icon: Banknote },
+    { id: "activities", title: "Other Activities", subtitle: "Feedback, follow-ups, calls, restocking and other work", count: \`${activities.length} activities\`, detail: "Front-desk activity log", icon: ClipboardList },
+    { id: "claims_followup", title: "Claims", subtitle: "Claim follow-ups requiring attention or external confirmation", count: \`${claimsPending} pending\`, detail: "Review outstanding claims", icon: FileText },
     { id: "remarks", title: "Issues / Remarks", subtitle: "Challenges, important notes or observations", count: reportNotes ? "Notes added" : "No notes", detail: "Management attention", icon: MessageSquare },
     { id: "finish", title: "End of Day Confirmation", subtitle: "Review and submit your report", count: isSubmitted ? "Submitted" : "Not Submitted", detail: isSubmitted ? formatDateTime(report?.submitted_at || null) : "Ready for review", icon: CheckCircle2 },
+  ];
+
   ];
 
   return (
@@ -521,7 +525,7 @@ export default function DailyFrontDeskReport() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-7 gap-3">
           {summary.map((item) => {
             const Icon = item.icon;
             return <div key={item.label} className="rounded-2xl border bg-card p-4 shadow-sm">
@@ -582,10 +586,34 @@ export default function DailyFrontDeskReport() {
 
     if (id === "claims") {
       return <div className="space-y-4">
-        <div className="rounded-xl border bg-muted/20 p-3 text-xs text-muted-foreground">HMO systems are not directly connected to OptoCare. Patient details are supplied automatically; the front desk records PA codes, claim status, HMO responses and claim remarks here.</div>
-        {hmoPatients.length === 0 ? <Empty text="No HMO patients for this date." /> : <div className="space-y-3">
-          {hmoPatients.map((row) => <ClaimEditor key={row.key} row={row} canEdit={canEdit} saving={savingPatient === row.key} updatePatient={updatePatient} savePatient={savePatient} />)}
-        </div>}
+        <div className="rounded-xl border bg-muted/20 p-3 text-xs text-muted-foreground">
+          HMO systems are not directly connected to OptoCare. Patient name, clinic ID, phone number, HMO and visit information are pulled automatically. The front desk enters the PA/authorization code, claim status, HMO response and remarks.
+        </div>
+        {hmoPatients.length === 0 ? <Empty text="No HMO patients for this date." /> : (
+          <div className="overflow-x-auto rounded-xl border">
+            <table className="w-full min-w-[1200px] text-sm">
+              <thead className="bg-muted/30 text-xs text-muted-foreground">
+                <tr>
+                  <th className="p-3 text-left">#</th><th className="p-3 text-left">Patient Name</th><th className="p-3 text-left">Clinic ID</th><th className="p-3 text-left">Phone Number</th><th className="p-3 text-left">HMO</th><th className="p-3 text-left">Service / Reason</th><th className="p-3 text-left">Claim Amount</th><th className="p-3 text-left">PA Code</th><th className="p-3 text-left">Claim Status</th><th className="p-3 text-left">HMO Response / Remarks</th><th className="p-3 text-left">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hmoPatients.map((row, i) => {
+                  const meta = parseMeta<ClaimMeta>(row.hmo_claim_remarks, { pa_code: "", claim_amount: "", response: "", remarks: "" });
+                  const setMeta = (patch: Partial<ClaimMeta>) => updatePatient(row.key, { hmo_claim_remarks: encodeMeta({ ...meta, ...patch }) });
+                  return <tr key={row.key} className="border-t align-top">
+                    <td className="p-3">{i + 1}</td><td className="p-3 font-medium">{row.patient_name}</td><td className="p-3">{row.patient_number || "—"}</td><td className="p-3">{row.phone || "—"}</td><td className="p-3">{row.hmo_name || "—"}</td><td className="p-3">{row.prescription_available ? "Consultation + Rx" : "Routine / Follow-up"}</td>
+                    <td className="p-3"><Input type="number" min="0" value={meta.claim_amount} onChange={(e) => setMeta({ claim_amount: e.target.value })} disabled={!canEdit} className="w-[120px]" placeholder="Amount" /></td>
+                    <td className="p-3"><Input value={meta.pa_code} onChange={(e) => setMeta({ pa_code: e.target.value })} disabled={!canEdit} className="w-[130px]" placeholder="PA code" /></td>
+                    <td className="p-3"><Select value={row.hmo_claim_status || "Not sent"} onValueChange={(v) => updatePatient(row.key, { hmo_claim_status: v })} disabled={!canEdit}><SelectTrigger className="w-[135px]"><SelectValue /></SelectTrigger><SelectContent>{CLAIM_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></td>
+                    <td className="p-3 min-w-[280px]"><Input value={meta.response} onChange={(e) => setMeta({ response: e.target.value })} disabled={!canEdit} placeholder="HMO response" className="mb-2" /><Textarea value={meta.remarks} onChange={(e) => setMeta({ remarks: e.target.value })} disabled={!canEdit} placeholder="Remarks" className="min-h-[70px]" /></td>
+                    <td className="p-3"><Button size="sm" onClick={() => void savePatient(row)} disabled={!canEdit || savingPatient === row.key}>{savingPatient === row.key ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CheckCircle2 size={14} className="mr-1" />}Save</Button></td>
+                  </tr>;
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>;
     }
 
@@ -609,6 +637,20 @@ export default function DailyFrontDeskReport() {
 
     if (id === "activities") {
       return <div className="space-y-4"><div className="flex justify-end"><Button size="sm" onClick={() => setActivityOpen(true)} disabled={!canEdit}><Plus size={15} className="mr-1" /> Add activity</Button></div><ActivityList rows={activities} /></div>;
+    }
+
+    if (id === "claims_followup") {
+      const pending = hmoPatients.filter((p) => (p.hmo_claim_status || "Not sent").toLowerCase() !== "replied");
+      if (!pending.length) return <Empty text="No outstanding claim follow-ups." />;
+      return <div className="overflow-x-auto rounded-xl border">
+        <table className="w-full min-w-[900px] text-sm">
+          <thead className="bg-muted/30 text-xs text-muted-foreground"><tr><th className="p-3 text-left">#</th><th className="p-3 text-left">Patient</th><th className="p-3 text-left">HMO</th><th className="p-3 text-left">Status</th><th className="p-3 text-left">PA Code</th><th className="p-3 text-left">Follow-up / Remarks</th></tr></thead>
+          <tbody>{pending.map((row, i) => {
+            const meta = parseMeta<ClaimMeta>(row.hmo_claim_remarks, { pa_code: "", claim_amount: "", response: "", remarks: "" });
+            return <tr key={row.key} className="border-t"><td className="p-3">{i + 1}</td><td className="p-3 font-medium">{row.patient_name}<div className="text-xs text-muted-foreground">{row.patient_number || "—"}</div></td><td className="p-3">{row.hmo_name || "—"}</td><td className="p-3"><Badge text={row.hmo_claim_status || "Not sent"} tone="orange" /></td><td className="p-3">{meta.pa_code || "—"}</td><td className="p-3">{meta.response || meta.remarks || "Awaiting external HMO action"}</td></tr>;
+          })}</tbody>
+        </table>
+      </div>;
     }
 
     if (id === "remarks") {
@@ -670,7 +712,7 @@ export default function DailyFrontDeskReport() {
   }
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return <div><Label className="text-xs">{label}</Label><div className="mt-1">{children}</div></div>;
 }
 function Info({ label, value }: { label: string; value: string }) {
