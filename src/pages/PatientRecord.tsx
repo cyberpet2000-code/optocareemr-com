@@ -2507,6 +2507,7 @@ shadow-sm
     </div>
   )}
 
+</div>
 
     {feedbackDetails[v.id] && (
   <details className="mt-2 rounded-xl border bg-muted/30 px-3 py-2 group">
