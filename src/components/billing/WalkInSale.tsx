@@ -173,10 +173,10 @@ export default function WalkInSale() {
     if (!rlines) {
       const { data } = await apiClient
         .from("inventory_sale_items")
-        .select("quantity,unit_price,total_price,inventory_id,inventory:inventory(name)")
+        .select("quantity,unit_price,total_price,inventory_id,item_name,inventory:inventory(name)")
         .eq("sale_id", sale.id);
       rlines = ((data as any[]) || []).map((r) => ({
-        name: r.inventory?.name || "Item",
+        name: r.item_name || r.inventory?.name || "Item",
         quantity: Number(r.quantity) || 0,
         unit_price: Number(r.unit_price) || 0,
         total_price: Number(r.total_price) || 0,
