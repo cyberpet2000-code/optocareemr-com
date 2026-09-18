@@ -15,6 +15,7 @@ export type EmailType =
   | "billing_reminder"
   | "subscription_notice"
   | "daily_summary"
+  | "daily_front_desk_report"
   | "walkin_receipt"
   | "system_alert";
 
@@ -52,6 +53,7 @@ const SHELL_CATEGORY: Record<EmailType, "transactional" | "onboarding" | "remind
   billing_reminder: "billing",
   subscription_notice: "billing",
   daily_summary: "summary",
+  daily_front_desk_report: "summary",
   walkin_receipt: "billing",
   system_alert: "transactional",
 };
