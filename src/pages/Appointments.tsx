@@ -352,7 +352,7 @@ export default function Appointments() {
               </div>
               {(a.status === "pending" || a.status === "confirmed") && (
                 <div className="flex gap-1 shrink-0">
-                  <button onClick={() => updateStatus(a.id, "completed")} className="p-2 rounded-xl hover:bg-muted transition-colors" aria-label="Mark completed">
+                  <button onClick={() => updateStatus(a.id, "completed")} className="p-2 rounded-xl hover:bg-muted transition-colors" aria-label="Mark completed" title="Mark appointment as completed">
                     <CheckCircle2 size={16} className="text-success" />
                   </button>
                   <button onClick={() => updateStatus(a.id, "cancelled")} className="p-2 rounded-xl hover:bg-muted transition-colors" aria-label="Cancel">
