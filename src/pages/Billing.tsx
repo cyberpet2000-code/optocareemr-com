@@ -14,7 +14,7 @@ import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
 import WalkInSale from "@/components/billing/WalkInSale";
 const PAYMENT_METHODS = ["Cash", "Card", "Transfer", "HMO"];
-const ITEM_TYPES = ["Lens", "Lens Transfer", "Frame", "Contact Lens", "Eye Drop", "Drugs", "Accessories", "Others"];
+const ITEM_TYPES = ["Lens", "Lens Transfer", "Frame", "Frame Fixing", "Contact Lens", "Eye Drop", "Drugs", "Accessories", "Others"];
 
 interface BillingRow {
   id: string;
@@ -1105,8 +1105,8 @@ if (error) {
       inventory_id: null,
     })
   }
-  placeholder={it.item_type === "Lens Transfer" ? "Describe transferred lens" : "Item name"}
-  disabled={it.item_type === "Lens Transfer" && it.item_name === "Lens Transfer"}
+  placeholder={it.item_type === "Lens Transfer" ? "Describe transferred lens" : it.item_type === "Frame Fixing" ? "Describe frame repair/fixing" : "Item name"}
+  disabled={(it.item_type === "Lens Transfer" || it.item_type === "Frame Fixing") && !!it.item_name}
 />
 
                         )}
