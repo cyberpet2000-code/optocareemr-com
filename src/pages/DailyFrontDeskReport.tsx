@@ -220,8 +220,12 @@ export default function DailyFrontDeskReport() {
     try {
       const opened = await db.rpc("open_daily_front_desk_report", { p_clinic_id: effectiveClinicId, p_report_date: reportDate });
       if (opened.error) throw opened.error;
-      const header = asArray<DailyReport>(opened.data)[0];
-      if (!header) throw new Error("Daily report could not be opened");
+      const openedRow = asArray<any>(opened.data)[0];
+      if (!openedRow) throw new Error("Daily report could not be opened");
+      // open_daily_front_desk_report returns the primary key as report_id.
+      // Normalize it to the DailyReport.id shape used by the rest of this page.
+      const header: DailyReport = { ...openedRow, id: openedRow.id || openedRow.report_id }; 
+      if (!header.id) throw new Error("Daily report ID was not returned");
 
       const [patientsRes, itemsRes, activitiesRes, expensesRes, financialsRes, clinicRes] = await Promise.all([
         db.rpc("get_daily_front_desk_report_data", { p_clinic_id: effectiveClinicId, p_report_date: reportDate }),
