@@ -2962,11 +2962,21 @@ shadow-sm
                        <div><p className="text-muted-foreground">Paid</p><p className="font-medium">₦{Number(bill.amount_paid).toLocaleString()}</p></div>
                        <div><p className="text-muted-foreground">Balance</p><p className={`font-medium ${bill.balance > 0 ? "text-warning" : "text-success"}`}>₦{Number(bill.balance).toLocaleString()}</p></div>
                      </div>
-                     {bill.payments.length > 0 && (
-                       <p className="text-[11px] text-muted-foreground mt-3">
+                     <div className="flex items-center justify-between gap-2 flex-wrap mt-3">
+                       {bill.payments.length > 0 && (
+                       <p className="text-[11px] text-muted-foreground">
                          Payments: {bill.payments.map((payment) => `${payment.method} ₦${Number(payment.amount).toLocaleString()}`).join(" • ")}
                        </p>
                      )}
+                       {bill.visit_id && (
+                         <Link
+                           to={"/billing?patient_id=" + patient.id + "&visit_id=" + bill.visit_id}
+                           className="inline-flex items-center gap-1 rounded-xl bg-primary px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-primary-foreground hover:opacity-90"
+                         >
+                           <FileText size={12} /> Bill / View Bill
+                         </Link>
+                       )}
+                     </div>
                    </div>
                  ))}
                </div>
