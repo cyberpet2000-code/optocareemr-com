@@ -57,7 +57,11 @@ function escapeLikeTerm(value: string) {
 }
 
 function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\return value.replace(/[.*+?^${}()|[\]\\]/g, "\\return value.replace(/[.*+?^\${}()|[\]\\]/g, "\\$&");");");
+}
+
+function calculateAgeFromDob");
 }
 
 function calculateAgeFromDob(value: string) {
