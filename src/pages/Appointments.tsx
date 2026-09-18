@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { CalendarIcon, Plus, X, Clock, CheckCircle2, XCircle, AlertCircle, Bell, BellRing } from "lucide-react";
+import { CalendarIcon, Plus, X, Clock, CheckCircle2, XCircle, AlertCircle, Bell, BellRing, Pencil, UserRound, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { useAccessClinic } from "@/hooks/useAccess";
 import { diag } from "@/lib/diag";
@@ -51,6 +51,7 @@ export default function Appointments() {
   const [form, setForm] = useState({ patientId: "", date: new Date(), time: "", reason: "" });
   const [saving, setSaving] = useState(false);
   const [remindingId, setRemindingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const filterDateStr = useMemo(() => format(filterDate, "yyyy-MM-dd"), [filterDate]);
 
@@ -183,6 +184,27 @@ export default function Appointments() {
     return () => { cancelled = true; };
   }, [hydrating, cid, isOffline]);
 
+  const startEdit = (a: Appointment) => {
+    setEditingId(a.id);
+    setForm({
+      patientId: a.patient_id || "",
+      date: new Date(a.appointment_date + "T00:00:00"),
+      time: a.appointment_time || "",
+      reason: a.reason || "",
+    });
+    setShowForm(true);
+  };
+
+  const stats = useMemo(() => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    return {
+      today: appointments.filter(a => a.appointment_date === today && a.status !== "cancelled").length,
+      pending: appointments.filter(a => a.status === "pending").length,
+      confirmed: appointments.filter(a => a.status === "confirmed").length,
+      reminders: appointments.filter(a => a.status !== "cancelled" && a.status !== "completed" && !a.reminder_sent_at).length,
+    };
+  }, [appointments]);
+
   // ── Mutations ─────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!cid) { toast.error("No active clinic selected"); return; }
@@ -208,14 +230,18 @@ export default function Appointments() {
       return;
     }
     setSaving(true);
-    const { error: insErr } = await apiClient.from("appointments").insert(payload as any);
+    const result = editingId
+      ? await apiClient.from("appointments").update(payload as any).eq("clinic_id", cid).eq("id", editingId)
+      : await apiClient.from("appointments").insert(payload as any);
+    const insErr = result.error;
     setSaving(false);
     if (insErr) {
       diag.error("query", "appointment insert failed", insErr, { clinic_id: cid });
       toast.error(insErr.message);
       return;
     }
-    toast.success("Appointment scheduled");
+    toast.success(editingId ? "Appointment updated" : "Appointment scheduled");
+    setEditingId(null);
     setShowForm(false);
     setForm({ patientId: "", date: new Date(), time: "", reason: "" });
     loadAppointments();
@@ -321,10 +347,17 @@ export default function Appointments() {
               <Label className="text-xs">Reason</Label>
               <Textarea className="rounded-xl" value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} rows={2} />
             </div>
-            <Button className="rounded-xl" onClick={handleSubmit} disabled={saving}>{saving ? "Saving..." : "Schedule"}</Button>
+            <Button className="rounded-xl" onClick={handleSubmit} disabled={saving}>{saving ? "Saving..." : editingId ? "Update appointment" : "Schedule"}</Button>
           </div>
         </div>
       )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+        <div className="medical-card p-3"><p className="text-[10px] text-muted-foreground">Today</p><p className="text-xl font-bold mt-1">{stats.today}</p></div>
+        <div className="medical-card p-3"><p className="text-[10px] text-muted-foreground">Pending</p><p className="text-xl font-bold mt-1">{stats.pending}</p></div>
+        <div className="medical-card p-3"><p className="text-[10px] text-muted-foreground">Confirmed</p><p className="text-xl font-bold mt-1">{stats.confirmed}</p></div>
+        <div className="medical-card p-3"><p className="text-[10px] text-muted-foreground">Reminder due</p><p className="text-xl font-bold mt-1">{stats.reminders}</p></div>
+      </div>
 
       <div className="flex flex-col gap-1 mb-4">
         <p className="text-xs text-muted-foreground">Showing appointments from {format(filterDate, "PPP")} onward</p>
@@ -371,7 +404,7 @@ export default function Appointments() {
       ) : (
         <div className="space-y-2">
           {appointments.map(a => (
-            <div key={a.id} className="medical-card p-4">
+            <div key={a.id} className="medical-card p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => a.patient_id && (window.location.href = "/patient/" + a.patient_id)}>
               <div className="flex items-start gap-3">
                 <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0"><Clock size={17} className="text-primary" /></div>
                 <div className="flex-1 min-w-0">
@@ -379,22 +412,23 @@ export default function Appointments() {
                     <span className="text-sm font-bold">{a.appointment_time ?? "—"}</span>
                     <span className="text-sm font-semibold truncate">{a.patient_name}</span>
                     <span className={`text-[10px] px-2 py-1 rounded-full capitalize ${statusStyle(a.status)}`}>{a.status}</span>
-                    {a.priority && a.priority !== "normal" && <span className="text-[10px] px-2 py-1 rounded-full bg-amber-100 text-amber-700 capitalize">{a.priority}</span>}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">{a.appointment_date}{a.reason ? " • " + a.reason : ""}</p>
-                  <div className="mt-2 flex items-center gap-1.5">
+                  <div className="mt-2 flex items-center gap-1.5 flex-wrap">
                     {a.reminder_sent_at ? <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-success/10 text-success"><Bell size={11} /> Reminder sent</span> : <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-amber-100 text-amber-700"><BellRing size={11} /> Reminder due</span>}
                     {a.source === "auto" && <span className="text-[10px] px-2 py-1 rounded-full bg-primary/10 text-primary">From visit</span>}
                   </div>
                 </div>
-                <div className="flex gap-1 shrink-0">
+                <div className="flex gap-1 shrink-0" onClick={e => e.stopPropagation()}>
                   {(a.status === "pending" || a.status === "confirmed") && <>
                     <button onClick={() => updateStatus(a.id, "completed")} className="p-2 rounded-xl hover:bg-muted" title="Mark appointment as completed"><CheckCircle2 size={16} className="text-success" /></button>
                     <button onClick={() => updateStatus(a.id, "cancelled")} className="p-2 rounded-xl hover:bg-muted" title="Cancel appointment"><XCircle size={16} className="text-destructive" /></button>
                   </>}
+                  <button onClick={() => startEdit(a)} className="p-2 rounded-xl hover:bg-muted" title="Edit appointment"><Pencil size={16} /></button>
                   <button onClick={() => sendReminder(a)} disabled={remindingId === a.id || a.status === "cancelled" || a.status === "completed"} className="p-2 rounded-xl hover:bg-muted disabled:opacity-50" title={a.reminder_sent_at ? "Resend appointment reminder on WhatsApp" : "Send appointment reminder on WhatsApp"}>{remindingId === a.id ? <Clock size={16} className="text-primary animate-spin" /> : <Bell size={16} className="text-primary" />}</button>
                 </div>
               </div>
+              {a.patient_id && <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground"><UserRound size={11} /> Open patient record <ChevronRight size={11} /></div>}
             </div>
           ))}
         </div>
