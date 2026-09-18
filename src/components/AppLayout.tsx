@@ -201,7 +201,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
 
               <div className="flex items-center gap-1.5 lg:gap-2 shrink-0">
                 <ThemeToggle />
-                <button className="hidden lg:flex items-center justify-center w-9 h-9 rounded-lg hover:bg-muted transition-colors text-muted-foreground" aria-label="Notifications">
+                <button className="hidden lg:flex items-center justify-center w-9 h-9 rounded-lg hover:bg-muted transition-colors text-muted-foreground" aria-label="Notifications" title="Notifications">
                   <Bell size={16} />
                 </button>
                 <span className={`hidden sm:inline-flex text-[10px] lg:text-xs px-2 py-1 rounded-md font-medium capitalize ${ROLE_TONE[userRole] || "bg-muted text-foreground"}`}>
@@ -218,7 +218,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
                 </div>
                 <button onClick={handleLogout}
                   className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label="Logout">
+                  aria-label="Logout" title="Sign out">
                   <LogOut size={16} />
                 </button>
               </div>
