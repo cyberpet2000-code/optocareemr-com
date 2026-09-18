@@ -79,7 +79,9 @@ export default function ClinicSidebar() {
           { to: "/appointments", label: "Appointments", icon: Calendar },
           { to: "/billing", label: "Billing", icon: DollarSign },
         ],
-        secondary: [],
+        secondary: [
+          { to: "/reports/daily-front-desk", label: "Daily Front Desk Report", icon: ClipboardList },
+        ],
       };
     }
 
