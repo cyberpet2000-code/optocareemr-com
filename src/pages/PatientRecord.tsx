@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   Pill,
   FileText,
+  CalendarPlus,
 } from "lucide-react";
 import { generateVisitPdf } from "@/lib/visitPdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -217,6 +218,11 @@ const canViewFinancials =
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [appointmentDate, setAppointmentDate] = useState("");
+  const [appointmentTime, setAppointmentTime] = useState("");
+  const [appointmentReason, setAppointmentReason] = useState("Follow-up");
+  const [savingAppointment, setSavingAppointment] = useState(false);
+  const [appointmentCreated, setAppointmentCreated] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingVisitId, setEditingVisitId] =
   useState<string | null>(null);
@@ -732,6 +738,45 @@ subVaOutcome: v.sub_va_outcome || "",
   });
 };
 
+
+  const bookFollowUpAppointment = async () => {
+    if (!cid || !patient || !appointmentDate || !appointmentTime) {
+      toast.error("Select a follow-up date and time.");
+      return;
+    }
+
+    setSavingAppointment(true);
+    try {
+      const { data, error } = await apiClient
+        .from("appointments")
+        .insert({
+          clinic_id: cid,
+          patient_id: patient.id,
+          doctor_id: selectedDoctorId || user?.id || null,
+          visit_id: editingVisitId || null,
+          appointment_date: appointmentDate,
+          appointment_time: appointmentTime,
+          reason: appointmentReason || "Follow-up",
+          status: "pending",
+          source: "auto",
+        } as any)
+        .select("id")
+        .single();
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      setAppointmentCreated(true);
+      toast.success("Follow-up appointment booked and added to Appointments.");
+      setAppointmentDate("");
+      setAppointmentTime("");
+      setAppointmentReason("Follow-up");
+    } finally {
+      setSavingAppointment(false);
+    }
+  };
 
   const handleSaveVisit = async (markCompleted: boolean) => {
     if (!isClinicalUser) {
@@ -2980,6 +3025,26 @@ shadow-sm
     </>
   ) : (
     <>
+
+      <div className="rounded-2xl border bg-card p-3 mr-auto w-full sm:w-auto sm:min-w-[360px]">
+        <div className="flex items-center gap-2 mb-2">
+          <CalendarPlus size={15} className="text-primary" />
+          <div>
+            <p className="text-xs font-semibold">Book follow-up appointment</p>
+            <p className="text-[10px] text-muted-foreground">It will appear on the Appointments page automatically.</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Input type="date" className="h-8 rounded-lg text-xs" value={appointmentDate} onChange={e => setAppointmentDate(e.target.value)} />
+          <Input type="time" className="h-8 rounded-lg text-xs" value={appointmentTime} onChange={e => setAppointmentTime(e.target.value)} />
+        </div>
+        <div className="flex gap-2 mt-2">
+          <Input className="h-8 rounded-lg text-xs flex-1" value={appointmentReason} onChange={e => setAppointmentReason(e.target.value)} placeholder="Reason e.g. review" />
+          <Button size="sm" variant="outline" className="h-8 rounded-lg text-xs" onClick={bookFollowUpAppointment} disabled={savingAppointment || !appointmentDate || !appointmentTime}>
+            {savingAppointment ? "Booking..." : appointmentCreated ? "Booked" : "Book"}
+          </Button>
+        </div>
+      </div>
 
       <Button
         onClick={() => handleSaveVisit(true)}
