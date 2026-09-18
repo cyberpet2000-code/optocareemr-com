@@ -1166,6 +1166,48 @@ hmo_relationship:
     return;
       }
 
+  const visit = visits.find((item: any) => item.id === visitId);
+
+  if (!visit) {
+    toast.error("Visit could not be found");
+    return;
+  }
+
+  if (visit.status !== "completed") {
+    toast.info("Complete the visit before sending feedback");
+    return;
+  }
+
+  const hasOpticalPrescription = Boolean(
+    visit.lens_type ||
+    visit.sub_od_sphere ||
+    visit.sub_od_cyl ||
+    visit.sub_od_axis ||
+    visit.sub_os_sphere ||
+    visit.sub_os_cyl ||
+    visit.sub_os_axis ||
+    visit.sub_reading_add
+  );
+
+  if (hasOpticalPrescription && !visit.optical_dispensed) {
+    toast.info("Dispense the optical prescription before sending feedback");
+    return;
+  }
+
+  const prescribedMedications = visit.medication
+    ? parseMedicationItems(visit.medication)
+    : [];
+
+  const undisposedMedication = prescribedMedications.find((item: any) => {
+    const key = `${visitId}:${item.name.toLowerCase()}`;
+    return medicationDispensingMap[key]?.dispensed !== true;
+  });
+
+  if (undisposedMedication) {
+    toast.info(`Dispense ${undisposedMedication.name} before sending feedback`);
+    return;
+  }
+
   setSendingFeedback(true);
 
   try {
@@ -2186,7 +2228,37 @@ shadow-sm
               <p className="text-muted-foreground text-sm text-center py-8">No previous visits recorded.</p>
             ) : (
               <div className="space-y-2">
-                {visits.map((v: any) => (
+                {visits.map((v: any) => {
+                  const hasOpticalPrescription = Boolean(
+                    v.lens_type ||
+                    v.sub_od_sphere ||
+                    v.sub_od_cyl ||
+                    v.sub_od_axis ||
+                    v.sub_os_sphere ||
+                    v.sub_os_cyl ||
+                    v.sub_os_axis ||
+                    v.sub_reading_add
+                  );
+
+                  const prescribedMedications = v.medication
+                    ? parseMedicationItems(v.medication)
+                    : [];
+
+                  const hasMedicationPrescription =
+                    prescribedMedications.length > 0;
+
+                  const allMedicationsDispensed =
+                    !hasMedicationPrescription ||
+                    prescribedMedications.every((item: any) => {
+                      const key = `${v.id}:${item.name.toLowerCase()}`;
+                      return medicationDispensingMap[key]?.dispensed === true;
+                    });
+
+                  const prescriptionReadyForFeedback =
+                    (!hasOpticalPrescription || v.optical_dispensed === true) &&
+                    allMedicationsDispensed;
+
+                  return (
                   <div key={v.id} className="relative pl-8 pb-6">
 
   <div className="absolute left-3 top-2 h-4 w-4 rounded-full bg-primary" />
@@ -2426,7 +2498,7 @@ shadow-sm
         </p>
       )}
 
-      {v.lens_type && (
+      {hasOpticalPrescription && (
         <div className="mt-2 flex items-center justify-between gap-2">
           <p className="min-w-0 flex-1 text-[11px] leading-tight text-muted-foreground">
             {v.lens_type}
@@ -2692,7 +2764,9 @@ shadow-sm
     onClick={() => handleSendFeedback(v.id)}
     disabled={
       sendingFeedback ||
-      visitFeedbackStatus[v.id] === "completed"
+      visitFeedbackStatus[v.id] === "completed" ||
+      v.status !== "completed" ||
+      !prescriptionReadyForFeedback
     }
   >
     <MessageCircle size={14} />
@@ -2700,7 +2774,9 @@ shadow-sm
       ? "Sending..."
       : visitFeedbackStatus[v.id] === "pending"
         ? "Resend Report"
-        : "Feedback Report"}
+        : !prescriptionReadyForFeedback
+          ? "Dispense First"
+          : "Feedback Report"}
   </Button>
 
   {isClinicalUser && (
@@ -2725,7 +2801,8 @@ shadow-sm
   </div>
 
 </div>
-                ))}
+                  </div>
+                )})}
               </div>
             )}
           </div>
