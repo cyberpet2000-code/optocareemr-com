@@ -220,7 +220,9 @@ const canViewFinancials =
   const [saving, setSaving] = useState(false);
   const [appointmentDate, setAppointmentDate] = useState("");
   const [appointmentTime, setAppointmentTime] = useState("");
-  const [appointmentReason, setAppointmentReason] = useState("Follow-up");
+  const [appointmentType, setAppointmentType] = useState("Follow-up");
+  const [appointmentReason, setAppointmentReason] = useState("");
+  const [showAppointmentBooking, setShowAppointmentBooking] = useState(false);
   const [savingAppointment, setSavingAppointment] = useState(false);
   const [appointmentCreated, setAppointmentCreated] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -2326,6 +2328,24 @@ shadow-sm
         popoverWidthClassName="w-64"
         align="end"
       />
+      {isClinicalUser && (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-7 rounded-lg px-2 text-[10px] font-medium"
+          onClick={() => {
+            setAppointmentType("Follow-up");
+            setAppointmentReason("");
+            setAppointmentCreated(false);
+            setShowAppointmentBooking(true);
+          }}
+          title="Book a follow-up, advice or referral appointment"
+        >
+          <CalendarPlus size={12} className="mr-1" />
+          Book appointment
+        </Button>
+      )}
     </div>
   </div>
 
@@ -2924,12 +2944,27 @@ shadow-sm
                      : "No outstanding balance"}
                  </p>
                </div>
+               <Link
+                 to={"/billing?patient_id=" + patient.id}
+                 className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-primary px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-primary-foreground hover:opacity-90"
+                 title="Create or open this patient's billing"
+               >
+                 <FileText size={12} /> New Bill
+               </Link>
                <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${getPaymentStatusClass(paymentSummary.paymentStatus)}`}>
                  {paymentSummary.paymentStatus}
                </span>
              </div>
              {paymentHistory.length === 0 ? (
-               <p className="text-sm text-muted-foreground text-center py-8">No payment history recorded.</p>
+               <div className="py-6 text-center">
+                 <p className="text-sm text-muted-foreground">No payment history recorded.</p>
+                 <Link
+                   to={"/billing?patient_id=" + patient.id}
+                   className="mt-3 inline-flex items-center gap-1 rounded-xl bg-primary px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-primary-foreground hover:opacity-90"
+                 >
+                   <FileText size={12} /> Create Bill
+                 </Link>
+               </div>
              ) : (
                <div className="space-y-3">
                  {paymentHistory.map((bill) => (
@@ -3036,24 +3071,58 @@ shadow-sm
   ) : (
     <>
 
-      <div className="rounded-2xl border bg-card p-3 mr-auto w-full sm:w-auto sm:min-w-[360px]">
-        <div className="flex items-center gap-2 mb-2">
-          <CalendarPlus size={15} className="text-primary" />
-          <div>
-            <p className="text-xs font-semibold">Book follow-up appointment</p>
-            <p className="text-[10px] text-muted-foreground">It will appear on the Appointments page automatically.</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Input type="date" className="h-8 rounded-lg text-xs" value={appointmentDate} onChange={e => setAppointmentDate(e.target.value)} />
-          <Input type="time" className="h-8 rounded-lg text-xs" value={appointmentTime} onChange={e => setAppointmentTime(e.target.value)} />
-        </div>
-        <div className="flex gap-2 mt-2">
-          <Input className="h-8 rounded-lg text-xs flex-1" value={appointmentReason} onChange={e => setAppointmentReason(e.target.value)} placeholder="Reason e.g. review" />
-          <Button size="sm" variant="outline" className="h-8 rounded-lg text-xs" onClick={bookFollowUpAppointment} disabled={savingAppointment || !appointmentDate || !appointmentTime}>
-            {savingAppointment ? "Booking..." : appointmentCreated ? "Booked" : "Book"}
+      <div className="mr-auto w-full sm:w-auto sm:min-w-[360px]">
+        {!showAppointmentBooking ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 rounded-xl px-3 text-xs"
+            onClick={() => {
+              setAppointmentType("Follow-up");
+              setAppointmentReason("");
+              setAppointmentCreated(false);
+              setShowAppointmentBooking(true);
+            }}
+          >
+            <CalendarPlus size={14} className="mr-1.5" />
+            Book appointment
           </Button>
-        </div>
+        ) : (
+          <div className="rounded-2xl border bg-card p-3">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2">
+                <CalendarPlus size={15} className="text-primary" />
+                <div>
+                  <p className="text-xs font-semibold">Book appointment</p>
+                  <p className="text-[10px] text-muted-foreground">It will appear on the Appointments page automatically.</p>
+                </div>
+              </div>
+              <Button type="button" size="icon" variant="ghost" className="h-7 w-7 rounded-lg" onClick={() => setShowAppointmentBooking(false)} title="Close">
+                ×
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Select value={appointmentType} onValueChange={setAppointmentType}>
+                <SelectTrigger className="h-8 rounded-lg text-xs"><SelectValue placeholder="Appointment type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Follow-up">Follow-up</SelectItem>
+                  <SelectItem value="Advice">Advice</SelectItem>
+                  <SelectItem value="Referral">Referral</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input type="date" className="h-8 rounded-lg text-xs" value={appointmentDate} onChange={e => setAppointmentDate(e.target.value)} />
+              <Input type="time" className="h-8 rounded-lg text-xs" value={appointmentTime} onChange={e => setAppointmentTime(e.target.value)} />
+              <Input className="h-8 rounded-lg text-xs" value={appointmentReason} onChange={e => setAppointmentReason(e.target.value)} placeholder="Appointment notes / reason" />
+            </div>
+            <div className="flex justify-end gap-2 mt-2">
+              <Button type="button" size="sm" variant="ghost" className="h-8 rounded-lg text-xs" onClick={() => setShowAppointmentBooking(false)}>Cancel</Button>
+              <Button type="button" size="sm" className="h-8 rounded-lg text-xs" onClick={bookFollowUpAppointment} disabled={savingAppointment || !appointmentDate || !appointmentTime}>
+                {savingAppointment ? "Booking..." : appointmentCreated ? "Booked" : "Book"}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Button
