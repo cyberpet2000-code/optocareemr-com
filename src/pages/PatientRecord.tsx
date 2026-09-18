@@ -141,6 +141,18 @@ const sameEyeRx = (v: any) =>
 const eyeHasRx = (sph?: string | null, cyl?: string | null, axis?: string | null) =>
   normRx(sph) !== "" || normRx(cyl) !== "" || normRx(axis) !== "";
 
+const hasOpticalPrescription = (visit: any) =>
+  Boolean(
+    visit?.lens_type ||
+    visit?.sub_od_sphere ||
+    visit?.sub_od_cyl ||
+    visit?.sub_od_axis ||
+    visit?.sub_os_sphere ||
+    visit?.sub_os_cyl ||
+    visit?.sub_os_axis ||
+    visit?.sub_reading_add
+  );
+
 const PATIENT_RECORD_TIMEOUT_MS = 8000;
 
 async function withPatientRecordTimeout<T>(
@@ -231,6 +243,22 @@ const canViewFinancials =
     >
   >({});
 
+  const isPrescriptionReadyForFeedback = (visit: any) => {
+    if (visit?.status !== "completed") return false;
+
+    if (hasOpticalPrescription(visit) && visit.optical_dispensed !== true) {
+      return false;
+    }
+
+    const medications = visit?.medication
+      ? parseMedicationItems(visit.medication)
+      : [];
+
+    return medications.every((item: any) => {
+      const key = `${visit.id}:${item.name.toLowerCase()}`;
+      return medicationDispensingMap[key]?.dispensed === true;
+    });
+  };
 
   useEffect(() => {
     if (!patientId || !cid) { setLoading(false); return; }
@@ -1173,38 +1201,8 @@ hmo_relationship:
     return;
   }
 
-  if (visit.status !== "completed") {
-    toast.info("Complete the visit before sending feedback");
-    return;
-  }
-
-  const hasOpticalPrescription = Boolean(
-    visit.lens_type ||
-    visit.sub_od_sphere ||
-    visit.sub_od_cyl ||
-    visit.sub_od_axis ||
-    visit.sub_os_sphere ||
-    visit.sub_os_cyl ||
-    visit.sub_os_axis ||
-    visit.sub_reading_add
-  );
-
-  if (hasOpticalPrescription && !visit.optical_dispensed) {
-    toast.info("Dispense the optical prescription before sending feedback");
-    return;
-  }
-
-  const prescribedMedications = visit.medication
-    ? parseMedicationItems(visit.medication)
-    : [];
-
-  const undisposedMedication = prescribedMedications.find((item: any) => {
-    const key = `${visitId}:${item.name.toLowerCase()}`;
-    return medicationDispensingMap[key]?.dispensed !== true;
-  });
-
-  if (undisposedMedication) {
-    toast.info(`Dispense ${undisposedMedication.name} before sending feedback`);
+  if (!isPrescriptionReadyForFeedback(visit)) {
+    toast.info("Complete and dispense all prescribed items before sending feedback");
     return;
   }
 
@@ -2228,37 +2226,7 @@ shadow-sm
               <p className="text-muted-foreground text-sm text-center py-8">No previous visits recorded.</p>
             ) : (
               <div className="space-y-2">
-                {visits.map((v: any) => {
-                  const hasOpticalPrescription = Boolean(
-                    v.lens_type ||
-                    v.sub_od_sphere ||
-                    v.sub_od_cyl ||
-                    v.sub_od_axis ||
-                    v.sub_os_sphere ||
-                    v.sub_os_cyl ||
-                    v.sub_os_axis ||
-                    v.sub_reading_add
-                  );
-
-                  const prescribedMedications = v.medication
-                    ? parseMedicationItems(v.medication)
-                    : [];
-
-                  const hasMedicationPrescription =
-                    prescribedMedications.length > 0;
-
-                  const allMedicationsDispensed =
-                    !hasMedicationPrescription ||
-                    prescribedMedications.every((item: any) => {
-                      const key = `${v.id}:${item.name.toLowerCase()}`;
-                      return medicationDispensingMap[key]?.dispensed === true;
-                    });
-
-                  const prescriptionReadyForFeedback =
-                    (!hasOpticalPrescription || v.optical_dispensed === true) &&
-                    allMedicationsDispensed;
-
-                  return (
+                {visits.map((v: any) => (
                   <div key={v.id} className="relative pl-8 pb-6">
 
   <div className="absolute left-3 top-2 h-4 w-4 rounded-full bg-primary" />
@@ -2498,7 +2466,7 @@ shadow-sm
         </p>
       )}
 
-      {hasOpticalPrescription && (
+      {hasOpticalPrescription(v) && (
         <div className="mt-2 flex items-center justify-between gap-2">
           <p className="min-w-0 flex-1 text-[11px] leading-tight text-muted-foreground">
             {v.lens_type}
@@ -2765,8 +2733,7 @@ shadow-sm
     disabled={
       sendingFeedback ||
       visitFeedbackStatus[v.id] === "completed" ||
-      v.status !== "completed" ||
-      !prescriptionReadyForFeedback
+      !isPrescriptionReadyForFeedback(v)
     }
   >
     <MessageCircle size={14} />
@@ -2774,7 +2741,7 @@ shadow-sm
       ? "Sending..."
       : visitFeedbackStatus[v.id] === "pending"
         ? "Resend Report"
-        : !prescriptionReadyForFeedback
+        : !isPrescriptionReadyForFeedback(v)
           ? "Dispense First"
           : "Feedback Report"}
   </Button>
@@ -2801,8 +2768,7 @@ shadow-sm
   </div>
 
 </div>
-                  </div>
-                )})}
+                ))}
               </div>
             )}
           </div>
