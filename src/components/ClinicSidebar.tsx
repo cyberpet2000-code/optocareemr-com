@@ -95,6 +95,7 @@ export default function ClinicSidebar() {
         { to: "/appointments", label: "Appointments", icon: Calendar },
         { to: "/hmos", label: "HMOs", icon: Building2 },
         { to: "/finance/expenses", label: "Expenses", icon: Wallet },
+        { to: "/reports/daily-front-desk", label: "Daily Front Desk Report", icon: ClipboardList },
         { to: "/reports/monthly", label: "Monthly Reports", icon: FileBarChart },
         { to: "/inventory/audit", label: "Inventory Audit", icon: ClipboardList },
         { to: "/settings/account", label: "Account", icon: UserCog },
