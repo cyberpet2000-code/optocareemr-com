@@ -288,8 +288,8 @@ export default function Inventory() {
                     <p className="text-xs text-muted-foreground">₦{item.price.toLocaleString()} • Stock: {item.stock_quantity}</p>
                   </div>
                   <div className="flex gap-0.5 shrink-0">
-                    <button onClick={() => startEdit(item)} className="p-2 rounded-xl hover:bg-muted transition-colors"><Edit2 size={12} /></button>
-                    <button onClick={() => handleDelete(item.id)} className="p-2 rounded-xl hover:bg-muted transition-colors"><Trash2 size={12} className="text-destructive" /></button>
+                    <button onClick={() => startEdit(item)} className="p-2 rounded-xl hover:bg-muted transition-colors" title="Edit inventory item" aria-label="Edit inventory item"><Edit2 size={12} /></button>
+                    <button onClick={() => handleDelete(item.id)} className="p-2 rounded-xl hover:bg-muted transition-colors" title="Delete inventory item" aria-label="Delete inventory item"><Trash2 size={12} className="text-destructive" /></button>
                   </div>
                 </div>
               ))}
@@ -311,7 +311,7 @@ export default function Inventory() {
                       <p className="text-xs font-semibold">{item.name}</p>
                       <p className="text-[10px] text-muted-foreground">₦{item.price.toLocaleString()} • Stock: {item.stock_quantity}</p>
                     </div>
-                    <Button variant="outline" size="sm" className="rounded-xl h-7" onClick={() => addToCart(item)}><Plus size={12} /></Button>
+                    <Button variant="outline" size="sm" className="rounded-xl h-7" title="Add item to cart" aria-label="Add item to cart" onClick={() => addToCart(item)}><Plus size={12} /></Button>
                   </div>
                 ))}
               </div>
@@ -337,7 +337,7 @@ export default function Inventory() {
                           <p className="text-[10px] text-muted-foreground">₦{c.unit_price.toLocaleString()} × {c.quantity}</p>
                         </div>
                         <Input type="number" min={1} max={c.available_stock} value={c.quantity} onChange={e => updateCartQty(c.inventory_id, parseInt(e.target.value) || 1)} className="w-14 h-7 text-center text-xs rounded-lg" />
-                        <button onClick={() => removeFromCart(c.inventory_id)} className="p-1 hover:text-destructive"><X size={12} /></button>
+                        <button onClick={() => removeFromCart(c.inventory_id)} className="p-1 hover:text-destructive" title="Remove item from cart" aria-label="Remove item from cart"><X size={12} /></button>
                       </div>
                     ))}
                     <div className="border-t border-border/60 pt-3 flex items-center justify-between">
