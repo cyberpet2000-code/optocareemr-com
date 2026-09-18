@@ -740,6 +740,8 @@ subVaOutcome: v.sub_va_outcome || "",
     setSaving(true);
 
 const visitPayload = {
+  clinic_id: cid,
+  patient_id: patient.id,
   registered_by: editingVisitId
     ? visits.find(v => v.id === editingVisitId)?.registered_by || user.id
     : user.id,
