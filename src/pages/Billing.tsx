@@ -242,6 +242,33 @@ if (!selectedBill) {
 
 setEditingBillingId(selectedBill.id);
 
+      const { data: selectedItems, error: selectedItemsError } = await apiClient
+        .from("billing_items")
+        .select("*")
+        .eq("clinic_id", cid)
+        .eq("billing_id", selectedBill.id)
+        .order("created_at", { ascending: true });
+
+      if (selectedItemsError) {
+        console.error("Billing items query error:", selectedItemsError);
+      }
+
+      setItems((selectedItems || []).map((it: any) => ({
+        id: it.id,
+        inventory_id: it.inventory_id || null,
+        item_type: it.item_type,
+        item_name: it.item_name,
+        quantity: Number(it.quantity) || 1,
+        unit_price: Number(it.unit_price) || 0,
+        total_price: Number(it.total_price) || 0,
+      })));
+
+      setForm((f) => ({
+        ...f,
+        consultationFee: String(Number(selectedBill.consultation_fee) || 0),
+        notes: selectedBill.notes || "",
+      }));
+
       setLookupPayments(
         paymentsRes || []
       );
@@ -392,6 +419,7 @@ setEditingBillingId(selectedBill.id);
         .from("billing")
         .select("*")
         .eq("id", editingBillingId)
+        .eq("clinic_id", cid)
         .maybeSingle();
 
       if (billError) {
@@ -436,33 +464,84 @@ setEditingBillingId(selectedBill.id);
         }
       }
 
-      // Insert billing items.
-// IMPORTANT: Billing records the charge only.
-// Inventory is NOT deducted here.
-// Stock is deducted only when the item is physically dispensed.
-if (items.length > 0) {
-  const payload = items.map(it => ({
-    clinic_id: cid,
-    billing_id: billingId,
-    inventory_id: it.inventory_id || null,
-    item_type: it.item_type,
-    item_name: it.item_name || it.item_type,
-    quantity: Number(it.quantity) || 1,
-    unit_price: Number(it.unit_price) || 0,
-    total_price: Number(it.total_price) || 0,
-  }));
+      // Synchronize billing line items without duplicating existing rows.
+      // Billing records the charge only; inventory is NOT deducted here.
+      const { data: existingItems, error: existingItemsError } = await apiClient
+        .from("billing_items")
+        .select("id")
+        .eq("clinic_id", cid)
+        .eq("billing_id", billingId);
 
-  const { error: itemErr } = await apiClient
-    .from("billing_items")
-    .insert(payload as any);
+      if (existingItemsError) {
+        toast.error("Items: " + existingItemsError.message);
+        setSaving(false);
+        return;
+      }
 
-  if (itemErr) {
-    toast.error("Items: " + itemErr.message);
-    setSaving(false);
-    return;
-  }
-}
-            
+      const existingItemIds = new Set((existingItems || []).map((it: any) => it.id));
+      const currentItemIds = new Set(items.map((it) => it.id).filter(Boolean) as string[]);
+      const removedItemIds = [...existingItemIds].filter((id) => !currentItemIds.has(id));
+
+      if (removedItemIds.length > 0) {
+        const { error: deleteErr } = await apiClient
+          .from("billing_items")
+          .delete()
+          .eq("clinic_id", cid)
+          .eq("billing_id", billingId)
+          .in("id", removedItemIds);
+
+        if (deleteErr) {
+          toast.error("Items: " + deleteErr.message);
+          setSaving(false);
+          return;
+        }
+      }
+
+      for (const it of items.filter((it) => it.id && existingItemIds.has(it.id))) {
+        const { error: updateItemErr } = await apiClient
+          .from("billing_items")
+          .update({
+            inventory_id: it.inventory_id || null,
+            item_type: it.item_type,
+            item_name: it.item_name || it.item_type,
+            quantity: Number(it.quantity) || 1,
+            unit_price: Number(it.unit_price) || 0,
+            total_price: Number(it.total_price) || 0,
+          })
+          .eq("id", it.id)
+          .eq("clinic_id", cid)
+          .eq("billing_id", billingId);
+
+        if (updateItemErr) {
+          toast.error("Items: " + updateItemErr.message);
+          setSaving(false);
+          return;
+        }
+      }
+
+      const newItems = items.filter((it) => !it.id);
+      if (newItems.length > 0) {
+        const payload = newItems.map(it => ({
+          clinic_id: cid,
+          billing_id: billingId,
+          inventory_id: it.inventory_id || null,
+          item_type: it.item_type,
+          item_name: it.item_name || it.item_type,
+          quantity: Number(it.quantity) || 1,
+          unit_price: Number(it.unit_price) || 0,
+          total_price: Number(it.total_price) || 0,
+        }));
+
+        const { error: itemErr } = await apiClient
+          .from("billing_items")
+          .insert(payload as any);
+
+        if (itemErr) {
+          toast.error("Items: " + itemErr.message);
+          setSaving(false);
+          return;
+        }
+      }
 
 const { error } = await apiClient
   .from("billing")
@@ -550,6 +629,7 @@ if (error) {
       .from("billing")
       .select("*")
       .eq("id", paymentBillingId)
+      .eq("clinic_id", cid)
       .maybeSingle();
 
   if (billError) {
@@ -559,6 +639,20 @@ if (error) {
 
   if (!bill) {
     toast.error("Billing record not found.");
+    return;
+  }
+
+  const outstandingBalance = Math.max(
+    0,
+    Number(bill.total_amount || 0) - Number(bill.amount_paid || 0)
+  );
+
+  if (amt > outstandingBalance) {
+    toast.error(
+      "Payment cannot exceed the outstanding balance of ₦" +
+      outstandingBalance.toLocaleString() +
+      "."
+    );
     return;
   }
 
