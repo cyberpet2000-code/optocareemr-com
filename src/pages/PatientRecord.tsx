@@ -2736,10 +2736,12 @@ shadow-sm
     className="h-7 rounded-lg px-2 text-[10px] font-medium gap-1"
     title={
       visitFeedbackStatus[v.id] === "completed"
-        ? "Feedback report already completed"
+        ? "View feedback report"
         : !isPrescriptionReadyForFeedback(v)
           ? "Dispense all prescribed items first"
-          : "View feedback report"
+          : visitFeedbackStatus[v.id] === "pending"
+            ? "Feedback sent — resend feedback to the patient"
+            : "Send feedback to the patient"
     }
     onClick={() => handleSendFeedback(v.id)}
     disabled={
@@ -2751,11 +2753,9 @@ shadow-sm
     <MessageCircle size={14} />
     {sendingFeedback
       ? "Sending..."
-      : visitFeedbackStatus[v.id] === "pending"
-        ? "Resend Report"
-        : !isPrescriptionReadyForFeedback(v)
-          ? "Dispense First"
-          : "Feedback Report"}
+      : visitFeedbackStatus[v.id] === "completed"
+        ? "Feedback Report"
+        : "Feedback"}
   </Button>
 
   {isClinicalUser && (
