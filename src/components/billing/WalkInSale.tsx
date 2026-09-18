@@ -20,11 +20,12 @@ interface InvItem {
 }
 
 interface Line {
-  inventory_id: string;
+  inventory_id: string | null;
   name: string;
   quantity: number;
   unit_price: number;
   available_stock: number;
+  isTransfer?: boolean;
 }
 
 interface WalkInSaleRow {
@@ -143,8 +144,24 @@ export default function WalkInSale() {
     });
   };
 
-  const updateLine = (id: string, patch: Partial<Line>) =>
-    setLines((prev) => prev.map((l) => l.inventory_id === id ? { ...l, ...patch } : l));
+  const addLensTransfer = () => {
+    setLines((prev) => [
+      ...prev,
+      {
+        inventory_id: null,
+        name: "Lens Transfer",
+        quantity: 1,
+        unit_price: 0,
+        available_stock: 0,
+        isTransfer: true,
+      },
+    ]);
+  };
+
+  const updateLine = (id: string | null, patch: Partial<Line>, index?: number) =>
+    setLines((prev) => prev.map((l, i) =>
+      (index !== undefined ? i === index : l.inventory_id === id) ? { ...l, ...patch } : l
+    ));
 
   const resetForm = () => {
     setLines([]); setCustomerName(""); setCustomerPhone(""); setCustomerEmail("");
@@ -227,6 +244,7 @@ export default function WalkInSale() {
         clinic_id: cid,
         sale_id: saleRow.id,
         inventory_id: l.inventory_id,
+        item_name: l.name,
         quantity: l.quantity,
         unit_price: l.unit_price,
         total_price: l.quantity * l.unit_price,
@@ -286,6 +304,7 @@ export default function WalkInSale() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+          <Button type="button" variant="outline" size="sm" className="w-full h-8 rounded-xl text-xs mb-2" onClick={addLensTransfer}>+ Lens Transfer</Button>
           <div className="max-h-72 overflow-y-auto space-y-1">
             {filtered.length === 0 ? (
               <p className="text-xs text-muted-foreground py-6 text-center">No items in stock.</p>
@@ -328,8 +347,8 @@ export default function WalkInSale() {
             <p className="text-xs text-muted-foreground text-center py-6">Cart is empty — pick items on the left.</p>
           ) : (
             <div className="space-y-2">
-              {lines.map((l) => (
-                <div key={l.inventory_id} className="grid grid-cols-12 gap-2 items-end bg-muted/40 rounded-xl p-2">
+              {lines.map((l, lineIndex) => (
+                <div key={l.inventory_id || `transfer-${lineIndex}`} className="grid grid-cols-12 gap-2 items-end bg-muted/40 rounded-xl p-2">
                   <p className="col-span-12 text-xs font-medium truncate">{l.name}</p>
                   <div className="col-span-4">
                     <Label className="text-[10px]">Qty</Label>
@@ -359,7 +378,7 @@ export default function WalkInSale() {
                     <p className="text-xs font-semibold">₦{(l.quantity * l.unit_price).toLocaleString()}</p>
                   </div>
                   <button
-                    onClick={() => setLines((prev) => prev.filter((x) => x.inventory_id !== l.inventory_id))}
+                    onClick={() => setLines((prev) => prev.filter((_, i) => i !== lineIndex))}
                     className="col-span-1 p-1.5 rounded-lg hover:bg-destructive/10 text-destructive flex items-center justify-center"
                   >
                     <Trash2 size={12} />
