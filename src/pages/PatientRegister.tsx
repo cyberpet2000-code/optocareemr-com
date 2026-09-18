@@ -241,7 +241,7 @@ export default function PatientRegister() {
     setLoading(true);
     const { data, error } = await apiClient.from("patients").insert({
       clinic_id: cid,
-      registered_by: user?.id ?? null,
+      created_by: user?.id ?? null,
       date_of_birth: (() => {
         const match = form.dateOfBirth.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
         return match ? `${match[3]}-${match[2].padStart(2, "0")}-${match[1].padStart(2, "0")}` : null;
