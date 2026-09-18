@@ -45,6 +45,7 @@ import Expenses from "./pages/Expenses";
 import InventoryAudit from "./pages/InventoryAudit";
 import AccountSettings from "./pages/AccountSettings";
 import MonthlyReports from "./pages/MonthlyReports";
+import DailyFrontDeskReport from "./pages/DailyFrontDeskReport";
 import {
   diag,
   isDiagEnabled,
