@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { CalendarIcon, Plus, X, Clock, CheckCircle2, XCircle, AlertCircle, Bell, BellRing, Pencil, UserRound, ChevronRight } from "lucide-react";
+import { CalendarIcon, Plus, X, Clock, CalendarClock, CheckCircle2, XCircle, AlertCircle, Bell, BellRing, Pencil, UserRound, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { useAccessClinic } from "@/hooks/useAccess";
 import { diag } from "@/lib/diag";
@@ -51,7 +51,7 @@ export default function Appointments() {
   const [form, setForm] = useState({ patientId: "", date: new Date(), time: "", reason: "" });
   const [saving, setSaving] = useState(false);
   const [remindingId, setRemindingId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);\n  const [reschedulingId, setReschedulingId] = useState<string | null>(null);\n  const [rescheduleForm, setRescheduleForm] = useState({ date: new Date(), time: "" });\n  const [rescheduling, setRescheduling] = useState(false);
 
   const filterDateStr = useMemo(() => format(filterDate, "yyyy-MM-dd"), [filterDate]);
 
@@ -193,6 +193,65 @@ export default function Appointments() {
       reason: a.reason || "",
     });
     setShowForm(true);
+  };
+
+  const startReschedule = (a: Appointment) => {
+    setReschedulingId(a.id);
+    setRescheduleForm({
+      date: new Date(a.appointment_date + "T00:00:00"),
+      time: a.appointment_time || "",
+    });
+  };
+
+  const handleReschedule = async () => {
+    if (!cid || !reschedulingId) return;
+    if (!rescheduleForm.time?.trim()) {
+      toast.error("Set the new appointment time");
+      return;
+    }
+    if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
+      toast.error("Rescheduling requires an internet connection. Your existing appointment has not been changed.");
+      return;
+    }
+
+    const appointment = appointments.find(a => a.id === reschedulingId);
+    if (!appointment) {
+      toast.error("Appointment could not be found. Please refresh and try again.");
+      return;
+    }
+
+    const newDate = format(rescheduleForm.date, "yyyy-MM-dd");
+    const dateChanged = appointment.appointment_date !== newDate;
+    const timeChanged = (appointment.appointment_time || "") !== rescheduleForm.time;
+
+    setRescheduling(true);
+    const { error: uErr } = await apiClient
+      .from("appointments")
+      .update({
+        appointment_date: newDate,
+        appointment_time: rescheduleForm.time,
+        ...(dateChanged || timeChanged
+          ? { reminder_sent_at: null, reminder_channel: null }
+          : {}),
+      } as any)
+      .eq("clinic_id", cid)
+      .eq("id", reschedulingId);
+
+    setRescheduling(false);
+
+    if (uErr) {
+      diag.error("query", "appointment reschedule failed", uErr, { id: reschedulingId });
+      toast.error(uErr.message);
+      return;
+    }
+
+    toast.success(
+      dateChanged || timeChanged
+        ? "Appointment rescheduled. A new reminder is now due."
+        : "Appointment schedule confirmed."
+    );
+    setReschedulingId(null);
+    loadAppointments();
   };
 
   const stats = useMemo(() => {
@@ -352,6 +411,110 @@ export default function Appointments() {
         </div>
       )}
 
+      {reschedulingId && cid && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border bg-card p-5 shadow-xl animate-fade-in">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <CalendarClock size={18} className="text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-semibold">Reschedule appointment</h2>
+                    <p className="text-xs text-muted-foreground">Choose the new date and time.</p>
+                  </div>
+                </div>
+                {(() => {
+                  const appt = appointments.find(a => a.id === reschedulingId);
+                  if (!appt) return null;
+                  return (
+                    <div className="mt-3 rounded-xl bg-muted/50 px-3 py-2">
+                      <p className="text-sm font-medium">{appt.patient_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Current: {format(new Date(appt.appointment_date + "T00:00:00"), "PPP")}
+                        {appt.appointment_time ? " at " + appt.appointment_time : ""}
+                      </p>
+                    </div>
+                  );
+                })()}
+              </div>
+              <button
+                type="button"
+                onClick={() => setReschedulingId(null)}
+                className="p-2 rounded-xl hover:bg-muted"
+                title="Close reschedule dialog"
+                aria-label="Close reschedule dialog"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label className="text-xs">New date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal rounded-xl">
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                      {format(rescheduleForm.date, "PPP")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={rescheduleForm.date}
+                      onSelect={d => d && setRescheduleForm(f => ({ ...f, date: d }))}
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">New time</Label>
+                <Input
+                  type="time"
+                  className="rounded-xl"
+                  value={rescheduleForm.time}
+                  onChange={e => setRescheduleForm(f => ({ ...f, time: e.target.value }))}
+                />
+              </div>
+
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+                <p className="font-medium text-foreground mb-1">What happens when you reschedule?</p>
+                <ul className="space-y-1 list-disc pl-4">
+                  <li>The same appointment record is updated.</li>
+                  <li>Patient, clinic, reason and appointment status are preserved.</li>
+                  <li>If the date or time changes, the previous reminder is cleared and a new reminder becomes due.</li>
+                </ul>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={() => setReschedulingId(null)}
+                  disabled={rescheduling}
+                >
+                  Keep current
+                </Button>
+                <Button
+                  type="button"
+                  className="rounded-xl gap-1.5"
+                  onClick={handleReschedule}
+                  disabled={rescheduling}
+                >
+                  <CalendarClock size={15} />
+                  {rescheduling ? "Rescheduling..." : "Confirm reschedule"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
         <div className="medical-card p-3"><p className="text-[10px] text-muted-foreground">Today</p><p className="text-xl font-bold mt-1">{stats.today}</p></div>
         <div className="medical-card p-3"><p className="text-[10px] text-muted-foreground">Pending</p><p className="text-xl font-bold mt-1">{stats.pending}</p></div>
@@ -424,7 +587,17 @@ export default function Appointments() {
                     <button onClick={() => updateStatus(a.id, "completed")} className="p-2 rounded-xl hover:bg-muted" title="Mark appointment as completed"><CheckCircle2 size={16} className="text-success" /></button>
                     <button onClick={() => updateStatus(a.id, "cancelled")} className="p-2 rounded-xl hover:bg-muted" title="Cancel appointment"><XCircle size={16} className="text-destructive" /></button>
                   </>}
-                  <button onClick={() => startEdit(a)} className="p-2 rounded-xl hover:bg-muted" title="Edit appointment"><Pencil size={16} /></button>
+                  <button
+                    onClick={() => startReschedule(a)}
+                    className="p-2 rounded-xl hover:bg-muted"
+                    title="Reschedule appointment"
+                    aria-label={"Reschedule appointment for " + (a.patient_name || "patient")}
+                  >
+                    <CalendarClock size={16} className="text-primary" />
+                  </button>
+                  <button onClick={() => startEdit(a)} className="p-2 rounded-xl hover:bg-muted" title="Edit appointment" aria-label={"Edit appointment for " + (a.patient_name || "patient")}>
+                    <Pencil size={16} />
+                  </button>
                   <button
                     onClick={() => sendReminder(a)}
                     disabled={remindingId === a.id || a.status === "cancelled" || a.status === "completed"}
