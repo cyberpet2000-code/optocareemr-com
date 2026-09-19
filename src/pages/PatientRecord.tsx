@@ -1241,6 +1241,69 @@ hmo_relationship:
     setEditing(false);
   };
 
+  const handleSendFeedback = async (visitId: string) => {
+    if (!cid || !patient) {
+      toast.error("No active clinic or patient");
+      return;
+    }
+
+    setSendingFeedback(true);
+    try {
+      const { data, error } = await apiClient.rpc("create_feedback_request", {
+        p_visit_id: visitId,
+      });
+
+      if (error) {
+        toast.error(error.message || "Unable to create feedback link");
+        return;
+      }
+
+      const request = Array.isArray(data) ? data[0] : data;
+      const link = request?.feedback_link;
+      if (!link) {
+        toast.error("Feedback link could not be generated");
+        return;
+      }
+
+      setFeedbackLink(link);
+      setVisitFeedbackStatus((prev) => ({ ...prev, [visitId]: "pending" }));
+
+      if (!patient.phone) {
+        toast.success("Feedback link created");
+        return;
+      }
+
+      const clinicName = (patient as any).clinic_name || "Our Clinic";
+      const message = `${clinicName}
+Patient Feedback Request
+
+Hello ${patient.full_name},
+
+Thank you for visiting ${clinicName}. We value your experience and would appreciate a few moments of your time to share your feedback about your recent visit.
+
+Share your feedback:
+${link}
+
+Thank you for choosing ${clinicName}.
+
+Sent through OptoCare EMR`;
+
+      const whatsappUrl = whatsappLink(patient.phone, message);
+      if (!whatsappUrl) {
+        toast.success("Feedback link created");
+        return;
+      }
+
+      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+      toast.success("WhatsApp feedback message opened. Press Send in WhatsApp to deliver it.");
+    } catch (error: any) {
+      console.error("Feedback request error:", error);
+      toast.error(error?.message || "Unable to send feedback request");
+    } finally {
+      setSendingFeedback(false);
+    }
+  };
+
   if (loading) return <div className="flex items-center justify-center py-12"><OptoLoader size={40} /></div>;
   if (!patient) return <p className="text-center py-12 text-muted-foreground">Patient not found.</p>;
 
