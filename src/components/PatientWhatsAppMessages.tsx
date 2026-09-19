@@ -17,7 +17,8 @@ export type WhatsAppTemplateKey =
   | "bring_frame"
   | "waiting_for_frame"
   | "frame_received"
-  | "contact_lens_ready";
+  | "contact_lens_ready"
+  | "birthday";
 
 type Template = {
   key: WhatsAppTemplateKey;
@@ -173,6 +174,22 @@ Kindly bring the frame to the clinic when convenient so we can continue with you
 Please contact us if you have any questions.
 
 Thank you.
+
+*Sent through OptoCare EMR*`,
+  },
+  {
+    key: "birthday",
+    label: "🎂 Birthday Greeting",
+    group: "Patient Engagement",
+    build: ({ clinicName, patientName }) => `${clinicName}
+
+Hello ${patientName},
+
+Wishing you a very happy birthday! 🎂
+
+We appreciate you choosing ${clinicName} for your eye care and wish you a wonderful, healthy and happy year ahead.
+
+Have a beautiful birthday celebration!
 
 *Sent through OptoCare EMR*`,
   },
