@@ -832,6 +832,10 @@ if (error) {
   };
 
   const addPayment = async () => {
+  if (!cid) {
+    toast.error("No active clinic");
+    return;
+  }
   if (!paymentBillingId || !paymentAmount) {
     return;
   }
