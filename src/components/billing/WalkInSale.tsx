@@ -304,10 +304,17 @@ export default function WalkInSale() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="grid grid-cols-2 gap-2 mb-2">
-            <Button type="button" variant="outline" size="sm" className="h-8 rounded-xl text-xs" onClick={() => addOpticalService("Lens Transfer")}>+ Lens Transfer</Button>
-            <Button type="button" variant="outline" size="sm" className="h-8 rounded-xl text-xs" onClick={() => addOpticalService("Frame Fixing")}>+ Frame Fixing</Button>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-xs font-semibold">Quick services</p>
+              <p className="text-[10px] text-muted-foreground">Add non-stock optical services to the sale.</p>
+            </div>
+            <div className="flex gap-1.5">
+              <Button type="button" variant="outline" size="sm" className="h-8 rounded-xl text-[10px]" onClick={() => addOpticalService("Lens Transfer")}>Lens Transfer</Button>
+              <Button type="button" variant="outline" size="sm" className="h-8 rounded-xl text-[10px]" onClick={() => addOpticalService("Frame Fixing")}>Frame Fixing</Button>
+            </div>
           </div>
+          <p className="text-[10px] text-muted-foreground mb-1">Tap an item to add it to the sale.</p>
           <div className="max-h-72 overflow-y-auto space-y-1">
             {filtered.length === 0 ? (
               <p className="text-xs text-muted-foreground py-6 text-center">No items in stock.</p>
