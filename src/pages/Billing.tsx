@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, FileText, Plus, X, Printer, Trash2, ShoppingBag } from "lucide-react";
+import { DollarSign, FileText, Plus, X, Printer, Trash2, ShoppingBag, Check, ChevronsUpDown, Search } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useAccess } from "@/hooks/useAccess";
 import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
@@ -48,6 +50,73 @@ interface Patient {
   full_name: string;
   payment_type: string;
   active_hmo_id: string | null;
+}
+
+function StockItemPicker({
+  value,
+  items,
+  onSelect,
+  placeholder = "Select item from stock",
+}: {
+  value?: string | null;
+  items: any[];
+  onSelect: (item: any) => void;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = items.find((item) => item.id === value);
+  const available = items.filter((item) => Number(item.stock_quantity ?? 0) > 0);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between rounded-lg h-8 px-2.5 text-xs font-normal"
+        >
+          <span className={selected ? "truncate text-foreground" : "truncate text-muted-foreground"}>
+            {selected?.name || placeholder}
+          </span>
+          <ChevronsUpDown size={13} className="ml-2 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[min(420px,calc(100vw-32px))] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search stock by item name or category..." />
+          <CommandList>
+            <CommandEmpty>No available stock matches your search.</CommandEmpty>
+            <CommandGroup heading={available.length ? `${available.length} items in stock` : "Stock"}>
+              {available.map((item) => (
+                <CommandItem
+                  key={item.id}
+                  value={`${item.name} ${item.category || ""} ${item.item_type || ""}`}
+                  onSelect={() => {
+                    onSelect(item);
+                    setOpen(false);
+                  }}
+                  className="py-2.5"
+                >
+                  <Check
+                    size={14}
+                    className={value === item.id ? "mr-2 opacity-100 text-primary" : "mr-2 opacity-0"}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium truncate">{item.name}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {item.category || item.item_type || "Stock item"} · Stock {Number(item.stock_quantity) || 0} · ₦{Number(item.price) || 0}
+                    </p>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 export default function Billing() {
@@ -1074,10 +1143,9 @@ if (error) {
   onValueChange={v =>
     updateItem(idx, {
       item_type: v,
-      inventory_id:
-        v === "Eye Drop" || v === "Drugs"
-          ? it.inventory_id
-          : null,
+      inventory_id: null,
+      item_name: "",
+      unit_price: 0,
     })
   }
 >
@@ -1087,54 +1155,44 @@ if (error) {
                       </div>
                       <div className="col-span-4">
                         <Label className="text-[10px]">Name</Label>
-                        {it.item_type === "Eye Drop" ||
-                          it.item_type === "Drugs" ? (
-
-                          <Select
-  value={it.inventory_id || ""}
-  onValueChange={(inventoryId) => {
-    const selected = medicationItems.find(
-      (m) => m.id === inventoryId
-    );
-
-    updateItem(idx, {
-      inventory_id: inventoryId,
-      item_name: selected?.name || "",
-      unit_price: Number(selected?.price) || 0,
-    });
-  }}
->
-  <SelectTrigger className="rounded-lg h-8 text-xs">
-    <SelectValue placeholder="Select medication" />
-  </SelectTrigger>
-
-  <SelectContent>
-    {medicationItems.map((m) => (
-      <SelectItem
-        key={m.id}
-        value={m.id}
-      >
-        {m.name} — Stock: {Number(m.stock_quantity) || 0}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
-
-                        ) : (
-
+                        {it.item_type === "Lens Transfer" ||
+                        it.item_type === "Frame Fixing" ||
+                        it.item_type === "Others" ? (
                           <Input
-  className="rounded-lg h-8 text-xs"
-  value={it.item_name}
-  onChange={(e) =>
-    updateItem(idx, {
-      item_name: e.target.value,
-      inventory_id: null,
-    })
-  }
-  placeholder={it.item_type === "Lens Transfer" ? "Describe transferred lens" : it.item_type === "Frame Fixing" ? "Describe frame repair/fixing" : "Item name"}
-  disabled={(it.item_type === "Lens Transfer" || it.item_type === "Frame Fixing") && !!it.item_name}
-/>
-
+                            className="rounded-lg h-8 text-xs"
+                            value={it.item_name}
+                            onChange={(e) =>
+                              updateItem(idx, {
+                                item_name: e.target.value,
+                                inventory_id: null,
+                              })
+                            }
+                            placeholder={
+                              it.item_type === "Lens Transfer"
+                                ? "Describe transferred lens"
+                                : it.item_type === "Frame Fixing"
+                                  ? "Describe frame repair/fixing"
+                                  : "Enter custom charge"
+                            }
+                          />
+                        ) : (
+                          <StockItemPicker
+                            value={it.inventory_id}
+                            items={inventoryItems}
+                            placeholder="Select exact item from stock"
+                            onSelect={(selected) => {
+                              const rawType = String(selected.item_type || selected.category || "").trim();
+                              const matchedType = ITEM_TYPES.find(
+                                (type) => type.toLowerCase() === rawType.toLowerCase()
+                              );
+                              updateItem(idx, {
+                                inventory_id: selected.id,
+                                item_name: selected.name || "",
+                                unit_price: Number(selected.price) || 0,
+                                ...(matchedType ? { item_type: matchedType } : {}),
+                              });
+                            }}
+                          />
                         )}
                       </div>
                       <div className="col-span-2">
