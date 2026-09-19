@@ -16,7 +16,8 @@ export type WhatsAppTemplateKey =
   | "follow_up"
   | "bring_frame"
   | "waiting_for_frame"
-  | "frame_received";
+  | "frame_received"
+  | "contact_lens_ready";
 
 type Template = {
   key: WhatsAppTemplateKey;
@@ -46,6 +47,10 @@ We are pleased to inform you that your glasses are ready for collection at ${cli
 
 You can visit us during our working hours to pick them up.
 
+Our working hours:
+Monday–Friday: 9:00 AM–5:00 PM
+Saturday: 10:00 AM–3:00 PM
+
 Thank you for choosing ${clinicName}.
 
 *Sent through OptoCare EMR*`,
@@ -61,6 +66,10 @@ Hello ${patientName},
 Your order is ready for collection at ${clinicName}.
 
 Please visit us during our working hours to collect your order.
+
+Our working hours:
+Monday–Friday: 9:00 AM–5:00 PM
+Saturday: 10:00 AM–3:00 PM
 
 Thank you for choosing ${clinicName}.
 
@@ -164,6 +173,26 @@ Kindly bring the frame to the clinic when convenient so we can continue with you
 Please contact us if you have any questions.
 
 Thank you.
+
+*Sent through OptoCare EMR*`,
+  },
+  {
+    key: "contact_lens_ready",
+    label: "👁️ Contact Lens Ready",
+    group: "Contact Lens",
+    build: ({ clinicName, patientName }) => `${clinicName}
+
+Hello ${patientName},
+
+We are pleased to inform you that your contact lenses are ready for collection at ${clinicName}.
+
+You can visit us during our working hours to pick them up.
+
+Our working hours:
+Monday–Friday: 9:00 AM–5:00 PM
+Saturday: 10:00 AM–3:00 PM
+
+Thank you for choosing ${clinicName}.
 
 *Sent through OptoCare EMR*`,
   },
