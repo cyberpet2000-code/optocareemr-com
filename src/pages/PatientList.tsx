@@ -23,6 +23,7 @@ import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
 import PatientHistoryMeta from "@/components/patients/PatientHistoryMeta";
 import { buildBillingSummaryMap, buildVisitSummaryMap, getPaymentStatus, type PatientBillingSummary, type PatientVisitSummary } from "@/lib/patientHistory";
+import { normalizeWhatsAppNumber } from "@/lib/whatsapp";
 
 interface PatientRow {
   id: string;
@@ -43,7 +44,6 @@ interface PatientRow {
   billingSummary: PatientBillingSummary;
 }
 
-import { normalizeWhatsAppNumber } from "@/lib/whatsapp";
 
 function getCurrentPatientAge(dateOfBirth: string | null | undefined, storedAge: number | null | undefined) {
   if (!dateOfBirth) return storedAge !== null && storedAge !== undefined ? `${storedAge} years` : "—";
