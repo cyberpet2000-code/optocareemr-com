@@ -249,7 +249,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
           </main>
 
           <footer className="hidden lg:block border-t border-border/40 px-6 py-2 text-[10px] text-muted-foreground/70 text-center">
-            Powered by <span className="font-medium">OptoCare EMR</span>
+            Powered by <span className="font-medium">OptoCare-EMR</span>
           </footer>
 
           <nav className="bottom-nav lg:hidden">
