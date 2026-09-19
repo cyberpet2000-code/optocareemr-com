@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
 import { useAccess } from "@/hooks/useAccess";
+import { useClinic } from "@/hooks/useClinic";
 import { PatientWhatsAppMessages } from "@/components/PatientWhatsAppMessages";
 
 export default function Visits() {
   const { effectiveClinicId: cid, role } = useAccess();
+  const { clinic } = useClinic();
   const isReceptionist = role === "receptionist";
 
   const [searchParams] = useSearchParams();
@@ -116,7 +118,7 @@ const visitsWithNames = (data || []).map(
           <p className="font-semibold truncate">{visit.patient_name}</p>
           <PatientWhatsAppMessages
             clinicId={cid || ""}
-            clinicName="Clinic"
+            clinicName={clinic?.name || "Clinic"}
             patientId={visit.patient_id}
             patientName={visit.patient_name}
             phone={visit.patient_phone}
