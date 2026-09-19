@@ -2672,11 +2672,12 @@ export type Database = {
           hmo_verified_at?: string | null
           hmo_verified_by?: string | null
           id?: string
+          family_id?: string | null
+          family_relationship?: string | null
           next_of_kin?: string | null
           patient_number?: string | null
           payment_type?: string
           phone?: string | null
-          preferred_contact_method?: string
           preferred_contact_method?: string
           priority?: string
           queue_number?: number
@@ -2713,6 +2714,7 @@ export type Database = {
           patient_number?: string | null
           payment_type?: string
           phone?: string | null
+          preferred_contact_method?: string
           priority?: string
           queue_number?: number
           queue_status?: string
