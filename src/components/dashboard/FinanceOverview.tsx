@@ -4,7 +4,7 @@ import { useClinic } from "@/hooks/useClinic";
 import { useRole } from "@/hooks/useRole";
 import { formatMoney, startOfMonthISO, startOfDayISO } from "@/lib/finance";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, TrendingDown, Package, Users, Activity, FileText, Wallet } from "lucide-react";
+import { TrendingUp, Package, Users, Activity, FileText, Wallet } from "lucide-react";
 
 interface Metrics {
   revenueToday: number; revenueMonth: number; revenuePreviousMonth: number;
@@ -53,7 +53,7 @@ export default function FinanceOverview() {
       setLoading(false);
       return;
     }
-    
+
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -61,13 +61,32 @@ export default function FinanceOverview() {
       const sod = startOfDayISO();
       const somDate = som.slice(0, 10);
       const sodDate = sod.slice(0, 10);
-
       const previousMonth = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
       const previousMonthStart = startOfMonthISO(previousMonth);
+
+      // Revenue recognition is clinic-specific. Cedar uses payment_date, while
+      // clinics still using service_date retain the previous visit-date behavior.
+      const { data: clinic } = await apiClient
+        .from("clinics")
+        .select("revenue_recognition_method")
+        .eq("id", effectiveClinicId)
+        .maybeSingle();
+      const usesPaymentDate = clinic?.revenue_recognition_method === "payment_date";
+
+      const billingMonthQuery = usesPaymentDate
+        ? apiClient.from("payments").select("amount,created_at").eq("clinic_id", effectiveClinicId).gte("created_at", som)
+        : apiClient.from("billing").select("total_amount,amount_paid,balance,status,payer_type,visit:visits!inner(created_at)").eq("clinic_id", effectiveClinicId).gte("visit.created_at", som);
+      const billingTodayQuery = usesPaymentDate
+        ? apiClient.from("payments").select("amount,created_at").eq("clinic_id", effectiveClinicId).gte("created_at", sod)
+        : apiClient.from("billing").select("amount_paid,visit:visits!inner(created_at)").eq("clinic_id", effectiveClinicId).gte("visit.created_at", sod);
+      const billingPreviousMonthQuery = usesPaymentDate
+        ? apiClient.from("payments").select("amount,created_at").eq("clinic_id", effectiveClinicId).gte("created_at", previousMonthStart).lt("created_at", som)
+        : apiClient.from("billing").select("amount_paid,visit:visits!inner(created_at)").eq("clinic_id", effectiveClinicId).gte("visit.created_at", previousMonthStart).lt("visit.created_at", som);
+
       const [billingMonth, billingToday, billingPreviousMonth, salesMonth, salesToday, salesPreviousMonth, expMonth, expToday, patientsMonth, inv, visitsMonth] = await Promise.all([
-        apiClient.from("billing").select("total_amount,amount_paid,balance,status,payer_type,visit:visits!inner(created_at)").eq("clinic_id", effectiveClinicId).gte("visit.created_at", som),
-        apiClient.from("billing").select("amount_paid,visit:visits!inner(created_at)").eq("clinic_id", effectiveClinicId).gte("visit.created_at", sod),
-        apiClient.from("billing").select("amount_paid,visit:visits!inner(created_at)").eq("clinic_id", effectiveClinicId).gte("visit.created_at", previousMonthStart).lt("visit.created_at", som),
+        billingMonthQuery,
+        billingTodayQuery,
+        billingPreviousMonthQuery,
         apiClient.from("inventory_sales").select("total_amount,amount_paid").eq("clinic_id", effectiveClinicId).eq("sale_type", "walk_in").gte("created_at", som),
         apiClient.from("inventory_sales").select("amount_paid").eq("clinic_id", effectiveClinicId).eq("sale_type", "walk_in").gte("created_at", sod),
         apiClient.from("inventory_sales").select("amount_paid").eq("clinic_id", effectiveClinicId).eq("sale_type", "walk_in").gte("created_at", previousMonthStart).lt("created_at", som),
@@ -90,18 +109,21 @@ export default function FinanceOverview() {
       const eMonth = (expMonth.data as any[]) || [];
       const eToday = (expToday.data as any[]) || [];
 
+      const sumRevenueRows = (rows: any[]) =>
+        rows.reduce((a, r) => a + Number(r.amount ?? r.amount_paid ?? 0), 0);
+
       const metrics: Metrics = {
-        revenueToday: bToday.reduce((a, r) => a + Number(r.amount_paid || 0), 0) + sToday.reduce((a, r) => a + Number(r.amount_paid || 0), 0),
-        revenueMonth: bMonth.reduce((a, r) => a + Number(r.amount_paid || 0), 0) + sMonth.reduce((a, r) => a + Number(r.amount_paid || 0), 0),
-        revenuePreviousMonth: bPreviousMonth.reduce((a, r) => a + Number(r.amount_paid || 0), 0) + sPreviousMonth.reduce((a, r) => a + Number(r.amount_paid || 0), 0),
+        revenueToday: sumRevenueRows(bToday) + sumRevenueRows(sToday),
+        revenueMonth: sumRevenueRows(bMonth) + sumRevenueRows(sMonth),
+        revenuePreviousMonth: sumRevenueRows(bPreviousMonth) + sumRevenueRows(sPreviousMonth),
         expensesToday: eToday.reduce((a, r) => a + Number(r.amount || 0), 0),
         expensesMonth: eMonth.reduce((a, r) => a + Number(r.amount || 0), 0),
         newPatients: pRows.length,
         hmoPatients: pRows.filter(p => (p.payment_type || "").toLowerCase() === "hmo").length,
         privatePatients: pRows.filter(p => (p.payment_type || "").toLowerCase() !== "hmo").length,
         outstanding: bMonth.reduce((a, r) => a + Number(r.balance || 0), 0) + sMonth.reduce((a, r) => a + Math.max(Number(r.total_amount || 0) - Number(r.amount_paid || 0), 0), 0),
-        cashReceived: bMonth.reduce((a, r) => a + Number(r.amount_paid || 0), 0) + sMonth.reduce((a, r) => a + Number(r.amount_paid || 0), 0),
-        pendingHmo: bMonth.filter(r => r.payer_type === "hmo" && r.status !== "paid").length,
+        cashReceived: sumRevenueRows(bMonth) + sumRevenueRows(sMonth),
+        pendingHmo: !usesPaymentDate ? bMonth.filter(r => r.payer_type === "hmo" && r.status !== "paid").length : 0,
         inventoryValue: invRows.reduce((a, r) => a + Number(r.stock_quantity || 0) * Number(r.price || 0), 0),
         lowStock: invRows.filter(r => (r.stock_quantity ?? 0) > 0 && (r.stock_quantity ?? 0) <= (r.low_stock_threshold ?? r.min_stock ?? 5)).length,
         outOfStock: invRows.filter(r => (r.stock_quantity ?? 0) <= 0).length,
@@ -113,7 +135,6 @@ export default function FinanceOverview() {
     return () => { cancelled = true; };
   }, [effectiveClinicId, canViewFinance]);
 
-  // Don't render for non-admin users
   if (!canViewFinance) {
     return null;
   }
@@ -138,9 +159,7 @@ export default function FinanceOverview() {
           <h2 className="text-base font-bold">Month at a glance</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">Finance & operations for the current month.</p>
         </div>
-        <span className="rounded-full bg-primary/5 px-2.5 py-1 text-[10px] font-medium text-muted-foreground">
-          Management
-        </span>
+        <span className="rounded-full bg-primary/5 px-2.5 py-1 text-[10px] font-medium text-muted-foreground">Management</span>
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
