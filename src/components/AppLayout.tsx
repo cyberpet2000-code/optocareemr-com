@@ -48,15 +48,14 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
 } = useClinic();
   const { memberships } = useAccessClinic();
 
+  const workspace = resolveWorkspace(location.pathname);
+  const isSuperAdminWs = workspace === "super-admin";
+
   useEffect(() => {
     if (!effectiveClinicId || isSuperAdminWs) return;
     const sync = registerAutomaticSync(effectiveClinicId, { debounceMs: 1200, autoTriggerIfOnline: true });
     return sync.unregister;
   }, [effectiveClinicId, isSuperAdminWs]);
-
-
-  const workspace = resolveWorkspace(location.pathname);
-  const isSuperAdminWs = workspace === "super-admin";
 
   const handleLogout = useCallback(async () => {
     await signOut();
