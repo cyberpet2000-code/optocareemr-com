@@ -9,7 +9,7 @@ import {
   checkClinicSubscription,
 } from "@/lib/diag/healthChecks";
 import { Link } from "react-router-dom";
-import { Users, ChevronRight, AlertTriangle, DollarSign, TrendingUp, Clock, Star, CalendarDays, CheckCircle2, CircleDot } from "lucide-react";
+import { Users, ChevronRight, AlertTriangle, DollarSign, TrendingUp, Clock, Star, CalendarDays, CheckCircle2, CircleDot, BellRing } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { startLoadingWatch,
@@ -117,6 +117,26 @@ export default function Dashboard() {
   const [staffFeedback, setStaffFeedback] = useState<StaffFeedbackRow[]>([]);
   const [staffFeedbackLoading, setStaffFeedbackLoading] = useState(false);
   const [staffFeedbackError, setStaffFeedbackError] = useState<string | null>(null);
+  const [appointmentReminderDue, setAppointmentReminderDue] = useState(0);
+
+  useEffect(() => {
+    if (!effectiveClinicId || isDoctor && !isAdmin && !isSuperAdmin) return;
+    let cancelled = false;
+    const loadDueReminders = async () => {
+      const { data, error } = await apiClient.rpc("refresh_due_appointment_reminders");
+      if (error || cancelled) return;
+      const { count, error: countError } = await apiClient
+        .from("appointment_reminders")
+        .select("id", { count: "exact", head: true })
+        .eq("clinic_id", effectiveClinicId)
+        .eq("status", "due")
+        .is("sent_at", null);
+      if (!countError && !cancelled) setAppointmentReminderDue(count || 0);
+    };
+    loadDueReminders();
+    const timer = window.setInterval(loadDueReminders, 60_000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [effectiveClinicId, isDoctor, isAdmin, isSuperAdmin]);
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -126,7 +146,9 @@ export default function Dashboard() {
   };
 
   const displayName = user?.user_metadata?.full_name || "User";
+
   const now = new Date();
+
 
   const currentMonthName = now.toLocaleString("en-US", {
     month: "long",
@@ -774,7 +796,19 @@ if (user?.id) {
       {/* DOCTOR SECTION: Clinical workflow */}
       {isDoctor && !isAdmin && (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {appointmentReminderDue > 0 && (isReceptionist || isAdmin || isSuperAdmin) && (
+        <Link to="/appointments" className="mb-4 block rounded-2xl border border-amber-300/60 bg-amber-50/70 p-4 hover:bg-amber-50 transition-colors">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0"><BellRing className="h-4 w-4 text-amber-700" /></div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-amber-900">{appointmentReminderDue} appointment reminder{appointmentReminderDue === 1 ? "" : "s"} due</p>
+              <p className="text-xs text-amber-800/80 mt-0.5">Front desk: open Appointments and send the WhatsApp reminder. The link prepares the message; staff still presses Send.</p>
+            </div>
+          </div>
+        </Link>
+      )}
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <Metric icon={Users} label="Patients This Month" value={monthPatients} gradient={tealGrad} iconGradient={tealIcon} iconColor="hsl(184 78% 40%)" accentClass="accent-teal" to="/patients?filter=month" />
             <Metric icon={Clock} label="Today's Visits" value={todayVisits} gradient={blueGrad} iconGradient={blueIcon} iconColor="hsl(217 91% 55%)" accentClass="accent-navy" to="/visits?filter=today" />
             <Metric icon={Clock} label="Appointments" value={todayAppointments} gradient={amberGrad} iconGradient={amberIcon} iconColor="hsl(38 92% 50%)" accentClass="accent-warning" to="/appointments" />
