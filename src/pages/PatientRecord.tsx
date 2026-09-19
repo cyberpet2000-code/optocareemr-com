@@ -1244,7 +1244,7 @@ hmo_relationship:
   if (loading) return <div className="flex items-center justify-center py-12"><OptoLoader size={40} /></div>;
   if (!patient) return <p className="text-center py-12 text-muted-foreground">Patient not found.</p>;
 
-  const whatsappNumberForPatient = normalizeWhatsAppNumber;
+  const whatsappNumber = normalizeWhatsAppNumber(patient?.phone);
   
   const hmoEntry = patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : null;
   const isHmo = patient.payment_type === "hmo";
