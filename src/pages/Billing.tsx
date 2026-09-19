@@ -14,6 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useAccess } from "@/hooks/useAccess";
 import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
+import { enqueueOfflineOperation } from "@/lib/offlineEngine";
 import WalkInSale from "@/components/billing/WalkInSale";
 const PAYMENT_METHODS = ["Cash", "Card", "Transfer", "HMO"];
 const ITEM_TYPES = ["Lens", "Lens Transfer", "Frame", "Frame Fixing", "Contact Lens", "Eye Drop", "Drugs", "Accessories", "Others"];
@@ -839,6 +840,46 @@ if (error) {
 
   if (amt <= 0) {
     toast.error("Enter a valid amount.");
+    return;
+  }
+
+  const offline = isOffline || (typeof navigator !== "undefined" && !navigator.onLine);
+  if (offline) {
+    const bill = bills.find((b) => b.id === paymentBillingId);
+    if (!bill) {
+      toast.error("Billing record is not available offline.");
+      return;
+    }
+    const outstandingBalance = Math.max(0, Number(bill.total_amount || 0) - Number(bill.amount_paid || 0));
+    if (amt > outstandingBalance) {
+      toast.error("Payment cannot exceed the outstanding balance of ₦" + outstandingBalance.toLocaleString() + ".");
+      return;
+    }
+    const paymentId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "payment-" + Date.now();
+    await enqueueOfflineOperation({
+      clinicId: cid,
+      userId: user?.id ?? null,
+      kind: "payment.create",
+      entityId: paymentId,
+      payload: {
+        id: paymentId,
+        billing_id: paymentBillingId,
+        amount: amt,
+        method: paymentMethod,
+        paid_by: paymentMethod === "HMO" ? "hmo" : "patient",
+        received_by: user?.id ?? null,
+      },
+    });
+    const nextPaid = Number(bill.amount_paid || 0) + amt;
+    const nextBalance = Math.max(Number(bill.total_amount || 0) - nextPaid, 0);
+    const nextStatus = nextBalance <= 0 ? "paid" : "partial";
+    const nextBills = bills.map((row) => row.id === bill.id ? { ...row, amount_paid: nextPaid, balance: nextBalance, status: nextStatus } : row);
+    setBills(nextBills);
+    offlineStore.save("bills:" + cid, nextBills);
+    toast.success("Payment saved offline — it will sync automatically.");
+    setPaymentBillingId(null);
+    setPaymentAmount("");
+    setPaymentMethod("Cash");
     return;
   }
 
