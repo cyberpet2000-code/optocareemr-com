@@ -43,16 +43,7 @@ interface PatientRow {
   billingSummary: PatientBillingSummary;
 }
 
-function normalizeWhatsAppNumber(phone: string | null | undefined) {
-  if (!phone) return "";
-
-  const cleaned = phone.trim();
-  if (!cleaned) return "";
-  if (cleaned.startsWith("+")) return cleaned.replace(/\D/g, "");
-  if (cleaned.startsWith("234")) return cleaned.replace(/\D/g, "");
-  if (cleaned.startsWith("0")) return `234${cleaned.slice(1).replace(/\D/g, "")}`;
-  return `234${cleaned.replace(/\D/g, "")}`;
-}
+import { normalizeWhatsAppNumber } from "@/lib/whatsapp";
 
 function getCurrentPatientAge(dateOfBirth: string | null | undefined, storedAge: number | null | undefined) {
   if (!dateOfBirth) return storedAge !== null && storedAge !== undefined ? `${storedAge} years` : "—";
