@@ -56,6 +56,8 @@ export default function Billing() {
 
   const monthFilter =
     searchParams.get("month");
+  const patientContext = Boolean(searchParams.get("patient_id"));
+  const visitContext = searchParams.get("visit_id");
   const { isOffline } = useOffline();
   const [bills, setBills] = useState<BillingRow[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -820,7 +822,7 @@ if (error) {
         </Button>
       </div>
 
-      {/* PASTE SEARCH HERE */}
+      {!patientContext && (
       <div className="form-section mb-5">
         <Label className="text-xs">
           Search Patient Billing
@@ -860,6 +862,7 @@ if (error) {
           </div>
         )}
       </div>
+      )}
 
       {selectedLookupPatient && (
         <div className="space-y-4 mb-5">
@@ -870,10 +873,13 @@ if (error) {
             </p>
 
             <p className="text-xs text-muted-foreground">
-              Payment type:
-              {" "}
-              {selectedLookupPatient.payment_type}
+              Payment type: {selectedLookupPatient.payment_type}
             </p>
+            {visitContext && (
+              <p className="text-[11px] text-primary font-medium mt-1">
+                Billing for the selected visit
+              </p>
+            )}
 
             <Button
               size="sm"
@@ -926,7 +932,7 @@ if (error) {
           {lookupBills.length > 0 && (
             <div className="mt-4 space-y-2">
               <p className="text-xs font-semibold">
-                Previous Bills
+                {visitContext ? "Patient Payment History" : "Previous Bills"}
               </p>
 
               {lookupBills.map((b) => (
@@ -991,7 +997,9 @@ if (error) {
 
       {showForm && (
         <div className="form-section mb-5 max-w-2xl animate-fade-in">
-          <h2 className="section-title text-sm">Complete/Edit Bill</h2>
+          <h2 className="section-title text-sm">
+            {visitContext ? "Bill for This Visit" : "Complete/Edit Bill"}
+          </h2>
           <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
@@ -1144,6 +1152,7 @@ if (error) {
         </div>
       )}
 
+      {!patientContext && (
       <Tabs
         defaultValue={monthFilter ? "all" : "pending"}
         className="space-y-4"
@@ -1226,6 +1235,7 @@ if (error) {
           </TabsContent>
         ))}
       </Tabs>
+      )}
     </>
   );
 }
