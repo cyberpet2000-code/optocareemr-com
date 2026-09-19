@@ -33,6 +33,10 @@ interface BillingRow {
   created_at: string;
   patient_name?: string;
   hmo_name?: string;
+  family_id?: string | null;
+  billing_scope?: string;
+  discount_amount?: number;
+  discount_reason?: string | null;
 }
 
 interface BillItem {
@@ -50,6 +54,7 @@ interface Patient {
   full_name: string;
   payment_type: string;
   active_hmo_id: string | null;
+  family_id?: string | null;
 }
 
 interface LookupBillDetail {
@@ -140,7 +145,8 @@ function StockItemPicker({
 }
 
 export default function Billing() {
-  const { effectiveClinicId: cid, user } = useAccess();
+  const { effectiveClinicId: cid, user, role } = useAccess();
+  const canApplyDiscount = role === "admin" || role === "super_admin" || role === "receptionist";
   const [searchParams] = useSearchParams();
 
   const monthFilter =
@@ -151,6 +157,7 @@ export default function Billing() {
   const [bills, setBills] = useState<BillingRow[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [hmoMap, setHmoMap] = useState<Map<string, string>>(new Map());
+  const [familyMap, setFamilyMap] = useState<Map<string, any>>(new Map());
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -163,6 +170,10 @@ export default function Billing() {
     patientId: "",
     consultationFee: "",
     notes: "",
+    discountAmount: "",
+    discountReason: "",
+    billingScope: "individual",
+    familyId: "",
   });
   const [items, setItems] = useState<BillItem[]>([]);
   const [patientSearch, setPatientSearch] = useState("");
@@ -210,7 +221,8 @@ export default function Billing() {
         billRes,
         patRes,
         hmoRes,
-        inventoryRes
+        inventoryRes,
+        familyRes,
       ] = await Promise.all([
         apiClient.from("billing")
           .select("*")
@@ -219,7 +231,7 @@ export default function Billing() {
           .limit(100),
 
         apiClient.from("patients")
-          .select("id, full_name, payment_type, active_hmo_id")
+          .select("id, full_name, payment_type, active_hmo_id, family_id")
           .eq("clinic_id", cid)
           .order("full_name"),
 
@@ -229,11 +241,17 @@ export default function Billing() {
 
         apiClient.from("inventory")
           .select("*")
+          .eq("clinic_id", cid),
+        apiClient.from("families")
+          .select("id, family_number, family_name")
           .eq("clinic_id", cid)
+          .order("family_name")
       ]);
       if (billRes.error && patRes.error) { hydrateFromCache(); return; }
       console.debug("[billing]", { clinic_id: cid, bills: billRes.data?.length ?? 0 });
       const hmosList = (hmoRes.data || []) as Array<{ id: string; name: string }>;
+      const familiesList = (familyRes.data || []) as any[];
+      setFamilyMap(new Map(familiesList.map((f: any) => [f.id, f])));
       const hmap = new Map(hmosList.map((h: any) => [h.id, h.name]));
       setHmoMap(hmap);
       const pats = (patRes.data || []) as Patient[];
@@ -442,6 +460,10 @@ setEditingBillingId(selectedBill.id);
         ...f,
         consultationFee: String(Number(selectedBill.consultation_fee) || 0),
         notes: selectedBill.notes || "",
+        discountAmount: String(Number((selectedBill as any).discount_amount) || 0),
+        discountReason: (selectedBill as any).discount_reason || "",
+        billingScope: (selectedBill as any).billing_scope || "individual",
+        familyId: (selectedBill as any).family_id || patient.family_id || "",
       }));
 
       setLookupPayments(
@@ -523,7 +545,8 @@ setEditingBillingId(selectedBill.id);
 
   const itemsTotal = items.reduce((s, it) => s + (Number(it.total_price) || 0), 0);
   const consult = parseFloat(form.consultationFee) || 0;
-  const grandTotal = itemsTotal + consult;
+  const discount = Math.max(0, Math.min(Number(form.discountAmount) || 0, itemsTotal + consult));
+  const grandTotal = Math.max(0, itemsTotal + consult - discount);
 
   /**
    * Fetch the existing billing record for a visit.
@@ -585,6 +608,10 @@ setEditingBillingId(selectedBill.id);
         payer_type: isHmoQ ? "hmo" : "private",
         hmo_id: isHmoQ ? selectedPatient?.active_hmo_id : null,
         consultation_fee: consult,
+        discount_amount: canApplyDiscount ? discount : 0,
+        discount_reason: canApplyDiscount ? (form.discountReason.trim() || null) : null,
+        billing_scope: form.billingScope,
+        family_id: form.billingScope === "family" ? (form.familyId || selectedPatient?.family_id || null) : null,
         notes: form.notes || null,
         items,
         queued_at: Date.now(),
@@ -629,6 +656,12 @@ setEditingBillingId(selectedBill.id);
       // Update notes and payer_type if changed
       const updatePayload: any = {};
       if (existingBill.notes !== form.notes) updatePayload.notes = form.notes || null;
+      if (canApplyDiscount) {
+        updatePayload.discount_amount = discount;
+        updatePayload.discount_reason = form.discountReason.trim() || null;
+      }
+      updatePayload.billing_scope = form.billingScope;
+      updatePayload.family_id = form.billingScope === "family" ? (form.familyId || selectedPatient?.family_id || null) : null;
       if (existingBill.payer_type !== (isHmo ? "hmo" : "private")) {
         updatePayload.payer_type = isHmo ? "hmo" : "private";
       }
@@ -785,7 +818,7 @@ if (error) {
     setLookupPayments([]);
     setLookupBillDetails({});
     setEditingBillingId(null);
-    setForm({ patientId: "", consultationFee: "", notes: "" });
+    setForm({ patientId: "", consultationFee: "", notes: "", discountAmount: "", discountReason: "", billingScope: "individual", familyId: "" });
     setItems([]);
   };
 
@@ -1254,7 +1287,7 @@ if (error) {
                       {Number(b.consultation_fee || 0) > 0 && (
                         <div className="flex items-start justify-between gap-3 text-xs">
                           <div>
-                            <p className="font-medium">Consultation</p>
+                            <p className="font-medium">{b.billing_scope === "family" ? "Family consultation" : "Consultation"}</p>
                             <p className="text-[10px] text-muted-foreground">
                               Clinical consultation
                             </p>
@@ -1392,7 +1425,7 @@ if (error) {
                         </div>
                       )}
 
-                      {billItems.length === 0 && Number(b.consultation_fee || 0) === 0 && (
+                      {Number((b as any).discount_amount || 0) > 0 && (\n                        <div className="flex justify-between gap-3 text-xs text-success">\n                          <span>Discount</span>\n                          <span>-₦{Number((b as any).discount_amount).toLocaleString()}</span>\n                        </div>\n                      )}\n\n                      {billItems.length === 0 && Number(b.consultation_fee || 0) === 0 && (
                         <p className="text-[10px] text-muted-foreground">
                           No bill items recorded for this bill.
                         </p>
@@ -1506,9 +1539,32 @@ if (error) {
                 )}
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Consultation Fee (₦)</Label>
+                <Label className="text-xs">{form.billingScope === "family" ? "Family Consultation Fee (₦)" : "Consultation Fee (₦)"}</Label>
                 <Input className="rounded-xl" type="number" min={0} value={form.consultationFee} onChange={e => setForm(f => ({ ...f, consultationFee: e.target.value }))} />
               </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Billing Scope</Label>
+                <Select value={form.billingScope} onValueChange={v => setForm(f => ({ ...f, billingScope: v, familyId: v === "family" ? (f.familyId || selectedPatient?.family_id || "") : "" }))}>
+                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="individual">Individual</SelectItem>
+                    <SelectItem value="family" disabled={!selectedPatient?.family_id}>Family</SelectItem>
+                  </SelectContent>
+                </Select>
+                {form.billingScope === "family" && <p className="text-[10px] text-primary font-medium">{familyMap.get(form.familyId || selectedPatient?.family_id || "")?.family_name || "Family"}</p>}
+              </div>
+              {canApplyDiscount && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Discount (₦)</Label>
+                  <Input className="rounded-xl" type="number" min={0} max={itemsTotal + consult} value={form.discountAmount} onChange={e => setForm(f => ({ ...f, discountAmount: e.target.value }))} placeholder="0" />
+                </div>
+              )}
+              {canApplyDiscount && discount > 0 && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Discount Reason</Label>
+                  <Input className="rounded-xl" value={form.discountReason} onChange={e => setForm(f => ({ ...f, discountReason: e.target.value }))} placeholder="e.g. Family discount" />
+                </div>
+              )}
             </div>
 
             <div className="border-t border-border/60 pt-3">
@@ -1616,9 +1672,10 @@ if (error) {
               )}
             </div>
 
-            <div className="bg-muted/50 rounded-xl p-3 grid grid-cols-3 gap-2 text-center">
+            <div className="bg-muted/50 rounded-xl p-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
               <div><p className="text-[10px] text-muted-foreground">Items</p><p className="text-sm font-bold">₦{itemsTotal.toLocaleString()}</p></div>
               <div><p className="text-[10px] text-muted-foreground">Consultation</p><p className="text-sm font-bold">₦{consult.toLocaleString()}</p></div>
+              <div><p className="text-[10px] text-muted-foreground">Discount</p><p className="text-sm font-bold text-success">-₦{discount.toLocaleString()}</p></div>
               <div><p className="text-[10px] text-muted-foreground">TOTAL</p><p className="text-base font-bold text-primary">₦{grandTotal.toLocaleString()}</p></div>
             </div>
 
