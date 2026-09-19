@@ -395,7 +395,7 @@ const canViewFinancials =
 
       if (visRes.data) {
   cacheVisitsOffline(cid, patientId, visRes.data);
-  cachePatientOffline(cid, { ...patRes.data, clinic_name: clinicRes.data?.name || "", hmo_name: activeHmo?.name || "" });
+  cachePatientOffline(cid, { ...patRes.data, clinic_name: clinicRes.data?.name || "", hmo_name: hmoRes.data?.find((h: any) => h.id === patRes.data.active_hmo_id)?.name || "" });
   console.log("VISITS FROM DB", visRes.data);
   setVisits(visRes.data);
       }
