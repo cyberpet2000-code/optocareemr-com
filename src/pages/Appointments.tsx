@@ -404,11 +404,17 @@ export default function Appointments() {
 
   const updateStatus = async (id: string, status: string) => {
     if (!cid) return;
-    const { error: uErr } = await apiClient
-      .from("appointments")
-      .update({ status } as any)
-      .eq("clinic_id", cid)
-      .eq("id", id);
+    const offline = isOffline || (typeof navigator !== "undefined" && !navigator.onLine);
+    if (offline) {
+      await enqueueOfflineOperation({ clinicId: cid, userId: null, kind: "appointment.status", entityId: id, payload: { status } });
+      const current = offlineStore.get<any[]>(`appointments:${cid}`) ?? appointments;
+      const next = current.map(a => a.id === id ? { ...a, status, offline_pending_sync: true } : a);
+      cacheAppointmentsOffline(cid, next);
+      setAppointments(next.filter(a => a.appointment_date >= filterDateStr));
+      toast.success("Appointment status saved offline — it will sync automatically");
+      return;
+    }
+    const { error: uErr } = await apiClient.from("appointments").update({ status } as any).eq("clinic_id", cid).eq("id", id);
     if (uErr) {
       diag.error("query", "appointment status update failed", uErr, { id, status });
       toast.error(uErr.message);
