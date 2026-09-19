@@ -1913,24 +1913,7 @@ shadow-sm
           <div className="form-section">
             <h2 className="section-title text-sm"><ClipboardList size={16} /> Case History</h2>
 
-            {(role === "admin" || role === "super_admin") && (
-              <div className="mb-4 rounded-xl border bg-muted/20 p-3">
-                <Label className="text-xs">Responsible Doctor</Label>
-                <div className="mt-1 rounded-xl border bg-background px-3 py-2.5">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-medium">
-                      {responsibleDoctor?.full_name || "No clinic doctor available"}
-                    </span>
-                    <span className="text-[10px] rounded-full bg-primary/10 text-primary px-2 py-1">
-                      Auto-selected
-                    </span>
-                  </div>
-                </div>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Uses the active clinic's doctor account, not the super-admin account.
-                </p>
-              </div>
-            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1 sm:col-span-2">
   <div className="flex items-center justify-between gap-2 flex-wrap">
