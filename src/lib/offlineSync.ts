@@ -75,6 +75,15 @@ export async function processCoreOfflineOperations(clinicId: string): Promise<{ 
           const { error: itemError } = await apiClient.from("inventory_sale_items").insert(payload.items);
           if (itemError) throw new Error(itemError.message);
         }
+      }      } else if (operation.kind === "payment.create") {
+        const payload = operation.payload as any;
+        const { data: existingPayment } = await apiClient.from("payments").select("id").eq("id", operation.entityId).eq("clinic_id", clinicId).maybeSingle();
+        if (!existingPayment) {
+          const { error } = await apiClient.from("payments").insert({ ...payload, id: operation.entityId, clinic_id: clinicId });
+          if (error) throw new Error(error.message);
+        }
+        const { error: recalcError } = await apiClient.rpc("recalculate_billing_totals", { p_billing_id: payload.billing_id });
+        if (recalcError) throw new Error(recalcError.message);
       }
       await removeOfflineOperation(clinicId, operation.id);
       success++;
