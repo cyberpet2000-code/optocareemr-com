@@ -610,6 +610,7 @@ setEditingBillingId(selectedBill.id);
         consultation_fee: consult,
         discount_amount: canApplyDiscount ? discount : 0,
         discount_reason: canApplyDiscount ? (form.discountReason.trim() || null) : null,
+        discount_applied_by: canApplyDiscount && discount > 0 ? (user?.id || null) : null,
         billing_scope: form.billingScope,
         family_id: form.billingScope === "family" ? (form.familyId || selectedPatient?.family_id || null) : null,
         notes: form.notes || null,
@@ -659,6 +660,7 @@ setEditingBillingId(selectedBill.id);
       if (canApplyDiscount) {
         updatePayload.discount_amount = discount;
         updatePayload.discount_reason = form.discountReason.trim() || null;
+        updatePayload.discount_applied_by = discount > 0 ? (user?.id || null) : null;
       }
       updatePayload.billing_scope = form.billingScope;
       updatePayload.family_id = form.billingScope === "family" ? (form.familyId || selectedPatient?.family_id || null) : null;
