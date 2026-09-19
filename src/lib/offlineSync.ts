@@ -225,21 +225,49 @@ export async function processBillsQueue(clinicId: string): Promise<{ success:num
           }
         }
 
-        // Insert billing items (always insert new items, never update)
+        // Synchronize billing line items by stable client-generated IDs.
+        // This makes retries safe even if the network drops after Supabase accepts a row.
+        const { data: existingItems, error: existingItemsError } = await apiClient
+          .from("billing_items")
+          .select("id")
+          .eq("clinic_id", clinicId)
+          .eq("billing_id", billingId);
+        if (existingItemsError) throw new Error(existingItemsError.message);
+
+        const existingItemIds = new Set((existingItems || []).map((row: any) => row.id));
+        const queuedItemIds = new Set(itemsList.map((it: any) => it.id).filter(Boolean));
+        const removedItemIds = [...existingItemIds].filter((id) => !queuedItemIds.has(id));
+
+        if (removedItemIds.length > 0) {
+          const { error: deleteItemsError } = await apiClient
+            .from("billing_items")
+            .delete()
+            .eq("clinic_id", clinicId)
+            .eq("billing_id", billingId)
+            .in("id", removedItemIds);
+          if (deleteItemsError) throw new Error(deleteItemsError.message);
+        }
+
         if (itemsList.length > 0) {
           const payload = itemsList.map((it:any) => ({
+            id: it.id,
             clinic_id: clinicId,
             billing_id: billingId,
-            item_type: it.item_type ?? 'Item',
-            item_name: it.item_name || it.item_type || 'Item',
-            quantity: it.quantity,
-            unit_price: it.unit_price,
-            total_price: it.total_price ?? (Number(it.quantity||0) * Number(it.unit_price||0)),
+            inventory_id: it.inventory_id ?? null,
+            item_type: it.item_type ?? "Item",
+            item_name: it.item_name || it.item_type || "Item",
+            quantity: Number(it.quantity) || 1,
+            unit_price: Number(it.unit_price) || 0,
+            total_price: Number(it.total_price ?? (Number(it.quantity || 0) * Number(it.unit_price || 0))),
           }));
-
-          const { error: itemsErr } = await apiClient.from('billing_items').insert(payload as any);
-          if (itemsErr) throw new Error(itemsErr.message);
+          const { error: upsertItemsError } = await apiClient
+            .from("billing_items")
+            .upsert(payload as any, { onConflict: "id" });
+          if (upsertItemsError) throw new Error(upsertItemsError.message);
         }
+
+        const { error: recalcError } = await apiClient.rpc("recalculate_billing_totals", { p_billing_id: billingId });
+        if (recalcError) throw new Error(recalcError.message);
 
         // NEW: Only create HMO claim if not already exists for this billing_id
         if (isHmo && item.hmo_id) {
