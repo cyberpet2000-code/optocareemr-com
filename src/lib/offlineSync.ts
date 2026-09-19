@@ -53,6 +53,28 @@ export async function processCoreOfflineOperations(clinicId: string): Promise<{ 
         const payload = { ...(operation.payload as any) };
         const { error } = await apiClient.from("visits").upsert(payload, { onConflict: "id" });
         if (error) throw new Error(error.message);
+      } else if (operation.kind === "appointment.save") {
+        const { error } = await apiClient.from("appointments").upsert(operation.payload as any, { onConflict: "id" });
+        if (error) throw new Error(error.message);
+      } else if (operation.kind === "appointment.status") {
+        const payload = operation.payload as any;
+        const { error } = await apiClient.from("appointments").update({ status: payload.status }).eq("clinic_id", clinicId).eq("id", operation.entityId);
+        if (error) throw new Error(error.message);
+      } else if (operation.kind === "inventory.save") {
+        const { error } = await apiClient.from("inventory").upsert(operation.payload as any, { onConflict: "id" });
+        if (error) throw new Error(error.message);
+      } else if (operation.kind === "inventory.delete") {
+        const { error } = await apiClient.from("inventory").delete().eq("clinic_id", clinicId).eq("id", operation.entityId);
+        if (error) throw new Error(error.message);
+      } else if (operation.kind === "inventory.sale") {
+        const payload = operation.payload as any;
+        const { data: existingSale } = await apiClient.from("inventory_sales").select("id").eq("id", operation.entityId).maybeSingle();
+        if (!existingSale) {
+          const { error: saleError } = await apiClient.from("inventory_sales").insert(payload.sale);
+          if (saleError) throw new Error(saleError.message);
+          const { error: itemError } = await apiClient.from("inventory_sale_items").insert(payload.items);
+          if (itemError) throw new Error(itemError.message);
+        }
       }
       await removeOfflineOperation(clinicId, operation.id);
       success++;
