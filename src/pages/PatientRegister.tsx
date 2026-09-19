@@ -16,6 +16,7 @@ import { useAccess } from "@/hooks/useAccess";
 import { useAuth } from "@/hooks/useAuth";
 import { ShieldCheck, ShieldAlert, ShieldX, Globe, ExternalLink, CheckCircle2, XCircle, MessageCircle, Users } from "lucide-react";
 import { normalizeWhatsAppNumber, formatWhatsAppDisplay } from "@/lib/whatsapp";
+import { enqueueOfflineOperation, cachePatientOffline } from "@/lib/offlineEngine";
 
 type HmoRow = {
   id: string;
@@ -250,6 +251,27 @@ export default function PatientRegister() {
 
   const doSubmit = async () => {
     if (!cid) { toast.error("No active clinic"); return; }
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const patientId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "patient-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+      const newFamilyId = form.registerAsFamily && !form.familyId && form.familyName.trim()
+        ? (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "family-" + Date.now() + "-" + Math.random().toString(36).slice(2))
+        : null;
+      const familyId = form.registerAsFamily ? (form.familyId || newFamilyId) : null;
+      const dobMatch = form.dateOfBirth.trim().match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})$/);
+      const dob = dobMatch ? dobMatch[3] + "-" + dobMatch[2].padStart(2, "0") + "-" + dobMatch[1].padStart(2, "0") : null;
+      const payload: any = { id: patientId, clinic_id: cid, created_by: user?.id ?? null, date_of_birth: dob, full_name: form.fullName.trim(), age: parseInt(form.age), gender: form.gender, phone: normalizeWhatsAppNumber(form.phone) ? "+" + normalizeWhatsAppNumber(form.phone) : "", preferred_contact_method: form.preferredContactMethod, address: form.address.trim(), next_of_kin: form.nextOfKin.trim(), payment_type: form.paymentType, active_hmo_id: form.paymentType === "hmo" ? form.activeHmoId : null, enrollee_number: form.paymentType === "hmo" ? form.enrolleeNumber.trim() : "", hmo_coverage_type: form.paymentType === "hmo" ? form.hmoCoverageType : null, hmo_principal_name: form.paymentType === "hmo" && form.hmoCoverageType === "dependent" ? form.hmoPrincipalName.trim() : null, hmo_relationship: form.paymentType === "hmo" && form.hmoCoverageType === "dependent" ? form.hmoRelationship : null, hmo_verification_status: form.paymentType === "hmo" ? verifyStatus : "verified", hmo_verified_at: form.paymentType === "hmo" && verifyStatus !== "not_verified" ? verifiedAt : null, hmo_verified_by: form.paymentType === "hmo" && verifyStatus !== "not_verified" ? (user?.id ?? null) : null, hmo_verification_notes: form.paymentType === "hmo" ? (verifyNotes.trim() || null) : null, priority: form.priority, queue_status: "waiting", ...(familyId ? { family_id: familyId, family_relationship: form.familyRelationship } : {}) };
+      setLoading(true);
+      if (newFamilyId && form.familyName.trim()) await enqueueOfflineOperation({ clinicId: cid, userId: user?.id ?? null, kind: "family.create", entityId: newFamilyId, payload: { id: newFamilyId, clinic_id: cid, family_name: form.familyName.trim(), family_number: "FAM-" + Date.now().toString().slice(-8), primary_patient_id: form.familyRelationship === "principal" ? patientId : null, created_by: user?.id ?? null } });
+      await enqueueOfflineOperation({ clinicId: cid, userId: user?.id ?? null, kind: "patient.create", entityId: patientId, payload });
+      const now = new Date().toISOString();
+      cachePatientOffline(cid, { ...payload, patient_number: "OFF-" + patientId.slice(0, 8).toUpperCase(), created_at: now, updated_at: now, offline_pending_sync: true });
+      setLoading(false);
+      toast.success("Patient saved offline — it will sync automatically when internet returns.");
+      navigate("/patient/" + patientId);
+      return;
+    }
+
     setLoading(true);
     const { data, error } = await apiClient.from("patients").insert({
       clinic_id: cid,
@@ -328,6 +350,12 @@ export default function PatientRegister() {
   const checkForDuplicates = async () => {
     if (!cid) {
       toast.error("No active clinic");
+      return;
+    }
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      toast.info("Offline: duplicate checking will complete when the patient syncs.");
+      continueToSave();
       return;
     }
 
