@@ -343,6 +343,13 @@ export default function Appointments() {
       const local = { ...offlinePayload, patient_name: patients.find(p => p.id === payload.patient_id)?.full_name || "Unknown patient", offline_pending_sync: true };
       cacheAppointmentsOffline(cid, [local, ...current.filter(a => a.id !== appointmentId)]);
       toast.success("Saved offline — will sync automatically");
+      setShowForm(false);
+      setEditingId(null);
+      setForm({ patientId: "", date: new Date(), time: "", reason: "" });
+      setSaving(false);
+      return;
+    }
+
     setSaving(true);
     const result = editingId
       ? await apiClient.from("appointments").update(payload as any).eq("clinic_id", cid).eq("id", editingId)
