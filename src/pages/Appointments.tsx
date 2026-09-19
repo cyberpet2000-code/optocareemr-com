@@ -425,10 +425,32 @@ export default function Appointments() {
                     <button onClick={() => updateStatus(a.id, "cancelled")} className="p-2 rounded-xl hover:bg-muted" title="Cancel appointment"><XCircle size={16} className="text-destructive" /></button>
                   </>}
                   <button onClick={() => startEdit(a)} className="p-2 rounded-xl hover:bg-muted" title="Edit appointment"><Pencil size={16} /></button>
-                  <button onClick={() => sendReminder(a)} disabled={remindingId === a.id || a.status === "cancelled" || a.status === "completed"} className="p-2 rounded-xl hover:bg-muted disabled:opacity-50" title={a.reminder_sent_at ? "Resend appointment reminder on WhatsApp" : "Send appointment reminder on WhatsApp"}>{remindingId === a.id ? <Clock size={16} className="text-primary animate-spin" /> : <Bell size={16} className="text-primary" />}</button>
+                  <button
+                    onClick={() => sendReminder(a)}
+                    disabled={remindingId === a.id || a.status === "cancelled" || a.status === "completed"}
+                    className="p-2 rounded-xl hover:bg-muted disabled:opacity-50"
+                    title={a.reminder_sent_at ? "Resend reminder on WhatsApp" : "Send reminder on WhatsApp"}
+                    aria-label={a.reminder_sent_at ? "Resend appointment reminder on WhatsApp" : "Send appointment reminder on WhatsApp"}
+                  >
+                    {remindingId === a.id ? <Clock size={16} className="text-primary animate-spin" /> : <Bell size={16} className="text-primary" />}
+                  </button>
                 </div>
               </div>
-              {a.patient_id && <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground"><UserRound size={11} /> Open patient record <ChevronRight size={11} /></div>}
+              {a.patient_id && (
+                <div className="mt-2 pt-2 border-t border-border/50">
+                  <a
+                    href={"/patient/" + a.patient_id}
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-medium text-primary hover:underline"
+                    title="Open patient record"
+                    aria-label={"Open patient record for " + (a.patient_name || "patient")}
+                  >
+                    <UserRound size={12} />
+                    Open record
+                    <ChevronRight size={12} />
+                  </a>
+                </div>
+              )}
             </div>
           ))}
         </div>
