@@ -52,7 +52,10 @@ export default function Appointments() {
   const [form, setForm] = useState({ patientId: "", date: new Date(), time: "", reason: "" });
   const [saving, setSaving] = useState(false);
   const [remindingId, setRemindingId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);\n  const [reschedulingId, setReschedulingId] = useState<string | null>(null);\n  const [rescheduleForm, setRescheduleForm] = useState({ date: new Date(), time: "" });\n  const [rescheduling, setRescheduling] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [reschedulingId, setReschedulingId] = useState<string | null>(null);
+  const [rescheduleForm, setRescheduleForm] = useState({ date: new Date(), time: "" });
+  const [rescheduling, setRescheduling] = useState(false);
   const [reminders, setReminders] = useState<any[]>([]);
 
   const filterDateStr = useMemo(() => format(filterDate, "yyyy-MM-dd"), [filterDate]);
