@@ -52,6 +52,26 @@ interface Patient {
   active_hmo_id: string | null;
 }
 
+interface LookupBillDetail {
+  items: any[];
+  visit: any | null;
+  medicationDispensing: any[];
+}
+
+function parsePrescribedMedicationNames(medication: string | null | undefined): string[] {
+  if (!medication) return [];
+  return medication
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.split("—")[0].trim())
+    .filter(Boolean);
+}
+
+function normalizeBillingName(value: string | null | undefined): string {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 function StockItemPicker({
   value,
   items,
@@ -154,6 +174,9 @@ export default function Billing() {
 
   const [lookupPayments, setLookupPayments] =
     useState<any[]>([]);
+
+  const [lookupBillDetails, setLookupBillDetails] =
+    useState<Record<string, LookupBillDetail>>({});
 
   const [inventoryItems, setInventoryItems] =
     useState<any[]>([]);
@@ -289,18 +312,84 @@ export default function Billing() {
   return;
       }
 
-      const { data: paymentsRes } =
-        await apiClient
-          .from("payments")
-          .select("*")
-          .in(
-            "billing_id",
-            (billsRes || []).map((b) => b.id)
-          );
+      const billingIds = (billsRes || []).map((b) => b.id);
+      const visitIds = (billsRes || [])
+        .map((b) => b.visit_id)
+        .filter(Boolean) as string[];
 
-      setLookupBills(
-        (billsRes || []) as BillingRow[]
+      const [
+        paymentsResult,
+        visitsResult,
+        billingItemsResult,
+        medicationDispensingResult,
+      ] = billingIds.length
+        ? await Promise.all([
+            apiClient
+              .from("payments")
+              .select("*")
+              .in("billing_id", billingIds),
+            visitIds.length
+              ? apiClient
+                  .from("visits")
+                  .select(
+                    "id, lens_type, medication, optical_dispensed, optical_dispensed_at, medication_dispensed, medication_dispensed_at"
+                  )
+                  .in("id", visitIds)
+              : Promise.resolve({ data: [], error: null }),
+            apiClient
+              .from("billing_items")
+              .select(
+                "billing_id, item_name, item_type, quantity, unit_price, total_price, inventory_id"
+              )
+              .eq("clinic_id", cid)
+              .in("billing_id", billingIds)
+              .order("created_at", { ascending: true }),
+            visitIds.length
+              ? apiClient
+                  .from("visit_medication_dispensing")
+                  .select(
+                    "visit_id, medication_name, dispensed, dispensed_at, dispensed_by"
+                  )
+                  .in("visit_id", visitIds)
+              : Promise.resolve({ data: [], error: null }),
+          ])
+        : [
+            { data: [], error: null },
+            { data: [], error: null },
+            { data: [], error: null },
+            { data: [], error: null },
+          ];
+
+      const paymentsRes = paymentsResult.data || [];
+      const visitRows = visitsResult.data || [];
+      const billingItemRows = billingItemsResult.data || [];
+      const medicationDispensingRows = medicationDispensingResult.data || [];
+
+      const visitMap = new Map(
+        (visitRows as any[]).map((visit) => [visit.id, visit])
       );
+
+      const detailMap: Record<string, LookupBillDetail> = {};
+      (billsRes || []).forEach((bill: any) => {
+        const billVisit = bill.visit_id
+          ? visitMap.get(bill.visit_id) || null
+          : null;
+
+        detailMap[bill.id] = {
+          items: billingItemRows.filter(
+            (item: any) => item.billing_id === bill.id
+          ),
+          visit: billVisit,
+          medicationDispensing: billVisit
+            ? medicationDispensingRows.filter(
+                (item: any) => item.visit_id === billVisit.id
+              )
+            : [],
+        };
+      });
+
+      setLookupBills((billsRes || []) as BillingRow[]);
+      setLookupBillDetails(detailMap);
 
       // Select the latest pending bill, or if no pending bills, the newest bill
 const selectedBill = targetVisitId
@@ -680,6 +769,7 @@ if (error) {
     setSelectedLookupPatient(null);
     setLookupBills([]);
     setLookupPayments([]);
+    setLookupBillDetails({});
     setEditingBillingId(null);
     setForm({ patientId: "", consultationFee: "", notes: "" });
     setItems([]);
@@ -998,42 +1088,256 @@ if (error) {
             </div>
           </div>
           {lookupBills.length > 0 && (
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-3">
               <p className="text-xs font-semibold">
                 {visitContext ? "Patient Payment History" : "Previous Bills"}
               </p>
 
-              {lookupBills.map((b) => (
-                <div
-                  key={b.id}
-                  className="border rounded-xl p-3"
-                >
-                  <div className="flex justify-between text-sm">
-                    <span>
-                      ₦
-                      {Number(
-                        b.total_amount
-                      ).toLocaleString()}
-                    </span>
+              {lookupBills.map((b) => {
+                const detail = lookupBillDetails[b.id];
+                const billItems = detail?.items || [];
+                const visit = detail?.visit || null;
+                const prescribedMedicationNames = parsePrescribedMedicationNames(
+                  visit?.medication
+                );
+                const medicationDispensing = detail?.medicationDispensing || [];
 
-                    <span>
-                      {b.status}
-                    </span>
+                const findInventoryItem = (item: any) => {
+                  if (item.inventory_id) {
+                    const byId = inventoryItems.find(
+                      (inventory) => inventory.id === item.inventory_id
+                    );
+                    if (byId) return byId;
+                  }
+
+                  const itemName = normalizeBillingName(item.item_name);
+                  return inventoryItems.find(
+                    (inventory) =>
+                      normalizeBillingName(inventory.name) === itemName
+                  );
+                };
+
+                const getItemStatus = (item: any) => {
+                  const itemName = normalizeBillingName(item.item_name);
+                  const prescribedName = prescribedMedicationNames.find(
+                    (name) => {
+                      const normalized = normalizeBillingName(name);
+                      return (
+                        normalized === itemName ||
+                        normalized.includes(itemName) ||
+                        itemName.includes(normalized)
+                      );
+                    }
+                  );
+
+                  const dispensing = medicationDispensing.find(
+                    (record: any) =>
+                      normalizeBillingName(record.medication_name) ===
+                      itemName
+                  );
+
+                  const inventory = findInventoryItem(item);
+                  const isMedication =
+                    item.item_type === "Eye Drop" ||
+                    item.item_type === "Drugs" ||
+                    Boolean(prescribedName);
+
+                  if (isMedication) {
+                    if (dispensing?.dispensed === true) {
+                      return {
+                        label: "Dispensed",
+                        className: "text-success",
+                      };
+                    }
+
+                    if (
+                      inventory &&
+                      Number(inventory.stock_quantity ?? 0) > 0
+                    ) {
+                      return {
+                        label:
+                          "In stock • " +
+                          Number(inventory.stock_quantity) +
+                          " available",
+                        className: "text-primary",
+                      };
+                    }
+
+                    if (prescribedName) {
+                      return {
+                        label: "Prescribed • Not in stock",
+                        className: "text-warning",
+                      };
+                    }
+
+                    return {
+                      label: "Not in stock",
+                      className: "text-warning",
+                    };
+                  }
+
+                  if (
+                    (item.item_type === "Lens" ||
+                      item.item_type === "Frame" ||
+                      item.item_type === "Contact Lens") &&
+                    visit
+                  ) {
+                    return {
+                      label:
+                        visit.optical_dispensed === true
+                          ? "Dispensed"
+                          : "Not yet dispensed",
+                      className:
+                        visit.optical_dispensed === true
+                          ? "text-success"
+                          : "text-warning",
+                    };
+                  }
+
+                  return null;
+                };
+
+                const paymentsForBill = lookupPayments.filter(
+                  (payment: any) => payment.billing_id === b.id
+                );
+
+                return (
+                  <div
+                    key={b.id}
+                    className="border rounded-2xl p-3.5 bg-card"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold">
+                          {new Date(b.created_at).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Invoice {b.id.slice(0, 8).toUpperCase()}
+                        </p>
+                      </div>
+
+                      <span className="shrink-0 text-[10px] px-2 py-1 rounded-md bg-muted uppercase font-medium">
+                        {b.status}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      {Number(b.consultation_fee || 0) > 0 && (
+                        <div className="flex items-start justify-between gap-3 text-xs">
+                          <div>
+                            <p className="font-medium">Consultation</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              Clinical consultation
+                            </p>
+                          </div>
+                          <span className="font-medium shrink-0">
+                            ₦{Number(b.consultation_fee).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+
+                      {billItems.map((item: any, index: number) => {
+                        const itemStatus = getItemStatus(item);
+
+                        return (
+                          <div
+                            key={
+                              b.id +
+                              "-" +
+                              (item.inventory_id || item.item_name) +
+                              "-" +
+                              index
+                            }
+                            className="flex items-start justify-between gap-3 rounded-xl bg-muted/30 px-2.5 py-2"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium">
+                                {item.item_name || item.item_type}
+                                {Number(item.quantity || 1) > 1
+                                  ? " × " + Number(item.quantity)
+                                  : ""}
+                              </p>
+
+                              <p className="text-[10px] text-muted-foreground">
+                                {item.item_type}
+                              </p>
+
+                              {item.item_type === "Lens" && visit?.lens_type && (
+                                <p className="text-[10px] text-primary font-medium mt-0.5">
+                                  Lens type: {visit.lens_type}
+                                </p>
+                              )}
+
+                              {itemStatus && (
+                                <p
+                                  className={
+                                    "text-[10px] font-medium mt-0.5 " +
+                                    itemStatus.className
+                                  }
+                                >
+                                  {itemStatus.label}
+                                </p>
+                              )}
+                            </div>
+
+                            <span className="text-xs font-medium shrink-0">
+                              ₦{Number(item.total_price || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        );
+                      })}
+
+                      {billItems.length === 0 && Number(b.consultation_fee || 0) === 0 && (
+                        <p className="text-[10px] text-muted-foreground">
+                          No bill items recorded for this bill.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t text-xs space-y-1">
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">Total</span>
+                        <span className="font-semibold">
+                          ₦{Number(b.total_amount).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">Paid</span>
+                        <span className="font-medium">
+                          ₦{Number(b.amount_paid).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-3">
+                        <span className="text-muted-foreground">Balance</span>
+                        <span className={
+                          "font-medium " +
+                          (Number(b.balance) > 0 ? "text-warning" : "text-success")
+                        }>
+                          ₦{Number(b.balance).toLocaleString()}
+                        </span>
+                      </div>
+
+                      {paymentsForBill.length > 0 && (
+                        <p className="text-[10px] text-muted-foreground pt-1">
+                          Payment:{" "}
+                          {paymentsForBill
+                            .map(
+                              (payment: any) =>
+                                payment.method +
+                                " ₦" +
+                                Number(payment.amount).toLocaleString()
+                            )
+                            .join(" • ")}
+                        </p>
+                      )}
+                    </div>
                   </div>
-
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Paid: ₦
-                    {Number(
-                      b.amount_paid
-                    ).toLocaleString()}
-                    {" • "}
-                    Balance: ₦
-                    {Number(
-                      b.balance
-                    ).toLocaleString()}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
