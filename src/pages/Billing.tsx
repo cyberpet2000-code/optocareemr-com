@@ -603,6 +603,17 @@ setEditingBillingId(selectedBill.id);
       const queueKey = `bills-queue:${cid}`;
       const queue = offlineStore.get<any[]>(queueKey) ?? [];
       const isHmoQ = selectedPatient?.payment_type === "hmo";
+      const queuedItems = items.map((it) => ({
+        id: it.id || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "billing-item-" + Date.now() + "-" + Math.random().toString(36).slice(2)),
+        clinic_id: cid,
+        billing_id: editingBillingId,
+        inventory_id: it.inventory_id || null,
+        item_type: it.item_type,
+        item_name: it.item_name || it.item_type,
+        quantity: Number(it.quantity) || 1,
+        unit_price: Number(it.unit_price) || 0,
+        total_price: Number(it.total_price) || 0,
+      }));
       queue.push({
         clinic_id: cid,
         patient_id: form.patientId,
@@ -615,7 +626,7 @@ setEditingBillingId(selectedBill.id);
         billing_scope: form.billingScope,
         family_id: form.billingScope === "family" ? (form.familyId || selectedPatient?.family_id || null) : null,
         notes: form.notes || null,
-        items,
+        items: queuedItems,
         queued_at: Date.now(),
         editing_billing_id: editingBillingId,
       });
