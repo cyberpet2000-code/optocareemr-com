@@ -18,6 +18,10 @@ export interface BillQueueItem {
   notes?: string | null;
   items?: Array<any>;
   visit_id?: string | number | null;
+  discount_amount?: number;
+  discount_reason?: string | null;
+  billing_scope?: string;
+  family_id?: string | null;
   editing_billing_id?: string | null; // NEW: if set, update existing billing record instead of creating
   queued_at?: number | string;
   [k:string]: any;
