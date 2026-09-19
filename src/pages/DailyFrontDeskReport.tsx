@@ -96,6 +96,18 @@ type ActivityRow = {
   created_at: string;
 };
 
+type CommunicationRow = {
+  id: string;
+  patient_id: string;
+  visit_id: string | null;
+  template_label: string;
+  recipient_phone: string;
+  message_body: string;
+  status: "prepared" | "sent";
+  prepared_at: string;
+  sent_at: string | null;
+};
+
 type ExpenseRow = {
   id: string;
   description: string;
@@ -193,6 +205,7 @@ export default function DailyFrontDeskReport() {
   const [patients, setPatients] = useState<PatientRow[]>([]);
   const [activities, setActivities] = useState<ActivityRow[]>([]);
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
+  const [communications, setCommunications] = useState<CommunicationRow[]>([]);
   const [financials, setFinancials] = useState<Financials | null>(null);
   const [clinicEmail, setClinicEmail] = useState("");
   const [emailDraft, setEmailDraft] = useState("");
@@ -227,15 +240,20 @@ export default function DailyFrontDeskReport() {
       const header: DailyReport = { ...openedRow, id: openedRow.id || openedRow.report_id }; 
       if (!header.id) throw new Error("Daily report ID was not returned");
 
-      const [patientsRes, itemsRes, activitiesRes, expensesRes, financialsRes, clinicRes] = await Promise.all([
+      const nextDate = new Date(`${reportDate}T00:00:00+01:00`);
+      nextDate.setDate(nextDate.getDate() + 1);
+      const nextReportDate = nextDate.toISOString();
+      const dayStart = `${reportDate}T00:00:00+01:00`;
+      const [patientsRes, itemsRes, activitiesRes, expensesRes, communicationsRes, financialsRes, clinicRes] = await Promise.all([
         db.rpc("get_daily_front_desk_report_data", { p_clinic_id: effectiveClinicId, p_report_date: reportDate }),
         db.from("daily_front_desk_report_items").select("*").eq("report_id", header.id).order("created_at", { ascending: true }),
         db.from("daily_front_desk_activities").select("*").eq("report_id", header.id).order("created_at", { ascending: true }),
         db.from("daily_front_desk_expenses").select("*").eq("report_id", header.id).order("created_at", { ascending: true }),
+        db.from("patient_communications").select("id,patient_id,visit_id,template_label,recipient_phone,message_body,status,prepared_at,sent_at").eq("clinic_id", effectiveClinicId).gte("prepared_at", dayStart).lt("prepared_at", nextReportDate).order("prepared_at", { ascending: true }),
         db.rpc("get_daily_front_desk_financials", { p_clinic_id: effectiveClinicId, p_report_date: reportDate }),
         db.from("clinics").select("id,name,daily_report_email").eq("id", effectiveClinicId).maybeSingle(),
       ]);
-      for (const result of [patientsRes, itemsRes, activitiesRes, expensesRes, financialsRes, clinicRes]) if (result.error) throw result.error;
+      for (const result of [patientsRes, itemsRes, activitiesRes, expensesRes, communicationsRes, financialsRes, clinicRes]) if (result.error) throw result.error;
 
       const savedItems = (itemsRes.data || []) as any[];
       const itemMap = new Map(savedItems.map((item: any) => [`${item.patient_id}:${item.visit_id || ""}`, item]));
@@ -276,6 +294,7 @@ export default function DailyFrontDeskReport() {
       setPatients(merged);
       setActivities((activitiesRes.data || []) as ActivityRow[]);
       setExpenses((expensesRes.data || []) as ExpenseRow[]);
+      setCommunications((communicationsRes.data || []) as CommunicationRow[]);
       setFinancials(asArray<Financials>(financialsRes.data)[0] || null);
       const configured = String(clinicRes.data?.daily_report_email || "");
       setClinicEmail(configured);
@@ -287,6 +306,7 @@ export default function DailyFrontDeskReport() {
       setPatients([]);
       setActivities([]);
       setExpenses([]);
+      setCommunications([]);
       setFinancials(null);
     } finally {
       setLoading(false);
@@ -304,6 +324,7 @@ export default function DailyFrontDeskReport() {
   const claimsPending = useMemo(() => hmoPatients.filter((p) => (p.hmo_claim_status || "").toLowerCase() !== "replied").length, [hmoPatients]);
   const activityTotal = useMemo(() => activities.reduce((sum, row) => sum + Number(row.amount || 0), 0), [activities]);
   const expenseTotal = useMemo(() => expenses.reduce((sum, row) => sum + Number(row.amount || 0), 0), [expenses]);
+  const sentCommunications = useMemo(() => communications.filter((row) => row.status === "sent").length, [communications]);
 
   function updatePatient(key: string, patch: Partial<PatientRow>) {
     setPatients((rows) => rows.map((row) => row.key === key ? { ...row, ...patch } : row));
@@ -486,6 +507,7 @@ export default function DailyFrontDeskReport() {
     { label: "Prescriptions", value: prescriptionCount, detail: `${lensOrders} Orders  |  ${fittedToday} Fitted Today`, icon: Glasses },
     { label: "Walk-in Sales", value: formatMoney(financials?.walk_in_sales || activityTotal), detail: "Optical shop", icon: CreditCard },
     { label: "Expenses", value: formatMoney(financials?.total_expenses || expenseTotal), detail: `${expenses.length} items`, icon: Banknote },
+    { label: "WhatsApp", value: communications.length, detail: `${sentCommunications} Confirmed Sent  |  ${communications.length - sentCommunications} Prepared`, icon: MessageSquare },
     { label: "Report Status", value: isSubmitted ? "Submitted" : "Not Submitted", detail: isSubmitted ? formatDateTime(report?.submitted_at || null) : "Ready for review", icon: CheckCircle2 },
   ];
 
@@ -497,6 +519,7 @@ export default function DailyFrontDeskReport() {
     { id: "sales", title: "Optical Shop / Walk-in Sales", subtitle: "Sales of frames, lenses and other items", count: formatMoney(financials?.walk_in_sales || activityTotal), detail: "Billing and manual activities", icon: CreditCard },
     { id: "expenses", title: "Expenses & Disbursements", subtitle: "Daily expenses and payments made", count: `${expenses.length} items`, detail: formatMoney(financials?.total_expenses || expenseTotal), icon: Banknote },
     { id: "activities", title: "Other Activities", subtitle: "Feedback, follow-ups, calls, restocking and other work", count: `${activities.length} activities`, detail: "Front-desk activity log", icon: ClipboardList },
+    { id: "communications", title: "WhatsApp Communications", subtitle: "Patient messages prepared and confirmed as sent", count: `${communications.length} messages`, detail: `${sentCommunications} Confirmed Sent`, icon: MessageSquare },
     { id: "claims_followup", title: "Claims", subtitle: "Claim follow-ups requiring attention or external confirmation", count: `${claimsPending} pending`, detail: "Review outstanding claims", icon: FileText },
     { id: "remarks", title: "Issues / Remarks", subtitle: "Challenges, important notes or observations", count: reportNotes ? "Notes added" : "No notes", detail: "Management attention", icon: MessageSquare },
     { id: "finish", title: "End of Day Confirmation", subtitle: "Review and submit your report", count: isSubmitted ? "Submitted" : "Not Submitted", detail: isSubmitted ? formatDateTime(report?.submitted_at || null) : "Ready for review", icon: CheckCircle2 },
@@ -639,6 +662,19 @@ export default function DailyFrontDeskReport() {
 
     if (id === "activities") {
       return <div className="space-y-4"><div className="flex justify-end"><Button size="sm" onClick={() => setActivityOpen(true)} disabled={!canEdit}><Plus size={15} className="mr-1" /> Add activity</Button></div><ActivityList rows={activities} /></div>;
+    }
+
+    if (id === "communications") {
+      if (!communications.length) return <Empty text="No WhatsApp communications were recorded for this date." />;
+      const patientNames = new Map(patients.map((p) => [p.patient_id, p.patient_name]));
+      return <div className="space-y-3">{communications.map((row) => <div key={row.id} className="rounded-xl border p-4">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+          <div className="min-w-0"><div className="font-semibold">{patientNames.get(row.patient_id) || "Patient"}</div><div className="text-xs text-muted-foreground mt-1">{row.template_label} · {row.recipient_phone}</div></div>
+          <Badge text={row.status === "sent" ? "Sent" : "Prepared"} tone={row.status === "sent" ? "green" : "orange"} />
+        </div>
+        <div className="mt-3 rounded-lg bg-muted/30 p-3 whitespace-pre-wrap text-xs leading-5">{row.message_body}</div>
+        <div className="mt-2 text-[11px] text-muted-foreground">Prepared {formatDateTime(row.prepared_at)}{row.sent_at ? ` · Confirmed sent ${formatDateTime(row.sent_at)}` : " · Waiting for send confirmation"}</div>
+      </div>)}</div>;
     }
 
     if (id === "claims_followup") {
