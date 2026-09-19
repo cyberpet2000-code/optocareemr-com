@@ -97,7 +97,8 @@ export default function Dashboard() {
     };
   }, [effectiveClinicId]);
   
-  const { isOffline } = useOffline();\n  const [offlineLastSync, setOfflineLastSync] = useState<string | null>(null);
+  const { isOffline } = useOffline();
+  const [offlineLastSync, setOfflineLastSync] = useState<string | null>(null);
 
   useEffect(() => {
     if (!effectiveClinicId) return;
