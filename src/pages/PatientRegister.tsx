@@ -300,7 +300,7 @@ export default function PatientRegister() {
           clinic_id: cid,
           family_name: form.familyName.trim(),
           family_number: `FAM-${Date.now().toString().slice(-8)}`,
-          primary_patient_id: data!.id,
+          primary_patient_id: form.familyRelationship === "principal" ? data!.id : null,
           created_by: user?.id ?? null,
         } as any).select("id").single();
 
