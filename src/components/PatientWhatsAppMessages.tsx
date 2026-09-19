@@ -54,7 +54,7 @@ Saturday: 10:00 AM–3:00 PM
 
 Thank you for choosing ${clinicName}.
 
-*Sent through OptoCare EMR*`,
+*Powered by OptoCare-EMR*`,
   },
   {
     key: "order_ready",
@@ -74,7 +74,7 @@ Saturday: 10:00 AM–3:00 PM
 
 Thank you for choosing ${clinicName}.
 
-*Sent through OptoCare EMR*`,
+*Powered by OptoCare-EMR*`,
   },
   {
     key: "payment_reminder",
@@ -90,7 +90,7 @@ Kindly contact or visit us to complete the outstanding payment so we can proceed
 
 Thank you for your understanding.
 
-*Sent through OptoCare EMR*`,
+*Powered by OptoCare-EMR*`,
   },
   {
     key: "appointment_reminder",
@@ -108,7 +108,7 @@ If you are unable to make it, please contact us so we can assist you with resche
 
 Thank you.
 
-*Sent through OptoCare EMR*`,
+*Powered by OptoCare-EMR*`,
   },
   {
     key: "feedback",
@@ -125,7 +125,7 @@ ${feedbackLink || "[Feedback Link]"}
 
 Thank you for choosing ${clinicName}.
 
-*Sent through OptoCare EMR*`,
+*Powered by OptoCare-EMR*`,
   },
   {
     key: "follow_up",
@@ -141,7 +141,7 @@ Kindly contact us or visit the clinic to schedule your follow-up appointment.
 
 We look forward to seeing you.
 
-*Sent through OptoCare EMR*`,
+*Powered by OptoCare-EMR*`,
   },
   {
     key: "bring_frame",
@@ -157,7 +157,7 @@ Please bring the frame at your earliest convenience.
 
 Thank you for choosing ${clinicName}.
 
-*Sent through OptoCare EMR*`,
+*Powered by OptoCare-EMR*`,
   },
   {
     key: "waiting_for_frame",
@@ -175,7 +175,7 @@ Please contact us if you have any questions.
 
 Thank you.
 
-*Sent through OptoCare EMR*`,
+*Powered by OptoCare-EMR*`,
   },
   {
     key: "birthday",
@@ -191,7 +191,7 @@ We appreciate you choosing ${clinicName} for your eye care and wish you a wonder
 
 Have a beautiful birthday celebration!
 
-*Sent through OptoCare EMR*`,
+*Powered by OptoCare-EMR*`,
   },
   {
     key: "contact_lens_ready",
@@ -211,7 +211,7 @@ Saturday: 10:00 AM–3:00 PM
 
 Thank you for choosing ${clinicName}.
 
-*Sent through OptoCare EMR*`,
+*Powered by OptoCare-EMR*`,
   },
   {
     key: "frame_received",
@@ -227,7 +227,7 @@ We will notify you once your glasses are ready for collection.
 
 Thank you for choosing ${clinicName}.
 
-*Sent through OptoCare EMR*`,
+*Powered by OptoCare-EMR*`,
   },
 ];
 
