@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DollarSign, TrendingUp, TrendingDown, Package, Users, Activity, FileText, Wallet } from "lucide-react";
 
 interface Metrics {
-  revenueToday: number; revenueMonth: number;
+  revenueToday: number; revenueMonth: number; revenuePreviousMonth: number;
   expensesToday: number; expensesMonth: number;
   newPatients: number; hmoPatients: number; privatePatients: number;
   outstanding: number; cashReceived: number; pendingHmo: number;
@@ -22,10 +22,10 @@ const TONE: Record<string, string> = {
   destructive: "bg-destructive/10 text-destructive",
 };
 
-const Card = ({ icon: Icon, label, value, tone = "primary" }: { icon: any; label: string; value: any; tone?: keyof typeof TONE }) => (
-  <div className="form-section">
+const Card = ({ icon: Icon, label, value, tone = "primary", to }: { icon: any; label: string; value: any; tone?: keyof typeof TONE; to?: string }) => {
+  const content = (
     <div className="flex items-center gap-3">
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${TONE[tone] || TONE.primary}`}>
+      <div className={"w-10 h-10 rounded-lg flex items-center justify-center " + (TONE[tone] || TONE.primary)}>
         <Icon size={18} />
       </div>
       <div className="min-w-0">
@@ -33,8 +33,10 @@ const Card = ({ icon: Icon, label, value, tone = "primary" }: { icon: any; label
         <div className="text-lg font-bold">{value}</div>
       </div>
     </div>
-  </div>
-);
+  );
+  if (!to) return <div className="form-section">{content}</div>;
+  return <a href={to} className="form-section block transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30">{content}</a>;
+};
 
 export default function FinanceOverview() {
   const { effectiveClinicId } = useClinic();
@@ -58,11 +60,15 @@ export default function FinanceOverview() {
       const somDate = som.slice(0, 10);
       const sodDate = sod.slice(0, 10);
 
-      const [billingMonth, billingToday, salesMonth, salesToday, expMonth, expToday, patientsMonth, inv, visitsMonth] = await Promise.all([
+      const previousMonth = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
+      const previousMonthStart = startOfMonthISO(previousMonth);
+      const [billingMonth, billingToday, billingPreviousMonth, salesMonth, salesToday, salesPreviousMonth, expMonth, expToday, patientsMonth, inv, visitsMonth] = await Promise.all([
         apiClient.from("billing").select("total_amount,amount_paid,balance,status,payer_type,visit:visits!inner(created_at)").eq("clinic_id", effectiveClinicId).gte("visit.created_at", som),
         apiClient.from("billing").select("amount_paid,visit:visits!inner(created_at)").eq("clinic_id", effectiveClinicId).gte("visit.created_at", sod),
+        apiClient.from("billing").select("amount_paid,visit:visits!inner(created_at)").eq("clinic_id", effectiveClinicId).gte("visit.created_at", previousMonthStart).lt("visit.created_at", som),
         apiClient.from("inventory_sales").select("total_amount,amount_paid").eq("clinic_id", effectiveClinicId).eq("sale_type", "walk_in").gte("created_at", som),
         apiClient.from("inventory_sales").select("amount_paid").eq("clinic_id", effectiveClinicId).eq("sale_type", "walk_in").gte("created_at", sod),
+        apiClient.from("inventory_sales").select("amount_paid").eq("clinic_id", effectiveClinicId).eq("sale_type", "walk_in").gte("created_at", previousMonthStart).lt("created_at", som),
         apiClient.from("expenses").select("amount").eq("clinic_id", effectiveClinicId).gte("expense_date", somDate),
         apiClient.from("expenses").select("amount").eq("clinic_id", effectiveClinicId).gte("expense_date", sodDate),
         apiClient.from("patients").select("id,payment_type,created_at").eq("clinic_id", effectiveClinicId).gte("created_at", som),
@@ -72,8 +78,10 @@ export default function FinanceOverview() {
       if (cancelled) return;
 
       const bMonth = (billingMonth.data as any[]) || [];
+      const bPreviousMonth = (billingPreviousMonth.data as any[]) || [];
       const bToday = (billingToday.data as any[]) || [];
       const sMonth = (salesMonth.data as any[]) || [];
+      const sPreviousMonth = (salesPreviousMonth.data as any[]) || [];
       const sToday = (salesToday.data as any[]) || [];
       const invRows = (inv.data as any[]) || [];
       const pRows = (patientsMonth.data as any[]) || [];
@@ -83,6 +91,7 @@ export default function FinanceOverview() {
       const metrics: Metrics = {
         revenueToday: bToday.reduce((a, r) => a + Number(r.amount_paid || 0), 0) + sToday.reduce((a, r) => a + Number(r.amount_paid || 0), 0),
         revenueMonth: bMonth.reduce((a, r) => a + Number(r.amount_paid || 0), 0) + sMonth.reduce((a, r) => a + Number(r.amount_paid || 0), 0),
+        revenuePreviousMonth: bPreviousMonth.reduce((a, r) => a + Number(r.amount_paid || 0), 0) + sPreviousMonth.reduce((a, r) => a + Number(r.amount_paid || 0), 0),
         expensesToday: eToday.reduce((a, r) => a + Number(r.amount || 0), 0),
         expensesMonth: eMonth.reduce((a, r) => a + Number(r.amount || 0), 0),
         newPatients: pRows.length,
@@ -133,21 +142,22 @@ export default function FinanceOverview() {
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
-        <Card icon={DollarSign} label="Revenue received" value={formatMoney(m.revenueMonth)} tone="success" />
-        <Card icon={Users} label="New patients" value={m.newPatients} tone="primary" />
-        <Card icon={Activity} label="Consultations" value={m.consultations} tone="primary" />
-        <Card icon={DollarSign} label="Outstanding" value={formatMoney(m.outstanding)} tone="destructive" />
-        <Card icon={Wallet} label="Expenses" value={formatMoney(m.expensesMonth)} tone="warning" />
-        <Card icon={TrendingUp} label="Net position" value={formatMoney(netProfit)} tone={netProfit >= 0 ? "success" : "destructive"} />
-        <Card icon={FileText} label="HMO patients" value={m.hmoPatients} tone="primary" />
-        <Card icon={FileText} label="Pending HMO claims" value={m.pendingHmo} tone="warning" />
+        <Card icon={DollarSign} label="Revenue this month" value={formatMoney(m.revenueMonth)} tone="success" to="/billing" />
+        <Card icon={DollarSign} label="Revenue last month" value={formatMoney(m.revenuePreviousMonth)} tone="primary" to="/reports/monthly" />
+        <Card icon={Users} label="New patients" value={m.newPatients} tone="primary" to="/patients" />
+        <Card icon={Activity} label="Consultations" value={m.consultations} tone="primary" to="/visits" />
+        <Card icon={DollarSign} label="Outstanding" value={formatMoney(m.outstanding)} tone="destructive" to="/billing" />
+        <Card icon={Wallet} label="Expenses" value={formatMoney(m.expensesMonth)} tone="warning" to="/finance/expenses" />
+        <Card icon={TrendingUp} label="Net position" value={formatMoney(netProfit)} tone={netProfit >= 0 ? "success" : "destructive"} to="/reports/monthly" />
+        <Card icon={FileText} label="HMO patients" value={m.hmoPatients} tone="primary" to="/hmos" />
+        <Card icon={FileText} label="Pending HMO claims" value={m.pendingHmo} tone="warning" to="/hmos" />
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-        <Card icon={DollarSign} label="Received today" value={formatMoney(m.revenueToday)} tone="success" />
-        <Card icon={Wallet} label="Expenses today" value={formatMoney(m.expensesToday)} tone="warning" />
-        <Card icon={Package} label="Inventory value" value={formatMoney(m.inventoryValue)} tone="primary" />
-        <Card icon={Package} label="Stock alerts" value={m.lowStock + m.outOfStock} tone={m.lowStock + m.outOfStock > 0 ? "warning" : "success"} />
+        <Card icon={DollarSign} label="Received today" value={formatMoney(m.revenueToday)} tone="success" to="/billing" />
+        <Card icon={Wallet} label="Expenses today" value={formatMoney(m.expensesToday)} tone="warning" to="/finance/expenses" />
+        <Card icon={Package} label="Inventory value" value={formatMoney(m.inventoryValue)} tone="primary" to="/inventory" />
+        <Card icon={Package} label="Stock alerts" value={m.lowStock + m.outOfStock} tone={m.lowStock + m.outOfStock > 0 ? "warning" : "success"} to="/inventory" />
       </div>
     </section>
   );
