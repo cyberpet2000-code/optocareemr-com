@@ -31,7 +31,7 @@ interface RequestBody {
 }
 
 // ---------- PDF generation ----------
-async function renderTextPdf(title: string, body: string): Promise<Uint8Array> {
+async function renderTextPdf(title: string, body: string, clinicName: string): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Courier);
   const bold = await pdf.embedFont(StandardFonts.CourierBold);
@@ -65,7 +65,7 @@ async function renderTextPdf(title: string, body: string): Promise<Uint8Array> {
 
   // header strip
   page.drawRectangle({ x: 0, y: pageH - 36, width: pageW, height: 36, color: rgb(0.06, 0.45, 0.74) });
-  page.drawText("OptoCare-EMR Archive", { x: margin, y: pageH - 24, size: 12, font: titleFont, color: rgb(1, 1, 1) });
+  page.drawText(clinicName, { x: margin, y: pageH - 24, size: 12, font: titleFont, color: rgb(1, 1, 1) });
   page.drawText(title, { x: margin, y: pageH - 60, size: 14, font: titleFont, color: rgb(0.08, 0.12, 0.2) });
   y = pageH - 90;
 
@@ -73,7 +73,7 @@ async function renderTextPdf(title: string, body: string): Promise<Uint8Array> {
     if (y < margin + lineH) {
       page = pdf.addPage([pageW, pageH]);
       page.drawRectangle({ x: 0, y: pageH - 36, width: pageW, height: 36, color: rgb(0.06, 0.45, 0.74) });
-      page.drawText("OptoCare-EMR Archive", { x: margin, y: pageH - 24, size: 12, font: titleFont, color: rgb(1, 1, 1) });
+      page.drawText(clinicName, { x: margin, y: pageH - 24, size: 12, font: titleFont, color: rgb(1, 1, 1) });
       y = pageH - margin - 20;
     }
     const isHeading = /^-{2,}|^={2,}|^[A-Z][A-Z \-/]+:?$/.test(line.trim()) && line.trim().length < 60;
@@ -320,7 +320,7 @@ Deno.serve(async (req) => {
         inventory_items: inventory.length,
       };
 
-      const summary = await renderTextPdf("Archive Summary", summaryBody(clinic, counts, body.scope, body));
+      const summary = await renderTextPdf("Archive Summary", summaryBody(clinic, counts, body.scope, body), clinic.name);
       await zipWriter.add("archive_summary.pdf", new Uint8ArrayReader(summary));
 
       let fileCount = 1;
@@ -329,7 +329,7 @@ Deno.serve(async (req) => {
         const pv = (visits ?? []).filter((v: any) => v.patient_id === p.id);
         const pb = (billings ?? []).filter((b: any) => b.patient_id === p.id);
         const pc = (hmoClaims ?? []).filter((c: any) => c.patient_id === p.id);
-        const pdf = await renderTextPdf(`Patient: ${p.full_name || p.id}`, patientBody(p, pv, pb, pc));
+        const pdf = await renderTextPdf(`Patient: ${p.full_name || p.id}`, patientBody(p, pv, pb, pc), clinic.name);
         const safe = String(p.full_name || p.id).replace(/[^a-z0-9_-]+/gi, "_");
         await zipWriter.add(`patients/${safe}_${p.id.slice(0, 8)}.pdf`, new Uint8ArrayReader(pdf));
         fileCount++;
@@ -337,16 +337,16 @@ Deno.serve(async (req) => {
         if (done % 5 === 0) await updateProgress(45 + Math.min(35, Math.round((done / patients.length) * 35)));
       }
 
-      const billingPdf = await renderTextPdf("Billing Records", tableBody("BILLING RECORDS", billings ?? []));
+      const billingPdf = await renderTextPdf("Billing Records", tableBody("BILLING RECORDS", billings ?? []), clinic.name);
       await zipWriter.add("billing/billing_records.pdf", new Uint8ArrayReader(billingPdf));
       fileCount++;
 
-      const hmoPdf = await renderTextPdf("HMO Claims", tableBody("HMO CLAIMS", hmoClaims ?? []));
+      const hmoPdf = await renderTextPdf("HMO Claims", tableBody("HMO CLAIMS", hmoClaims ?? []), clinic.name);
       await zipWriter.add("hmo_claims/hmo_claims.pdf", new Uint8ArrayReader(hmoPdf));
       fileCount++;
 
       if (inventory.length) {
-        const invPdf = await renderTextPdf("Inventory", tableBody("INVENTORY", inventory ?? []));
+        const invPdf = await renderTextPdf("Inventory", tableBody("INVENTORY", inventory ?? []), clinic.name);
         await zipWriter.add("inventory/inventory.pdf", new Uint8ArrayReader(invPdf));
         fileCount++;
       }
