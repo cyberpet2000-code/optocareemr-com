@@ -97,7 +97,20 @@ export default function Dashboard() {
     };
   }, [effectiveClinicId]);
   
-  const { isOffline } = useOffline();
+  const { isOffline } = useOffline();\n  const [offlineLastSync, setOfflineLastSync] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!effectiveClinicId) return;
+    const cached = offlineStore.get<string>("last-sync:" + effectiveClinicId);
+    if (cached) setOfflineLastSync(cached);
+    const handler = () => {
+      const now = new Date().toISOString();
+      offlineStore.save("last-sync:" + effectiveClinicId, now);
+      setOfflineLastSync(now);
+    };
+    window.addEventListener("optocare:sync:done", handler);
+    return () => window.removeEventListener("optocare:sync:done", handler);
+  }, [effectiveClinicId]);
   const [monthPatients, setMonthPatients] = useState(0);
   const [monthRegisteredPatients, setMonthRegisteredPatients] = useState(0);
   const [patientsSeen, setPatientsSeen] = useState(0);
