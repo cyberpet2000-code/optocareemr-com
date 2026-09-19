@@ -155,6 +155,15 @@ export default function Inventory() {
   const handleDelete = async (id: string) => {
     if (!cid) return;
     if (!confirm("Delete?")) return;
+    if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
+      await enqueueOfflineOperation({ clinicId: cid, userId: user?.id ?? null, kind: "inventory.delete", entityId: id, payload: { id } });
+      const current = offlineStore.get<InventoryItem[]>(`inventory:${cid}`) ?? items;
+      const next = current.filter(item => item.id !== id);
+      offlineStore.save(`inventory:${cid}`, next);
+      setItems(next);
+      toast.success("Inventory deletion saved offline — it will sync automatically.");
+      return;
+    }
     await apiClient.from("inventory").delete().eq("clinic_id", cid).eq("id", id);
     toast.success("Deleted"); loadItems();
   };
