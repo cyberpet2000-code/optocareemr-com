@@ -220,6 +220,7 @@ const canViewFinancials =
   const [hmoMap, setHmoMap] = useState<Map<string, { name: string; website?: string | null }>>(new Map());
   const [visits, setVisits] = useState<any[]>([]);
   const [doctorMap, setDoctorMap] = useState<Map<string, string>>(new Map());
+  const [registrarMap, setRegistrarMap] = useState<Map<string, string>>(new Map());
   const [responsibleDoctor, setResponsibleDoctor] = useState<{ id: string; full_name: string } | null>(null);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -397,23 +398,41 @@ const canViewFinancials =
     ),
   ];
 
-  if (doctorIds.length > 0) {
-    const { data: doctorProfiles } = await apiClient
+  const registeredByIds = [
+    ...new Set(
+      visRes.data
+        .map((visit: any) => visit.registered_by)
+        .filter(Boolean)
+    ),
+  ];
+
+  const staffIds = [...new Set([...doctorIds, ...registeredByIds])];
+
+  if (staffIds.length > 0) {
+    const { data: staffProfiles } = await apiClient
       .from("profiles")
       .select("id, full_name")
-      .in("id", doctorIds);
+      .in("id", staffIds);
 
     const nextDoctorMap = new Map<string, string>();
+    const nextRegistrarMap = new Map<string, string>();
 
-    (doctorProfiles || []).forEach((doctor: any) => {
-      nextDoctorMap.set(doctor.id, doctor.full_name);
+    (staffProfiles || []).forEach((staff: any) => {
+      if (doctorIds.includes(staff.id)) {
+        nextDoctorMap.set(staff.id, staff.full_name);
+      }
+      if (registeredByIds.includes(staff.id)) {
+        nextRegistrarMap.set(staff.id, staff.full_name);
+      }
     });
 
     setDoctorMap(nextDoctorMap);
+    setRegistrarMap(nextRegistrarMap);
   } else {
     setDoctorMap(new Map());
+    setRegistrarMap(new Map());
   }
-      } 
+      }  
 
             // Load individual medication dispensing records
       if (visRes.data && visRes.data.length > 0) {
@@ -2437,6 +2456,14 @@ shadow-sm
         <p className="font-bold text-base">
   {new Date(v.created_at).toLocaleDateString()}
 </p>
+
+        {v.registered_by && (
+  <p className="text-xs text-muted-foreground mt-1">
+    Registered by: <span className="font-medium text-foreground">
+      {registrarMap.get(v.registered_by) || "Not recorded"}
+    </span>
+  </p>
+)}
 
         {v.doctor_id && doctorMap.get(v.doctor_id) && (
   <p className="text-xs text-muted-foreground mt-1">
