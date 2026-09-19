@@ -1156,7 +1156,7 @@ if (error) {
                     ) {
                       return {
                         label:
-                          "In stock • " +
+                          "Not yet dispensed • In stock • " +
                           Number(inventory.stock_quantity) +
                           " available",
                         className: "text-primary",
@@ -1290,6 +1290,82 @@ if (error) {
                           </div>
                         );
                       })}
+
+                      {prescribedMedicationNames.length > 0 && (
+                        <div className="mt-2 rounded-xl border border-dashed px-2.5 py-2">
+                          <p className="text-[10px] font-semibold text-muted-foreground mb-1">
+                            Prescribed medication
+                          </p>
+
+                          {prescribedMedicationNames.map((prescribedName, index) => {
+                            const normalizedPrescription =
+                              normalizeBillingName(prescribedName);
+
+                            const inventoryMatch = inventoryItems.find((inventory) => {
+                              const inventoryName = normalizeBillingName(inventory.name);
+                              return (
+                                inventoryName === normalizedPrescription ||
+                                inventoryName.includes(normalizedPrescription) ||
+                                normalizedPrescription.includes(inventoryName)
+                              );
+                            });
+
+                            const displayName =
+                              inventoryMatch?.name || prescribedName;
+
+                            const dispensing = medicationDispensing.find(
+                              (record: any) =>
+                                normalizeBillingName(record.medication_name) ===
+                                normalizedPrescription
+                            );
+
+                            const isBilled = billItems.some(
+                              (item: any) => {
+                                const itemName = normalizeBillingName(item.item_name);
+                                return (
+                                  itemName === normalizedPrescription ||
+                                  itemName.includes(normalizedPrescription) ||
+                                  normalizedPrescription.includes(itemName)
+                                );
+                              }
+                            );
+
+                            if (isBilled) return null;
+
+                            return (
+                              <div
+                                key={prescribedName + "-" + index}
+                                className="flex items-start justify-between gap-3 py-1.5"
+                              >
+                                <div className="min-w-0">
+                                  <p className="text-xs font-medium">
+                                    {displayName}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    Eye Drop / prescribed medication
+                                  </p>
+
+                                  {dispensing?.dispensed === true ? (
+                                    <p className="text-[10px] font-medium mt-0.5 text-success">
+                                      Dispensed
+                                    </p>
+                                  ) : inventoryMatch &&
+                                    Number(inventoryMatch.stock_quantity ?? 0) > 0 ? (
+                                    <p className="text-[10px] font-medium mt-0.5 text-primary">
+                                      Prescribed • In stock •{" "}
+                                      {Number(inventoryMatch.stock_quantity)} available
+                                    </p>
+                                  ) : (
+                                    <p className="text-[10px] font-medium mt-0.5 text-warning">
+                                      Prescribed • Not in stock
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
 
                       {billItems.length === 0 && Number(b.consultation_fee || 0) === 0 && (
                         <p className="text-[10px] text-muted-foreground">
