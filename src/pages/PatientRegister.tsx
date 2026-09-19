@@ -98,6 +98,7 @@ export default function PatientRegister() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [hmos, setHmos] = useState<HmoRow[]>([]);
+  const [families, setFamilies] = useState<any[]>([]);
   const [form, setForm] = useState({
     fullName: "", dateOfBirth: "", age: "", ageUnit: "years", gender: "", phone: "",
     address: "", nextOfKin: "",
@@ -105,6 +106,8 @@ export default function PatientRegister() {
     preferredContactMethod: "whatsapp",
     registerAsFamily: false,
     familyName: "",
+    familyId: "",
+    familyRelationship: "principal",
     activeHmoId: "",
     enrolleeNumber: "",
     hmoCoverageType: "principal" as "principal" | "dependent",
@@ -129,6 +132,11 @@ export default function PatientRegister() {
 
   useEffect(() => {
     if (!cid) return;
+    apiClient.from("families")
+      .select("id, family_number, family_name")
+      .eq("clinic_id", cid)
+      .order("family_name")
+      .then(({ data }) => { if (data) setFamilies(data as any); });
     apiClient.from("hmos")
       .select("id, name, website, claims_portal_url, phone, email")
       .eq("clinic_id", cid).eq("status", "active").order("name")
@@ -284,20 +292,28 @@ export default function PatientRegister() {
         : error.message);
       return;
     }
-    if (form.registerAsFamily && form.familyName.trim()) {
-      const { data: family, error: familyError } = await apiClient.from("families").insert({
-        clinic_id: cid,
-        family_name: form.familyName.trim(),
-        family_number: `FAM-${Date.now().toString().slice(-8)}`,
-        primary_patient_id: data!.id,
-        created_by: user?.id ?? null,
-      } as any).select("id").single();
+    if (form.registerAsFamily) {
+      let familyId = form.familyId || null;
 
-      if (familyError || !family) {
-        toast.error("Patient was registered, but the family could not be created. You can add the family later.");
-      } else {
+      if (!familyId && form.familyName.trim()) {
+        const { data: family, error: familyError } = await apiClient.from("families").insert({
+          clinic_id: cid,
+          family_name: form.familyName.trim(),
+          family_number: `FAM-${Date.now().toString().slice(-8)}`,
+          primary_patient_id: data!.id,
+          created_by: user?.id ?? null,
+        } as any).select("id").single();
+
+        if (familyError || !family) {
+          toast.error("Patient was registered, but the family could not be created. You can add the family later.");
+        } else {
+          familyId = family.id;
+        }
+      }
+
+      if (familyId) {
         const { error: familyLinkError } = await apiClient.from("patients")
-          .update({ family_id: family.id, family_relationship: "principal" })
+          .update({ family_id: familyId, family_relationship: form.familyRelationship })
           .eq("id", data!.id).eq("clinic_id", cid);
         if (familyLinkError) {
           toast.error("Patient was registered, but the family link could not be saved.");
@@ -357,7 +373,7 @@ export default function PatientRegister() {
     if (form.paymentType === "hmo" && !form.activeHmoId) {
       toast.error("Select HMO provider"); return;
     }
-    if (form.registerAsFamily && !form.familyName.trim()) { toast.error("Enter the family name"); return; }
+    if (form.registerAsFamily && !form.familyId && !form.familyName.trim()) { toast.error("Select an existing family or enter a new family name"); return; }
     if (form.paymentType === "hmo" && form.hmoCoverageType === "dependent" && !form.hmoPrincipalName.trim()) {
       toast.error("Enter principal name"); return;
     }
@@ -519,9 +535,37 @@ export default function PatientRegister() {
               </button>
             </div>
             {form.registerAsFamily && (
-              <div className="mt-3">
-                <Label className="text-xs">Family Name *</Label>
-                <Input className="mt-1 rounded-xl" value={form.familyName} onChange={e => set("familyName", e.target.value)} placeholder="e.g. Kalu Family" />
+              <div className="mt-3 space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Family</Label>
+                  <Select value={form.familyId || "new"} onValueChange={v => setForm(f => ({ ...f, familyId: v === "new" ? "" : v, familyName: v === "new" ? f.familyName : "" }))}>
+                    <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">Create new family</SelectItem>
+                      {families.map((family) => <SelectItem key={family.id} value={family.id}>{family.family_name} • {family.family_number}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {!form.familyId && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">New Family Name *</Label>
+                    <Input className="rounded-xl" value={form.familyName} onChange={e => set("familyName", e.target.value)} placeholder="e.g. Kalu Family" />
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <Label className="text-xs">Relationship</Label>
+                  <Select value={form.familyRelationship} onValueChange={v => set("familyRelationship", v)}>
+                    <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="principal">Principal</SelectItem>
+                      <SelectItem value="spouse">Spouse</SelectItem>
+                      <SelectItem value="child">Child</SelectItem>
+                      <SelectItem value="parent">Parent</SelectItem>
+                      <SelectItem value="sibling">Sibling</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             )}
           </div>
