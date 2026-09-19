@@ -20,6 +20,7 @@ export interface BillQueueItem {
   visit_id?: string | number | null;
   discount_amount?: number;
   discount_reason?: string | null;
+  discount_applied_by?: string | null;
   billing_scope?: string;
   family_id?: string | null;
   editing_billing_id?: string | null; // NEW: if set, update existing billing record instead of creating
@@ -103,6 +104,7 @@ export async function processBillsQueue(clinicId: string): Promise<{ success:num
             consultation_fee: consult,
             discount_amount: discount,
             discount_reason: item.discount_reason ?? null,
+            discount_applied_by: item.discount_applied_by ?? null,
             billing_scope: item.billing_scope ?? 'individual',
             family_id: item.family_id ?? null,
             notes: item.notes ?? null,
@@ -130,6 +132,7 @@ export async function processBillsQueue(clinicId: string): Promise<{ success:num
             consultation_fee: consult,
             discount_amount: discount,
             discount_reason: item.discount_reason ?? null,
+            discount_applied_by: item.discount_applied_by ?? null,
             billing_scope: item.billing_scope ?? 'individual',
             family_id: item.family_id ?? null,
             notes: item.notes ?? null,
