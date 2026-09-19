@@ -9,6 +9,7 @@ import {
   checkClinicSubscription,
 } from "@/lib/diag/healthChecks";
 import { Link } from "react-router-dom";
+import { PatientWhatsAppMessages } from "@/components/PatientWhatsAppMessages";
 import { Users, ChevronRight, AlertTriangle, TrendingUp, Clock, Star, CalendarDays, CheckCircle2, CircleDot, BellRing } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -119,6 +120,8 @@ export default function Dashboard() {
   const [staffFeedbackLoading, setStaffFeedbackLoading] = useState(false);
   const [staffFeedbackError, setStaffFeedbackError] = useState<string | null>(null);
   const [appointmentReminderDue, setAppointmentReminderDue] = useState(0);
+  const [birthdayPatients, setBirthdayPatients] = useState<any[]>([]);
+  const [birthdayLoading, setBirthdayLoading] = useState(false);
 
   useEffect(() => {
     if (!effectiveClinicId || isDoctor && !isAdmin && !isSuperAdmin) return;
@@ -138,6 +141,25 @@ export default function Dashboard() {
     const timer = window.setInterval(loadDueReminders, 60_000);
     return () => { cancelled = true; window.clearInterval(timer); };
   }, [effectiveClinicId, isDoctor, isAdmin, isSuperAdmin]);
+
+  useEffect(() => {
+    if (!effectiveClinicId || isOffline) { setBirthdayPatients([]); return; }
+    let cancelled = false;
+    const loadBirthdays = async () => {
+      setBirthdayLoading(true);
+      const { data, error } = await apiClient.from("patients").select("id, full_name, date_of_birth, phone, patient_number").eq("clinic_id", effectiveClinicId).not("date_of_birth", "is", null).order("full_name", { ascending: true });
+      if (!cancelled) {
+        if (error) { console.error("Failed to load today's birthdays:", error); setBirthdayPatients([]); }
+        else {
+          const today = new Date(); const month = today.getMonth() + 1; const day = today.getDate();
+          setBirthdayPatients((data || []).filter((patient: any) => { const dob = new Date(patient.date_of_birth + "T00:00:00"); return dob.getMonth() + 1 === month && dob.getDate() === day; }));
+        }
+        setBirthdayLoading(false);
+      }
+    };
+    void loadBirthdays();
+    return () => { cancelled = true; };
+  }, [effectiveClinicId, isOffline]);
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -865,6 +887,27 @@ if (user?.id) {
           )}
         </div>
       </section>
+
+      {(isReceptionist || isAdmin || isSuperAdmin) && (birthdayLoading || birthdayPatients.length > 0) && (
+        <section className="mb-6">
+          <div className="medical-card overflow-hidden">
+            <SectionHeader title="🎂 Today's Birthdays" subtitle="Patients celebrating today." />
+            {birthdayLoading ? <div className="py-4 text-sm text-muted-foreground">Loading birthdays...</div> : (
+              <div className="space-y-2">
+                {birthdayPatients.map((patient: any) => (
+                  <div key={patient.id} className="flex flex-col gap-3 rounded-2xl border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <Link to={"/patient/" + patient.id} className="min-w-0 flex-1 hover:text-primary">
+                      <p className="truncate text-sm font-semibold">{patient.full_name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{patient.patient_number || "Patient"}</p>
+                    </Link>
+                    <PatientWhatsAppMessages clinicId={effectiveClinicId || ""} clinicName="Clinic" patientId={patient.id} patientName={patient.full_name} phone={patient.phone} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* DOCTOR MONTH VIEW */}
       {isDoctor && !isAdmin && (
