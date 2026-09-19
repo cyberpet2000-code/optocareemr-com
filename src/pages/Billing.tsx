@@ -1425,7 +1425,14 @@ if (error) {
                         </div>
                       )}
 
-                      {Number((b as any).discount_amount || 0) > 0 && (\n                        <div className="flex justify-between gap-3 text-xs text-success">\n                          <span>Discount</span>\n                          <span>-₦{Number((b as any).discount_amount).toLocaleString()}</span>\n                        </div>\n                      )}\n\n                      {billItems.length === 0 && Number(b.consultation_fee || 0) === 0 && (
+                      {Number((b as any).discount_amount || 0) > 0 && (
+                        <div className="flex justify-between gap-3 text-xs text-success">
+                          <span>Discount</span>
+                          <span>-₦{Number((b as any).discount_amount).toLocaleString()}</span>
+                        </div>
+                      )}
+
+                      {billItems.length === 0 && Number(b.consultation_fee || 0) === 0 && (
                         <p className="text-[10px] text-muted-foreground">
                           No bill items recorded for this bill.
                         </p>
