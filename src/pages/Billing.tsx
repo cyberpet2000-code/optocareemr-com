@@ -388,13 +388,27 @@ export default function Billing() {
         };
       });
 
-      setLookupBills((billsRes || []) as BillingRow[]);
+      // Keep zero-value billing placeholders available internally so a new bill
+      // can still be opened and edited, but do not expose those placeholders as
+      // actual billing history.
+      const actualLookupBills = (billsRes || []).filter(
+        (bill: any) =>
+          Number(bill.consultation_fee || 0) > 0 ||
+          Number(bill.items_total || 0) > 0 ||
+          Number(bill.total_amount || 0) > 0 ||
+          Number(bill.amount_paid || 0) > 0
+      );
+
+      setLookupBills(actualLookupBills as BillingRow[]);
       setLookupBillDetails(detailMap);
 
-      // Select the latest pending bill, or if no pending bills, the newest bill
+      // Select from all billing records so a zero-value placeholder can still
+      // be used to create the patient's first real bill.
 const selectedBill = targetVisitId
   ? (billsRes.find((b) => b.visit_id === targetVisitId) ?? null)
-  : (billsRes.find((b) => b.status !== "paid") ?? billsRes[0]);
+  : (billsRes.find((b) => Number(b.total_amount || 0) > 0 && b.status !== "paid") ??
+     billsRes.find((b) => Number(b.total_amount || 0) > 0) ??
+     billsRes[0]);
 
 if (!selectedBill) {
   setEditingBillingId(null);
@@ -921,12 +935,23 @@ if (error) {
         item.category === "Drugs"
     );
 
-  let displayBills = bills;
+  // ensureBillingForVisit creates zero-value billing placeholders for visits.
+  // They are useful internally for editing a bill, but they are not actual bills
+  // and should never appear in billing lists or patient billing history.
+  const actualBills = bills.filter(
+    (b) =>
+      Number(b.consultation_fee || 0) > 0 ||
+      Number(b.items_total || 0) > 0 ||
+      Number(b.total_amount || 0) > 0 ||
+      Number(b.amount_paid || 0) > 0
+  );
+
+  let displayBills = actualBills;
 
   if (monthFilter === "current") {
     const now = new Date();
 
-    displayBills = bills.filter((b) => {
+    displayBills = actualBills.filter((b) => {
       const d = new Date(b.created_at);
 
       return (
@@ -949,7 +974,7 @@ if (error) {
         ? now.getFullYear() - 1
         : now.getFullYear();
 
-    displayBills = bills.filter((b) => {
+    displayBills = actualBills.filter((b) => {
       const d = new Date(b.created_at);
 
       return (
@@ -1615,7 +1640,7 @@ if (error) {
       >
         <TabsList className="bg-muted/50 rounded-2xl p-1">
           <TabsTrigger value="pending" className="rounded-xl text-xs gap-1"><DollarSign size={12} /> Pending ({pendingBills.length})</TabsTrigger>
-          <TabsTrigger value="all" className="rounded-xl text-xs gap-1"><FileText size={12} /> All ({bills.length})</TabsTrigger>
+          <TabsTrigger value="all" className="rounded-xl text-xs gap-1"><FileText size={12} /> All ({actualBills.length})</TabsTrigger>
           <TabsTrigger value="walk-in" className="rounded-xl text-xs gap-1"><ShoppingBag size={12} /> Walk-In Sale</TabsTrigger>
         </TabsList>
 
