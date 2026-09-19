@@ -448,7 +448,7 @@ export default function PatientFeedback() {
           </p>
 
           <div className="mt-6 text-xs text-muted-foreground">
-            Powered by OptoCare EMR
+            Powered by OptoCare-EMR
           </div>
         </div>
       </div>
@@ -948,7 +948,7 @@ export default function PatientFeedback() {
               Thank you for helping us improve our services and patient care.
               <br />
               <span className="mt-1 inline-block">
-                Powered by OptoCare EMR
+                Powered by OptoCare-EMR
               </span>
             </div>
           </form>
