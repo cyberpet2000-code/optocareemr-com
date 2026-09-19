@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
 import { useAccess } from "@/hooks/useAccess";
+import { PatientWhatsAppMessages } from "@/components/PatientWhatsAppMessages";
 
 export default function Visits() {
   const { effectiveClinicId: cid, role } = useAccess();
@@ -63,13 +64,13 @@ const filter = searchParams.get("filter");
 
 const { data: patients } = await apiClient
   .from("patients")
-  .select("id, full_name")
+  .select("id, full_name, phone")
   .in("id", patientIds);
 
 const patientMap = new Map(
   (patients || []).map((p: any) => [
     p.id,
-    p.full_name,
+    { full_name: p.full_name, phone: p.phone },
   ])
 );
 
@@ -77,8 +78,10 @@ const visitsWithNames = (data || []).map(
   (visit: any) => ({
     ...visit,
     patient_name:
-      patientMap.get(visit.patient_id) ||
+      patientMap.get(visit.patient_id)?.full_name ||
       "Unknown Patient",
+    patient_phone:
+      patientMap.get(visit.patient_id)?.phone || null,
   })
 );
 
@@ -109,9 +112,17 @@ const visitsWithNames = (data || []).map(
   >
     <div className="medical-card p-3 hover:bg-muted/50 transition-all">
       <div className="flex items-center justify-between">
-        <p className="font-semibold">
-          {visit.patient_name}
-        </p>
+        <div className="flex items-center gap-2 min-w-0">
+          <p className="font-semibold truncate">{visit.patient_name}</p>
+          <PatientWhatsAppMessages
+            clinicId={cid || ""}
+            clinicName="Clinic"
+            patientId={visit.patient_id}
+            patientName={visit.patient_name}
+            phone={visit.patient_phone}
+            visitId={visit.id}
+          />
+        </div>
 
         <span
           className={`text-[10px] px-2 py-1 rounded-md font-medium ${
