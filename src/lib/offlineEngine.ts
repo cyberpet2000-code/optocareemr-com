@@ -1,0 +1,150 @@
+import { offlineStore } from "@/lib/offlineStore";
+
+export type OfflineOperationKind = "patient.create" | "visit.save";
+
+export interface OfflineOperation {
+  id: string;
+  clinicId: string;
+  userId: string | null;
+  kind: OfflineOperationKind;
+  entityId: string;
+  payload: any;
+  createdAt: string;
+  attempts: number;
+  lastError: string | null;
+}
+
+const DB_NAME = "optocare-offline";
+const DB_VERSION = 1;
+const STORE = "operations";
+
+function openDb(): Promise<IDBDatabase | null> {
+  if (typeof window === "undefined" || !("indexedDB" in window)) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    try {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(STORE)) {
+          const store = db.createObjectStore(STORE, { keyPath: "id" });
+          store.createIndex("clinicId", "clinicId", { unique: false });
+          store.createIndex("createdAt", "createdAt", { unique: false });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+export async function enqueueOfflineOperation(
+  operation: Omit<OfflineOperation, "id" | "createdAt" | "attempts" | "lastError">
+): Promise<OfflineOperation> {
+  const item: OfflineOperation = {
+    ...operation,
+    id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `offline-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    createdAt: new Date().toISOString(),
+    attempts: 0,
+    lastError: null,
+  };
+
+  const db = await openDb();
+  if (db) {
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).put(item);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+    db.close();
+  } else {
+    const key = `operations:${operation.clinicId}`;
+    const queue = offlineStore.get<OfflineOperation[]>(key) ?? [];
+    offlineStore.save(key, [...queue, item]);
+  }
+
+  return item;
+}
+
+export async function getOfflineOperations(clinicId: string): Promise<OfflineOperation[]> {
+  const db = await openDb();
+  if (db) {
+    const rows = await new Promise<OfflineOperation[]>((resolve) => {
+      const tx = db.transaction(STORE, "readonly");
+      const request = tx.objectStore(STORE).index("clinicId").getAll(clinicId);
+      request.onsuccess = () => resolve((request.result || []) as OfflineOperation[]);
+      request.onerror = () => resolve([]);
+    });
+    db.close();
+    return rows.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  return (offlineStore.get<OfflineOperation[]>(`operations:${clinicId}`) ?? [])
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+export async function removeOfflineOperation(clinicId: string, id: string) {
+  const db = await openDb();
+  if (db) {
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+    db.close();
+    return;
+  }
+
+  const key = `operations:${clinicId}`;
+  const queue = offlineStore.get<OfflineOperation[]>(key) ?? [];
+  offlineStore.save(key, queue.filter((item) => item.id !== id));
+}
+
+export async function markOfflineOperationFailed(
+  clinicId: string,
+  operation: OfflineOperation,
+  error: unknown,
+) {
+  const next: OfflineOperation = {
+    ...operation,
+    attempts: operation.attempts + 1,
+    lastError: String((error as any)?.message ?? error ?? "Sync failed"),
+  };
+
+  const db = await openDb();
+  if (db) {
+    await new Promise<void>((resolve) => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).put(next);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+    db.close();
+    return;
+  }
+
+  const key = `operations:${clinicId}`;
+  const queue = offlineStore.get<OfflineOperation[]>(key) ?? [];
+  offlineStore.save(key, queue.map((item) => item.id === operation.id ? next : item));
+}
+
+export function cachePatientOffline(clinicId: string, patient: any) {
+  offlineStore.save(`patient-record:${clinicId}:${patient.id}`, patient);
+  const key = `patients:${clinicId}`;
+  const rows = offlineStore.get<any[]>(key) ?? [];
+  const next = [patient, ...rows.filter((row) => row.id !== patient.id)];
+  offlineStore.save(key, next);
+}
+
+export function cacheVisitsOffline(clinicId: string, patientId: string, visits: any[]) {
+  offlineStore.save(`patient-visits:${clinicId}:${patientId}`, visits);
+}
+
+export function cacheVisitOffline(clinicId: string, patientId: string, visit: any) {
+  const key = `patient-visits:${clinicId}:${patientId}`;
+  const rows = offlineStore.get<any[]>(key) ?? [];
+  offlineStore.save(key, [visit, ...rows.filter((row) => row.id !== visit.id)]);
+}
