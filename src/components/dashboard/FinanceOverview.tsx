@@ -38,13 +38,14 @@ const Card = ({ icon: Icon, label, value, tone = "primary" }: { icon: any; label
 
 export default function FinanceOverview() {
   const { effectiveClinicId } = useClinic();
-  const { isAdmin } = useRole();
+  const { isAdmin, isSuperAdmin } = useRole();
+  const canViewFinance = isAdmin || isSuperAdmin;
   const [m, setM] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Only admins can see finance overview
   useEffect(() => {
-    if (!isAdmin || !effectiveClinicId) {
+    if (!canViewFinance || !effectiveClinicId) {
       setLoading(false);
       return;
     }
@@ -99,10 +100,10 @@ export default function FinanceOverview() {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [effectiveClinicId, isAdmin]);
+  }, [effectiveClinicId, canViewFinance]);
 
   // Don't render for non-admin users
-  if (!isAdmin) {
+  if (!canViewFinance) {
     return null;
   }
 
@@ -120,25 +121,34 @@ export default function FinanceOverview() {
   const netProfit = m.revenueMonth - m.expensesMonth;
 
   return (
-    <div className="mt-8 space-y-4">
-      <div>
-        <h2 className="text-lg font-bold">Finance & Operations</h2>
-        <p className="text-xs text-muted-foreground">This month at a glance</p>
+    <section className="rounded-2xl border border-border/60 bg-card/80 p-3.5 shadow-sm sm:p-4">
+      <div className="mb-3 flex items-end justify-between gap-3">
+        <div>
+          <h2 className="text-base font-bold">Month at a glance</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">Finance & operations for the current month.</p>
+        </div>
+        <span className="rounded-full bg-primary/5 px-2.5 py-1 text-[10px] font-medium text-muted-foreground">
+          Management
+        </span>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card icon={DollarSign} label="Revenue (today)" value={formatMoney(m.revenueToday)} tone="success" />
-        <Card icon={TrendingUp} label="Revenue (month)" value={formatMoney(m.revenueMonth)} tone="success" />
-        <Card icon={Wallet} label="Expenses (today)" value={formatMoney(m.expensesToday)} tone="warning" />
-        <Card icon={TrendingDown} label="Expenses (month)" value={formatMoney(m.expensesMonth)} tone="warning" />
-        <Card icon={Activity} label="Net profit" value={formatMoney(netProfit)} tone={netProfit >= 0 ? "success" : "destructive"} />
-        <Card icon={Users} label="New patients" value={`${m.newPatients} (${m.hmoPatients} HMO)`} tone="primary" />
-        <Card icon={FileText} label="Consultations" value={m.consultations} tone="primary" />
+
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+        <Card icon={DollarSign} label="Revenue received" value={formatMoney(m.revenueMonth)} tone="success" />
+        <Card icon={Users} label="New patients" value={m.newPatients} tone="primary" />
+        <Card icon={Activity} label="Consultations" value={m.consultations} tone="primary" />
         <Card icon={DollarSign} label="Outstanding" value={formatMoney(m.outstanding)} tone="destructive" />
-        <Card icon={Package} label="Inventory value" value={formatMoney(m.inventoryValue)} tone="primary" />
-        <Card icon={Package} label="Low stock" value={m.lowStock} tone="warning" />
-        <Card icon={Package} label="Out of stock" value={m.outOfStock} tone="destructive" />
+        <Card icon={Wallet} label="Expenses" value={formatMoney(m.expensesMonth)} tone="warning" />
+        <Card icon={TrendingUp} label="Net position" value={formatMoney(netProfit)} tone={netProfit >= 0 ? "success" : "destructive"} />
+        <Card icon={FileText} label="HMO patients" value={m.hmoPatients} tone="primary" />
         <Card icon={FileText} label="Pending HMO claims" value={m.pendingHmo} tone="warning" />
       </div>
-    </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+        <Card icon={DollarSign} label="Received today" value={formatMoney(m.revenueToday)} tone="success" />
+        <Card icon={Wallet} label="Expenses today" value={formatMoney(m.expensesToday)} tone="warning" />
+        <Card icon={Package} label="Inventory value" value={formatMoney(m.inventoryValue)} tone="primary" />
+        <Card icon={Package} label="Stock alerts" value={m.lowStock + m.outOfStock} tone={m.lowStock + m.outOfStock > 0 ? "warning" : "success"} />
+      </div>
+    </section>
   );
 }
