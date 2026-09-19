@@ -952,7 +952,11 @@ if (user?.id) {
                 <p className="text-2xl font-bold tracking-tight">{loading ? "—" : todayVisits}</p>
               </div>
             </Link>
-            <div className="stat-card group p-5 gap-4" style={{ background: blueGrad }}>
+            <Link
+              to="/appointments"
+              className="stat-card group p-5 gap-4 accent-navy"
+              style={{ background: blueGrad }}
+            >
               <div className="icon-glow w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110" style={{ background: blueIcon, color: "hsl(217 91% 55%)" }}>
                 <Clock size={26} strokeWidth={2} />
               </div>
@@ -960,7 +964,7 @@ if (user?.id) {
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-0.5">Appointments</p>
                 <p className="text-2xl font-bold tracking-tight">{loading ? "—" : todayAppointments}</p>
               </div>
-            </div>
+            </Link>
           </div>
 
           {(lowStockCount > 0 || drugAlerts > 0) && (
