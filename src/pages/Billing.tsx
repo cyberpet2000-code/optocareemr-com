@@ -802,24 +802,30 @@ if (error) {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-5">
-        <h1 className="page-header">Billing</h1>
-
-        <Button
-          onClick={() => setShowForm(!showForm)}
-          size="sm"
-          className="rounded-xl gap-1.5"
-        >
-          {showForm ? (
-            <>
-              <X size={14} /> Cancel
-            </>
-          ) : (
-            <>
-              <Plus size={14} /> New Bill
-            </>
+      <div className="mb-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="page-header">
+              {patientContext ? "Patient Billing" : "Billing & Payments"}
+            </h1>
+            <p className="text-xs text-muted-foreground mt-1">
+              {patientContext
+                ? "Review this patient's bills, payments and visit charges."
+                : "Manage patient charges, payments and outstanding balances."}
+            </p>
+          </div>
+          {showForm && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowForm(false)}
+              className="rounded-xl gap-1.5 shrink-0"
+            >
+              <X size={14} /> Close
+            </Button>
           )}
-        </Button>
+        </div>
       </div>
 
       {!patientContext && (
@@ -881,24 +887,17 @@ if (error) {
               </p>
             )}
 
-            <Button
-              size="sm"
-              className="rounded-xl mt-3"
-              onClick={() => {
-                setForm((f) => ({
-                  ...f,
-                  patientId: selectedLookupPatient.id,
-                }));
+            <div className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
+              <FileText size={13} />
+              {loadingBilling
+                ? "Loading billing details…"
+                : editingBillingId
+                  ? "Billing record ready for review or update."
+                  : "No billing record is currently available for this patient."}
+            </div>
 
-                setShowForm(true);
-              }}
-            >
-              <Plus size={12} className="mr-1" />
-              Add Items to Bill
-            </Button>
-
-            <div className="grid grid-cols-3 gap-3 mt-3">
-              <div className="bg-muted/50 rounded-xl p-3 text-center">
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              <div className="bg-muted/40 border border-border/50 rounded-xl p-3 text-center">
                 <p className="text-[10px] text-muted-foreground">
                   Total
                 </p>
@@ -998,7 +997,7 @@ if (error) {
       {showForm && (
         <div className="form-section mb-5 max-w-2xl animate-fade-in">
           <h2 className="section-title text-sm">
-            {visitContext ? "Bill for This Visit" : "Complete/Edit Bill"}
+            {visitContext ? "Bill for This Visit" : "Billing Details"}
           </h2>
           <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1040,15 +1039,34 @@ if (error) {
 
             <div className="border-t border-border/60 pt-3">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold">Line Items</p>
-                <Button type="button" size="sm" variant="outline" className="rounded-xl gap-1" onClick={addItem}><Plus size={12} /> Add Item</Button>
+                <div>
+                  <p className="text-xs font-semibold">Billable Items</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Add lenses, frames, medication, services or other charges.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="rounded-xl gap-1.5 shrink-0"
+                  onClick={addItem}
+                >
+                  <Plus size={12} /> Add billable
+                </Button>
               </div>
               {items.length === 0 ? (
-                <p className="text-[11px] text-muted-foreground text-center py-3">No items. Add lens, frame, drugs, etc.</p>
+                <div className="rounded-xl border border-dashed bg-muted/20 px-3 py-5 text-center">
+                  <FileText size={18} className="mx-auto text-muted-foreground mb-1.5" />
+                  <p className="text-[11px] font-medium text-foreground">No billable items yet</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Use “Add billable” above to add products or services.
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {items.map((it, idx) => (
-                    <div key={idx} className="grid grid-cols-12 gap-1.5 items-end bg-muted/40 rounded-xl p-2">
+                    <div key={idx} className="grid grid-cols-12 gap-1.5 items-end border rounded-xl bg-card p-3 shadow-sm">
                       <div className="col-span-3">
                         <Label className="text-[10px]">Type</Label>
                         <Select
