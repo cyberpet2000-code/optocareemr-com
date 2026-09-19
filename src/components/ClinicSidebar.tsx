@@ -168,13 +168,12 @@ export default function ClinicSidebar() {
                 </div>
               ) : (
                 <>
-                  <div className="font-extrabold text-base leading-tight truncate">
-  OptoCare-EMR
-</div>
-
-<div className="text-[10px] uppercase tracking-[0.15em] text-white/80">
-  Intelligent Eye Care Management
-</div>
+                  <div className="font-extrabold text-base leading-tight truncate" title={clinicName}>
+                    {clinicName}
+                  </div>
+                  <div className="text-[10px] uppercase tracking-[0.15em] text-white/80">
+                    Eye Care Management
+                  </div>
                   
                 </>
               )}
@@ -268,7 +267,7 @@ export default function ClinicSidebar() {
               <LifeBuoy size={12} /> Support
             </button>
             <div className="text-[10px] text-muted-foreground/70 pt-1 border-t border-border/40 px-1">
-              Powered by <span className="font-medium">OptoCare EMR</span>
+              Powered by <span className="font-medium">OptoCare-EMR</span>
             </div>
           </>
         )}
