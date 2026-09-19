@@ -266,6 +266,11 @@ export type Database = {
         Row: {
           amount_paid: number
           balance: number
+          billing_scope: string
+          discount_amount: number
+          discount_applied_by: string | null
+          discount_reason: string | null
+          family_id: string | null
           clinic_id: string | null
           consultation_fee: number
           created_at: string
@@ -286,6 +291,16 @@ export type Database = {
         Insert: {
           amount_paid?: number
           balance?: number
+          billing_scope?: string
+          discount_amount?: number
+          discount_applied_by?: string | null
+          discount_reason?: string | null
+          family_id?: string | null
+          billing_scope?: string
+          discount_amount?: number
+          discount_applied_by?: string | null
+          discount_reason?: string | null
+          family_id?: string | null
           clinic_id?: string | null
           consultation_fee?: number
           created_at?: string
@@ -1494,6 +1509,47 @@ export type Database = {
         }
         Relationships: []
       }
+      families: {
+        Row: {
+          id: string
+          clinic_id: string
+          family_number: string
+          family_name: string
+          primary_patient_id: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          clinic_id: string
+          family_number: string
+          family_name: string
+          primary_patient_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          clinic_id?: string
+          family_number?: string
+          family_name?: string
+          primary_patient_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "families_primary_patient_id_fkey"
+            columns: ["primary_patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       feedback_followups: {
         Row: {
           assigned_to: string | null
@@ -2578,10 +2634,13 @@ export type Database = {
           hmo_verified_at: string | null
           hmo_verified_by: string | null
           id: string
+          family_id: string | null
+          family_relationship: string | null
           next_of_kin: string | null
           patient_number: string | null
           payment_type: string
           phone: string | null
+          preferred_contact_method: string
           priority: string
           queue_number: number
           queue_status: string
@@ -2617,6 +2676,8 @@ export type Database = {
           patient_number?: string | null
           payment_type?: string
           phone?: string | null
+          preferred_contact_method?: string
+          preferred_contact_method?: string
           priority?: string
           queue_number?: number
           queue_status?: string
