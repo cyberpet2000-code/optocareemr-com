@@ -710,7 +710,7 @@ if (user?.id) {
       stopLoadingWatch("dashboard");
       setLoading(false);
     }
-  }, [effectiveClinicId, isOffline, showClinicalMetrics, showBillingMetrics, showFinanceOverview, showInventoryAlerts, roleLoading, isAdmin, isDoctor, isReceptionist, isSuperAdmin]);
+  }, [effectiveClinicId, isOffline, showBillingMetrics, showFinanceOverview, showInventoryAlerts, roleLoading, isAdmin, isDoctor, isReceptionist, isSuperAdmin]);
 
   useEffect(() => {
     loadDashboard();
