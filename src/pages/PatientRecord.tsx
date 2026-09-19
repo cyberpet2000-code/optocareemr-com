@@ -844,6 +844,17 @@ subVaOutcome: v.sub_va_outcome || "",
     return;
   }
 
+    // Never create an empty clinical visit. A visit must contain at least
+    // one piece of actual clinical information before it can be completed.
+    const hasClinicalInformation = Object.values(form).some(
+      (value) => typeof value === "string" && value.trim().length > 0
+    );
+
+    if (markCompleted && !hasClinicalInformation) {
+      toast.error("Add at least one clinical finding, measurement, diagnosis, treatment, or note before completing this visit.");
+      return;
+    }
+
     // Validation
     const vaDistFields: [string, string][] = [
       ["Unaided OD", form.vaUnaidedOd], ["Unaided OS", form.vaUnaidedOs], ["Unaided OU", form.vaUnaidedOu],
