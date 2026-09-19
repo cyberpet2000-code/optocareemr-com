@@ -1,6 +1,7 @@
 import OptoLoader from "@/components/OptoLoader";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { showNotification } from "@/lib/notifications";
+import { normalizeWhatsAppNumber, whatsappLink } from "@/lib/whatsapp";
 import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -378,11 +379,11 @@ export default function Appointments() {
         toast.error(error?.message || "Patient not found.");
         return;
       }
-      const phone = String(patient.phone || "").replace(/[^0-9]/g, "");
+      const phone = normalizeWhatsAppNumber(patient.phone);
       if (!phone) { toast.error("This patient has no phone number saved."); return; }
       const dateLabel = new Date(appointment.appointment_date + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
       const message = "Hello " + patient.full_name + ", this is a reminder from the clinic about your appointment on " + dateLabel + (appointment.appointment_time ? " at " + appointment.appointment_time : "") + ". Please arrive 10 minutes early. If you need to reschedule, please contact the clinic.";
-      window.open("https://wa.me/" + phone + "?text=" + encodeURIComponent(message), "_blank", "noopener,noreferrer");
+      window.open(whatsappLink(phone, message), "_blank", "noopener,noreferrer");
       const sentAt = new Date().toISOString();
       const candidate = reminders
         .filter((r: any) => r.appointment_id === appointment.id && !r.sent_at && (r.status === "due" || r.status === "pending"))
