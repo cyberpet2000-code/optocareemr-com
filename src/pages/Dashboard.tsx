@@ -29,6 +29,7 @@ interface DashboardSnapshot {
   newPatientsSeen?: number;
   returningPatients?: number;
   previousMonthRevenue: number;
+  monthRegisteredPatients?: number;
   monthlyRevenue: number;
   todayAppointments: number;
   pendingBills: number;
@@ -64,7 +65,6 @@ export default function Dashboard() {
   const { isAdmin, isDoctor, isReceptionist, isSuperAdmin, loading: roleLoading } = useRole();
   
   // Determine which sections to show based on role
-  const showClinicalMetrics = isDoctor || isAdmin || isSuperAdmin;
   const showBillingMetrics = isReceptionist || isAdmin || isSuperAdmin;
   const showFinanceOverview = isAdmin || isSuperAdmin;
   const showInventoryAlerts = isAdmin || isDoctor || isSuperAdmin;
@@ -98,6 +98,7 @@ export default function Dashboard() {
   
   const { isOffline } = useOffline();
   const [monthPatients, setMonthPatients] = useState(0);
+  const [monthRegisteredPatients, setMonthRegisteredPatients] = useState(0);
   const [patientsSeen, setPatientsSeen] = useState(0);
   const [newPatientsSeen, setNewPatientsSeen] = useState(0);
   const [returningPatients, setReturningPatients] = useState(0);
@@ -360,6 +361,7 @@ if (user?.id) {
       const snap = offlineStore.get<DashboardSnapshot>(cacheKey);
       if (snap) {
         setMonthPatients(snap.monthPatients ?? 0);
+        setMonthRegisteredPatients(snap.monthRegisteredPatients ?? 0);
         setPatientsSeen(snap.patientsSeen ?? 0);
         setNewPatientsSeen(snap.newPatientsSeen ?? 0);
         setReturningPatients(snap.returningPatients ?? 0);
@@ -448,7 +450,19 @@ if (user?.id) {
         queryKeys.push("pendingBills");
       }
 
-      // Revenue & patient stats: only fetch if admin
+      // Monthly patient activity is useful to doctors and management.
+      if (isDoctor || showFinanceOverview) {
+        queries.push(
+          apiClient.rpc("get_dashboard_patient_stats", {
+            p_clinic_id: cid,
+            p_year: now.getFullYear(),
+            p_month: now.getMonth() + 1,
+          })
+        );
+        queryKeys.push("patientStats");
+      }
+
+      // Revenue remains restricted to admin/super_admin.
       if (showFinanceOverview) {
         queries.push(
           apiClient.rpc("get_dashboard_revenue", {
@@ -458,15 +472,6 @@ if (user?.id) {
           })
         );
         queryKeys.push("currentRevenue");
-
-        queries.push(
-          apiClient.rpc("get_dashboard_patient_stats", {
-            p_clinic_id: cid,
-            p_year: now.getFullYear(),
-            p_month: now.getMonth() + 1,
-          })
-        );
-        queryKeys.push("patientStats");
 
         const previousDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         queries.push(
@@ -478,6 +483,16 @@ if (user?.id) {
         );
         queryKeys.push("previousRevenue");
       }
+
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      queries.push(
+        apiClient
+          .from("patients")
+          .select("id", { count: "exact", head: true })
+          .eq("clinic_id", cid)
+          .gte("created_at", monthStart.toISOString())
+      );
+      queryKeys.push("monthRegisteredPatients");
 
       const results = await Promise.all(queries);
       const resultMap: Record<string, any> = {};
@@ -511,9 +526,11 @@ if (user?.id) {
         checkQueryFailure("billing", "pending bills", pendingBillsRes?.error);
       }
       
+      if (isDoctor || showFinanceOverview) {
+        checkQueryFailure("get_dashboard_patient_stats", "patient statistics", patientStatsRes?.error);
+      }
       if (showFinanceOverview) {
         checkQueryFailure("get_dashboard_revenue", "current month revenue", currentRevenueRes?.error);
-        checkQueryFailure("get_dashboard_patient_stats", "patient statistics", patientStatsRes?.error);
         checkQueryFailure("get_dashboard_revenue", "previous month revenue", previousRevenueRes?.error);
       }
 
@@ -598,6 +615,7 @@ if (user?.id) {
 
        const snap: DashboardSnapshot = {
         monthPatients: patientStats.patients_seen,
+        monthRegisteredPatients: resultMap.monthRegisteredPatients?.count ?? 0,
         patientsSeen: patientStats.patients_seen,
         newPatientsSeen: patientStats.new_patients_seen,
         returningPatients: patientStats.returning_patients,
@@ -733,346 +751,247 @@ if (user?.id) {
     );
   }
 
-  const tealGrad = "linear-gradient(135deg, hsl(184 78% 40% / 0.10) 0%, hsl(192 92% 50% / 0.16) 100%)";
-  const tealIcon = "linear-gradient(135deg, hsl(184 78% 40% / 0.22) 0%, hsl(192 92% 50% / 0.30) 100%)";
-  const navyGrad = "linear-gradient(135deg, hsl(222 65% 16% / 0.10) 0%, hsl(217 91% 55% / 0.16) 100%)";
-  const navyIcon = "linear-gradient(135deg, hsl(222 65% 16% / 0.22) 0%, hsl(217 91% 55% / 0.30) 100%)";
-  const amberGrad = "linear-gradient(135deg, hsl(38 92% 50% / 0.10) 0%, hsl(28 92% 55% / 0.16) 100%)";
-  const amberIcon = "linear-gradient(135deg, hsl(38 92% 50% / 0.22) 0%, hsl(28 92% 55% / 0.30) 100%)";
-  const blueGrad = "linear-gradient(135deg, hsl(217 91% 55% / 0.10) 0%, hsl(192 92% 50% / 0.16) 100%)";
-  const blueIcon = "linear-gradient(135deg, hsl(217 91% 55% / 0.22) 0%, hsl(192 92% 50% / 0.30) 100%)";
+  const tealGrad = "linear-gradient(135deg, hsl(184 78% 40% / 0.08) 0%, hsl(192 92% 50% / 0.12) 100%)";
+  const navyGrad = "linear-gradient(135deg, hsl(222 65% 16% / 0.06) 0%, hsl(217 91% 55% / 0.12) 100%)";
+  const amberGrad = "linear-gradient(135deg, hsl(38 92% 50% / 0.08) 0%, hsl(28 92% 55% / 0.12) 100%)";
+  const blueGrad = "linear-gradient(135deg, hsl(217 91% 55% / 0.08) 0%, hsl(192 92% 50% / 0.12) 100%)";
 
-  const Metric = ({ icon: Icon, label, value, gradient, iconGradient, iconColor, accentClass, to }: any) => (
-    <Link to={to} className={`stat-card group p-5 gap-4 ${accentClass}`} style={{ background: gradient }}>
-      <div className="icon-glow w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110" style={{ background: iconGradient, color: iconColor }}>
-        <Icon size={26} strokeWidth={2} />
+  const Metric = ({ icon: Icon, label, value, gradient, iconColor, to, hint }: any) => (
+    <Link
+      to={to}
+      className="group flex min-h-[88px] items-center gap-3 rounded-2xl border border-border/60 bg-card p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+      style={{ background: gradient }}
+    >
+      <div
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background/80"
+        style={{ color: iconColor }}
+      >
+        <Icon size={19} strokeWidth={2} />
       </div>
       <div className="min-w-0">
-        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-0.5">{label}</p>
-        <p className="text-2xl font-bold tracking-tight">{loading ? "—" : value}</p>
+        <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="mt-0.5 text-xl font-bold tracking-tight">{loading ? "—" : value}</p>
+        {hint && <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{hint}</p>}
       </div>
     </Link>
   );
 
+  const SectionHeader = ({ title, subtitle, to, action = "View all" }: any) => (
+    <div className="mb-3 flex items-end justify-between gap-3">
+      <div>
+        <h2 className="section-title">{title}</h2>
+        {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
+      </div>
+      {to && <Link to={to} className="shrink-0 text-xs font-medium text-primary hover:underline">{action}</Link>}
+    </div>
+  );
+
+  const roleLabel = isDoctor ? "Clinical dashboard" : isReceptionist ? "Front desk dashboard" : isSuperAdmin ? "System management dashboard" : "Clinic management dashboard";
+
   return (
     <div
       className="min-h-screen"
-      style={{
-        background:
-          "linear-gradient(180deg,#F5F8FB 0%,#EDF5FA 100%)",
-      }}
+      style={{ background: "linear-gradient(180deg,#F7FAFC 0%,#EEF5F9 100%)" }}
     >
-
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">
-          {getGreeting()}, <span className="text-primary">{displayName}</span>
-        </h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-        </p>
-        {!isAdmin && (isDoctor || isReceptionist) && (
-  <div className="mt-3 inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
-    <Star size={15} className="text-amber-500 fill-current" />
-
-    {staffRating !== null ? (
-      <>
-        <span className="text-sm font-semibold text-foreground">
-          {staffRating.toFixed(1)}
+      <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+            {getGreeting()}, <span className="text-primary">{displayName}</span>
+          </h1>
+          <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
+            {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+          </p>
+        </div>
+        <span className="w-fit rounded-full border bg-card px-2.5 py-1 text-[10px] font-medium text-muted-foreground">
+          {roleLabel}
         </span>
-        <span className="text-xs text-muted-foreground">
-          · {staffRatingCount} patient rating
-          {staffRatingCount === 1 ? "" : "s"}
-        </span>
-      </>
-    ) : (
-      <span className="text-xs text-muted-foreground">
-        No patient ratings yet
-      </span>
-    )}
-  </div>
-)}
       </div>
 
-      {/* DOCTOR SECTION: Clinical workflow */}
-      {isDoctor && !isAdmin && (
-        <div className="space-y-6">
-          {appointmentReminderDue > 0 && (isReceptionist || isAdmin || isSuperAdmin) && (
-        <Link to="/appointments" className="mb-4 block rounded-2xl border border-amber-300/60 bg-amber-50/70 p-4 hover:bg-amber-50 transition-colors">
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0"><BellRing className="h-4 w-4 text-amber-700" /></div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-amber-900">{appointmentReminderDue} appointment reminder{appointmentReminderDue === 1 ? "" : "s"} due</p>
-              <p className="text-xs text-amber-800/80 mt-0.5">Front desk: open Appointments and send the WhatsApp reminder. The link prepares the message; staff still presses Send.</p>
-            </div>
+      {!isAdmin && (isDoctor || isReceptionist) && (
+        <div className="mb-5 inline-flex items-center gap-2 rounded-xl border bg-card px-3 py-2 shadow-sm">
+          <Star size={14} className="fill-current text-amber-500" />
+          {staffRating !== null ? (
+            <span className="text-xs font-medium">{staffRating.toFixed(1)} · {staffRatingCount} patient rating{staffRatingCount === 1 ? "" : "s"}</span>
+          ) : (
+            <span className="text-xs text-muted-foreground">No patient ratings yet</span>
+          )}
+        </div>
+      )}
+
+      {appointmentReminderDue > 0 && (isReceptionist || isAdmin || isSuperAdmin) && (
+        <Link to="/appointments" className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-300/70 bg-amber-50/80 p-3.5 shadow-sm transition-colors hover:bg-amber-50">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+            <BellRing size={17} className="text-amber-700" />
           </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-amber-900">{appointmentReminderDue} appointment reminder{appointmentReminderDue === 1 ? "" : "s"} due</p>
+            <p className="mt-0.5 text-xs text-amber-800/80">Open Appointments to prepare and send the WhatsApp reminder.</p>
+          </div>
+          <ChevronRight size={16} className="mt-1 shrink-0 text-amber-700" />
         </Link>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <Metric icon={Users} label="Patients This Month" value={monthPatients} gradient={tealGrad} iconGradient={tealIcon} iconColor="hsl(184 78% 40%)" accentClass="accent-teal" to="/patients?filter=month" />
-            <Metric icon={Clock} label="Today's Visits" value={todayVisits} gradient={blueGrad} iconGradient={blueIcon} iconColor="hsl(217 91% 55%)" accentClass="accent-navy" to="/visits?filter=today" />
-            <Metric icon={Clock} label="Appointments" value={todayAppointments} gradient={amberGrad} iconGradient={amberIcon} iconColor="hsl(38 92% 50%)" accentClass="accent-warning" to="/appointments" />
-            <Metric icon={TrendingUp} label="Follow-ups" value={feedbackFollowups} gradient={navyGrad} iconGradient={navyIcon} iconColor="hsl(217 91% 55%)" accentClass="accent-navy" to="/patients?filter=followup" />
-          </div>
-
-          {(lowStockCount > 0 || drugAlerts > 0) && (
-            <Link to="/inventory" className="flex items-center gap-4 rounded-2xl border border-border/60 p-5 mb-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated group" style={{ background: amberGrad }}>
-              <div className="icon-glow w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110" style={{ background: amberIcon, color: "hsl(38 92% 50%)" }}>
-                <AlertTriangle size={26} strokeWidth={2} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">Stock Alerts</p>
-                <p className="text-xs text-muted-foreground">{lowStockCount + drugAlerts} item(s) need attention</p>
-              </div>
-              <ChevronRight size={18} className="text-muted-foreground shrink-0 transition-colors group-hover:text-foreground" />
-            </Link>
+      {/* TODAY */}
+      <section className="mb-6">
+        <SectionHeader title="Today" subtitle="The information that needs attention now." />
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+          {isDoctor && !isAdmin && (
+            <>
+              <Metric icon={Users} label="Patients today" value={todayVisits} gradient={tealGrad} iconColor="hsl(184 78% 40%)" to="/visits?filter=today" />
+              <Metric icon={CalendarDays} label="Appointments" value={todayAppointments} gradient={blueGrad} iconColor="hsl(217 91% 55%)" to="/appointments" />
+              <Metric icon={TrendingUp} label="Follow-ups" value={feedbackFollowups.length} gradient={navyGrad} iconColor="hsl(217 91% 55%)" to="/patients?filter=followup" />
+              <Metric icon={AlertTriangle} label="Stock alerts" value={lowStockCount + drugAlerts} gradient={amberGrad} iconColor="hsl(38 92% 50%)" to="/inventory" hint={lowStockCount + drugAlerts ? "Needs attention" : "All clear"} />
+            </>
           )}
 
-          <TodaySchedule appointments={upcomingAppts} loading={loading} />
+          {isReceptionist && !isAdmin && (
+            <>
+              <Metric icon={CalendarDays} label="Appointments" value={todayAppointments} gradient={tealGrad} iconColor="hsl(184 78% 40%)" to="/appointments" />
+              <Metric icon={Users} label="New registrations" value={recentPatients.length} gradient={blueGrad} iconColor="hsl(217 91% 55%)" to="/patients" hint="Latest patients" />
+              <Metric icon={DollarSign} label="Pending bills" value={pendingBills} gradient={amberGrad} iconColor="hsl(38 92% 50%)" to="/billing" />
+              <Metric icon={BellRing} label="Reminders due" value={appointmentReminderDue} gradient={navyGrad} iconColor="hsl(217 91% 55%)" to="/appointments" hint={appointmentReminderDue ? "Send now" : "All clear"} />
+            </>
+          )}
 
+          {(isAdmin || isSuperAdmin) && (
+            <>
+              <Metric icon={Users} label="Patients today" value={todayVisits} gradient={tealGrad} iconColor="hsl(184 78% 40%)" to="/visits?filter=today" />
+              <Metric icon={CalendarDays} label="Appointments" value={todayAppointments} gradient={blueGrad} iconColor="hsl(217 91% 55%)" to="/appointments" />
+              <Metric icon={DollarSign} label="Pending bills" value={pendingBills} gradient={amberGrad} iconColor="hsl(38 92% 50%)" to="/billing" />
+              <Metric icon={BellRing} label="Reminders due" value={appointmentReminderDue} gradient={navyGrad} iconColor="hsl(217 91% 55%)" to="/appointments" hint={appointmentReminderDue ? "Front desk action" : "All clear"} />
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* DOCTOR MONTH VIEW */}
+      {isDoctor && !isAdmin && (
+        <section className="mb-6">
+          <SectionHeader
+            title={`${currentMonthName} at a glance`}
+            subtitle="Clinical activity for this month."
+          />
+          <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+            <Metric icon={Users} label="Patients seen" value={patientsSeen} gradient={tealGrad} iconColor="hsl(184 78% 40%)" to="/patients" />
+            <Metric icon={Users} label="New patients" value={newPatientsSeen} gradient={blueGrad} iconColor="hsl(217 91% 55%)" to="/patients" />
+            <Metric icon={TrendingUp} label="Returning" value={returningPatients} gradient={navyGrad} iconColor="hsl(217 91% 55%)" to="/patients" />
+          </div>
+        </section>
+      )}
+
+      {/* RECEPTION MONTH VIEW */}
+      {isReceptionist && !isAdmin && (
+        <section className="mb-6">
+          <SectionHeader
+            title={`${currentMonthName} at a glance`}
+            subtitle="Front-desk registration activity."
+          />
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
+            <Metric icon={Users} label="Registered" value={monthRegisteredPatients} gradient={tealGrad} iconColor="hsl(184 78% 40%)" to="/patients" />
+            <Metric icon={CalendarDays} label="Appointments" value={todayAppointments} gradient={blueGrad} iconColor="hsl(217 91% 55%)" to="/appointments" hint="Today" />
+            <Metric icon={DollarSign} label="Pending bills" value={pendingBills} gradient={amberGrad} iconColor="hsl(38 92% 50%)" to="/billing" />
+          </div>
+        </section>
+      )}
+
+      {(isDoctor || isReceptionist || isAdmin || isSuperAdmin) && (
+        <section className="mb-6">
+          <TodaySchedule appointments={upcomingAppts} loading={loading} />
+        </section>
+      )}
+
+      {(isDoctor || isReceptionist || isAdmin || isSuperAdmin) && (
+        <section className="mb-6">
           <div className="medical-card">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="section-title"><Users size={16} /> Recent Patients</h2>
-              <Link to="/patients" className="text-xs text-primary font-medium hover:underline">View all</Link>
-            </div>
+            <SectionHeader title="Recent patients" to="/patients" />
             {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <OptoLoader size={40} />
-              </div>
+              <div className="flex items-center justify-center py-7"><OptoLoader size={36} /></div>
             ) : recentPatients.length === 0 ? (
               <EmptyState compact icon={Users} title="No patients registered yet" description="Patients you add will appear here." />
             ) : (
-              <div className="space-y-3">
+              <div className="grid gap-2.5 lg:grid-cols-2">
                 {recentPatients.map((p: any) => (
-                  <Link key={p.id} to={`/patient/${p.id}`}
-                    className="flex items-center gap-3 p-3 rounded-2xl border bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all group"
+                  <Link
+                    key={p.id}
+                    to={`/patient/${p.id}`}
+                    className="flex min-w-0 items-center gap-3 rounded-xl border bg-card p-2.5 transition-all hover:border-primary/30 hover:bg-primary/[0.03]"
                   >
-                    <div
-                      className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0"
-                      style={{
-                        background: "linear-gradient(135deg,#2563EB 0%,#22D3EE 100%)",
-                      }}
-                    >
-                      <span className="text-lg font-bold text-white">
-                        {(p.full_name || "?")[0]}
-                      </span>
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <span className="text-sm font-bold">{(p.full_name || "?")[0]}</span>
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium truncate">{p.full_name}</p>
-                         <span className="text-[10px] font-mono text-muted-foreground">{p.patient_number || `#${p.queue_number}`}</span>
+                        <p className="truncate text-sm font-semibold">{p.full_name}</p>
+                        <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground">{p.patient_number || `#${p.queue_number}`}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {p.gender}, {p.age} yrs • {p.phone}
-                      </p>
-                       <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} paymentType={p.payment_type} hmoName={p.hmo_name} compact />
+                      <p className="truncate text-[11px] text-muted-foreground">{p.gender}, {p.age} yrs · {p.phone || "No phone"}</p>
+                      <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} paymentType={p.payment_type} hmoName={p.hmo_name} compact />
                     </div>
-                    <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                    <ChevronRight size={14} className="shrink-0 text-muted-foreground" />
                   </Link>
                 ))}
               </div>
             )}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* RECEPTIONIST SECTION: Front-desk workflow */}
-      {isReceptionist && !isAdmin && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            <Metric icon={Clock} label="Today's Appointments" value={todayAppointments} gradient={tealGrad} iconGradient={tealIcon} iconColor="hsl(184 78% 40%)" accentClass="accent-teal" to="/appointments" />
-            <Metric icon={Users} label="Recent Patients" value={recentPatients.length} gradient={blueGrad} iconGradient={blueIcon} iconColor="hsl(217 91% 55%)" accentClass="accent-navy" to="/patients" />
-            <Metric icon={DollarSign} label="Pending Bills" value={pendingBills} gradient={amberGrad} iconGradient={amberIcon} iconColor="hsl(38 92% 50%)" accentClass="accent-warning" to="/billing" />
-            <Metric
-  icon={TrendingUp}
-  label="Follow-ups"
-  value={feedbackFollowups.length}
-  gradient={navyGrad}
-  iconGradient={navyIcon}
-  iconColor="hsl(217 91% 55%)"
-  accentClass="accent-navy"
-  to="/patients?filter=followup"
-/>
-          </div>
-
-          <TodaySchedule appointments={upcomingAppts} loading={loading} />
-
-          <div className="medical-card">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="section-title"><Users size={16} /> Recent Patients</h2>
-              <Link to="/patients" className="text-xs text-primary font-medium hover:underline">View all</Link>
-            </div>
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <OptoLoader size={40} />
-              </div>
-            ) : recentPatients.length === 0 ? (
-              <EmptyState compact icon={Users} title="No patients registered yet" description="Patients you register will appear here." />
-            ) : (
-              <div className="space-y-3">
-                {recentPatients.map((p: any) => (
-                  <Link key={p.id} to={`/patient/${p.id}`}
-                    className="flex items-center gap-3 p-3 rounded-2xl border bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all group"
-                  >
-                    <div
-                      className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0"
-                      style={{
-                        background: "linear-gradient(135deg,#2563EB 0%,#22D3EE 100%)",
-                      }}
-                    >
-                      <span className="text-lg font-bold text-white">
-                        {(p.full_name || "?")[0]}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium truncate">{p.full_name}</p>
-                         <span className="text-[10px] font-mono text-muted-foreground">{p.patient_number || `#${p.queue_number}`}</span>
-                      </div>
-                       <p className="text-xs text-muted-foreground">
-                         {p.gender}, {p.age} yrs • {p.phone}
-                       </p>
-                        <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} paymentType={p.payment_type} hmoName={p.hmo_name} compact />
-                    </div>
-                    <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ADMIN SECTION: Full dashboard with finance & operations */}
+      {/* ADMIN / SUPER ADMIN MANAGEMENT */}
       {(isAdmin || isSuperAdmin) && (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <Metric icon={Users} label="Patients This Month" value={monthPatients} gradient={tealGrad} iconGradient={tealIcon} iconColor="hsl(184 78% 40%)" accentClass="accent-teal" to="/patients?filter=month" />
-            <Metric icon={TrendingUp} label={`${currentMonthName} Revenue`} value={`₦${monthlyRevenue.toLocaleString()}`} gradient={navyGrad} iconGradient={navyIcon} iconColor="hsl(217 91% 55%)" accentClass="accent-navy" to="/billing" />
-            <Metric icon={DollarSign} label="Pending Bills" value={pendingBills} gradient={amberGrad} iconGradient={amberIcon} iconColor="hsl(38 92% 50%)" accentClass="accent-warning" to="/billing" />
-            <Metric
-              icon={DollarSign}
-              label={`${previousMonthName} Revenue`}
-              value={`₦${previousMonthRevenue.toLocaleString()}`}
-              gradient={navyGrad}
-              iconGradient={navyIcon}
-              iconColor="hsl(217 91% 55%)"
-              accentClass="accent-navy"
-              to="/billing?month=previous"
-            />
-            <Metric
-  icon={TrendingUp}
-  label="Follow-ups"
-  value={feedbackFollowups.length}
-  gradient={navyGrad}
-  iconGradient={navyIcon}
-  iconColor="hsl(217 91% 55%)"
-  accentClass="accent-navy"
-  to="/patients?filter=followup"
-/>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <Link
-              to="/visits?filter=today"
-              className="stat-card group p-5 gap-4 accent-teal"
-              style={{ background: tealGrad }}
-            >
-              <div className="icon-glow w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110" style={{ background: tealIcon, color: "hsl(184 78% 40%)" }}>
-                <Clock size={26} strokeWidth={2} />
+          <FinanceOverview />
+          {(lowStockCount > 0 || drugAlerts > 0 || pendingBills > 0 || appointmentReminderDue > 0) && (
+            <div className="medical-card">
+              <SectionHeader title="Needs attention" subtitle="Items that may need staff action." />
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                {appointmentReminderDue > 0 && (
+                  <Link to="/appointments" className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 hover:bg-amber-50">
+                    <BellRing size={16} className="mb-2 text-amber-700" />
+                    <p className="text-xs font-semibold">Reminders</p>
+                    <p className="text-lg font-bold">{appointmentReminderDue}</p>
+                    <p className="text-[10px] text-muted-foreground">Due now</p>
+                  </Link>
+                )}
+                {pendingBills > 0 && (
+                  <Link to="/billing" className="rounded-xl border bg-card p-3 hover:border-primary/30">
+                    <DollarSign size={16} className="mb-2 text-amber-600" />
+                    <p className="text-xs font-semibold">Pending bills</p>
+                    <p className="text-lg font-bold">{pendingBills}</p>
+                    <p className="text-[10px] text-muted-foreground">Needs follow-up</p>
+                  </Link>
+                )}
+                {(lowStockCount > 0 || drugAlerts > 0) && (
+                  <Link to="/inventory" className="rounded-xl border bg-card p-3 hover:border-primary/30">
+                    <AlertTriangle size={16} className="mb-2 text-amber-600" />
+                    <p className="text-xs font-semibold">Stock alerts</p>
+                    <p className="text-lg font-bold">{lowStockCount + drugAlerts}</p>
+                    <p className="text-[10px] text-muted-foreground">Review inventory</p>
+                  </Link>
+                )}
+                <Link to="/appointments" className="rounded-xl border bg-card p-3 hover:border-primary/30">
+                  <CalendarDays size={16} className="mb-2 text-primary" />
+                  <p className="text-xs font-semibold">Schedule</p>
+                  <p className="text-lg font-bold">{todayAppointments}</p>
+                  <p className="text-[10px] text-muted-foreground">Today's appointments</p>
+                </Link>
               </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-0.5">Today's Visits</p>
-                <p className="text-2xl font-bold tracking-tight">{loading ? "—" : todayVisits}</p>
-              </div>
-            </Link>
-            <Link
-              to="/appointments"
-              className="stat-card group p-5 gap-4 accent-navy"
-              style={{ background: blueGrad }}
-            >
-              <div className="icon-glow w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110" style={{ background: blueIcon, color: "hsl(217 91% 55%)" }}>
-                <Clock size={26} strokeWidth={2} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-0.5">Appointments</p>
-                <p className="text-2xl font-bold tracking-tight">{loading ? "—" : todayAppointments}</p>
-              </div>
-            </Link>
-          </div>
-
-          {(lowStockCount > 0 || drugAlerts > 0) && (
-            <Link to="/inventory" className="flex items-center gap-4 rounded-2xl border border-border/60 p-5 mb-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated group" style={{ background: amberGrad }}>
-              <div className="icon-glow w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110" style={{ background: amberIcon, color: "hsl(38 92% 50%)" }}>
-                <AlertTriangle size={26} strokeWidth={2} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">Stock Alerts</p>
-                <p className="text-xs text-muted-foreground">{lowStockCount + drugAlerts} item(s) need attention</p>
-              </div>
-              <ChevronRight size={18} className="text-muted-foreground shrink-0 transition-colors group-hover:text-foreground" />
-            </Link>
+            </div>
           )}
 
-          <TodaySchedule appointments={upcomingAppts} loading={loading} />
-
-          <div className="medical-card">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="section-title"><Users size={16} /> Recent Patients</h2>
-              <Link to="/patients" className="text-xs text-primary font-medium hover:underline">View all</Link>
-            </div>
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <OptoLoader size={40} />
-              </div>
-            ) : recentPatients.length === 0 ? (
-              <EmptyState compact icon={Users} title="No patients registered yet" description="Patients you add will appear here." />
-            ) : (
-              <div className="space-y-3">
-                {recentPatients.map((p: any) => (
-                  <Link key={p.id} to={`/patient/${p.id}`}
-                    className="flex items-center gap-3 p-3 rounded-2xl border bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all group"
-                  >
-                    <div
-                      className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0"
-                      style={{
-                        background: "linear-gradient(135deg,#2563EB 0%,#22D3EE 100%)",
-                      }}
-                    >
-                      <span className="text-lg font-bold text-white">
-                        {(p.full_name || "?")[0]}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium truncate">{p.full_name}</p>
-                         <span className="text-[10px] font-mono text-muted-foreground">{p.patient_number || `#${p.queue_number}`}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {p.gender}, {p.age} yrs • {p.phone}
-                      </p>
-                       <PatientHistoryMeta visits={p.visitSummary} billing={p.billingSummary} paymentType={p.payment_type} hmoName={p.hmo_name} compact />
-                    </div>
-                    <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Staff Ratings & Feedback - Admin and Super Admin */}
-{(isAdmin || isSuperAdmin) && (
-  <StaffRatingsSection
-    staffFeedback={staffFeedback}
-    loading={staffFeedbackLoading}
-    error={staffFeedbackError}
-    clinicName={localStorage.getItem("active_clinic_name") || "Active Clinic"}
-    onRefresh={loadDashboard}
-  />
-)}
-
-          {/* Finance Overview - Admin only */}
-          <FinanceOverview />
+          <StaffRatingsSection
+            staffFeedback={staffFeedback}
+            loading={staffFeedbackLoading}
+            error={staffFeedbackError}
+            clinicName={effectiveClinicId ? "active clinic" : "clinic"}
+            onRefresh={async () => {
+              if (!effectiveClinicId) return;
+              setStaffFeedbackLoading(true);
+              const { data, error } = await apiClient.rpc("get_admin_staff_feedback_ratings", { p_clinic_id: effectiveClinicId });
+              if (error) setStaffFeedbackError(error.message);
+              else setStaffFeedback((data || []) as StaffFeedbackRow[]);
+              setStaffFeedbackLoading(false);
+            }}
+          />
         </div>
       )}
     </div>
