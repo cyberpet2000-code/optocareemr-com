@@ -3077,18 +3077,6 @@ shadow-sm
               <p className="text-sm font-semibold mt-1">{patient.full_name}</p>
             </div>
 
-            <div className="rounded-2xl border bg-primary/5 p-3">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                Responsible doctor
-              </p>
-              <p className="text-sm font-semibold mt-1">
-                {responsibleDoctor?.full_name || "No clinic doctor available"}
-              </p>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Automatically selected from the active clinic's clinical staff.
-              </p>
-            </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="patient-appointment-date">Date</Label>
