@@ -62,7 +62,7 @@ export default function Dashboard() {
     enableNotifications();
   }, []);
   const { user } = useAuth();
-  const { effectiveClinicId } = useClinic();
+  const { effectiveClinicId, clinic } = useClinic();
   const { isAdmin, isDoctor, isReceptionist, isSuperAdmin, loading: roleLoading } = useRole();
   
   // Determine which sections to show based on role
@@ -900,7 +900,7 @@ if (user?.id) {
                       <p className="truncate text-sm font-semibold">{patient.full_name}</p>
                       <p className="mt-1 text-xs text-muted-foreground">{patient.patient_number || "Patient"}</p>
                     </Link>
-                    <PatientWhatsAppMessages clinicId={effectiveClinicId || ""} clinicName="Clinic" patientId={patient.id} patientName={patient.full_name} phone={patient.phone} />
+                    <PatientWhatsAppMessages clinicId={effectiveClinicId || ""} clinicName={clinic?.name || "Clinic"} patientId={patient.id} patientName={patient.full_name} phone={patient.phone} />
                   </div>
                 ))}
               </div>
