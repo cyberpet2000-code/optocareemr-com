@@ -14,6 +14,7 @@ import ClinicSidebar, { resolveWorkspace } from "@/components/ClinicSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { diag } from "@/lib/diag";
 import { useOffline } from "@/hooks/useOffline";
+import { registerAutomaticSync } from "@/lib/offlineSync";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -47,6 +48,11 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
 } = useClinic();
   const { memberships } = useAccessClinic();
 
+  useEffect(() => {
+    if (!effectiveClinicId || isSuperAdminWs) return;
+    const sync = registerAutomaticSync(effectiveClinicId, { debounceMs: 1200, autoTriggerIfOnline: true });
+    return sync.unregister;
+  }, [effectiveClinicId, isSuperAdminWs]);
 
 
   const workspace = resolveWorkspace(location.pathname);
