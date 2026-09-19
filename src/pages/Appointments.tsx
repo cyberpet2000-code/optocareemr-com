@@ -17,6 +17,7 @@ import { useAccessClinic } from "@/hooks/useAccess";
 import { diag } from "@/lib/diag";
 import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
+import { enqueueOfflineOperation, cacheAppointmentsOffline } from "@/lib/offlineEngine";
 
 interface Appointment {
   id: string;
@@ -335,15 +336,13 @@ export default function Appointments() {
     };
     const offline = isOffline || (typeof navigator !== "undefined" && !navigator.onLine);
     if (offline) {
-      const queueKey = `appointments-queue:${cid}`;
-      const queue = offlineStore.get<any[]>(queueKey) ?? [];
-      queue.push({ ...payload, queued_at: Date.now() });
-      offlineStore.save(queueKey, queue);
+      const appointmentId = editingId || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "appointment-" + Date.now());
+      const offlinePayload = { ...payload, id: appointmentId };
+      await enqueueOfflineOperation({ clinicId: cid, userId: null, kind: "appointment.save", entityId: appointmentId, payload: offlinePayload });
+      const current = offlineStore.get<any[]>(`appointments:${cid}`) ?? [];
+      const local = { ...offlinePayload, patient_name: patients.find(p => p.id === payload.patient_id)?.full_name || "Unknown patient", offline_pending_sync: true };
+      cacheAppointmentsOffline(cid, [local, ...current.filter(a => a.id !== appointmentId)]);
       toast.success("Saved offline — will sync automatically");
-      setShowForm(false);
-      setForm({ patientId: "", date: new Date(), time: "", reason: "" });
-      return;
-    }
     setSaving(true);
     const result = editingId
       ? await apiClient.from("appointments").update(payload as any).eq("clinic_id", cid).eq("id", editingId)
