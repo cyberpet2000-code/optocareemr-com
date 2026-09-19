@@ -1,6 +1,6 @@
 import { offlineStore } from "@/lib/offlineStore";
 
-export type OfflineOperationKind = "family.create" | "patient.create" | "visit.save" | "appointment.save" | "appointment.status" | "inventory.save" | "inventory.delete" | "inventory.sale" | "payment.create";
+export type OfflineOperationKind = "family.create" | "patient.create" | "visit.save" | "appointment.save" | "appointment.status" | "inventory.save" | "inventory.delete" | "inventory.sale" | "payment.create" | "billing.save";
 
 export interface OfflineOperation {
   id: string;
