@@ -1,5 +1,6 @@
 import OptoLoader from "@/components/OptoLoader";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { showNotification } from "@/lib/notifications";
 import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +53,7 @@ export default function Appointments() {
   const [saving, setSaving] = useState(false);
   const [remindingId, setRemindingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);\n  const [reschedulingId, setReschedulingId] = useState<string | null>(null);\n  const [rescheduleForm, setRescheduleForm] = useState({ date: new Date(), time: "" });\n  const [rescheduling, setRescheduling] = useState(false);
+  const [reminders, setReminders] = useState<any[]>([]);
 
   const filterDateStr = useMemo(() => format(filterDate, "yyyy-MM-dd"), [filterDate]);
 
@@ -148,6 +150,56 @@ export default function Appointments() {
     window.addEventListener("optocare:sync:done", onSync as EventListener);
     return () => window.removeEventListener("optocare:sync:done", onSync as EventListener);
   }, [cid, loadAppointments]);
+
+  // ── Staff reminder alerts ─────────────────────────────────────────────
+  const refreshReminderAlerts = useCallback(async () => {
+    if (!cid || isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) return;
+
+    await apiClient.rpc("refresh_due_appointment_reminders");
+
+    const { data, error: reminderError } = await apiClient
+      .from("appointment_reminders")
+      .select("id, appointment_id, reminder_type, due_at, scheduled_for, status, sent_at, channel")
+      .eq("clinic_id", cid)
+      .in("status", ["due", "pending", "sent"])
+      .gte("scheduled_for", new Date().toISOString())
+      .order("due_at", { ascending: true });
+
+    if (reminderError) {
+      console.warn("Failed to load appointment reminders:", reminderError);
+      return;
+    }
+
+    const rows = data || [];
+    setReminders(rows);
+
+    const dueRows = rows.filter((r: any) => r.status === "due" && !r.sent_at);
+    const alertKey = "optocare:appointment-reminder-alerts:" + cid;
+    let alerted: Record<string, boolean> = {};
+    try { alerted = JSON.parse(localStorage.getItem(alertKey) || "{}"); } catch { alerted = {}; }
+
+    for (const reminder of dueRows) {
+      if (alerted[reminder.id]) continue;
+      const appointment = appointments.find(a => a.id === reminder.appointment_id);
+      const patientName = appointment?.patient_name || "patient";
+      const timing = reminder.reminder_type === "24h" ? "24-hour" : "2-hour";
+      const body = timing + " appointment reminder is due for " + patientName +
+        (appointment?.appointment_time ? " at " + appointment.appointment_time : "") +
+        ". Front desk should open the appointment and send the WhatsApp reminder.";
+      showNotification("🔔 Appointment reminder due", body);
+      toast.info("Reminder due: " + patientName, { description: "Open Appointments and send the " + timing + " WhatsApp reminder." });
+      alerted[reminder.id] = true;
+    }
+
+    try { localStorage.setItem(alertKey, JSON.stringify(alerted)); } catch {}
+  }, [cid, isOffline, appointments]);
+
+  useEffect(() => {
+    if (hydrating || !cid) return;
+    refreshReminderAlerts();
+    const timer = window.setInterval(refreshReminderAlerts, 60_000);
+    return () => window.clearInterval(timer);
+  }, [hydrating, cid, refreshReminderAlerts]);
 
   // ── Patient dropdown ───────────────────────────────────────────────────
   useEffect(() => {
@@ -260,9 +312,9 @@ export default function Appointments() {
       today: appointments.filter(a => a.appointment_date === today && a.status !== "cancelled").length,
       pending: appointments.filter(a => a.status === "pending").length,
       confirmed: appointments.filter(a => a.status === "confirmed").length,
-      reminders: appointments.filter(a => a.status !== "cancelled" && a.status !== "completed" && !a.reminder_sent_at).length,
+      reminders: reminders.filter((r: any) => r.status === "due" && !r.sent_at).length,
     };
-  }, [appointments]);
+  }, [appointments, reminders]);
 
   // ── Mutations ─────────────────────────────────────────────────────────
   const handleSubmit = async () => {
@@ -328,9 +380,21 @@ export default function Appointments() {
       const dateLabel = new Date(appointment.appointment_date + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
       const message = "Hello " + patient.full_name + ", this is a reminder from the clinic about your appointment on " + dateLabel + (appointment.appointment_time ? " at " + appointment.appointment_time : "") + ". Please arrive 10 minutes early. If you need to reschedule, please contact the clinic.";
       window.open("https://wa.me/" + phone + "?text=" + encodeURIComponent(message), "_blank", "noopener,noreferrer");
-      const { error: trackError } = await apiClient.from("appointments").update({ reminder_sent_at: new Date().toISOString(), reminder_channel: "whatsapp" } as any).eq("clinic_id", cid).eq("id", appointment.id);
-      if (trackError) console.warn("Failed to track reminder:", trackError);
-      toast.success("WhatsApp reminder opened.");
+      const sentAt = new Date().toISOString();
+      const candidate = reminders
+        .filter((r: any) => r.appointment_id === appointment.id && !r.sent_at && (r.status === "due" || r.status === "pending"))
+        .sort((a: any, b: any) => new Date(a.due_at).getTime() - new Date(b.due_at).getTime())[0];
+      if (candidate) {
+        const { error: reminderTrackError } = await apiClient
+          .from("appointment_reminders")
+          .update({ status: "sent", sent_at: sentAt, sent_by: (await apiClient.auth.getUser()).data.user?.id || null, channel: "whatsapp_link", updated_at: sentAt } as any)
+          .eq("clinic_id", cid)
+          .eq("id", candidate.id);
+        if (reminderTrackError) console.warn("Failed to track reminder:", reminderTrackError);
+      }
+      const { error: trackError } = await apiClient.from("appointments").update({ reminder_sent_at: sentAt, reminder_channel: "whatsapp" } as any).eq("clinic_id", cid).eq("id", appointment.id);
+      if (trackError) console.warn("Failed to track appointment reminder:", trackError);
+      toast.success("WhatsApp reminder opened. Press Send in WhatsApp to deliver it.");
       loadAppointments();
     } finally { setRemindingId(null); }
   };
@@ -578,7 +642,14 @@ export default function Appointments() {
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">{a.appointment_date}{a.reason ? " • " + a.reason : ""}</p>
                   <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                    {a.reminder_sent_at ? <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-success/10 text-success"><Bell size={11} /> Reminder sent</span> : <span className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-amber-100 text-amber-700"><BellRing size={11} /> Reminder due</span>}
+                    {(["24h", "2h"] as const).map((type) => {
+                      const reminder = reminders.find((r: any) => r.appointment_id === a.id && r.reminder_type === type && r.scheduled_for?.startsWith(a.appointment_date));
+                      if (!reminder) return null;
+                      const label = type === "24h" ? "24h" : "2h";
+                      if (reminder.status === "sent" || reminder.sent_at) return <span key={type} className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-success/10 text-success"><Bell size={11} /> {label} sent</span>;
+                      if (reminder.status === "due") return <span key={type} className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-amber-100 text-amber-700"><BellRing size={11} /> {label} due</span>;
+                      return <span key={type} className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-muted text-muted-foreground"><Clock size={11} /> {label} scheduled</span>;
+                    })}
                     {a.source === "auto" && <span className="text-[10px] px-2 py-1 rounded-full bg-primary/10 text-primary">From visit</span>}
                   </div>
                 </div>
