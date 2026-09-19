@@ -296,11 +296,6 @@ export type Database = {
           discount_applied_by?: string | null
           discount_reason?: string | null
           family_id?: string | null
-          billing_scope?: string
-          discount_amount?: number
-          discount_applied_by?: string | null
-          discount_reason?: string | null
-          family_id?: string | null
           clinic_id?: string | null
           consultation_fee?: number
           created_at?: string
@@ -321,6 +316,11 @@ export type Database = {
         Update: {
           amount_paid?: number
           balance?: number
+          billing_scope?: string
+          discount_amount?: number
+          discount_applied_by?: string | null
+          discount_reason?: string | null
+          family_id?: string | null
           clinic_id?: string | null
           consultation_fee?: number
           created_at?: string
