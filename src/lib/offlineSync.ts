@@ -4,6 +4,7 @@
 import { apiClient } from "@/lib/apiClient";
 import { offlineStore } from "@/lib/offlineStore";
 import { toast } from "sonner";
+import { getOfflineOperations, removeOfflineOperation, markOfflineOperationFailed } from "@/lib/offlineEngine";
 
 function appointmentsQueueKey(clinicId: string) { return `appointments-queue:${clinicId}`; }
 function billsQueueKey(clinicId: string) { return `bills-queue:${clinicId}`; }
@@ -34,6 +35,36 @@ async function removeQueueItemAndSave<T extends { [k:string]: any }>(key:string,
   queue.splice(idx,1);
   if (queue.length === 0) await normalizeMaybePromise(offlineStore.remove(key));
   else await normalizeMaybePromise(offlineStore.save(key, queue));
+}
+
+export async function processCoreOfflineOperations(clinicId: string): Promise<{ success: number; failed: number }> {
+  const operations = await getOfflineOperations(clinicId);
+  let success = 0, failed = 0;
+
+  for (const operation of operations) {
+    try {
+      if (operation.kind === "family.create") {
+        const { error } = await apiClient.from("families").upsert(operation.payload as any, { onConflict: "id" });
+        if (error) throw new Error(error.message);
+      } else if (operation.kind === "patient.create") {
+        const { error } = await apiClient.from("patients").upsert(operation.payload as any, { onConflict: "id" });
+        if (error) throw new Error(error.message);
+      } else if (operation.kind === "visit.save") {
+        const payload = { ...(operation.payload as any) };
+        const { error } = await apiClient.from("visits").upsert(payload, { onConflict: "id" });
+        if (error) throw new Error(error.message);
+      }
+      await removeOfflineOperation(clinicId, operation.id);
+      success++;
+    } catch (error) {
+      failed++;
+      await markOfflineOperationFailed(clinicId, operation, error);
+      // Stop here when the first dependency fails; later operations may depend on it.
+      break;
+    }
+  }
+
+  return { success, failed };
 }
 
 export async function processAppointmentsQueue(clinicId: string): Promise<{ success:number; failed:number }> {
@@ -227,6 +258,7 @@ export async function runOfflineSync(clinicId: string): Promise<void> {
   _syncRunning = true;
   try {
     toast.info('Offline sync started');
+    await processCoreOfflineOperations(clinicId);
     await processAppointmentsQueue(clinicId);
     await processBillsQueue(clinicId);
     toast.success('Offline sync completed');
