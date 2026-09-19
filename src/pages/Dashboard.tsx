@@ -9,7 +9,7 @@ import {
   checkClinicSubscription,
 } from "@/lib/diag/healthChecks";
 import { Link } from "react-router-dom";
-import { Users, ChevronRight, AlertTriangle, DollarSign, TrendingUp, Clock, Star } from "lucide-react";
+import { Users, ChevronRight, AlertTriangle, DollarSign, TrendingUp, Clock, Star, CalendarDays, CheckCircle2, CircleDot } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { startLoadingWatch,
@@ -363,7 +363,12 @@ if (user?.id) {
 
     setLoading(true);
     startLoadingWatch("dashboard");
-    const today = new Date().toISOString().split("T")[0];
+    const localToday = new Date();
+    const today = [
+      localToday.getFullYear(),
+      String(localToday.getMonth() + 1).padStart(2, "0"),
+      String(localToday.getDate()).padStart(2, "0"),
+    ].join("-");
 
     try {
       // Build role-appropriate queries - only fetch data the user's role needs
@@ -386,8 +391,17 @@ if (user?.id) {
       );
       queryKeys.push("appointments");
 
+      // Dashboard schedule is strictly for the current local clinic day.
+      // Do not use UTC date conversion here because Cedar Eye Clinic operates in Africa/Lagos.
       queries.push(
-        apiClient.from("appointments").select("id, appointment_date, appointment_time, reason, patient_id").eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"]).limit(10)
+        apiClient
+          .from("appointments")
+          .select("id, appointment_date, appointment_time, reason, patient_id, doctor_id, status, priority")
+          .eq("clinic_id", cid)
+          .eq("appointment_date", today)
+          .in("status", ["pending", "confirmed"])
+          .order("appointment_time", { ascending: true })
+          .limit(20)
       );
       queryKeys.push("upcomingAppts");
 
@@ -576,6 +590,46 @@ if (user?.id) {
         upcomingAppts: (upcomingApptRes?.data as any[]) ?? [],
       };
 
+      // Enrich today's schedule with patient and doctor names for a useful
+      // front-desk/clinical view instead of showing IDs or sparse rows.
+      const scheduleRows = snap.upcomingAppts;
+      const schedulePatientIds = [...new Set(scheduleRows.map((a: any) => a.patient_id).filter(Boolean))];
+      const scheduleDoctorIds = [...new Set(scheduleRows.map((a: any) => a.doctor_id).filter(Boolean))];
+
+      const [schedulePatientsRes, scheduleDoctorsRes] = await Promise.all([
+        schedulePatientIds.length > 0
+          ? apiClient.from("patients").select("id, full_name, patient_number, phone").eq("clinic_id", cid).in("id", schedulePatientIds)
+          : Promise.resolve({ data: [] }),
+        scheduleDoctorIds.length > 0
+          ? apiClient.from("profiles").select("id, full_name, is_super_admin").in("id", scheduleDoctorIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const schedulePatientMap = new Map(
+        (schedulePatientsRes.data || []).map((p: any) => [p.id, p])
+      );
+      const scheduleDoctorMap = new Map(
+        (scheduleDoctorsRes.data || [])
+          .filter((d: any) => d.is_super_admin !== true)
+          .map((d: any) => [d.id, d.full_name || "Doctor"])
+      );
+
+      snap.upcomingAppts = scheduleRows.map((a: any) => ({
+        ...a,
+        patient_name: a.patient_id
+          ? (schedulePatientMap.get(a.patient_id)?.full_name || "Unknown patient")
+          : "Walk-in",
+        patient_number: a.patient_id
+          ? (schedulePatientMap.get(a.patient_id)?.patient_number || null)
+          : null,
+        patient_phone: a.patient_id
+          ? (schedulePatientMap.get(a.patient_id)?.phone || null)
+          : null,
+        doctor_name: a.doctor_id
+          ? (scheduleDoctorMap.get(a.doctor_id) || null)
+          : null,
+      }));
+
       setMonthPatients(snap.monthPatients);
       setPatientsSeen(snap.patientsSeen ?? 0);
       setNewPatientsSeen(snap.newPatientsSeen ?? 0);
@@ -740,35 +794,7 @@ if (user?.id) {
             </Link>
           )}
 
-          {upcomingAppts.length > 0 && (
-            <div className="medical-card mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <Link to="/appointments" className="section-title hover:text-primary transition-colors">
-                  <Clock size={16} /> Today's Schedule
-                </Link>
-                <Link to="/appointments" className="text-xs text-primary font-medium hover:underline">View all</Link>
-              </div>
-              <div className="space-y-2">
-                {upcomingAppts.map((a: any) => (
-                  <Link
-                    key={a.id}
-                    to="/appointments"
-                    className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/50 hover:bg-muted transition-all group"
-                    title="Open appointments"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <Clock size={14} className="text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{a.patient_name}</p>
-                      <p className="text-xs text-muted-foreground">{a.appointment_time}{a.reason ? ` • ${a.reason}` : ""}</p>
-                    </div>
-                    <ChevronRight size={14} className="text-muted-foreground group-hover:text-foreground" />
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
+          <TodaySchedule appointments={upcomingAppts} loading={loading} />
 
           <div className="medical-card">
             <div className="flex items-center justify-between mb-3">
@@ -835,27 +861,7 @@ if (user?.id) {
 />
           </div>
 
-          {upcomingAppts.length > 0 && (
-            <div className="medical-card mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="section-title"><Clock size={16} /> Today's Appointments</h2>
-                <Link to="/appointments" className="text-xs text-primary font-medium hover:underline">View all</Link>
-              </div>
-              <div className="space-y-2">
-                {upcomingAppts.map((a: any) => (
-                  <div key={a.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/50 hover:bg-muted transition-all">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <Clock size={14} className="text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{a.patient_name}</p>
-                      <p className="text-xs text-muted-foreground">{a.appointment_time}{a.reason ? ` • ${a.reason}` : ""}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <TodaySchedule appointments={upcomingAppts} loading={loading} />
 
           <div className="medical-card">
             <div className="flex items-center justify-between mb-3">
@@ -970,27 +976,7 @@ if (user?.id) {
             </Link>
           )}
 
-          {upcomingAppts.length > 0 && (
-            <div className="medical-card mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="section-title"><Clock size={16} /> Today's Schedule</h2>
-                <Link to="/appointments" className="text-xs text-primary font-medium hover:underline">View all</Link>
-              </div>
-              <div className="space-y-2">
-                {upcomingAppts.map((a: any) => (
-                  <div key={a.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/50 hover:bg-muted transition-all">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <Clock size={14} className="text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{a.patient_name}</p>
-                      <p className="text-xs text-muted-foreground">{a.appointment_time}{a.reason ? ` • ${a.reason}` : ""}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <TodaySchedule appointments={upcomingAppts} loading={loading} />
 
           <div className="medical-card">
             <div className="flex items-center justify-between mb-3">
@@ -1049,6 +1035,141 @@ if (user?.id) {
 
           {/* Finance Overview - Admin only */}
           <FinanceOverview />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TodaySchedule({
+  appointments,
+  loading,
+}: {
+  appointments: any[];
+  loading: boolean;
+}) {
+  const formatTime = (value?: string | null) => {
+    if (!value) return "Time not set";
+    const [hours, minutes] = value.split(":").map(Number);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return value;
+    const d = new Date();
+    d.setHours(hours, minutes, 0, 0);
+    return d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
+
+  const todayLabel = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
+
+  return (
+    <div className="medical-card mb-6 overflow-hidden">
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <CalendarDays size={18} className="text-primary shrink-0" />
+            <h2 className="section-title">Today's Schedule</h2>
+            <span className="inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-primary/10 text-primary text-[11px] font-bold">
+              {appointments.length}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1 ml-6">
+            {todayLabel} · {appointments.length === 1 ? "1 appointment" : `${appointments.length} appointments`}
+          </p>
+        </div>
+        <Link
+          to="/appointments"
+          className="shrink-0 inline-flex items-center rounded-xl bg-primary/10 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/15 transition-colors"
+        >
+          View all
+        </Link>
+      </div>
+
+      {loading ? (
+        <div className="space-y-2">
+          {[1, 2, 3].map((item) => (
+            <div key={item} className="h-[76px] rounded-2xl bg-muted/50 animate-pulse" />
+          ))}
+        </div>
+      ) : appointments.length === 0 ? (
+        <Link
+          to="/appointments"
+          className="flex items-center gap-3 rounded-2xl border border-dashed bg-muted/20 p-4 hover:bg-muted/40 transition-colors"
+        >
+          <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+            <CalendarDays size={19} className="text-primary" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">No appointments scheduled today</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Open Appointments to add a patient to today's schedule.
+            </p>
+          </div>
+          <ChevronRight size={16} className="text-muted-foreground shrink-0" />
+        </Link>
+      ) : (
+        <div className="space-y-2">
+          {appointments.map((a: any) => (
+            <Link
+              key={a.id}
+              to="/appointments"
+              className="flex items-center gap-3 rounded-2xl border bg-card p-3 hover:border-primary/30 hover:bg-primary/[0.03] transition-all group"
+              title="Open appointments"
+            >
+              <div className="w-[62px] shrink-0 text-center">
+                <p className="text-sm font-bold text-primary">
+                  {formatTime(a.appointment_time)}
+                </p>
+                <div className="mt-1 flex items-center justify-center gap-1 text-[9px] uppercase tracking-wide text-muted-foreground">
+                  <Clock size={10} />
+                  Time
+                </div>
+              </div>
+
+              <div className="w-px self-stretch bg-border/70" />
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold truncate">
+                    {a.patient_name || "Unknown patient"}
+                  </p>
+                  {a.patient_number && (
+                    <span className="shrink-0 text-[9px] font-mono rounded-md bg-muted px-1.5 py-0.5 text-muted-foreground">
+                      {a.patient_number}
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs text-muted-foreground truncate mt-1">
+                  {a.reason || "Appointment"}
+                </p>
+
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[9px] font-semibold text-green-700">
+                    <CheckCircle2 size={10} />
+                    {a.status === "confirmed" ? "Confirmed" : "Pending"}
+                  </span>
+                  {a.priority && a.priority !== "normal" && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold text-amber-700">
+                      <CircleDot size={10} />
+                      {String(a.priority).replace(/_/g, " ")}
+                    </span>
+                  )}
+                  {a.doctor_name && (
+                    <span className="text-[9px] text-muted-foreground truncate">
+                      Dr: {a.doctor_name}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <ChevronRight size={16} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+            </Link>
+          ))}
         </div>
       )}
     </div>
