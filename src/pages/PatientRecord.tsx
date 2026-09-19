@@ -46,6 +46,7 @@ import { getPaymentStatus, getPaymentStatusClass } from "@/lib/patientHistory";
 import { AbbrTip } from "@/components/AbbrTip";
 import { normalizeWhatsAppNumber, whatsappLink } from "@/lib/whatsapp";
 import { HMOVerificationCard, type HmoVerifStatus } from "@/components/HMOVerificationCard";
+import { PatientWhatsAppMessages } from "@/components/PatientWhatsAppMessages";
 import {
   MoreVertical,
   Trash2,
@@ -1475,6 +1476,13 @@ shadow-sm
 </p>
 
               <div className="flex flex-wrap gap-2 mt-2">
+  <PatientWhatsAppMessages
+    clinicId={cid || ""}
+    clinicName={(patient as any).clinic_name || "Our Clinic"}
+    patientId={patient.id}
+    patientName={patient.full_name}
+    phone={patient.phone}
+  />
   <span className="text-[10px] px-2 py-1 rounded-full bg-muted">
     Queue #{patient.queue_number}
   </span>
@@ -2907,6 +2915,15 @@ shadow-sm
 )}
 
     <div className="mt-3 flex items-center gap-2">
+  <PatientWhatsAppMessages
+    clinicId={cid || ""}
+    clinicName={(patient as any).clinic_name || "Our Clinic"}
+    patientId={patient.id}
+    patientName={patient.full_name}
+    phone={patient.phone}
+    visitId={v.id}
+    feedbackLink={v.id === Object.keys(feedbackDetails).find((id) => feedbackDetails[id]?.feedback_link) ? feedbackDetails[v.id]?.feedback_link : null}
+  />
   <Button
     size="sm"
     variant="outline"
