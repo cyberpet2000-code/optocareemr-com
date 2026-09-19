@@ -47,6 +47,8 @@ import { AbbrTip } from "@/components/AbbrTip";
 import { normalizeWhatsAppNumber, whatsappLink } from "@/lib/whatsapp";
 import { HMOVerificationCard, type HmoVerifStatus } from "@/components/HMOVerificationCard";
 import { PatientWhatsAppMessages } from "@/components/PatientWhatsAppMessages";
+import { enqueueOfflineOperation, cachePatientOffline, cacheVisitsOffline, cacheVisitOffline } from "@/lib/offlineEngine";
+import { offlineStore } from "@/lib/offlineStore";
 import {
   MoreVertical,
   Trash2,
@@ -281,6 +283,18 @@ const canViewFinancials =
     if (!patientId || !cid) { setLoading(false); return; }
     (async () => {
       try {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        const cachedPatient = offlineStore.get<any>("patient-record:" + cid + ":" + patientId);
+        const cachedVisits = offlineStore.get<any[]>("patient-visits:" + cid + ":" + patientId) ?? [];
+        if (cachedPatient) {
+          setPatient(cachedPatient);
+          setVisits(cachedVisits);
+          setLoading(false);
+          toast.info("Offline mode — showing the last synchronized patient record.");
+          return;
+        }
+      }
+
       const [
         patientSettled,
         visitsSettled,
@@ -380,6 +394,8 @@ const canViewFinancials =
   }
 
       if (visRes.data) {
+  cacheVisitsOffline(cid, patientId, visRes.data);
+  cachePatientOffline(cid, { ...patRes.data, clinic_name: clinicRes.data?.name || "", hmo_name: activeHmo?.name || "" });
   console.log("VISITS FROM DB", visRes.data);
   setVisits(visRes.data);
       }
@@ -922,7 +938,10 @@ subVaOutcome: v.sub_va_outcome || "",
 
     setSaving(true);
 
+const visitId = editingVisitId || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "visit-" + Date.now() + "-" + Math.random().toString(36).slice(2));
+
 const visitPayload = {
+  id: visitId,
   clinic_id: cid,
   patient_id: patient.id,
   doctor_id: selectedDoctorId || null,
@@ -991,6 +1010,30 @@ const visitPayload = {
     ? new Date().toISOString()
     : null,
 };
+
+if (typeof navigator !== "undefined" && !navigator.onLine) {
+  const localVisit = {
+    ...visitPayload,
+    created_at: editingVisitId ? (visits.find(v => v.id === editingVisitId)?.created_at || new Date().toISOString()) : new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    offline_pending_sync: true,
+  };
+  await enqueueOfflineOperation({
+    clinicId: cid,
+    userId: user.id,
+    kind: "visit.save",
+    entityId: visitId,
+    payload: visitPayload,
+  });
+  cacheVisitOffline(cid, patient.id, localVisit);
+  const currentVisits = offlineStore.get<any[]>("patient-visits:" + cid + ":" + patient.id) ?? visits;
+  setVisits([localVisit, ...currentVisits.filter(v => v.id !== localVisit.id)]);
+  setSaving(false);
+  toast.success(markCompleted ? "Visit completed offline — it will sync automatically." : "Visit saved offline — it will sync automatically.");
+  setEditingVisitId(null);
+  setForm(emptyVisitForm());
+  return;
+}
 
 const { data, error } = editingVisitId
   ? await apiClient
