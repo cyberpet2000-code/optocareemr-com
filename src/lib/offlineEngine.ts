@@ -131,6 +131,10 @@ export async function markOfflineOperationFailed(
   offlineStore.save(key, queue.map((item) => item.id === operation.id ? next : item));
 }
 
+export function cacheAppointmentsOffline(clinicId: string, appointments: any[]) {
+  offlineStore.save("appointments:" + clinicId, appointments);
+}
+
 export function cachePatientOffline(clinicId: string, patient: any) {
   offlineStore.save(`patient-record:${clinicId}:${patient.id}`, patient);
   const key = `patients:${clinicId}`;
