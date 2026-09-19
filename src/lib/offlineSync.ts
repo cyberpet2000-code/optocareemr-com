@@ -89,7 +89,8 @@ export async function processBillsQueue(clinicId: string): Promise<{ success:num
         const consult = Number(item.consultation_fee || 0);
         const itemsList = item.items ?? [];
         const itemsTotal = itemsList.reduce((s:any, it:any) => s + Number((it.total_price ?? (Number(it.quantity||0) * Number(it.unit_price||0))) || 0), 0);
-        const grandTotal = itemsTotal + consult;
+        const discount = Math.max(0, Math.min(Number(item.discount_amount || 0), itemsTotal + consult));
+        const grandTotal = Math.max(0, itemsTotal + consult - discount);
 
         let billingId: string;
 
@@ -100,6 +101,10 @@ export async function processBillsQueue(clinicId: string): Promise<{ success:num
 
           const updatePayload: any = {
             consultation_fee: consult,
+            discount_amount: discount,
+            discount_reason: item.discount_reason ?? null,
+            billing_scope: item.billing_scope ?? 'individual',
+            family_id: item.family_id ?? null,
             notes: item.notes ?? null,
             payer_type: isHmo ? 'hmo' : 'private',
           };
@@ -123,6 +128,10 @@ export async function processBillsQueue(clinicId: string): Promise<{ success:num
             payer_type: isHmo ? 'hmo' : 'private',
             hmo_id: isHmo ? item.hmo_id ?? null : null,
             consultation_fee: consult,
+            discount_amount: discount,
+            discount_reason: item.discount_reason ?? null,
+            billing_scope: item.billing_scope ?? 'individual',
+            family_id: item.family_id ?? null,
             notes: item.notes ?? null,
             status: 'pending',
           } as any).select().single();
