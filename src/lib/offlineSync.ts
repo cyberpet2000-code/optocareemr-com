@@ -106,16 +106,25 @@ export async function processBillsQueue(clinicId: string): Promise<{ success:num
         if (!patientId) throw new Error('Missing patient_id on queued bill');
 
         // find latest visit like Billing.tsx
-        const { data: latestVisit, error: lvErr } = await apiClient
-          .from('visits')
-          .select('id')
-          .eq('clinic_id', clinicId)
-          .eq('patient_id', String(patientId))
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+        let latestVisit: any = null;
+        if (item.visit_id) {
+          const { data, error } = await apiClient.from('visits').select('id').eq('clinic_id', clinicId).eq('id', String(item.visit_id)).maybeSingle();
+          if (error) throw new Error(error.message);
+          latestVisit = data;
+        } else {
+          const { data, error: lvErr } = await apiClient
+            .from('visits')
+            .select('id')
+            .eq('clinic_id', clinicId)
+            .eq('patient_id', String(patientId))
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+          if (lvErr) throw new Error(lvErr.message);
+          latestVisit = data;
+        }
 
-        if (lvErr || !latestVisit) throw new Error('Complete patient visit before billing');
+        if (!latestVisit) throw new Error('Complete patient visit before billing');
 
         const isHmo = (item.payer_type === 'hmo') || Boolean(item.hmo_id);
         const consult = Number(item.consultation_fee || 0);
@@ -153,6 +162,16 @@ export async function processBillsQueue(clinicId: string): Promise<{ success:num
 
           if (updateErr) throw new Error(`Failed to update billing: ${updateErr.message}`);
         } else {
+          const { data: existingBill } = await apiClient
+            .from('billing')
+            .select('id')
+            .eq('clinic_id', clinicId)
+            .eq('visit_id', latestVisit.id)
+            .maybeSingle();
+
+          if (existingBill) {
+            billingId = (existingBill as any).id;
+          } else {
           // Create new billing record (original behavior)
           const { data: bill, error: billErr } = await apiClient.from('billing').insert({
             clinic_id: clinicId,
@@ -172,6 +191,7 @@ export async function processBillsQueue(clinicId: string): Promise<{ success:num
 
           if (billErr || !bill) throw new Error(billErr?.message || 'Failed to create billing record');
           billingId = (bill as any).id;
+          }
         }
 
         // Insert billing items (always insert new items, never update)
