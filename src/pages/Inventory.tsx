@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAccess } from "@/hooks/useAccess";
 import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
+import { enqueueOfflineOperation } from "@/lib/offlineEngine";
 
 
 const CATEGORIES = ["Frames", "Lenses", "Contact Lenses", "Accessories", "Drugs"];
@@ -116,6 +117,27 @@ export default function Inventory() {
       expiry_date: form.category === "Drugs" && form.expiryDate ? form.expiryDate : null,
     };
     if (imageUrl) payload.image_url = imageUrl;
+    const offline = isOffline || (typeof navigator !== "undefined" && !navigator.onLine);
+    if (offline) {
+      if (imageFile) {
+        setSaving(false);
+        toast.error("Adding an image requires internet. Save the inventory item without an image first.");
+        return;
+      }
+      const id = editId || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "inventory-" + Date.now());
+      const offlinePayload = { ...payload, id, clinic_id: cid, created_by: user?.id ?? null };
+      await enqueueOfflineOperation({ clinicId: cid, userId: user?.id ?? null, kind: "inventory.save", entityId: id, payload: offlinePayload });
+      const current = offlineStore.get<InventoryItem[]>(`inventory:${cid}`) ?? items;
+      const local = { ...offlinePayload, offline_pending_sync: true } as InventoryItem;
+      const next = editId ? current.map(item => item.id === editId ? local : item) : [local, ...current];
+      offlineStore.save(`inventory:${cid}`, next);
+      setItems(next);
+      setSaving(false);
+      toast.success("Inventory change saved offline — it will sync automatically.");
+      setShowForm(false); setEditId(null); setForm(emptyProduct); setImageFile(null);
+      return;
+    }
+
     let error;
     if (editId) {
       ({ error } = await apiClient.from("inventory").update(payload).eq("clinic_id", cid).eq("id", editId));
