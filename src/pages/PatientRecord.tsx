@@ -1397,7 +1397,7 @@ ${link}
 
 Thank you for choosing ${clinicName}.
 
-Sent through OptoCare EMR`;
+Powered by OptoCare-EMR`;
 
     const whatsappUrl = whatsappLink(patient.phone, message);
     window.open(
