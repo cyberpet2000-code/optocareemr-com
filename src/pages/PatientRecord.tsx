@@ -1241,40 +1241,150 @@ hmo_relationship:
     setEditing(false);
   };
 
+  if (loading) return <div className="flex items-center justify-center py-12"><OptoLoader size={40} /></div>;
+  if (!patient) return <p className="text-center py-12 text-muted-foreground">Patient not found.</p>;
+
+  function getCurrentPatientAge(
+  dateOfBirth: string | null | undefined,
+  storedAge: number | null | undefined
+) {
+  if (!dateOfBirth) {
+    return storedAge !== null && storedAge !== undefined
+      ? `${storedAge} years`
+      : "—";
+  }
+
+  const dob = new Date(dateOfBirth);
+  const today = new Date();
+
+  if (
+    Number.isNaN(dob.getTime()) ||
+    dob > today
+  ) {
+    return storedAge !== null && storedAge !== undefined
+      ? `${storedAge} years`
+      : "—";
+  }
+
+  let years =
+    today.getFullYear() -
+    dob.getFullYear();
+
+  const monthDifference =
+    today.getMonth() -
+    dob.getMonth();
+
+  if (
+    monthDifference < 0 ||
+    (monthDifference === 0 &&
+      today.getDate() < dob.getDate())
+  ) {
+    years--;
+  }
+
+  if (years >= 1) {
+    return `${years} ${years === 1 ? "year" : "years"}`;
+  }
+
+  const differenceInDays = Math.floor(
+    (today.getTime() - dob.getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
+
+  if (differenceInDays < 7) {
+    return `${differenceInDays} ${
+      differenceInDays === 1 ? "day" : "days"
+    }`;
+  }
+
+  if (differenceInDays < 30) {
+    const weeks = Math.floor(
+      differenceInDays / 7
+    );
+
+    return `${weeks} ${
+      weeks === 1 ? "week" : "weeks"
+    }`;
+  }
+
+  const months =
+    (today.getFullYear() - dob.getFullYear()) *
+      12 +
+    (today.getMonth() - dob.getMonth()) -
+    (today.getDate() < dob.getDate() ? 1 : 0);
+
+  return `${Math.max(1, months)} ${
+    months === 1 ? "month" : "months"
+  }`;
+  }
+
+  const totalVisits = visits.length;
+  const lastVisit = visits.length > 0 ? visits[0] : null;
+  const lastRx =
+  visits.find(
+    v =>
+      v.sub_od_sphere ||
+      v.sub_os_sphere
+  ) || null;
+
+  const whatsappNumber = normalizeWhatsAppNumber(patient?.phone);
+
   const handleSendFeedback = async (visitId: string) => {
-    if (!cid || !patient) {
-      toast.error("No active clinic or patient");
+  if (!cid || !patient) {
+    toast.error("No active clinic or patient");
+    return;
+  }
+      if (feedbackStatus === "completed") {
+    toast.info("Feedback has already been completed for this visit");
+    return;
+      }
+
+  const visit = visits.find((item: any) => item.id === visitId);
+
+  if (!visit) {
+    toast.error("Visit could not be found");
+    return;
+  }
+
+  if (!isPrescriptionReadyForFeedback(visit)) {
+    toast.info("Complete and dispense all prescribed items before sending feedback");
+    return;
+  }
+
+  setSendingFeedback(true);
+
+  try {
+    const { data, error } = await apiClient.rpc(
+      "create_feedback_request",
+      {
+        p_visit_id: visitId,
+      }
+    );
+
+    if (error) {
+      console.error("Feedback request error:", error);
+      toast.error(error.message || "Could not create feedback request");
       return;
     }
 
-    setSendingFeedback(true);
-    try {
-      const { data, error } = await apiClient.rpc("create_feedback_request", {
-        p_visit_id: visitId,
-      });
+    const request = Array.isArray(data) ? data[0] : data;
 
-      if (error) {
-        toast.error(error.message || "Unable to create feedback link");
-        return;
-      }
+    if (!request?.feedback_link) {
+      toast.error("Feedback link could not be generated");
+      return;
+    }
 
-      const request = Array.isArray(data) ? data[0] : data;
-      const link = request?.feedback_link;
-      if (!link) {
-        toast.error("Feedback link could not be generated");
-        return;
-      }
+    const link = request.feedback_link;
 
-      setFeedbackLink(link);
-      setVisitFeedbackStatus((prev) => ({ ...prev, [visitId]: "pending" }));
+    setFeedbackLink(link);
 
-      if (!patient.phone) {
-        toast.success("Feedback link created");
-        return;
-      }
+    if (!patient.phone) {
+      toast.success("Feedback link created");
+      return;
+    }
 
-      const clinicName = (patient as any).clinic_name || "Our Clinic";
-      const message = `${clinicName}
+    const clinicName = (patient as any).clinic_name || "Our Clinic";
+    const message = `${clinicName}
 Patient Feedback Request
 
 Hello ${patient.full_name},
@@ -1288,26 +1398,21 @@ Thank you for choosing ${clinicName}.
 
 Sent through OptoCare EMR`;
 
-      const whatsappUrl = whatsappLink(patient.phone, message);
-      if (!whatsappUrl) {
-        toast.success("Feedback link created");
-        return;
-      }
+    const whatsappUrl = whatsappLink(patient.phone, message);
+    window.open(
+      whatsappUrl,
+      "_blank",
+      "noopener,noreferrer"
+    );
 
-      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-      toast.success("WhatsApp feedback message opened. Press Send in WhatsApp to deliver it.");
-    } catch (error: any) {
-      console.error("Feedback request error:", error);
-      toast.error(error?.message || "Unable to send feedback request");
-    } finally {
-      setSendingFeedback(false);
-    }
-  };
-
-  if (loading) return <div className="flex items-center justify-center py-12"><OptoLoader size={40} /></div>;
-  if (!patient) return <p className="text-center py-12 text-muted-foreground">Patient not found.</p>;
-
-  const whatsappNumber = normalizeWhatsAppNumber(patient?.phone);
+    toast.success("Feedback link ready to send on WhatsApp");
+  } catch (err: any) {
+    console.error("Feedback error:", err);
+    toast.error(err?.message || "Could not send feedback request");
+  } finally {
+    setSendingFeedback(false);
+  }
+};
   
   const hmoEntry = patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : null;
   const isHmo = patient.payment_type === "hmo";
@@ -1582,19 +1687,7 @@ transition-colors
                 </Select>
               </div>
             </div>
-            <div className="space-y-1"><Label className="text-xs">Phone / WhatsApp</Label><Input className="rounded-xl" value={editForm.phone || ""} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} placeholder="+234 801 234 5678" /></div>
-            <div className="space-y-1"><Label className="text-xs">Preferred Contact</Label>
-              <Select value={editForm.preferred_contact_method || "whatsapp"} onValueChange={v => setEditForm(f => ({ ...f, preferred_contact_method: v }))}>
-                <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                  <SelectItem value="phone">Phone Call</SelectItem>
-                  <SelectItem value="sms">SMS</SelectItem>
-                  <SelectItem value="email">Email</SelectItem>
-                  <SelectItem value="none">No preference</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <div className="space-y-1"><Label className="text-xs">Phone</Label><Input className="rounded-xl" value={editForm.phone || ""} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} /></div>
             <div className="space-y-1"><Label className="text-xs">Next of Kin</Label><Input className="rounded-xl" value={editForm.next_of_kin || ""} onChange={e => setEditForm(f => ({ ...f, next_of_kin: e.target.value }))} /></div>
             <div className="space-y-1"><Label className="text-xs">Payment Type</Label>
               <Select value={editForm.payment_type || "private"} onValueChange={v => setEditForm(f => ({ ...f, payment_type: v }))}>
