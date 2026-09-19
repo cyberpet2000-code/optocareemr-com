@@ -9,7 +9,7 @@ import {
   checkClinicSubscription,
 } from "@/lib/diag/healthChecks";
 import { Link } from "react-router-dom";
-import { Users, ChevronRight, AlertTriangle, DollarSign, TrendingUp, Clock, Star, CalendarDays, CheckCircle2, CircleDot, BellRing } from "lucide-react";
+import { Users, ChevronRight, AlertTriangle, TrendingUp, Clock, Star, CalendarDays, CheckCircle2, CircleDot, BellRing } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
 import { startLoadingWatch,
@@ -751,6 +751,8 @@ if (user?.id) {
     );
   }
 
+  const NairaIcon = ({ size = 19 }: { size?: number }) => <span style={{ fontSize: size, lineHeight: 1, fontWeight: 700 }}>₦</span>;
+
   const tealGrad = "linear-gradient(135deg, hsl(184 78% 40% / 0.08) 0%, hsl(192 92% 50% / 0.12) 100%)";
   const navyGrad = "linear-gradient(135deg, hsl(222 65% 16% / 0.06) 0%, hsl(217 91% 55% / 0.12) 100%)";
   const amberGrad = "linear-gradient(135deg, hsl(38 92% 50% / 0.08) 0%, hsl(28 92% 55% / 0.12) 100%)";
@@ -848,7 +850,7 @@ if (user?.id) {
             <>
               <Metric icon={CalendarDays} label="Appointments" value={todayAppointments} gradient={tealGrad} iconColor="hsl(184 78% 40%)" to="/appointments" />
               <Metric icon={Users} label="New registrations" value={recentPatients.length} gradient={blueGrad} iconColor="hsl(217 91% 55%)" to="/patients" hint="Latest patients" />
-              <Metric icon={DollarSign} label="Pending bills" value={pendingBills} gradient={amberGrad} iconColor="hsl(38 92% 50%)" to="/billing" />
+              <Metric icon={NairaIcon} label="Pending bills" value={pendingBills} gradient={amberGrad} iconColor="hsl(38 92% 50%)" to="/billing" />
               <Metric icon={BellRing} label="Reminders due" value={appointmentReminderDue} gradient={navyGrad} iconColor="hsl(217 91% 55%)" to="/appointments" hint={appointmentReminderDue ? "Send now" : "All clear"} />
             </>
           )}
@@ -857,7 +859,7 @@ if (user?.id) {
             <>
               <Metric icon={Users} label="Patients today" value={todayVisits} gradient={tealGrad} iconColor="hsl(184 78% 40%)" to="/visits?filter=today" />
               <Metric icon={CalendarDays} label="Appointments" value={todayAppointments} gradient={blueGrad} iconColor="hsl(217 91% 55%)" to="/appointments" />
-              <Metric icon={DollarSign} label="Pending bills" value={pendingBills} gradient={amberGrad} iconColor="hsl(38 92% 50%)" to="/billing" />
+              <Metric icon={NairaIcon} label="Pending bills" value={pendingBills} gradient={amberGrad} iconColor="hsl(38 92% 50%)" to="/billing" />
               <Metric icon={BellRing} label="Reminders due" value={appointmentReminderDue} gradient={navyGrad} iconColor="hsl(217 91% 55%)" to="/appointments" hint={appointmentReminderDue ? "Front desk action" : "All clear"} />
             </>
           )}
@@ -889,7 +891,7 @@ if (user?.id) {
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
             <Metric icon={Users} label="Registered" value={monthRegisteredPatients} gradient={tealGrad} iconColor="hsl(184 78% 40%)" to="/patients" />
             <Metric icon={CalendarDays} label="Appointments" value={todayAppointments} gradient={blueGrad} iconColor="hsl(217 91% 55%)" to="/appointments" hint="Today" />
-            <Metric icon={DollarSign} label="Pending bills" value={pendingBills} gradient={amberGrad} iconColor="hsl(38 92% 50%)" to="/billing" />
+            <Metric icon={NairaIcon} label="Pending bills" value={pendingBills} gradient={amberGrad} iconColor="hsl(38 92% 50%)" to="/billing" />
           </div>
         </section>
       )}
@@ -954,7 +956,7 @@ if (user?.id) {
                 )}
                 {pendingBills > 0 && (
                   <Link to="/billing" className="rounded-xl border bg-card p-3 hover:border-primary/30">
-                    <DollarSign size={16} className="mb-2 text-amber-600" />
+                    <NairaIcon size={16} />
                     <p className="text-xs font-semibold">Pending bills</p>
                     <p className="text-lg font-bold">{pendingBills}</p>
                     <p className="text-[10px] text-muted-foreground">Needs follow-up</p>
