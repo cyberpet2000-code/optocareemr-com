@@ -1,6 +1,6 @@
 import { offlineStore } from "@/lib/offlineStore";
 
-export type OfflineOperationKind = "patient.create" | "visit.save";
+export type OfflineOperationKind = "family.create" | "patient.create" | "visit.save";
 
 export interface OfflineOperation {
   id: string;
