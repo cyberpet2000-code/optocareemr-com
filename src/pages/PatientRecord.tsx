@@ -80,6 +80,9 @@ interface PatientData {
   queue_status: string;
   priority: string;
   patient_number?: string | null;
+  preferred_contact_method?: string | null;
+  family_id?: string | null;
+  family_relationship?: string | null;
 }
 
 interface PaymentHistoryRow {
@@ -1210,7 +1213,8 @@ if (
       full_name: editForm.full_name,
       age: editForm.age,
       gender: editForm.gender,
-      phone: (editForm.phone || "").trim(),
+      phone: normalizeWhatsAppNumber(editForm.phone) ? `+${normalizeWhatsAppNumber(editForm.phone)}` : "",
+      preferred_contact_method: editForm.preferred_contact_method || "whatsapp",
       address: editForm.address,
       next_of_kin: editForm.next_of_kin,
       payment_type: editForm.payment_type,
@@ -1515,7 +1519,19 @@ transition-colors
                 </Select>
               </div>
             </div>
-            <div className="space-y-1"><Label className="text-xs">Phone</Label><Input className="rounded-xl" value={editForm.phone || ""} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} /></div>
+            <div className="space-y-1"><Label className="text-xs">Phone / WhatsApp</Label><Input className="rounded-xl" value={editForm.phone || ""} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} placeholder="+234 801 234 5678" /></div>
+            <div className="space-y-1"><Label className="text-xs">Preferred Contact</Label>
+              <Select value={editForm.preferred_contact_method || "whatsapp"} onValueChange={v => setEditForm(f => ({ ...f, preferred_contact_method: v }))}>
+                <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                  <SelectItem value="phone">Phone Call</SelectItem>
+                  <SelectItem value="sms">SMS</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="none">No preference</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-1"><Label className="text-xs">Next of Kin</Label><Input className="rounded-xl" value={editForm.next_of_kin || ""} onChange={e => setEditForm(f => ({ ...f, next_of_kin: e.target.value }))} /></div>
             <div className="space-y-1"><Label className="text-xs">Payment Type</Label>
               <Select value={editForm.payment_type || "private"} onValueChange={v => setEditForm(f => ({ ...f, payment_type: v }))}>
