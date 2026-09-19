@@ -14,7 +14,8 @@ import {
 import { toast } from "sonner";
 import { useAccess } from "@/hooks/useAccess";
 import { useAuth } from "@/hooks/useAuth";
-import { ShieldCheck, ShieldAlert, ShieldX, Globe, ExternalLink, CheckCircle2, XCircle } from "lucide-react";
+import { ShieldCheck, ShieldAlert, ShieldX, Globe, ExternalLink, CheckCircle2, XCircle, MessageCircle, Users } from "lucide-react";
+import { normalizeWhatsAppNumber, formatWhatsAppDisplay } from "@/lib/whatsapp";
 
 type HmoRow = {
   id: string;
@@ -101,12 +102,15 @@ export default function PatientRegister() {
     fullName: "", dateOfBirth: "", age: "", ageUnit: "years", gender: "", phone: "",
     address: "", nextOfKin: "",
     paymentType: "private" as "private" | "hmo",
+    preferredContactMethod: "whatsapp",
+    registerAsFamily: false,
+    familyName: "",
     activeHmoId: "",
     enrolleeNumber: "",
     hmoCoverageType: "principal" as "principal" | "dependent",
     hmoPrincipalName: "",
     hmoRelationship: "",
-    priority: "normal" as "normal" | "follow_up" | "emergency",
+    priority: "normal" as "normal" | "follow_up",
   });
 
   // Verification state
@@ -249,7 +253,8 @@ export default function PatientRegister() {
       full_name: form.fullName.trim(),
       age: parseInt(form.age),
       gender: form.gender,
-      phone: form.phone.trim(),
+      phone: normalizeWhatsAppNumber(form.phone) ? `+${normalizeWhatsAppNumber(form.phone)}` : "",
+      preferred_contact_method: form.preferredContactMethod,
       address: form.address.trim(),
       next_of_kin: form.nextOfKin.trim(),
       payment_type: form.paymentType,
@@ -279,6 +284,27 @@ export default function PatientRegister() {
         : error.message);
       return;
     }
+    if (form.registerAsFamily && form.familyName.trim()) {
+      const { data: family, error: familyError } = await apiClient.from("families").insert({
+        clinic_id: cid,
+        family_name: form.familyName.trim(),
+        family_number: `FAM-${Date.now().toString().slice(-8)}`,
+        primary_patient_id: data!.id,
+        created_by: user?.id ?? null,
+      } as any).select("id").single();
+
+      if (familyError || !family) {
+        toast.error("Patient was registered, but the family could not be created. You can add the family later.");
+      } else {
+        const { error: familyLinkError } = await apiClient.from("patients")
+          .update({ family_id: family.id, family_relationship: "principal" })
+          .eq("id", data!.id).eq("clinic_id", cid);
+        if (familyLinkError) {
+          toast.error("Patient was registered, but the family link could not be saved.");
+        }
+      }
+    }
+
     toast.success("Patient registered");
     navigate(`/patient/${data!.id}`);
   };
@@ -331,6 +357,7 @@ export default function PatientRegister() {
     if (form.paymentType === "hmo" && !form.activeHmoId) {
       toast.error("Select HMO provider"); return;
     }
+    if (form.registerAsFamily && !form.familyName.trim()) { toast.error("Enter the family name"); return; }
     if (form.paymentType === "hmo" && form.hmoCoverageType === "dependent" && !form.hmoPrincipalName.trim()) {
       toast.error("Enter principal name"); return;
     }
@@ -459,8 +486,45 @@ export default function PatientRegister() {
               </Select>
             </div>
           </div>
-          <div className="space-y-1"><Label className="text-xs">Phone</Label><Input className="rounded-xl" value={form.phone} onChange={e => set("phone", e.target.value)} /></div>
+          <div className="space-y-1">
+            <Label className="text-xs">Phone / WhatsApp</Label>
+            <div className="relative">
+              <Input className="rounded-xl pr-10" value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="+234 801 234 5678" />
+              {normalizeWhatsAppNumber(form.phone) && <a href={`https://wa.me/${normalizeWhatsAppNumber(form.phone)}`} target="_blank" rel="noopener noreferrer" className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-green-50 text-green-600" title="Open WhatsApp"><MessageCircle size={14} /></a>}
+            </div>
+            {normalizeWhatsAppNumber(form.phone) && <p className="text-[10px] text-muted-foreground">WhatsApp: {formatWhatsAppDisplay(form.phone)}</p>}
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Preferred Contact</Label>
+            <Select value={form.preferredContactMethod} onValueChange={v => set("preferredContactMethod", v)}>
+              <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                <SelectItem value="phone">Phone Call</SelectItem>
+                <SelectItem value="sms">SMS</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="none">No preference</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-1"><Label className="text-xs">Next of Kin</Label><Input className="rounded-xl" value={form.nextOfKin} onChange={e => set("nextOfKin", e.target.value)} /></div>
+          <div className="sm:col-span-2 rounded-2xl border bg-muted/20 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold flex items-center gap-1.5"><Users size={14} /> Family Registration</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Create a family group while keeping this patient's medical record separate.</p>
+              </div>
+              <button type="button" onClick={() => setForm(f => ({ ...f, registerAsFamily: !f.registerAsFamily }))} className={`h-7 w-12 rounded-full p-1 transition-colors ${form.registerAsFamily ? "bg-primary" : "bg-muted"}`} aria-label="Family registration">
+                <span className={`block h-5 w-5 rounded-full bg-white shadow transition-transform ${form.registerAsFamily ? "translate-x-5" : ""}`} />
+              </button>
+            </div>
+            {form.registerAsFamily && (
+              <div className="mt-3">
+                <Label className="text-xs">Family Name *</Label>
+                <Input className="mt-1 rounded-xl" value={form.familyName} onChange={e => set("familyName", e.target.value)} placeholder="e.g. Kalu Family" />
+              </div>
+            )}
+          </div>
           <div className="space-y-1 sm:col-span-2"><Label className="text-xs">Address</Label><Textarea className="rounded-xl" value={form.address} onChange={e => set("address", e.target.value)} rows={2} /></div>
           <div className="space-y-1"><Label className="text-xs">Payment Type *</Label>
             <Select value={form.paymentType} onValueChange={v => set("paymentType", v)}>
@@ -477,7 +541,7 @@ export default function PatientRegister() {
               <SelectContent>
                 <SelectItem value="normal">Normal</SelectItem>
                 <SelectItem value="follow_up">Follow-up</SelectItem>
-                <SelectItem value="emergency">Emergency</SelectItem>
+                
               </SelectContent>
             </Select>
           </div>
