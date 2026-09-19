@@ -4,7 +4,7 @@ import { useClinic } from "@/hooks/useClinic";
 import { useRole } from "@/hooks/useRole";
 import { formatMoney, startOfMonthISO, startOfDayISO } from "@/lib/finance";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DollarSign, TrendingUp, TrendingDown, Package, Users, Activity, FileText, Wallet } from "lucide-react";
+import { TrendingUp, TrendingDown, Package, Users, Activity, FileText, Wallet } from "lucide-react";
 
 interface Metrics {
   revenueToday: number; revenueMonth: number; revenuePreviousMonth: number;
@@ -14,6 +14,8 @@ interface Metrics {
   inventoryValue: number; lowStock: number; outOfStock: number;
   consultations: number;
 }
+
+const NairaIcon = ({ size = 18 }: { size?: number }) => <span style={{ fontSize: size, lineHeight: 1, fontWeight: 700 }}>₦</span>;
 
 const TONE: Record<string, string> = {
   primary: "bg-primary/10 text-primary",
@@ -142,11 +144,11 @@ export default function FinanceOverview() {
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
-        <Card icon={DollarSign} label="Revenue this month" value={formatMoney(m.revenueMonth)} tone="success" to="/billing" />
-        <Card icon={DollarSign} label="Revenue last month" value={formatMoney(m.revenuePreviousMonth)} tone="primary" to="/reports/monthly" />
+        <Card icon={NairaIcon} label="Revenue this month" value={formatMoney(m.revenueMonth)} tone="success" to="/billing" />
+        <Card icon={NairaIcon} label="Revenue last month" value={formatMoney(m.revenuePreviousMonth)} tone="primary" to="/reports/monthly" />
         <Card icon={Users} label="New patients" value={m.newPatients} tone="primary" to="/patients" />
         <Card icon={Activity} label="Consultations" value={m.consultations} tone="primary" to="/visits" />
-        <Card icon={DollarSign} label="Outstanding" value={formatMoney(m.outstanding)} tone="destructive" to="/billing" />
+        <Card icon={NairaIcon} label="Outstanding" value={formatMoney(m.outstanding)} tone="destructive" to="/billing" />
         <Card icon={Wallet} label="Expenses" value={formatMoney(m.expensesMonth)} tone="warning" to="/finance/expenses" />
         <Card icon={TrendingUp} label="Net position" value={formatMoney(netProfit)} tone={netProfit >= 0 ? "success" : "destructive"} to="/reports/monthly" />
         <Card icon={FileText} label="HMO patients" value={m.hmoPatients} tone="primary" to="/hmos" />
@@ -154,7 +156,7 @@ export default function FinanceOverview() {
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-        <Card icon={DollarSign} label="Received today" value={formatMoney(m.revenueToday)} tone="success" to="/billing" />
+        <Card icon={NairaIcon} label="Received today" value={formatMoney(m.revenueToday)} tone="success" to="/billing" />
         <Card icon={Wallet} label="Expenses today" value={formatMoney(m.expensesToday)} tone="warning" to="/finance/expenses" />
         <Card icon={Package} label="Inventory value" value={formatMoney(m.inventoryValue)} tone="primary" to="/inventory" />
         <Card icon={Package} label="Stock alerts" value={m.lowStock + m.outOfStock} tone={m.lowStock + m.outOfStock > 0 ? "warning" : "success"} to="/inventory" />
