@@ -109,12 +109,10 @@ export async function processCoreOfflineOperations(clinicId: string): Promise<{ 
           if (itemError) throw new Error(itemError.message);
         }
       } else if (operation.kind === "billing.save") {
-        const key = billsQueueKey(clinicId);
-        const queue = offlineStore.get<BillQueueItem[]>(key) ?? [];
-        queue.push(operation.payload as BillQueueItem);
-        offlineStore.save(key, queue);
-        await removeOfflineOperation(clinicId, operation.id);
-        continue;
+        // Billing is now synced directly from IndexedDB. The legacy localStorage
+        // bill queue is retained only for migration of older clients.
+        const result = await processBillsQueue(clinicId, operation.payload as BillQueueItem);
+        if (result.failed > 0) throw new Error("Queued bill could not be synced");
       } else if (operation.kind === "payment.create") {
         const payload = operation.payload as any;
         const { data: existingPayment } = await apiClient.from("payments").select("id").eq("id", operation.entityId).eq("clinic_id", clinicId).maybeSingle();
@@ -164,11 +162,13 @@ export async function processAppointmentsQueue(clinicId: string): Promise<{ succ
   return { success, failed };
 }
 
-export async function processBillsQueue(clinicId: string): Promise<{ success:number; failed:number }> {
+export async function processBillsQueue(clinicId: string, directItem?: BillQueueItem): Promise<{ success:number; failed:number }> {
   const key = billsQueueKey(clinicId);
   let success = 0, failed = 0;
   try {
-    const queue = (offlineStore.get<BillQueueItem[]>(key) ?? []) as BillQueueItem[];
+    const queue = directItem
+      ? [directItem]
+      : ((offlineStore.get<BillQueueItem[]>(key) ?? []) as BillQueueItem[]);
     let idx = 0;
     while (idx < queue.length) {
       const item = queue[idx];
@@ -355,8 +355,9 @@ export async function processBillsQueue(clinicId: string): Promise<{ success:num
           } catch (invErr) { toast.error(`Inventory deduction error for "${it.item_name ?? it.item_type}": ${String(invErr)}`); }
         }
 
-        // remove item on full success
-        await removeQueueItemAndSave(key, queue, idx);
+        // Remove legacy localStorage items only. Direct IndexedDB operations are
+        // removed by processCoreOfflineOperations after this function succeeds.
+        if (!directItem) await removeQueueItemAndSave(key, queue, idx);
         success++;
         const action = item.editing_billing_id ? 'updated' : 'created';
         toast.success(`Bill queued at ${item.queued_at ?? 'unknown'} synced (bill ${action}: ${String(billingId)})`);
