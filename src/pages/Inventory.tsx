@@ -198,12 +198,55 @@ export default function Inventory() {
     if (!cid) { toast.error("No active clinic"); return; }
     if (cart.length === 0) { toast.error("Cart empty"); return; }
     setSaving(true);
+
+    const offline = isOffline || (typeof navigator !== "undefined" && !navigator.onLine);
+    if (offline) {
+      const saleId = typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : "sale-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+      const saleItems = cart.map((item) => ({
+        id: typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : "sale-item-" + Date.now() + "-" + Math.random().toString(36).slice(2),
+        clinic_id: cid,
+        sale_id: saleId,
+        inventory_id: item.inventory_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.quantity * item.unit_price,
+      }));
+      await enqueueOfflineOperation({
+        clinicId: cid,
+        userId: user?.id ?? null,
+        kind: "inventory.sale",
+        entityId: saleId,
+        payload: {
+          sale: {
+            id: saleId,
+            clinic_id: cid,
+            patient_id: salePatientId || null,
+            sold_by: user?.id ?? null,
+            total_amount: cartTotal,
+          },
+          items: saleItems,
+        },
+      });
+      const nextItems = items.map((inventoryItem) => {
+        const sold = cart.find((cartItem) => cartItem.inventory_id === inventoryItem.id);
+        return sold
+          ? { ...inventoryItem, stock_quantity: Math.max(0, inventoryItem.stock_quantity - sold.quantity), offline_pending_sync: true }
+          : inventoryItem;
+      });
+      offlineStore.save("inventory:" + cid, nextItems);
+      setItems(nextItems);
+      setSaving(false);
+      setCart([]);
+      setSalePatientId("");
+      toast.success("Sale saved offline — stock updated on this device and will sync automatically.");
+      return;
+    }
+
     const { data: sale, error } = await apiClient.from("inventory_sales").insert({
-      clinic_id: cid,
-      patient_id: salePatientId || null,
-      sold_by: user?.id,
-      total_amount: cartTotal,
-    } as any).select().single();
     if (error || !sale) { toast.error(error?.message || "Failed"); setSaving(false); return; }
     const saleItems = cart.map(c => ({
       clinic_id: cid,
