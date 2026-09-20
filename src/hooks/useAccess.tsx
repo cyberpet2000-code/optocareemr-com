@@ -198,9 +198,13 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   const restoreOfflineSession = useCallback(async () => {
     const session = await getOfflineSession();
     if (!session) return false;
-    const cached = offlineStore.get<{ userId: string; state: AccessState }>(
-      "access:" + session.userId + ":" + (session.clinicId || "default"),
-    );
+    const cached =
+      offlineStore.get<{ userId: string; state: AccessState }>(
+        "access:" + session.userId + ":" + (session.clinicId || "default"),
+      ) ||
+      offlineStore.get<{ userId: string; state: AccessState }>(
+        "access:" + session.userId + ":default",
+      );
     if (!cached?.state?.profile) {
       clearOfflineSession();
       return false;
