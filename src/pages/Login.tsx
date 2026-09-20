@@ -158,7 +158,7 @@ export default function Login() {
               </div>
               <div className="space-y-1.5">
                 <Label>Offline PIN</Label>
-                <Input inputMode="numeric" autoComplete="off" maxLength={6} pattern="\\d{6}" type="password" required value={offlinePin} onChange={e => setOfflinePin(e.target.value.replace(/\\D/g, "").slice(0, 6))} />
+                <Input inputMode="numeric" autoComplete="off" maxLength={6} pattern="[0-9]{6}" type="password" required value={offlinePin} onChange={e => setOfflinePin(e.target.value.replace(/\\D/g, "").slice(0, 6))} />
               </div>
               <Button type="submit" className="w-full h-12 bg-gradient-primary text-primary-foreground shadow-glow" disabled={loading || offlinePin.length !== 6}>
                 {loading ? "Unlocking..." : "Unlock Offline"}
