@@ -840,9 +840,7 @@ if (user?.id) {
             {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
           </p>
         </div>
-        <span className="w-fit rounded-full border bg-card px-2.5 py-1 text-[10px] font-medium text-muted-foreground">
-          {roleLabel}
-        </span>
+
       </div>
 
       {!isAdmin && (isDoctor || isReceptionist) && (
