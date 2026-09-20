@@ -114,8 +114,8 @@ function buildAppConfig() {
       modelIds.has(model.model_id)
         ? {
             ...model,
+            model: `/api/clinical-ai-model-lib?source=${encodeURIComponent(model.model)}`,
             model_lib: `/api/clinical-ai-model-lib?source=${encodeURIComponent(model.model_lib)}`,
-            model_url: `/api/clinical-ai-model-lib?source=${encodeURIComponent(model.model_url)}`,
           }
         : model,
     ),
