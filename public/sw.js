@@ -1,11 +1,20 @@
-const CACHE_NAME = "optocare-shell-v3";
+const CACHE_NAME = "optocare-shell-v4";
 const APP_SHELL = ["/", "/index.html"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(async (cache) => {
-        await cache.addAll(APP_SHELL);
+        await Promise.all(
+          APP_SHELL.map(async (url) => {
+            try {
+              const response = await fetch(url, { cache: "no-store" });
+              if (response.ok) await cache.put(url, response);
+            } catch {
+              // Keep installation resilient if one shell URL is unavailable.
+            }
+          }),
+        );
         try {
           const response = await fetch("/index.html", { cache: "no-store" });
           if (!response.ok) return;
