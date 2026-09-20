@@ -290,7 +290,11 @@ const canViewFinancials =
           setPatient(cachedPatient);
           setVisits(cachedVisits);
           setLoading(false);
-          toast.info("Offline mode — showing the last synchronized patient record.");
+          toast.info(
+            cachedVisits.length > 0
+              ? "Offline mode — showing the last synchronized patient record and visit history."
+              : "Offline mode — showing the last synchronized patient record."
+          );
           return;
         }
       }
