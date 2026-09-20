@@ -134,15 +134,17 @@ export default function PatientRegister() {
 
   useEffect(() => {
     if (!cid) return;
-    apiClient.from("families")
-      .select("id, family_number, family_name")
-      .eq("clinic_id", cid)
-      .order("family_name")
-      .then(({ data }) => { if (data) setFamilies(data as any); });
-    apiClient.from("hmos")
-      .select("id, name, website, claims_portal_url, phone, email")
-      .eq("clinic_id", cid).eq("status", "active").order("name")
-      .then(({ data }) => { if (data) setHmos(data as any); });
+    const familiesKey = "patient-register-families:" + cid;
+    const hmosKey = "patient-register-hmos:" + cid;
+    const cachedFamilies = offlineStore.get<any[]>(familiesKey);
+    const cachedHmos = offlineStore.get<HmoRow[]>(hmosKey);
+    if (cachedFamilies) setFamilies(cachedFamilies);
+    if (cachedHmos) setHmos(cachedHmos);
+    if (typeof navigator !== "undefined" && !navigator.onLine) return;
+    apiClient.from("families").select("id, family_number, family_name").eq("clinic_id", cid).order("family_name")
+      .then(({ data }) => { if (data) { setFamilies(data as any); offlineStore.save(familiesKey, data); } });
+    apiClient.from("hmos").select("id, name, website, claims_portal_url, phone, email").eq("clinic_id", cid).eq("status", "active").order("name")
+      .then(({ data }) => { if (data) { setHmos(data as any); offlineStore.save(hmosKey, data); } });
   }, [cid]);
 
   useEffect(() => {
@@ -158,6 +160,16 @@ export default function PatientRegister() {
 
     const searchTimer = window.setTimeout(async () => {
       setPatientSearchLoading(true);
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        const cached = offlineStore.get<any[]>("patients:" + cid) ?? [];
+        const matches = cached.filter((patient: any) => {
+          const normalizedName = normalizeSearchText(patient.full_name || "");
+          return normalizedQuery.split(" ").every((term) => normalizedName.includes(term));
+        }).slice(0, 8);
+        setPatientSearchResults(matches as PatientMatch[]);
+        setPatientSearchLoading(false);
+        return;
+      }
       const terms = Array.from(new Set(normalizedQuery.split(" ").filter(Boolean))).slice(0, 3);
 
       const responses = await Promise.all(terms.map((term) => apiClient
