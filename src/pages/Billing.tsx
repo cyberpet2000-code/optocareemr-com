@@ -600,8 +600,6 @@ setEditingBillingId(selectedBill.id);
 
     const offline = isOffline || (typeof navigator !== "undefined" && !navigator.onLine);
     if (offline) {
-      const queueKey = `bills-queue:${cid}`;
-      const queue = offlineStore.get<any[]>(queueKey) ?? [];
       const isHmoQ = selectedPatient?.payment_type === "hmo";
       const queuedItems = items.map((it) => ({
         id: it.id || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "billing-item-" + Date.now() + "-" + Math.random().toString(36).slice(2)),
@@ -614,23 +612,28 @@ setEditingBillingId(selectedBill.id);
         unit_price: Number(it.unit_price) || 0,
         total_price: Number(it.total_price) || 0,
       }));
-      queue.push({
-        clinic_id: cid,
-        patient_id: form.patientId,
-        payer_type: isHmoQ ? "hmo" : "private",
-        hmo_id: isHmoQ ? selectedPatient?.active_hmo_id : null,
-        consultation_fee: consult,
-        discount_amount: canApplyDiscount ? discount : 0,
-        discount_reason: canApplyDiscount ? (form.discountReason.trim() || null) : null,
-        discount_applied_by: canApplyDiscount && discount > 0 ? (user?.id || null) : null,
-        billing_scope: form.billingScope,
-        family_id: form.billingScope === "family" ? (form.familyId || selectedPatient?.family_id || null) : null,
-        notes: form.notes || null,
-        items: queuedItems,
-        queued_at: Date.now(),
-        editing_billing_id: editingBillingId,
+      await enqueueOfflineOperation({
+        clinicId: cid,
+        userId: user?.id ?? null,
+        kind: "billing.save",
+        entityId: editingBillingId,
+        payload: {
+          clinic_id: cid,
+          patient_id: form.patientId,
+          payer_type: isHmoQ ? "hmo" : "private",
+          hmo_id: isHmoQ ? selectedPatient?.active_hmo_id : null,
+          consultation_fee: consult,
+          discount_amount: canApplyDiscount ? discount : 0,
+          discount_reason: canApplyDiscount ? (form.discountReason.trim() || null) : null,
+          discount_applied_by: canApplyDiscount && discount > 0 ? (user?.id || null) : null,
+          billing_scope: form.billingScope,
+          family_id: form.billingScope === "family" ? (form.familyId || selectedPatient?.family_id || null) : null,
+          notes: form.notes || null,
+          items: queuedItems,
+          queued_at: Date.now(),
+          editing_billing_id: editingBillingId,
+        },
       });
-      offlineStore.save(queueKey, queue);
       toast.success("Saved offline — will sync automatically");
       resetForm();
       return;
