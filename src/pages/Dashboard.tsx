@@ -62,7 +62,7 @@ export default function Dashboard() {
     enableNotifications();
   }, []);
   const { user } = useAuth();
-  const { effectiveClinicId, clinic } = useClinic();
+  const { effectiveClinicId, clinic, profile } = useClinic();
   const { isAdmin, isDoctor, isReceptionist, isSuperAdmin, loading: roleLoading } = useRole();
   
   // Determine which sections to show based on role
@@ -182,7 +182,7 @@ export default function Dashboard() {
     return "Good evening";
   };
 
-  const displayName = user?.user_metadata?.full_name || "User";
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || "User";
 
   const now = new Date();
 
