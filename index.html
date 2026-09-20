@@ -27,6 +27,33 @@
 </head>
 
   <body>
+    <script>
+      (function () {
+        var cleanupKey = "optocare:service-worker-cleanup-v2";
+        if (!("serviceWorker" in navigator)) return;
+        if (sessionStorage.getItem(cleanupKey) === "done") return;
+
+        sessionStorage.setItem(cleanupKey, "done");
+
+        Promise.all([
+          navigator.serviceWorker.getRegistrations().then(function (registrations) {
+            return Promise.all(registrations.map(function (registration) {
+              return registration.unregister().catch(function () { return false; });
+            }));
+          }).catch(function () { return []; }),
+          ("caches" in window
+            ? caches.keys().then(function (keys) {
+                return Promise.all(keys.map(function (key) {
+                  return caches.delete(key).catch(function () { return false; });
+                }));
+              })
+            : Promise.resolve([])
+          )
+        ]).finally(function () {
+          window.location.reload();
+        });
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
