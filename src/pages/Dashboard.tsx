@@ -250,6 +250,39 @@ export default function Dashboard() {
     }
 
     const cid = effectiveClinicId;
+    const cacheKey = `dashboard:${cid}`;
+
+    // Offline must short-circuit BEFORE any Supabase query. Some mobile
+    // browsers keep network requests pending for a long time even when
+    // airplane mode is active, which previously prevented the cached
+    // dashboard from ever rendering.
+    const hydrateFromCache = () => {
+      const snap = offlineStore.get<DashboardSnapshot>(cacheKey);
+      if (snap) {
+        setMonthPatients(snap.monthPatients ?? 0);
+        setMonthRegisteredPatients(snap.monthRegisteredPatients ?? 0);
+        setPatientsSeen(snap.patientsSeen ?? 0);
+        setNewPatientsSeen(snap.newPatientsSeen ?? 0);
+        setReturningPatients(snap.returningPatients ?? 0);
+        setTodayVisits(snap.todayVisits ?? 0);
+        setTodayAppointments(snap.todayAppointments ?? 0);
+        setPendingBills(snap.pendingBills ?? 0);
+        setMonthlyRevenue(snap.monthlyRevenue ?? 0);
+        setPreviousMonthRevenue(snap.previousMonthRevenue ?? 0);
+        setLowStockCount(snap.lowStockCount ?? 0);
+        setDrugAlerts(snap.drugAlerts ?? 0);
+        setRecentPatients(snap.recentPatients ?? []);
+        setUpcomingAppts(snap.upcomingAppts ?? []);
+      }
+      stopLoadingWatch("dashboard");
+      setLoading(false);
+    };
+
+    if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
+      hydrateFromCache();
+      return;
+    }
+
     const clinicRes = await apiClient
       .from("clinics")
       .select("subscription_status")
@@ -391,36 +424,6 @@ if (user?.id) {
     }
   }
 }
-    const cacheKey = `dashboard:${cid}`;
-
-    const hydrateFromCache = () => {
-      const snap = offlineStore.get<DashboardSnapshot>(cacheKey);
-      if (snap) {
-        setMonthPatients(snap.monthPatients ?? 0);
-        setMonthRegisteredPatients(snap.monthRegisteredPatients ?? 0);
-        setPatientsSeen(snap.patientsSeen ?? 0);
-        setNewPatientsSeen(snap.newPatientsSeen ?? 0);
-        setReturningPatients(snap.returningPatients ?? 0);
-        setTodayVisits(snap.todayVisits ?? 0);
-        setTodayAppointments(snap.todayAppointments ?? 0);
-        setPendingBills(snap.pendingBills ?? 0);
-        setMonthlyRevenue(snap.monthlyRevenue ?? 0);
-        setPreviousMonthRevenue(snap.previousMonthRevenue ?? 0);
-        setLowStockCount(snap.lowStockCount ?? 0);
-        setDrugAlerts(snap.drugAlerts ?? 0);
-        setRecentPatients(snap.recentPatients ?? []);
-        setUpcomingAppts(snap.upcomingAppts ?? []);
-      }
-      stopLoadingWatch("dashboard");
-      setLoading(false);
-    };
-    
-    // Offline: skip network entirely.
-    if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
-      hydrateFromCache();
-      return;
-    }
-
     setLoading(true);
     startLoadingWatch("dashboard");
     const localToday = new Date();
