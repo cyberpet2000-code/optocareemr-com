@@ -1,6 +1,6 @@
 import { CreateMLCEngine, type MLCEngineInterface, type InitProgressReport } from "@mlc-ai/web-llm";
 
-const MODEL_ID = "Qwen3-4B-q4f16_1-MLC";
+const MODEL_ID = "Qwen3-0.6B-q4f16_1-MLC";
 
 let enginePromise: Promise<MLCEngineInterface> | null = null;
 
@@ -59,14 +59,40 @@ export async function loadClinicalAi(onProgress?: (p: ClinicalAiProgress) => voi
   }
 
   if (!enginePromise) {
-    enginePromise = CreateMLCEngine(MODEL_ID, {
-      initProgressCallback: (report: InitProgressReport) => {
-        onProgress?.({
-          text: report.text,
-          progress: typeof report.progress === "number" ? report.progress : undefined,
-        });
-      },
-      logLevel: "WARN",
+    enginePromise = (async () => {
+      let lastError: unknown;
+
+      for (let attempt = 1; attempt <= 3; attempt += 1) {
+        try {
+          return await CreateMLCEngine(MODEL_ID, {
+            initProgressCallback: (report: InitProgressReport) => {
+              onProgress?.({
+                text: report.text,
+                progress: typeof report.progress === "number" ? report.progress : undefined,
+              });
+            },
+            logLevel: "WARN",
+          });
+        } catch (error) {
+          lastError = error;
+
+          if (attempt < 3) {
+            onProgress?.({
+              text: "Model download interrupted. Retrying (" + (attempt + 1) + "/3)...",
+            });
+            await new Promise((resolve) => setTimeout(resolve, 1200 * attempt));
+          }
+        }
+      }
+
+      throw lastError instanceof Error
+        ? lastError
+        : new Error("Unable to load the local OptoCare AI model.");
+    })();
+
+    enginePromise.catch(() => {
+      // Allow the next Analyze attempt to retry initialization after a failed download.
+      enginePromise = null;
     });
   }
 
