@@ -90,8 +90,15 @@ export default function PatientList() {
     if (roleLoading) return;
     const cacheKey = `patients:${cid}`;
     const loadFromCache = () => {
-      const cached = offlineStore.get<PatientRow[]>(cacheKey);
-      if (cached) setPatients(cached);
+      const allCached = offlineStore.get<PatientRow[]>(`patients:${cid}:all`);
+      const cached = allCached || offlineStore.get<PatientRow[]>(cacheKey);
+      if (cached) {
+        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        const visible = filter === "thismonth"
+          ? cached.filter((patient: any) => new Date(patient.created_at) >= monthStart)
+          : cached;
+        setPatients(visible);
+      }
       setLoading(false);
     };
     if (isOffline) { loadFromCache(); return; }
