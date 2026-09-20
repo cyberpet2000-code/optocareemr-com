@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAccess } from "@/hooks/useAccess";
 import { useRole } from "@/hooks/useRole";
 import { offlineStore } from "@/lib/offlineStore";
+import { cachePatientOffline, cacheVisitsOffline } from "@/lib/offlineEngine";
 import { useOffline } from "@/hooks/useOffline";
 import PatientHistoryMeta from "@/components/patients/PatientHistoryMeta";
 import { buildBillingSummaryMap, buildVisitSummaryMap, getPaymentStatus, type PatientBillingSummary, type PatientVisitSummary } from "@/lib/patientHistory";
@@ -127,7 +128,7 @@ export default function PatientList() {
           } else setClinicStaff([]);
         } else setClinicStaff([]);
 
-        let query = apiClient.from("patients").select("id, full_name, date_of_birth, age, gender, phone, payment_type, active_hmo_id, queue_number, patient_number").eq("clinic_id", cid);
+        let query = apiClient.from("patients").select("*").eq("clinic_id", cid);
         if (filter === "thismonth") {
           const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
           query = query.gte("created_at", monthStart);
@@ -162,6 +163,28 @@ export default function PatientList() {
         const rows = data.map((p: any) => ({ ...p, hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined, balance: balanceMap.get(p.id) || 0, visitSummary: visitSummaryMap.get(p.id) || { visitCount: 0, lastVisit: null }, billingSummary: billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type), feedbackStatus: nextFeedbackStatusMap[p.id] || "none" }));
         setPatients(rows);
         offlineStore.save(cacheKey, rows);
+
+        // Keep the clinical workspace useful when the connection drops.
+        // Patient demographics are cached for every role. Full visit history
+        // is cached only for roles that are allowed to see clinical details.
+        rows.forEach((patient: any) => {
+          cachePatientOffline(cid, {
+            ...patient,
+            hmo_name: patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : undefined,
+          });
+        });
+        if (!isReceptionist) {
+          const visitsByPatient = new Map<string, any[]>();
+          visitRows.forEach((visit: any) => {
+            const list = visitsByPatient.get(visit.patient_id) || [];
+            list.push(visit);
+            visitsByPatient.set(visit.patient_id, list);
+          });
+          visitsByPatient.forEach((patientVisits, patientId) => {
+            cacheVisitsOffline(cid, patientId, patientVisits);
+          });
+        }
+
         setLoading(false);
       } catch (error) {
         console.error("PatientList loading error:", error);
