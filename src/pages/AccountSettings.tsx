@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
+import { useAccess, useAccessClinic } from "@/hooks/useAccess";
+import { disableOfflineAccess, enableOfflineAccess, hasOfflineAccess } from "@/lib/offlineAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,8 +14,49 @@ export default function AccountSettings() {
   const [newEmail, setNewEmail] = useState("");
   const [pw1, setPw1] = useState(""); const [pw2, setPw2] = useState("");
   const [saving, setSaving] = useState(false);
+  const [offlineEnabled, setOfflineEnabled] = useState(false);
+  const [offlinePin, setOfflinePin] = useState("");
+  const [offlinePinConfirm, setOfflinePinConfirm] = useState("");
+  const { profile, clinic, memberships, roles, role, effectiveClinicId, activeClinicId, resolvedClinicId } = useAccessClinic();
 
-  useEffect(() => { if (user?.email) setEmail(user.email); }, [user?.email]);
+  useEffect(() => { if (user?.email) setEmail(user.email); void hasOfflineAccess().then(setOfflineEnabled); }, [user?.email]);
+
+  async function setupOfflineAccess() {
+    if (!user) return;
+    if (!/^\\d{6}$/.test(offlinePin)) return toast.error("Offline PIN must be exactly 6 digits");
+    if (offlinePin !== offlinePinConfirm) return toast.error("Offline PINs do not match");
+    setSaving(true);
+    try {
+      await enableOfflineAccess(user, {
+        profile,
+        clinic,
+        memberships,
+        roles,
+        role,
+        resolvedClinicId,
+        activeClinicId: activeClinicId || effectiveClinicId || null,
+      }, offlinePin);
+      setOfflineEnabled(true);
+      setOfflinePin("");
+      setOfflinePinConfirm("");
+      toast.success("Offline access enabled on this device");
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to enable offline access");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeOfflineAccess() {
+    setSaving(true);
+    try {
+      await disableOfflineAccess();
+      setOfflineEnabled(false);
+      toast.success("Offline access disabled on this device");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function changeEmail() {
     if (!newEmail || newEmail === email) return toast.error("Enter a new email");
@@ -58,6 +101,34 @@ export default function AccountSettings() {
         <div className="text-xs text-muted-foreground">Current email</div>
         <div className="text-base font-medium">{email || "—"}</div>
         <div className="text-xs text-muted-foreground mt-2">Last login: {lastSignIn}</div>
+      </div>
+
+      <div className="form-section space-y-3">
+        <div className="font-semibold">Offline access</div>
+        <p className="text-sm text-muted-foreground">
+          Unlock OptoCare on this trusted device when there is no internet. Your Supabase password is never stored locally.
+        </p>
+        {offlineEnabled ? (
+          <>
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm">
+              Offline access is enabled on this device.
+            </div>
+            <Button variant="outline" onClick={removeOfflineAccess} disabled={saving}>Disable on this device</Button>
+          </>
+        ) : (
+          <>
+            <Label>6-digit offline PIN</Label>
+            <Input inputMode="numeric" autoComplete="off" maxLength={6} type="password" value={offlinePin} onChange={e => setOfflinePin(e.target.value.replace(/\\D/g, "").slice(0, 6))} />
+            <Label>Confirm offline PIN</Label>
+            <Input inputMode="numeric" autoComplete="off" maxLength={6} type="password" value={offlinePinConfirm} onChange={e => setOfflinePinConfirm(e.target.value.replace(/\\D/g, "").slice(0, 6))} />
+            <Button onClick={setupOfflineAccess} disabled={saving || offlinePin.length !== 6 || offlinePinConfirm.length !== 6}>
+              {saving ? "Saving..." : "Enable offline access"}
+            </Button>
+          </>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Offline mode uses the clinic permissions and data already cached on this device. Reconnection returns to normal server authentication and sync.
+        </p>
       </div>
 
       <div className="form-section space-y-3">
