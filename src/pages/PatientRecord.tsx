@@ -427,18 +427,26 @@ const canViewFinancials =
   if (staffIds.length > 0) {
     const { data: staffProfiles } = await apiClient
       .from("profiles")
-      .select("id, full_name")
+      .select("id, full_name, role, title")
       .in("id", staffIds);
 
     const nextDoctorMap = new Map<string, string>();
     const nextRegistrarMap = new Map<string, string>();
+    const formatStaffName = (staff: any, asDoctor = false) => {
+      const name = (staff?.full_name || "").trim();
+      if (!name) return "Not recorded";
+      const title = (staff?.title || "").trim();
+      if (title) return `${title} ${name}`;
+      if (asDoctor || staff?.role === "doctor") return `Dr. ${name}`;
+      return name;
+    };
 
     (staffProfiles || []).forEach((staff: any) => {
       if (doctorIds.includes(staff.id)) {
-        nextDoctorMap.set(staff.id, staff.full_name);
+        nextDoctorMap.set(staff.id, formatStaffName(staff, true));
       }
       if (registeredByIds.includes(staff.id)) {
-        nextRegistrarMap.set(staff.id, staff.full_name);
+        nextRegistrarMap.set(staff.id, formatStaffName(staff, false));
       }
     });
 
