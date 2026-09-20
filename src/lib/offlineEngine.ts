@@ -152,3 +152,18 @@ export function cacheVisitOffline(clinicId: string, patientId: string, visit: an
   const rows = offlineStore.get<any[]>(key) ?? [];
   offlineStore.save(key, [visit, ...rows.filter((row) => row.id !== visit.id)]);
 }
+
+export function cacheStaffProfilesOffline(clinicId: string, profiles: any[]) {
+  const normalized = profiles.map((profile: any) => ({
+    id: profile.id,
+    full_name: profile.full_name ?? null,
+    role: profile.role ?? null,
+    title: profile.title ?? null,
+    is_active: profile.is_active ?? true,
+  }));
+  offlineStore.save(`staff-profiles:${clinicId}`, normalized);
+}
+
+export function getStaffProfilesOffline(clinicId: string): any[] {
+  return offlineStore.get<any[]>(`staff-profiles:${clinicId}`) ?? [];
+}
