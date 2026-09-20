@@ -54,10 +54,15 @@ if (typeof window !== "undefined" && !(window as any).__optocareFetchPatched) {
     }
   };
 
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.getRegistrations?.().then((regs) => {
-      regs.forEach((reg) => reg.unregister().catch(() => undefined));
-    }).catch(() => undefined);
+  // Register the controlled offline app shell. The service worker only
+  // handles same-origin static assets/navigation; Supabase traffic remains
+  // untouched and clinical data continues to use IndexedDB/local caches.
+  if ("serviceWorker" in navigator && import.meta.env.PROD) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch((error) => {
+        console.warn("[offline-shell] service worker registration failed", error);
+      });
+    }, { once: true });
   }
 }
 
