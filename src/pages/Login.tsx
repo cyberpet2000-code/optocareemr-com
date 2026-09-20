@@ -81,7 +81,21 @@ export default function Login() {
     } else {
       const { data, error } = await apiClient.auth.signInWithPassword({ email, password });
       setLoading(false);
-      if (error) { toast.error(error.message); return; }
+      if (error) {
+        // Some mobile browsers keep navigator.onLine=true briefly after
+        // airplane mode is enabled. If this trusted device has offline
+        // access, fall back to the offline PIN instead of surfacing the
+        // network/auth fetch error.
+        if (await hasOfflineAccess()) {
+          setOfflineAvailable(true);
+          setIsOffline(true);
+          setOfflinePin("");
+          toast.info("Internet connection unavailable. Use your 6-digit offline PIN.");
+          return;
+        }
+        toast.error(error.message);
+        return;
+      }
       if (data.user) {
         // Clear any stale active clinic on a fresh login
         try { localStorage.removeItem("active_clinic_id"); } catch {}
