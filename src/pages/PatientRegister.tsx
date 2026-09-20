@@ -16,6 +16,8 @@ import { useAccess } from "@/hooks/useAccess";
 import { useAuth } from "@/hooks/useAuth";
 import { ShieldCheck, ShieldAlert, ShieldX, Globe, ExternalLink, CheckCircle2, XCircle, MessageCircle, Users } from "lucide-react";
 import { normalizeWhatsAppNumber, formatWhatsAppDisplay } from "@/lib/whatsapp";
+import { enqueueOfflineOperation, cachePatientOffline } from "@/lib/offlineEngine";
+import { offlineStore } from "@/lib/offlineStore";
 
 type HmoRow = {
   id: string;
@@ -250,6 +252,88 @@ export default function PatientRegister() {
 
   const doSubmit = async () => {
     if (!cid) { toast.error("No active clinic"); return; }
+
+    const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+    if (isOffline) {
+      const patientId = typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : "patient-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+
+      const dateOfBirth = (() => {
+        const match = form.dateOfBirth.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        return match ? `${match[3]}-${match[2].padStart(2, "0")}-${match[1].padStart(2, "0")}` : null;
+      })();
+
+      let familyId = form.familyId || null;
+      if (form.registerAsFamily && !familyId && form.familyName.trim()) {
+        familyId = typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : "family-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+
+        await enqueueOfflineOperation({
+          clinicId: cid,
+          userId: user?.id ?? null,
+          kind: "family.create",
+          entityId: familyId,
+          payload: {
+            id: familyId,
+            clinic_id: cid,
+            family_name: form.familyName.trim(),
+            family_number: `FAM-OFF-${Date.now().toString().slice(-8)}`,
+            primary_patient_id: form.familyRelationship === "principal" ? patientId : null,
+            created_by: user?.id ?? null,
+          },
+        });
+      }
+
+      const patientPayload = {
+        id: patientId,
+        clinic_id: cid,
+        created_by: user?.id ?? null,
+        date_of_birth: dateOfBirth,
+        full_name: form.fullName.trim(),
+        age: parseInt(form.age, 10),
+        gender: form.gender,
+        phone: normalizeWhatsAppNumber(form.phone) ? `+${normalizeWhatsAppNumber(form.phone)}` : "",
+        preferred_contact_method: form.preferredContactMethod,
+        address: form.address.trim(),
+        next_of_kin: form.nextOfKin.trim(),
+        payment_type: form.paymentType,
+        active_hmo_id: form.paymentType === "hmo" ? form.activeHmoId : null,
+        enrollee_number: form.paymentType === "hmo" ? form.enrolleeNumber.trim() : "",
+        hmo_coverage_type: form.paymentType === "hmo" ? form.hmoCoverageType : null,
+        hmo_principal_name: form.paymentType === "hmo" && form.hmoCoverageType === "dependent" ? form.hmoPrincipalName.trim() : null,
+        hmo_relationship: form.paymentType === "hmo" && form.hmoCoverageType === "dependent" ? form.hmoRelationship : null,
+        hmo_verification_status: form.paymentType === "hmo" ? verifyStatus : "verified",
+        hmo_verified_at: form.paymentType === "hmo" && verifyStatus !== "not_verified" ? verifiedAt : null,
+        hmo_verified_by: form.paymentType === "hmo" && verifyStatus !== "not_verified" ? (user?.id ?? null) : null,
+        hmo_verification_notes: form.paymentType === "hmo" ? (verifyNotes.trim() || null) : null,
+        priority: form.priority,
+        queue_status: "waiting",
+        ...(familyId ? { family_id: familyId, family_relationship: form.familyRelationship } : {}),
+      };
+
+      await enqueueOfflineOperation({
+        clinicId: cid,
+        userId: user?.id ?? null,
+        kind: "patient.create",
+        entityId: patientId,
+        payload: patientPayload,
+      });
+
+      const cachedPatient = {
+        ...patientPayload,
+        patient_number: null,
+        offline_pending_sync: true,
+        clinic_name: offlineStore.get<any>(`clinic:${cid}`)?.name || "",
+      };
+      cachePatientOffline(cid, cachedPatient);
+      setLoading(false);
+      toast.success("Patient registered offline — it will sync automatically.");
+      navigate(`/patient/${patientId}`);
+      return;
+    }
+
     setLoading(true);
     const { data, error } = await apiClient.from("patients").insert({
       clinic_id: cid,
