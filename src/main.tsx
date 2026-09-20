@@ -55,19 +55,9 @@ if (typeof window !== "undefined" && !(window as any).__optocareFetchPatched) {
   };
 
   if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.getRegistrations?.().then((regs) => {
-        regs.forEach((reg) => reg.unregister().catch(() => undefined));
-      }).catch(() => undefined);
-
-      if ("caches" in window) {
-        caches.keys().then((keys) => {
-          keys.filter((key) => key.startsWith("optocare-shell-")).forEach((key) => {
-            caches.delete(key).catch(() => undefined);
-          });
-        }).catch(() => undefined);
-      }
-    });
+    navigator.serviceWorker.getRegistrations?.().then((regs) => {
+      regs.forEach((reg) => reg.unregister().catch(() => undefined));
+    }).catch(() => undefined);
   }
 }
 
