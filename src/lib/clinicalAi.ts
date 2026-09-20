@@ -1,6 +1,6 @@
 import { CreateMLCEngine, prebuiltAppConfig, type MLCEngineInterface, type InitProgressReport } from "@mlc-ai/web-llm";
 
-const MODEL_ID = "Qwen3-0.6B-q4f16_1-MLC";
+const MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
 
 let enginePromise: Promise<MLCEngineInterface> | null = null;
 
@@ -93,18 +93,6 @@ export async function loadClinicalAi(onProgress?: (p: ClinicalAiProgress) => voi
       const appConfig = {
         ...prebuiltAppConfig,
         cacheBackend: "indexeddb" as const,
-        model_list: prebuiltAppConfig.model_list.map((model) =>
-          model.model_id === MODEL_ID
-            ? {
-                ...model,
-                overrides: {
-                  ...model.overrides,
-                  context_window_size: 2048,
-                  prefill_chunk_size: 128,
-                },
-              }
-            : model,
-        ),
       };
       let lastError: unknown;
 
