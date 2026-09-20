@@ -47,7 +47,10 @@ export default function Login() {
     try {
       await authenticateOffline(offlinePin);
       toast.success("Offline access unlocked");
-      navigate("/", { replace: true });
+      // The AccessProvider bootstraps the offline session during app startup.
+      // Reload after PIN verification so it restores the trusted session
+      // and hydrates the cached clinic/profile before protected routes render.
+      window.location.replace("/");
     } catch (error: any) {
       toast.error(error?.message || "Offline login failed");
     } finally {
