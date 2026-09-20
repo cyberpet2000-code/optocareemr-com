@@ -106,9 +106,18 @@ function getClinicalAiModelId() {
 }
 
 function buildAppConfig() {
+  const modelIds = new Set([MOBILE_MODEL_ID, DESKTOP_MODEL_ID]);
   return {
     ...prebuiltAppConfig,
     cacheBackend: "indexeddb" as const,
+    model_list: prebuiltAppConfig.model_list.map((model) =>
+      modelIds.has(model.model_id)
+        ? {
+            ...model,
+            model_lib: `/api/clinical-ai-model-lib?source=${encodeURIComponent(model.model_lib)}`,
+          }
+        : model,
+    ),
   };
 }
 
