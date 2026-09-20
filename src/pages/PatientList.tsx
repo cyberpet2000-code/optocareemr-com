@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAccess } from "@/hooks/useAccess";
 import { useRole } from "@/hooks/useRole";
 import { offlineStore } from "@/lib/offlineStore";
-import { cachePatientOffline, cacheVisitsOffline } from "@/lib/offlineEngine";
+import { cachePatientOffline, cacheVisitsOffline, cacheStaffProfilesOffline } from "@/lib/offlineEngine";
 import { useOffline } from "@/hooks/useOffline";
 import PatientHistoryMeta from "@/components/patients/PatientHistoryMeta";
 import { buildBillingSummaryMap, buildVisitSummaryMap, getPaymentStatus, type PatientBillingSummary, type PatientVisitSummary } from "@/lib/patientHistory";
@@ -183,6 +183,19 @@ export default function PatientList() {
           visitsByPatient.forEach((patientVisits, patientId) => {
             cacheVisitsOffline(cid, patientId, patientVisits);
           });
+
+          // Cache the staff identities referenced by these visits so offline
+          // records can still show Doctor/Registered by names.
+          const staffIds = Array.from(new Set(
+            visitRows.flatMap((visit: any) => [visit.doctor_id, visit.registered_by]).filter(Boolean),
+          ));
+          if (staffIds.length > 0) {
+            const { data: staffProfiles } = await apiClient
+              .from("profiles")
+              .select("id, full_name, role, title, is_active")
+              .in("id", staffIds);
+            if (staffProfiles) cacheStaffProfilesOffline(cid, staffProfiles);
+          }
         }
 
         setLoading(false);
