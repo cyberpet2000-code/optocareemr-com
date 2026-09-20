@@ -2853,11 +2853,14 @@ export type Database = {
           clinic_id: string
           created_at: string | null
           full_name: string | null
+          home_address: string | null
           id: string
           is_active: boolean
           is_super_admin: boolean | null
           last_active_clinic_id: string | null
           phone: string | null
+          next_of_kin_name: string | null
+          next_of_kin_phone: string | null
           role: string | null
           status: string | null
           title: string | null
@@ -2869,11 +2872,14 @@ export type Database = {
           clinic_id: string
           created_at?: string | null
           full_name?: string | null
+          home_address?: string | null
           id?: string
           is_active?: boolean
           is_super_admin?: boolean | null
           last_active_clinic_id?: string | null
           phone?: string | null
+          next_of_kin_name?: string | null
+          next_of_kin_phone?: string | null
           role?: string | null
           status?: string | null
           title?: string | null
@@ -2885,11 +2891,14 @@ export type Database = {
           clinic_id?: string
           created_at?: string | null
           full_name?: string | null
+          home_address?: string | null
           id?: string
           is_active?: boolean
           is_super_admin?: boolean | null
           last_active_clinic_id?: string | null
           phone?: string | null
+          next_of_kin_name?: string | null
+          next_of_kin_phone?: string | null
           role?: string | null
           status?: string | null
           title?: string | null
