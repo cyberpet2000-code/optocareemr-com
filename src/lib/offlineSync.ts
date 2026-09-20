@@ -377,12 +377,29 @@ export async function runOfflineSync(clinicId: string): Promise<void> {
   if (_syncRunning) return;
   _syncRunning = true;
   try {
+    // Only show sync notifications when there is actually queued offline work.
+    // Going online by itself must not produce an "Offline sync completed" toast.
+    const coreOperations = await getOfflineOperations(clinicId);
+    const legacyAppointments = offlineStore.get<AppointmentQueueItem[]>(appointmentsQueueKey(clinicId)) ?? [];
+    const legacyBills = offlineStore.get<BillQueueItem[]>(billsQueueKey(clinicId)) ?? [];
+
+    if (coreOperations.length === 0 && legacyAppointments.length === 0 && legacyBills.length === 0) {
+      return;
+    }
+
     toast.info('Offline sync started');
     await migrateLegacyQueues(clinicId);
-    await processCoreOfflineOperations(clinicId);
-    await processAppointmentsQueue(clinicId);
-    await processBillsQueue(clinicId);
-    toast.success('Offline sync completed');
+    const coreResult = await processCoreOfflineOperations(clinicId);
+    const appointmentResult = await processAppointmentsQueue(clinicId);
+    const billResult = await processBillsQueue(clinicId);
+
+    const failed = coreResult.failed + appointmentResult.failed + billResult.failed;
+    if (failed > 0) {
+      toast.error(`Offline sync finished with ${failed} item(s) needing retry`);
+    } else {
+      toast.success('Offline sync completed');
+    }
+
     if (typeof window !== 'undefined' && typeof CustomEvent !== 'undefined') {
       window.dispatchEvent(new CustomEvent('optocare:sync:done', { detail: { clinicId } }));
     }
