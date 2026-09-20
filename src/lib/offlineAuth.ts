@@ -174,6 +174,21 @@ export async function enableOfflineAccess(
   });
 }
 
+export async function refreshOfflineAccessSnapshot(snapshot: OfflineAccessSnapshot) {
+  const trusted = await readTrusted();
+  if (!trusted) return false;
+  if (!snapshot.profile || !snapshot.role || !(snapshot.activeClinicId || snapshot.resolvedClinicId)) {
+    return false;
+  }
+  await writeTrusted({
+    ...trusted,
+    clinicId: snapshot.activeClinicId || snapshot.resolvedClinicId || trusted.clinicId,
+    snapshot,
+    updatedAt: new Date().toISOString(),
+  });
+  return true;
+}
+
 export async function disableOfflineAccess() {
   await deleteTrusted();
   clearOfflineSession();
