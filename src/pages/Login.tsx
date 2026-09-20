@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { APP_URL } from "@/lib/app-url";
 import OptoCareLogo from "@/components/OptoCareLogo";
+import { authenticateOffline, hasOfflineAccess } from "@/lib/offlineAuth";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -15,6 +16,44 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [offlinePin, setOfflinePin] = useState("");
+  const [offlineAvailable, setOfflineAvailable] = useState(false);
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
+
+  useEffect(() => {
+    let mounted = true;
+    const update = async () => {
+      const available = await hasOfflineAccess();
+      if (mounted) {
+        setOfflineAvailable(available);
+        setIsOffline(!navigator.onLine);
+      }
+    };
+    void update();
+    const onOnline = () => { setIsOffline(false); void update(); };
+    const onOffline = () => { setIsOffline(true); void update(); };
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      mounted = false;
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, []);
+
+  const handleOfflineLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await authenticateOffline(offlinePin);
+      toast.success("Offline access unlocked");
+      navigate("/", { replace: true });
+    } catch (error: any) {
+      toast.error(error?.message || "Offline login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +132,23 @@ export default function Login() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {isOffline && offlineAvailable ? (
+            <form onSubmit={handleOfflineLogin} className="space-y-4">
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm">
+                <div className="font-semibold">Offline login</div>
+                <div className="text-muted-foreground mt-1">Internet is unavailable. Use the 6-digit offline PIN previously set on this device.</div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Offline PIN</Label>
+                <Input inputMode="numeric" autoComplete="off" maxLength={6} pattern="\\d{6}" type="password" required value={offlinePin} onChange={e => setOfflinePin(e.target.value.replace(/\\D/g, "").slice(0, 6))} />
+              </div>
+              <Button type="submit" className="w-full h-12 bg-gradient-primary text-primary-foreground shadow-glow" disabled={loading || offlinePin.length !== 6}>
+                {loading ? "Unlocking..." : "Unlock Offline"}
+              </Button>
+              <p className="text-xs text-center text-muted-foreground">Offline access is limited to data already authorized and cached on this device.</p>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label>Email</Label>
               <Input type="email" required value={email} onChange={e => setEmail(e.target.value)} />
@@ -112,6 +167,7 @@ export default function Login() {
               {loading ? "Please wait..." : mode === "forgot" ? "Send Reset Link" : mode === "signup" ? "Sign Up" : "Sign In"}
             </Button>
           </form>
+          )}
 
           <div className="text-center text-sm text-muted-foreground space-y-1 pt-1">
             {mode === "login" && (
