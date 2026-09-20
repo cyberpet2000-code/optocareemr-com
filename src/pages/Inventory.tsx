@@ -247,6 +247,11 @@ export default function Inventory() {
     }
 
     const { data: sale, error } = await apiClient.from("inventory_sales").insert({
+      clinic_id: cid,
+      patient_id: salePatientId || null,
+      sold_by: user?.id,
+      total_amount: cartTotal,
+    } as any).select().single();
     if (error || !sale) { toast.error(error?.message || "Failed"); setSaving(false); return; }
     const saleItems = cart.map(c => ({
       clinic_id: cid,
@@ -262,7 +267,6 @@ export default function Inventory() {
     // Do NOT perform manual stock updates here to avoid double-deduction.
     setSaving(false);
     toast.success("Sale completed"); setCart([]); setSalePatientId(""); loadItems();
-  };
 
   const filtered = items.filter(i => (filterCat === "All" || i.category === filterCat) && i.name.toLowerCase().includes(search.toLowerCase()));
   const lowStockItems = items.filter(i => i.stock_quantity <= i.low_stock_threshold);
