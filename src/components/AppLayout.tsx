@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   LayoutDashboard, Users, ShoppingBag, DollarSign, LogOut, Calendar, UserPlus,
@@ -49,6 +49,9 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
 } = useClinic();
   const { memberships } = useAccessClinic();
 
+  const workspace = resolveWorkspace(location.pathname);
+  const isSuperAdminWs = workspace === "super-admin";
+
   const [offlineSyncPending, setOfflineSyncPending] = useState(0);
   const [offlineSyncFailed, setOfflineSyncFailed] = useState(0);
   const [syncingOffline, setSyncingOffline] = useState(false);
@@ -81,9 +84,6 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
       await refreshOfflineSyncStatus();
     }
   }, [effectiveClinicId, isOffline, syncingOffline, refreshOfflineSyncStatus]);
-
-  const workspace = resolveWorkspace(location.pathname);
-  const isSuperAdminWs = workspace === "super-admin";
 
   useEffect(() => {
     if (!effectiveClinicId || isSuperAdminWs) return;
