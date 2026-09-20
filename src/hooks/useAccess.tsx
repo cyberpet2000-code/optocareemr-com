@@ -5,6 +5,7 @@ import { assertClinicAccess } from "@/lib/route-access";
 import { checkClinicSubscription } from "@/lib/diag/healthChecks";
 import { safeSupabaseStorage, setKnownSupabaseSession } from "@/lib/supabase-auth";
 import { offlineStore } from "@/lib/offlineStore";
+import { clearOfflineSession, getOfflineSession } from "@/lib/offlineAuth";
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
 const ACTIVE_CLINIC_KEY = "active_clinic_id";
@@ -175,6 +176,7 @@ const AccessActionsContext = createContext<any>(null);
 
 export function AccessProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isOfflineSession, setIsOfflineSession] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [activeClinicId, setActiveClinicIdState] = useState<string | null>(() =>
     safeSupabaseStorage.getItem(ACTIVE_CLINIC_KEY),
@@ -192,6 +194,32 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     userRef.current = user;
   }, [user]);
+
+  const restoreOfflineSession = useCallback(async () => {
+    const session = await getOfflineSession();
+    if (!session) return false;
+    const cached = offlineStore.get<{ userId: string; state: AccessState }>(
+      "access:" + session.userId + ":" + (session.clinicId || "default"),
+    );
+    if (!cached?.state?.profile) {
+      clearOfflineSession();
+      return false;
+    }
+    const offlineUser = {
+      id: session.userId, aud: "authenticated", role: "authenticated",
+      email: session.email ?? undefined, email_confirmed_at: null, phone: null,
+      confirmed_at: null, last_sign_in_at: session.startedAt,
+      app_metadata: { provider: "email", providers: ["email"] },
+      user_metadata: { full_name: session.displayName ?? undefined }, identities: [],
+      created_at: session.startedAt, updated_at: session.startedAt, is_anonymous: false,
+    } as unknown as User;
+    setKnownSupabaseSession(null);
+    userRef.current = offlineUser;
+    setUser(offlineUser);
+    setIsOfflineSession(true);
+    commitAccessState({ ...cached.state, accessReady: true, profileError: null, clinicResolutionFailed: false });
+    return true;
+  }, [commitAccessState]);
 
   useEffect(() => {
     activeClinicIdRef.current = activeClinicId;
@@ -620,6 +648,7 @@ completedLoadKeyRef.current = loadKey;
       });
 
       if (!nextUser) {
+        setIsOfflineSession(false);
         clearAccessState(true);
         setAuthLoading(false);
         console.debug("[auth:init:end]", { reason, has_session: false, user_id: null });
@@ -657,6 +686,7 @@ completedLoadKeyRef.current = loadKey;
       if (event === "INITIAL_SESSION") return;
 
       if (event === "TOKEN_REFRESHED") {
+        setIsOfflineSession(false);
         setKnownSupabaseSession(session ?? null);
         console.debug("[auth:refresh]", {
           user_id: session?.user?.id ?? null,
@@ -678,6 +708,7 @@ completedLoadKeyRef.current = loadKey;
         persistActive(null);
         setActiveClinicIdState((prev) => (prev === null ? prev : null));
         setKnownSupabaseSession(null);
+        setIsOfflineSession(false);
         setUser((prev) => (prev === null ? prev : null));
         commitAccessState(createEmptyAccessState(true));
         setAuthLoading(false);
@@ -685,6 +716,7 @@ completedLoadKeyRef.current = loadKey;
       }
 
       if (event === "SIGNED_IN" || event === "PASSWORD_RECOVERY") {
+        setIsOfflineSession(false);
         if (session?.user?.id && userRef.current?.id === session.user.id && accessReadyRef.current) {
           setKnownSupabaseSession(session);
           setAuthLoading(false);
@@ -700,6 +732,15 @@ completedLoadKeyRef.current = loadKey;
 
     (async () => {
       try {
+        if (typeof navigator !== "undefined" && !navigator.onLine) {
+          const restored = await restoreOfflineSession();
+          if (restored) {
+            if (!mounted) return;
+            setAuthLoading(false);
+            console.debug("[auth:offline] restored trusted-device session");
+            return;
+          }
+        }
         const { data } = await apiClient.auth.getSession();
         console.debug("[auth:getSession]", {
           has_session: !!data.session,
@@ -720,7 +761,7 @@ completedLoadKeyRef.current = loadKey;
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [clearAccessState, commitAccessState, invalidatePendingLoads, loadAccess, persistActive]);
+  }, [clearAccessState, commitAccessState, invalidatePendingLoads, loadAccess, persistActive, restoreOfflineSession]);
 
   const reload = useCallback(() => {
     return loadAccess(userRef.current, activeClinicIdRef.current, {
@@ -786,8 +827,15 @@ completedLoadKeyRef.current = loadKey;
     setActiveClinicIdState((prev) => (prev === null ? prev : null));
     clearOfflineUserCache(currentUserId);
     try { sessionStorage.removeItem("optocare:clinic-identity"); } catch { /* ignore */ }
+    if (isOfflineSession) {
+      clearOfflineSession();
+      setIsOfflineSession(false);
+      setUser(null);
+      clearAccessState(true);
+      return;
+    }
     await apiClient.auth.signOut();
-  }, [clearOfflineUserCache, persistActive]);
+  }, [clearOfflineUserCache, persistActive, isOfflineSession, clearAccessState]);
 
   const isAuthenticated = !!user;
   const isAuthReady = !authLoading && (!isAuthenticated || accessState.accessReady);
@@ -800,9 +848,10 @@ completedLoadKeyRef.current = loadKey;
   const authValue = useMemo(() => ({
     user,
     authLoading,
+    isOfflineSession,
     isAuthenticated,
     isAuthReady,
-  }), [authLoading, isAuthenticated, isAuthReady, user]);
+  }), [authLoading, isAuthenticated, isAuthReady, isOfflineSession, user]);
 
   const clinicValue = useMemo(() => ({
     profile: accessState.profile,
