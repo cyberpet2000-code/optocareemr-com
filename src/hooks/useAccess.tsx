@@ -210,10 +210,6 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     setAccessState((prev) => (sameAccessState(prev, nextState) ? prev : nextState));
   }, []);
 
-  const commitAccessState = useCallback((nextState: AccessState) => {
-    setAccessState((prev) => (sameAccessState(prev, nextState) ? prev : nextState));
-  }, []);
-
   const restoreOfflineSession = useCallback(async () => {
     const session = await getOfflineSession();
     if (!session) return false;
