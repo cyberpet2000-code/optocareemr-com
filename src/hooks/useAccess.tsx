@@ -5,7 +5,7 @@ import { assertClinicAccess } from "@/lib/route-access";
 import { checkClinicSubscription } from "@/lib/diag/healthChecks";
 import { safeSupabaseStorage, setKnownSupabaseSession } from "@/lib/supabase-auth";
 import { offlineStore } from "@/lib/offlineStore";
-import { clearOfflineSession, getOfflineSession } from "@/lib/offlineAuth";
+import { clearOfflineSession, getOfflineSession, getTrustedOfflineProfile } from "@/lib/offlineAuth";
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
 const ACTIVE_CLINIC_KEY = "active_clinic_id";
@@ -220,7 +220,13 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       offlineStore.get<{ userId: string; state: AccessState }>(
         "access:" + session.userId + ":default",
       );
-    if (!cached?.state?.profile) {
+    // The trusted-device record contains its own access snapshot. Use it as
+    // the authoritative fallback so offline login does not depend on a
+    // separate localStorage cache having been populated.
+    const trusted = await getTrustedOfflineProfile();
+    const snapshotState = trusted?.userId === session.userId ? trusted.snapshot : null;
+    const offlineState = cached?.state?.profile ? cached.state : snapshotState;
+    if (!offlineState?.profile) {
       clearOfflineSession();
       return false;
     }
@@ -236,7 +242,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     userRef.current = offlineUser;
     setUser(offlineUser);
     setIsOfflineSession(true);
-    commitAccessState({ ...cached.state, accessReady: true, profileError: null, clinicResolutionFailed: false });
+    commitAccessState({ ...offlineState, accessReady: true, profileError: null, clinicResolutionFailed: false });
     return true;
   }, [commitAccessState]);
 
