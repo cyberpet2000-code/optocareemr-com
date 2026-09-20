@@ -144,6 +144,17 @@ export default function Appointments() {
     return () => ctrl.abort();
   }, [hydrating, loadAppointments]);
 
+  // Refresh immediately when connectivity returns while this page is open.
+  // The user should not have to navigate away and back.
+  useEffect(() => {
+    if (!cid) return;
+    const handleOnline = () => {
+      loadAppointments();
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [cid, loadAppointments]);
+
   // Refresh appointments after offline sync completes for this clinic
   useEffect(() => {
     function onSync(e: Event) {
