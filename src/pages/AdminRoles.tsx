@@ -20,6 +20,10 @@ type StaffRow = {
   full_name: string | null;
   is_active: boolean;
   role: AppRole;
+  phone: string | null;
+  home_address: string | null;
+  next_of_kin_name: string | null;
+  next_of_kin_phone: string | null;
 };
 
 type StaffFeedbackRow = {
@@ -79,7 +83,7 @@ export default function AdminRoles({ embedded = false }: { embedded?: boolean })
     if (ids.length === 0) { setStaff([]); setLoading(false); return; }
     const { data: profiles } = await apiClient
       .from("profiles")
-      .select("id, full_name, is_active")
+       .select("id, full_name, is_active, phone, home_address, next_of_kin_name, next_of_kin_phone")
       .in("id", ids);
     const roleMap = new Map<string, AppRole>();
     (roles || []).forEach((r: any) => { if (!roleMap.has(r.user_id)) roleMap.set(r.user_id, r.role); });
@@ -88,6 +92,10 @@ export default function AdminRoles({ embedded = false }: { embedded?: boolean })
       full_name: p.full_name,
       is_active: p.is_active !== false,
       role: roleMap.get(p.id) || "doctor",
+      phone: p.phone || null,
+      home_address: p.home_address || null,
+      next_of_kin_name: p.next_of_kin_name || null,
+      next_of_kin_phone: p.next_of_kin_phone || null,
     }));
     rows.sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
     setStaff(rows);
@@ -304,6 +312,12 @@ const averageRating =
                       <span className="text-destructive">Deactivated</span>
                     )}
                   </p>
+                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                    <span>Phone: <strong className="text-foreground font-medium">{row.phone || "—"}</strong></span>
+                    <span>Home: <strong className="text-foreground font-medium">{row.home_address || "—"}</strong></span>
+                    <span>Next of kin: <strong className="text-foreground font-medium">{row.next_of_kin_name || "—"}</strong></span>
+                    <span>Emergency: <strong className="text-foreground font-medium">{row.next_of_kin_phone || "—"}</strong></span>
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Select
