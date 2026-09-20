@@ -23,7 +23,7 @@ export default function AccountSettings() {
 
   async function setupOfflineAccess() {
     if (!user) return;
-    if (!/^\\d{6}$/.test(offlinePin)) return toast.error("Offline PIN must be exactly 6 digits");
+    if (!/^\d{6}$/.test(offlinePin)) return toast.error("Offline PIN must be exactly 6 digits");
     if (offlinePin !== offlinePinConfirm) return toast.error("Offline PINs do not match");
     setSaving(true);
     try {
@@ -118,7 +118,7 @@ export default function AccountSettings() {
         ) : (
           <>
             <Label>6-digit offline PIN</Label>
-            <Input inputMode="numeric" autoComplete="off" maxLength={6} type="password" value={offlinePin} onChange={e => setOfflinePin(e.target.value.replace(/\\D/g, "").slice(0, 6))} />
+            <Input inputMode="numeric" autoComplete="off" maxLength={6} type="password" value={offlinePin} onChange={e => setOfflinePin(e.target.value.replace(/\D/g, "").slice(0, 6))} />
             <Label>Confirm offline PIN</Label>
             <Input inputMode="numeric" autoComplete="off" maxLength={6} type="password" value={offlinePinConfirm} onChange={e => setOfflinePinConfirm(e.target.value.replace(/\\D/g, "").slice(0, 6))} />
             <Button onClick={setupOfflineAccess} disabled={saving || offlinePin.length !== 6 || offlinePinConfirm.length !== 6}>
