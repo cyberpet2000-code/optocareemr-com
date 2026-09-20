@@ -87,11 +87,25 @@ export async function processCoreOfflineOperations(clinicId: string): Promise<{ 
         if (error) throw new Error(error.message);
       } else if (operation.kind === "inventory.sale") {
         const payload = operation.payload as any;
-        const { data: existingSale } = await apiClient.from("inventory_sales").select("id").eq("id", operation.entityId).maybeSingle();
+        const { data: existingSale, error: saleLookupError } = await apiClient
+          .from("inventory_sales")
+          .select("id")
+          .eq("clinic_id", clinicId)
+          .eq("id", operation.entityId)
+          .maybeSingle();
+        if (saleLookupError) throw new Error(saleLookupError.message);
+
         if (!existingSale) {
-          const { error: saleError } = await apiClient.from("inventory_sales").insert(payload.sale);
+          const { error: saleError } = await apiClient
+            .from("inventory_sales")
+            .insert({ ...payload.sale, id: operation.entityId, clinic_id: clinicId });
           if (saleError) throw new Error(saleError.message);
-          const { error: itemError } = await apiClient.from("inventory_sale_items").insert(payload.items);
+        }
+
+        if (Array.isArray(payload.items) && payload.items.length > 0) {
+          const { error: itemError } = await apiClient
+            .from("inventory_sale_items")
+            .upsert(payload.items, { onConflict: "id" });
           if (itemError) throw new Error(itemError.message);
         }
       } else if (operation.kind === "billing.save") {
