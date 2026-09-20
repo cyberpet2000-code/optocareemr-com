@@ -47,6 +47,7 @@ import { AbbrTip } from "@/components/AbbrTip";
 import { normalizeWhatsAppNumber, whatsappLink } from "@/lib/whatsapp";
 import { HMOVerificationCard, type HmoVerifStatus } from "@/components/HMOVerificationCard";
 import { PatientWhatsAppMessages } from "@/components/PatientWhatsAppMessages";
+import { ClinicalAiAssistant } from "@/components/ClinicalAiAssistant";
 import { enqueueOfflineOperation, cachePatientOffline, cacheVisitsOffline, cacheVisitOffline, cacheStaffProfilesOffline, getStaffProfilesOffline } from "@/lib/offlineEngine";
 import { offlineStore } from "@/lib/offlineStore";
 import {
@@ -2364,7 +2365,7 @@ shadow-sm
         {!isReceptionist && (
         <TabsContent value="dx" className="space-y-4">
           <div className="form-section">
-            <h2 className="section-title text-sm"><Stethoscope size={16} /> Diagnosis & Management</h2>
+            <div className="flex items-center justify-between gap-2 flex-wrap"><h2 className="section-title text-sm"><Stethoscope size={16} /> Diagnosis & Management</h2>{isClinicalUser && <ClinicalAiAssistant clinicalCase={{ age: patient?.age, gender: patient?.gender, chiefComplaint: form.chiefComplaint, history: form.history, oldLensPrescription: form.oldLensPrescription, vaUnaidedOd: form.vaUnaidedOd, vaUnaidedOs: form.vaUnaidedOs, vaUnaidedOu: form.vaUnaidedOu, vaAidedOd: form.vaAidedOd, vaAidedOs: form.vaAidedOs, vaAidedOu: form.vaAidedOu, autoOdSphere: form.autoOdSphere, autoOdCyl: form.autoOdCyl, autoOdAxis: form.autoOdAxis, autoOsSphere: form.autoOsSphere, autoOsCyl: form.autoOsCyl, autoOsAxis: form.autoOsAxis, subOdSphere: form.subOdSphere, subOdCyl: form.subOdCyl, subOdAxis: form.subOdAxis, subVaOd: form.subVaOd, subOsSphere: form.subOsSphere, subOsCyl: form.subOsCyl, subOsAxis: form.subOsAxis, subVaOs: form.subVaOs, subReadingAdd: form.subReadingAdd, examination: form.examination, iopOd: form.iopOd, iopOs: form.iopOs, diagnosis: form.diagnosis, lensType: form.lensType, medication: form.medication, notes: form.notes }} />}</div>
             <div className="space-y-3">
               <div className="space-y-1">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
