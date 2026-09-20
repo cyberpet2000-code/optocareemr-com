@@ -93,7 +93,11 @@ export default function Login() {
           toast.info("Internet connection unavailable. Use your 6-digit offline PIN.");
           return;
         }
-        toast.error(error.message);
+
+        const message = /fetch|network|offline|failed to fetch|load failed/i.test(error?.message || "")
+          ? "Internet connection is unavailable. Offline access has not been enabled on this device."
+          : error.message;
+        toast.error(message);
         return;
       }
       if (data.user) {
