@@ -4,6 +4,7 @@ import { apiClient } from "@/lib/apiClient";
 import { assertClinicAccess } from "@/lib/route-access";
 import { checkClinicSubscription } from "@/lib/diag/healthChecks";
 import { safeSupabaseStorage, setKnownSupabaseSession } from "@/lib/supabase-auth";
+import { offlineStore } from "@/lib/offlineStore";
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
 const ACTIVE_CLINIC_KEY = "active_clinic_id";
@@ -237,6 +238,27 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       completedLoadKeyRef.current = loadKey;
       commitAccessState(createEmptyAccessState(true));
       return;
+    }
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const cached = offlineStore.get<{ userId: string; state: AccessState }>(
+        "access:" + nextUser.id + ":" + (overrideClinicId || "default")
+      );
+      if (cached?.userId === nextUser.id && cached.state?.profile) {
+        commitAccessState({
+          ...cached.state,
+          accessReady: true,
+          profileError: null,
+          clinicResolutionFailed: false,
+        });
+        completedLoadKeyRef.current = loadKey;
+        console.debug("[access:offline-cache]", {
+          user_id: nextUser.id,
+          clinic_id: cached.state.resolvedClinicId,
+          override_clinic_id: overrideClinicId,
+        });
+        return;
+      }
     }
 
     if (!force) {
@@ -526,8 +548,11 @@ console.debug("[access:stage1_complete]", {
 }
 
 commitAccessState(nextAccessState);
+offlineStore.save(
+  "access:" + nextUser.id + ":" + (overrideClinicId || "default"),
+  { userId: nextUser.id, state: nextAccessState }
+);
 completedLoadKeyRef.current = loadKey;
-        completedLoadKeyRef.current = loadKey;
 
         console.debug("[access:load:total]", {
   durationMs: performance.now() - loadStartedAt,
