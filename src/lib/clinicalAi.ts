@@ -106,19 +106,28 @@ function getClinicalAiModelId() {
 }
 
 function buildAppConfig() {
-  const modelIds = new Set([MOBILE_MODEL_ID, DESKTOP_MODEL_ID]);
+  const mobileRecord = prebuiltAppConfig.model_list.find(
+    (model) => model.model_id === MOBILE_MODEL_ID,
+  );
+  const desktopRecord = prebuiltAppConfig.model_list.find(
+    (model) => model.model_id === DESKTOP_MODEL_ID,
+  );
+
+  if (!mobileRecord || !desktopRecord) {
+    throw new Error("OptoCare AI model configuration is unavailable in this WebLLM build.");
+  }
+
+  const proxyRecord = (record: typeof mobileRecord) => ({
+    ...record,
+    // WebLLM resolves mlc-chat-config.json and tensor shards relative to
+    // model, so the model directory itself must be proxied.
+    model: `/api/clinical-ai-model/${encodeURIComponent(record.model_id)}/`,
+    model_lib: `/api/clinical-ai-model-lib?source=${encodeURIComponent(record.model_lib)}`,
+  });
+
   return {
-    ...prebuiltAppConfig,
+    model_list: [proxyRecord(mobileRecord), proxyRecord(desktopRecord)],
     cacheBackend: "indexeddb" as const,
-    model_list: prebuiltAppConfig.model_list.map((model) =>
-      modelIds.has(model.model_id)
-        ? {
-            ...model,
-            model: `/api/clinical-ai-model-lib?source=${encodeURIComponent(model.model)}`,
-            model_lib: `/api/clinical-ai-model-lib?source=${encodeURIComponent(model.model_lib)}`,
-          }
-        : model,
-    ),
   };
 }
 
