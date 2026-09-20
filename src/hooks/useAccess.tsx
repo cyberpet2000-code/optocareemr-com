@@ -230,6 +230,38 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       clearOfflineSession();
       return false;
     }
+
+    // Older trusted-device snapshots could have been created before role
+    // hydration finished. Recover the role/clinic from the snapshot itself
+    // instead of allowing the route guard to report a missing role offline.
+    const recoveredRole =
+      offlineState.role ||
+      offlineState.profile?.role ||
+      offlineState.roles?.[0] ||
+      offlineState.memberships?.[0]?.role ||
+      null;
+    const recoveredRoles = Array.from(new Set([
+      ...(offlineState.roles || []),
+      ...(offlineState.profile?.role ? [offlineState.profile.role] : []),
+      ...(recoveredRole ? [recoveredRole] : []),
+    ]));
+    const recoveredClinicId =
+      offlineState.resolvedClinicId ||
+      offlineState.activeClinicId ||
+      session.clinicId ||
+      offlineState.clinic?.id ||
+      offlineState.memberships?.[0]?.clinic_id ||
+      null;
+    const restoredAccessState: AccessState = {
+      ...offlineState,
+      role: recoveredRole,
+      roles: recoveredRoles,
+      resolvedClinicId: recoveredClinicId,
+      activeClinicId: offlineState.activeClinicId || recoveredClinicId,
+      accessReady: true,
+      profileError: null,
+      clinicResolutionFailed: false,
+    };
     const offlineUser = {
       id: session.userId, aud: "authenticated", role: "authenticated",
       email: session.email ?? undefined, email_confirmed_at: null, phone: null,
@@ -242,7 +274,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     userRef.current = offlineUser;
     setUser(offlineUser);
     setIsOfflineSession(true);
-    commitAccessState({ ...offlineState, accessReady: true, profileError: null, clinicResolutionFailed: false });
+    commitAccessState(restoredAccessState);
     return true;
   }, [commitAccessState]);
 
