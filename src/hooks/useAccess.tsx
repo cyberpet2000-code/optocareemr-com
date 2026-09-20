@@ -761,12 +761,33 @@ completedLoadKeyRef.current = loadKey;
     return true;
   }, [loadAccess, persistActive]);
 
+  const clearOfflineUserCache = useCallback((userId: string | null) => {
+    if (!userId) return;
+    const prefixes = [
+      "access:" + userId + ":",
+    ];
+    try {
+      const keysToRemove: string[] = [];
+      for (let index = 0; index < localStorage.length; index += 1) {
+        const key = localStorage.key(index);
+        if (key && prefixes.some((prefix) => key.startsWith("optocare:offline:" + prefix))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((key) => localStorage.removeItem(key));
+    } catch {
+      // Ignore local storage cleanup failures.
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
+    const currentUserId = userRef.current?.id ?? null;
     persistActive(null);
     setActiveClinicIdState((prev) => (prev === null ? prev : null));
+    clearOfflineUserCache(currentUserId);
     try { sessionStorage.removeItem("optocare:clinic-identity"); } catch { /* ignore */ }
     await apiClient.auth.signOut();
-  }, [persistActive]);
+  }, [clearOfflineUserCache, persistActive]);
 
   const isAuthenticated = !!user;
   const isAuthReady = !authLoading && (!isAuthenticated || accessState.accessReady);
