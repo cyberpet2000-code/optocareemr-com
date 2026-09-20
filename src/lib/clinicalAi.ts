@@ -1,4 +1,4 @@
-import { CreateMLCEngine, type MLCEngineInterface, type InitProgressReport } from "@mlc-ai/web-llm";
+import { CreateMLCEngine, prebuiltAppConfig, type MLCEngineInterface, type InitProgressReport } from "@mlc-ai/web-llm";
 
 const MODEL_ID = "Qwen3-0.6B-q4f16_1-MLC";
 
@@ -90,11 +90,27 @@ export async function loadClinicalAi(onProgress?: (p: ClinicalAiProgress) => voi
 
   if (!enginePromise) {
     enginePromise = (async () => {
+      const appConfig = {
+        ...prebuiltAppConfig,
+        cacheBackend: "indexeddb" as const,
+        model_list: prebuiltAppConfig.model_list.map((model) =>
+          model.model_id === MODEL_ID
+            ? {
+                ...model,
+                overrides: {
+                  ...model.overrides,
+                  context_window_size: 2048,
+                  prefill_chunk_size: 128,
+                },
+              }
+            : model,
+        ),
+      };
       let lastError: unknown;
 
       for (let attempt = 1; attempt <= 3; attempt += 1) {
         try {
-          return await CreateMLCEngine(MODEL_ID, {
+          return await CreateMLCEngine(MODEL_ID, {\n            appConfig,
             initProgressCallback: (report: InitProgressReport) => {
               onProgress?.({
                 text: report.text,
@@ -243,8 +259,9 @@ export async function analyzeClinicalCase(
         content: `Analyze this optometry case. Use only the documented information below, including previous-visit history when provided.\n\n${clinicalData}`,
       },
     ],
-    temperature: 0.2,
-    max_tokens: 360,
+    temperature: 0.15,
+    max_tokens: 240,
+    enable_thinking: false,
   });
 
   return response.choices[0]?.message?.content?.trim() || "No clinical analysis was generated.";
