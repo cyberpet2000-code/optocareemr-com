@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
 import { useAuth } from "@/hooks/useAuth";
-import { useAccess, useAccessClinic } from "@/hooks/useAccess";
+import { useAccessClinic } from "@/hooks/useAccess";
 import { disableOfflineAccess, enableOfflineAccess, hasOfflineAccess } from "@/lib/offlineAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
