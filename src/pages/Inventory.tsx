@@ -267,6 +267,7 @@ export default function Inventory() {
     // Do NOT perform manual stock updates here to avoid double-deduction.
     setSaving(false);
     toast.success("Sale completed"); setCart([]); setSalePatientId(""); loadItems();
+  };
 
   const filtered = items.filter(i => (filterCat === "All" || i.category === filterCat) && i.name.toLowerCase().includes(search.toLowerCase()));
   const lowStockItems = items.filter(i => i.stock_quantity <= i.low_stock_threshold);
