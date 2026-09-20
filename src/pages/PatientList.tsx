@@ -128,13 +128,19 @@ export default function PatientList() {
           } else setClinicStaff([]);
         } else setClinicStaff([]);
 
-        let query = apiClient.from("patients").select("*").eq("clinic_id", cid);
-        if (filter === "thismonth") {
-          const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-          query = query.gte("created_at", monthStart);
-        }
-        const { data, error } = await query.order("created_at", { ascending: false });
-        if (error || !data) { loadFromCache(); return; }
+        // Always cache the complete patient list. Filtering is applied after
+        // retrieval so a prior "this month" view can never overwrite the
+        // offline cache with only a subset of patients.
+        const { data: allPatientData, error } = await apiClient
+          .from("patients")
+          .select("*")
+          .eq("clinic_id", cid)
+          .order("created_at", { ascending: false });
+        if (error || !allPatientData) { loadFromCache(); return; }
+        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        const data = filter === "thismonth"
+          ? allPatientData.filter((patient: any) => new Date(patient.created_at) >= monthStart)
+          : allPatientData;
         const hmoIds = [...new Set(data.map((p: any) => p.active_hmo_id).filter(Boolean))];
         let hmoMap = new Map<string, string>();
         if (hmoIds.length > 0) {
@@ -163,6 +169,7 @@ export default function PatientList() {
         const rows = data.map((p: any) => ({ ...p, hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined, balance: balanceMap.get(p.id) || 0, visitSummary: visitSummaryMap.get(p.id) || { visitCount: 0, lastVisit: null }, billingSummary: billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type), feedbackStatus: nextFeedbackStatusMap[p.id] || "none" }));
         setPatients(rows);
         offlineStore.save(cacheKey, rows);
+        offlineStore.save(`patients:${cid}:all`, data);
 
         // Keep the clinical workspace useful when the connection drops.
         // Patient demographics are cached for every role. Full visit history
