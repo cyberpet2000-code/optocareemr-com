@@ -55,9 +55,9 @@ if (typeof window !== "undefined" && !(window as any).__optocareFetchPatched) {
   };
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.getRegistrations?.().then((regs) => {
-      regs.forEach((reg) => reg.unregister().catch(() => undefined));
-    }).catch(() => undefined);
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => undefined);
+    });
   }
 }
 

@@ -1,0 +1,9 @@
+{
+  "name": "OptoCare EMR",
+  "short_name": "OptoCare",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "description": "OptoCare EMR for eye clinics and optometry practices"
+}
