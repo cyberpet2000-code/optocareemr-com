@@ -17,7 +17,9 @@ export default function AccountSettings() {
   const [offlineEnabled, setOfflineEnabled] = useState(false);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
+  const [homeAddress, setHomeAddress] = useState("");
+  const [nextOfKinName, setNextOfKinName] = useState("");
+  const [nextOfKinPhone, setNextOfKinPhone] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
   const [offlinePin, setOfflinePin] = useState("");
   const [offlinePinConfirm, setOfflinePinConfirm] = useState("");
@@ -27,9 +29,11 @@ export default function AccountSettings() {
     if (user?.email) setEmail(user.email);
     setFullName(profile?.full_name || (user as any)?.user_metadata?.full_name || "");
     setPhone(profile?.phone || "");
-    setAvatarUrl(profile?.avatar_url || "");
+    setHomeAddress((profile as any)?.home_address || "");
+    setNextOfKinName((profile as any)?.next_of_kin_name || "");
+    setNextOfKinPhone((profile as any)?.next_of_kin_phone || "");
     void hasOfflineAccess().then(setOfflineEnabled);
-  }, [user?.email, profile?.full_name, profile?.phone, profile?.avatar_url]);
+  }, [user?.email, profile?.full_name, profile?.phone, (profile as any)?.home_address, (profile as any)?.next_of_kin_name, (profile as any)?.next_of_kin_phone]);
 
   async function saveProfile() {
     if (!user) return;
@@ -41,7 +45,9 @@ export default function AccountSettings() {
         .update({
           full_name: fullName.trim(),
           phone: phone.trim() || null,
-          avatar_url: avatarUrl.trim() || null,
+          home_address: homeAddress.trim() || null,
+          next_of_kin_name: nextOfKinName.trim() || null,
+          next_of_kin_phone: nextOfKinPhone.trim() || null,
         })
         .eq("id", user.id);
       if (error) throw error;
@@ -142,16 +148,6 @@ export default function AccountSettings() {
           <div className="font-semibold">Profile</div>
           <p className="text-sm text-muted-foreground">Update the personal details shown on your OptoCare account.</p>
         </div>
-        <div className="flex items-center gap-3">
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="Profile" className="w-14 h-14 rounded-full object-cover border border-border" />
-          ) : (
-            <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center text-lg font-semibold">
-              {(fullName || "U").split(/\s+/).slice(0, 2).map((part: string) => part[0]).join("").toUpperCase()}
-            </div>
-          )}
-          <div className="text-xs text-muted-foreground">Profile photo can be provided with an image URL.</div>
-        </div>
         <div className="space-y-2">
           <Label>Full name</Label>
           <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" />
@@ -161,8 +157,16 @@ export default function AccountSettings() {
           <Input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+234..." />
         </div>
         <div className="space-y-2">
-          <Label>Profile photo URL</Label>
-          <Input type="url" value={avatarUrl} onChange={e => setAvatarUrl(e.target.value)} placeholder="https://..." />
+          <Label>Home address</Label>
+          <Input value={homeAddress} onChange={e => setHomeAddress(e.target.value)} placeholder="Residential address" />
+        </div>
+        <div className="space-y-2">
+          <Label>Next of kin name</Label>
+          <Input value={nextOfKinName} onChange={e => setNextOfKinName(e.target.value)} placeholder="Full name" />
+        </div>
+        <div className="space-y-2">
+          <Label>Next of kin / emergency phone</Label>
+          <Input type="tel" value={nextOfKinPhone} onChange={e => setNextOfKinPhone(e.target.value)} placeholder="+234..." />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="rounded-lg border border-border/60 p-3">
