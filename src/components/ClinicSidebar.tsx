@@ -69,10 +69,9 @@ export default function ClinicSidebar() {
           { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
           { to: "/patients", label: "Patients", icon: Users },
           { to: "/appointments", label: "Visits", icon: Calendar },
-        ],
-        secondary: [
           { to: "/settings/account", label: "Account", icon: UserCog },
         ],
+        secondary: [],
       };
     }
 
@@ -82,10 +81,10 @@ export default function ClinicSidebar() {
           { to: "/register", label: "Register", icon: UserPlus },
           { to: "/appointments", label: "Appointments", icon: Calendar },
           { to: "/billing", label: "Billing", icon: DollarSign },
+          { to: "/settings/account", label: "Account", icon: UserCog },
         ],
         secondary: [
           { to: "/reports/daily-front-desk", label: "Daily Front Desk Report", icon: ClipboardList },
-          { to: "/settings/account", label: "Account", icon: UserCog },
         ],
       };
     }
