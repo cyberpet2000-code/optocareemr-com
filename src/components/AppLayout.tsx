@@ -14,7 +14,8 @@ import ClinicSidebar, { resolveWorkspace } from "@/components/ClinicSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { diag } from "@/lib/diag";
 import { useOffline } from "@/hooks/useOffline";
-import { registerAutomaticSync } from "@/lib/offlineSync";
+import { registerAutomaticSync, runOfflineSync } from "@/lib/offlineSync";
+import { getOfflineOperations } from "@/lib/offlineEngine";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const ROLE_LABEL: Record<string, string> = {
