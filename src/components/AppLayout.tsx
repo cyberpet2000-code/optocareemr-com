@@ -49,6 +49,39 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
 } = useClinic();
   const { memberships } = useAccessClinic();
 
+  const [offlineSyncPending, setOfflineSyncPending] = useState(0);
+  const [offlineSyncFailed, setOfflineSyncFailed] = useState(0);
+  const [syncingOffline, setSyncingOffline] = useState(false);
+
+  const refreshOfflineSyncStatus = useCallback(async () => {
+    if (!effectiveClinicId || isSuperAdminWs) return;
+    const operations = await getOfflineOperations(effectiveClinicId);
+    setOfflineSyncPending(operations.length);
+    setOfflineSyncFailed(operations.filter((operation) => operation.attempts > 0).length);
+  }, [effectiveClinicId, isSuperAdminWs]);
+
+  useEffect(() => {
+    void refreshOfflineSyncStatus();
+    const onSyncDone = () => { void refreshOfflineSyncStatus(); };
+    window.addEventListener("optocare:sync:done", onSyncDone);
+    const timer = window.setInterval(() => { void refreshOfflineSyncStatus(); }, 5000);
+    return () => {
+      window.removeEventListener("optocare:sync:done", onSyncDone);
+      window.clearInterval(timer);
+    };
+  }, [refreshOfflineSyncStatus]);
+
+  const handleOfflineSyncNow = useCallback(async () => {
+    if (!effectiveClinicId || isOffline || syncingOffline) return;
+    setSyncingOffline(true);
+    try {
+      await runOfflineSync(effectiveClinicId);
+    } finally {
+      setSyncingOffline(false);
+      await refreshOfflineSyncStatus();
+    }
+  }, [effectiveClinicId, isOffline, syncingOffline, refreshOfflineSyncStatus]);
+
   const workspace = resolveWorkspace(location.pathname);
   const isSuperAdminWs = workspace === "super-admin";
 
@@ -160,9 +193,27 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
         <ClinicSidebar />
 
         <div className="flex-1 flex flex-col min-w-0">
-          {isOffline && (
-            <div className="bg-destructive text-destructive-foreground text-xs font-medium px-3 lg:px-6 py-1.5 text-center">
-              Offline mode — changes are saved on this device and will sync automatically when internet returns.
+          {(isOffline || offlineSyncPending > 0) && !isSuperAdminWs && (
+            <div className={isOffline ? "bg-destructive text-destructive-foreground text-xs font-medium px-3 lg:px-6 py-1.5" : "bg-warning/10 text-warning text-xs font-medium px-3 lg:px-6 py-1.5"}>
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <span>
+                  {isOffline
+                    ? "Offline mode — changes are saved on this device and will sync automatically when internet returns."
+                    : offlineSyncFailed > 0
+                      ? "Sync attention: " + offlineSyncFailed + " change(s) need retry."
+                      : offlineSyncPending + " offline change(s) waiting to sync."}
+                </span>
+                {!isOffline && (
+                  <button
+                    type="button"
+                    onClick={handleOfflineSyncNow}
+                    disabled={syncingOffline}
+                    className="underline font-semibold disabled:opacity-60"
+                  >
+                    {syncingOffline ? "Syncing…" : "Sync now"}
+                  </button>
+                )}
+              </div>
             </div>
           )}
           <header className="sticky top-0 z-40 bg-card/85 backdrop-blur-xl border-b border-border/60">
