@@ -1,11 +1,37 @@
-const CACHE_NAME = "optocare-shell-v1";
+const CACHE_NAME = "optocare-shell-v2";
 const APP_SHELL = ["/", "/index.html"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
+      .then(async (cache) => {
+        await cache.addAll(APP_SHELL);
+        try {
+          const response = await fetch("/index.html", { cache: "no-store" });
+          if (!response.ok) return;
+          const html = await response.text();
+          const assets = Array.from(
+            html.matchAll(/(?:src|href)=["']([^"']+)["']/g),
+            (match) => match[1],
+          )
+            .filter((url) => url.startsWith("/") && !url.startsWith("//"))
+            .filter((url) => !url.includes("sw.js"));
+
+          await Promise.all(
+            Array.from(new Set(assets)).map(async (url) => {
+              try {
+                const assetResponse = await fetch(url, { cache: "no-store" });
+                if (assetResponse.ok) await cache.put(url, assetResponse);
+              } catch {
+                // An optional asset failing must not block installation.
+              }
+            }),
+          );
+        } catch {
+          // The shell itself is already cached.
+        }
+      })
+      .then(() => self.skipWaiting()),
   );
 });
 
@@ -16,10 +42,10 @@ self.addEventListener("activate", (event) => {
         Promise.all(
           keys
             .filter((key) => key.startsWith("optocare-shell-") && key !== CACHE_NAME)
-            .map((key) => caches.delete(key))
-        )
+            .map((key) => caches.delete(key)),
+        ),
       )
-      .then(() => self.clients.claim())
+      .then(() => self.clients.claim()),
   );
 });
 
@@ -30,11 +56,8 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Never cache Supabase/API traffic. Offline data is handled by OptoCare's
-  // IndexedDB/local cache instead.
-  if (url.pathname.startsWith("/rest/") || url.pathname.startsWith("/auth/") || url.pathname.startsWith("/functions/")) {
-    return;
-  }
+  // Never cache API/Supabase traffic.
+  if (url.pathname.startsWith("/rest/") || url.pathname.startsWith("/auth/") || url.pathname.startsWith("/functions/")) return;
 
   if (request.mode === "navigate") {
     event.respondWith(
@@ -46,12 +69,11 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         })
-        .catch(() => caches.match("/index.html").then((cached) => cached || caches.match("/")))
+        .catch(() => caches.match("/index.html").then((cached) => cached || caches.match("/"))),
     );
     return;
   }
 
-  // Cache static application assets after their first successful online load.
   if (
     url.pathname.startsWith("/assets/") ||
     url.pathname.endsWith(".js") ||
@@ -71,7 +93,7 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         });
-      })
+      }),
     );
   }
 });
