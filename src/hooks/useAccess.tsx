@@ -195,6 +195,25 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     userRef.current = user;
   }, [user]);
 
+  const persistActive = useCallback((clinicId: string | null) => {
+    if (clinicId) safeSupabaseStorage.setItem(ACTIVE_CLINIC_KEY, clinicId);
+    else safeSupabaseStorage.removeItem(ACTIVE_CLINIC_KEY);
+  }, []);
+
+  const invalidatePendingLoads = useCallback(() => {
+    requestRef.current += 1;
+    completedLoadKeyRef.current = null;
+    inFlightLoadRef.current = null;
+  }, []);
+
+  const commitAccessState = useCallback((nextState: AccessState) => {
+    setAccessState((prev) => (sameAccessState(prev, nextState) ? prev : nextState));
+  }, []);
+
+  const commitAccessState = useCallback((nextState: AccessState) => {
+    setAccessState((prev) => (sameAccessState(prev, nextState) ? prev : nextState));
+  }, []);
+
   const restoreOfflineSession = useCallback(async () => {
     const session = await getOfflineSession();
     if (!session) return false;
@@ -233,21 +252,6 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     accessStateRef.current = accessState;
     accessReadyRef.current = accessState.accessReady;
   }, [accessState]);
-
-  const persistActive = useCallback((clinicId: string | null) => {
-    if (clinicId) safeSupabaseStorage.setItem(ACTIVE_CLINIC_KEY, clinicId);
-    else safeSupabaseStorage.removeItem(ACTIVE_CLINIC_KEY);
-  }, []);
-
-  const invalidatePendingLoads = useCallback(() => {
-    requestRef.current += 1;
-    completedLoadKeyRef.current = null;
-    inFlightLoadRef.current = null;
-  }, []);
-
-  const commitAccessState = useCallback((nextState: AccessState) => {
-    setAccessState((prev) => (sameAccessState(prev, nextState) ? prev : nextState));
-  }, []);
 
   const clearAccessState = useCallback((ready = true) => {
     invalidatePendingLoads();
