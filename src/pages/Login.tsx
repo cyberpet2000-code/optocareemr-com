@@ -95,7 +95,7 @@ export default function Login() {
         }
 
         const message = /fetch|network|offline|failed to fetch|load failed/i.test(error?.message || "")
-          ? "Internet connection is unavailable. Offline access has not been enabled on this device."
+          ? "Offline access has not been enabled on this browser. Please connect to the internet and enable Offline Access from Account Settings first."
           : error.message;
         toast.error(message);
         return;
