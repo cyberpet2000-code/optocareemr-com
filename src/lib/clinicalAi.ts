@@ -115,6 +115,7 @@ function buildAppConfig() {
         ? {
             ...model,
             model_lib: `/api/clinical-ai-model-lib?source=${encodeURIComponent(model.model_lib)}`,
+            model_url: `/api/clinical-ai-model-lib?source=${encodeURIComponent(model.model_url)}`,
           }
         : model,
     ),
