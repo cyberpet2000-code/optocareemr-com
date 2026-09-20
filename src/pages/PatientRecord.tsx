@@ -47,7 +47,7 @@ import { AbbrTip } from "@/components/AbbrTip";
 import { normalizeWhatsAppNumber, whatsappLink } from "@/lib/whatsapp";
 import { HMOVerificationCard, type HmoVerifStatus } from "@/components/HMOVerificationCard";
 import { PatientWhatsAppMessages } from "@/components/PatientWhatsAppMessages";
-import { enqueueOfflineOperation, cachePatientOffline, cacheVisitsOffline, cacheVisitOffline } from "@/lib/offlineEngine";
+import { enqueueOfflineOperation, cachePatientOffline, cacheVisitsOffline, cacheVisitOffline, cacheStaffProfilesOffline, getStaffProfilesOffline } from "@/lib/offlineEngine";
 import { offlineStore } from "@/lib/offlineStore";
 import {
   MoreVertical,
@@ -289,6 +289,22 @@ const canViewFinancials =
         if (cachedPatient) {
           setPatient(cachedPatient);
           setVisits(cachedVisits);
+
+          // Staff identities are cached with the clinical records so offline
+          // history can still identify the doctor and registrar.
+          const cachedStaff = getStaffProfilesOffline(cid);
+          const cachedStaffMap = new Map(cachedStaff.map((staff: any) => [staff.id, staff]));
+          const cachedDoctorMap = new Map<string, string>();
+          const cachedRegistrarMap = new Map<string, string>();
+          cachedVisits.forEach((visit: any) => {
+            const staffDoctor = cachedStaffMap.get(visit.doctor_id);
+            const staffRegistrar = cachedStaffMap.get(visit.registered_by);
+            if (staffDoctor) cachedDoctorMap.set(visit.doctor_id, formatStaffName(staffDoctor, true));
+            if (staffRegistrar) cachedRegistrarMap.set(visit.registered_by, formatStaffName(staffRegistrar, false));
+          });
+          setDoctorMap(cachedDoctorMap);
+          setRegistrarMap(cachedRegistrarMap);
+
           setLoading(false);
           toast.info(
             cachedVisits.length > 0
@@ -437,10 +453,12 @@ const canViewFinancials =
     const nextDoctorMap = new Map<string, string>();
     const nextRegistrarMap = new Map<string, string>();
     const formatStaffName = (staff: any, asDoctor = false) => {
-      const name = (staff?.full_name || "").trim();
+      let name = (staff?.full_name || "").trim();
       if (!name) return "Not recorded";
       const title = (staff?.title || "").trim();
-      if (title) return `${title} ${name}`;
+      // Prevent duplicated titles such as "Dr. Dr. Obinna Kalu".
+      if (/^dr\.?\s+/i.test(name)) name = name.replace(/^dr\.?\s+/i, "").trim();
+      if (title) return /^dr\.?$/i.test(title) ? `Dr. ${name}` : `${title} ${name}`;
       if (asDoctor || staff?.role === "doctor") return `Dr. ${name}`;
       return name;
     };
@@ -453,6 +471,7 @@ const canViewFinancials =
         nextRegistrarMap.set(staff.id, formatStaffName(staff, false));
       }
     });
+    cacheStaffProfilesOffline(cid, staffProfiles || []);
 
     setDoctorMap(nextDoctorMap);
     setRegistrarMap(nextRegistrarMap);
