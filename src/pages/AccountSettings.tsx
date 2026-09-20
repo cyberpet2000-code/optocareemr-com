@@ -45,6 +45,8 @@ export default function AccountSettings() {
         })
         .eq("id", user.id);
       if (error) throw error;
+      const { error: authError } = await apiClient.auth.updateUser({ data: { full_name: fullName.trim() } });
+      if (authError) throw authError;
       toast.success("Profile updated");
     } catch (error: any) {
       toast.error(error?.message || "Unable to update profile");
