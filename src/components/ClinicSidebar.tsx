@@ -55,6 +55,7 @@ export default function ClinicSidebar() {
           { to: "/super-admin/system-health", label: "System Health", icon: Activity },
         ],
         secondary: [
+          { to: "/settings/account", label: "Account", icon: UserCog },
           { to: "/super-admin/create-clinic", label: "Create Clinic", icon: Sparkles },
           { to: "/super-admin/archives", label: "Data Archives", icon: Archive },
           { to: "/super-admin/users", label: "Users", icon: ShieldCheck },
@@ -69,7 +70,9 @@ export default function ClinicSidebar() {
           { to: "/patients", label: "Patients", icon: Users },
           { to: "/appointments", label: "Visits", icon: Calendar },
         ],
-        secondary: [],
+        secondary: [
+          { to: "/settings/account", label: "Account", icon: UserCog },
+        ],
       };
     }
 
@@ -82,6 +85,7 @@ export default function ClinicSidebar() {
         ],
         secondary: [
           { to: "/reports/daily-front-desk", label: "Daily Front Desk Report", icon: ClipboardList },
+          { to: "/settings/account", label: "Account", icon: UserCog },
         ],
       };
     }
