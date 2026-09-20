@@ -266,11 +266,6 @@ export default function Appointments() {
       toast.error("Set the new appointment time");
       return;
     }
-    if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
-      toast.error("Rescheduling requires an internet connection. Your existing appointment has not been changed.");
-      return;
-    }
-
     const appointment = appointments.find(a => a.id === reschedulingId);
     if (!appointment) {
       toast.error("Appointment could not be found. Please refresh and try again.");
@@ -280,6 +275,35 @@ export default function Appointments() {
     const newDate = format(rescheduleForm.date, "yyyy-MM-dd");
     const dateChanged = appointment.appointment_date !== newDate;
     const timeChanged = (appointment.appointment_time || "") !== rescheduleForm.time;
+    const offline = isOffline || (typeof navigator !== "undefined" && !navigator.onLine);
+
+    if (offline) {
+      const payload = {
+        ...appointment,
+        id: appointment.id,
+        clinic_id: cid,
+        appointment_date: newDate,
+        appointment_time: rescheduleForm.time,
+        ...(dateChanged || timeChanged
+          ? { reminder_sent_at: null, reminder_channel: null }
+          : {}),
+      };
+      await enqueueOfflineOperation({
+        clinicId: cid,
+        userId: null,
+        kind: "appointment.save",
+        entityId: appointment.id,
+        payload,
+      });
+      const next = appointments.map(a => a.id === appointment.id
+        ? { ...a, appointment_date: newDate, appointment_time: rescheduleForm.time, reminder_sent_at: null, reminder_channel: null, offline_pending_sync: true }
+        : a);
+      cacheAppointmentsOffline(cid, next);
+      setAppointments(next.filter(a => a.appointment_date >= filterDateStr));
+      setReschedulingId(null);
+      toast.success("Appointment rescheduled offline — it will sync automatically");
+      return;
+    }
 
     setRescheduling(true);
     const { error: uErr } = await apiClient
