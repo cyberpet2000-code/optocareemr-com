@@ -5,7 +5,7 @@ import { assertClinicAccess } from "@/lib/route-access";
 import { checkClinicSubscription } from "@/lib/diag/healthChecks";
 import { safeSupabaseStorage, setKnownSupabaseSession } from "@/lib/supabase-auth";
 import { offlineStore } from "@/lib/offlineStore";
-import { clearOfflineSession, getOfflineSession, getTrustedOfflineProfile } from "@/lib/offlineAuth";
+import { clearOfflineSession, getOfflineSession, getTrustedOfflineProfile, refreshOfflineAccessSnapshot } from "@/lib/offlineAuth";
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
 const ACTIVE_CLINIC_KEY = "active_clinic_id";
@@ -622,6 +622,17 @@ offlineStore.save(
   "access:" + nextUser.id + ":" + (overrideClinicId || "default"),
   { userId: nextUser.id, state: nextAccessState }
 );
+// Keep the trusted-device snapshot synchronized after a successful online
+// access load so a later cold-start offline login has the current role/clinic.
+void refreshOfflineAccessSnapshot({
+  profile: nextAccessState.profile,
+  clinic: nextAccessState.clinic,
+  memberships: nextAccessState.memberships,
+  roles: nextAccessState.roles,
+  role: nextAccessState.role,
+  resolvedClinicId: nextAccessState.resolvedClinicId,
+  activeClinicId: overrideClinicId || nextAccessState.resolvedClinicId,
+}).catch(() => {});
 completedLoadKeyRef.current = loadKey;
 
         console.debug("[access:load:total]", {
