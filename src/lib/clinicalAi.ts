@@ -46,7 +46,7 @@ export type ClinicalCase = {
 };
 
 export function isClinicalAiSupported() {
-  return typeof window !== "undefined" && "gpu" in navigator;
+  return typeof window !== "undefined" && Boolean((navigator as Navigator & { gpu?: unknown }).gpu);
 }
 
 export function clinicalAiModelId() {
