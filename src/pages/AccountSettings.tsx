@@ -15,11 +15,43 @@ export default function AccountSettings() {
   const [pw1, setPw1] = useState(""); const [pw2, setPw2] = useState("");
   const [saving, setSaving] = useState(false);
   const [offlineEnabled, setOfflineEnabled] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
   const [offlinePin, setOfflinePin] = useState("");
   const [offlinePinConfirm, setOfflinePinConfirm] = useState("");
   const { profile, clinic, memberships, roles, role, effectiveClinicId, activeClinicId, resolvedClinicId } = useAccessClinic();
 
-  useEffect(() => { if (user?.email) setEmail(user.email); void hasOfflineAccess().then(setOfflineEnabled); }, [user?.email]);
+  useEffect(() => {
+    if (user?.email) setEmail(user.email);
+    setFullName(profile?.full_name || (user as any)?.user_metadata?.full_name || "");
+    setPhone(profile?.phone || "");
+    setAvatarUrl(profile?.avatar_url || "");
+    void hasOfflineAccess().then(setOfflineEnabled);
+  }, [user?.email, profile?.full_name, profile?.phone, profile?.avatar_url]);
+
+  async function saveProfile() {
+    if (!user) return;
+    if (!fullName.trim()) return toast.error("Full name is required");
+    setProfileSaving(true);
+    try {
+      const { error } = await apiClient
+        .from("profiles")
+        .update({
+          full_name: fullName.trim(),
+          phone: phone.trim() || null,
+          avatar_url: avatarUrl.trim() || null,
+        })
+        .eq("id", user.id);
+      if (error) throw error;
+      toast.success("Profile updated");
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to update profile");
+    } finally {
+      setProfileSaving(false);
+    }
+  }
 
   async function setupOfflineAccess() {
     if (!user) return;
@@ -101,6 +133,48 @@ export default function AccountSettings() {
         <div className="text-xs text-muted-foreground">Current email</div>
         <div className="text-base font-medium">{email || "—"}</div>
         <div className="text-xs text-muted-foreground mt-2">Last login: {lastSignIn}</div>
+      </div>
+
+      <div className="form-section space-y-4">
+        <div>
+          <div className="font-semibold">Profile</div>
+          <p className="text-sm text-muted-foreground">Update the personal details shown on your OptoCare account.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Profile" className="w-14 h-14 rounded-full object-cover border border-border" />
+          ) : (
+            <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center text-lg font-semibold">
+              {(fullName || "U").split(/\s+/).slice(0, 2).map((part: string) => part[0]).join("").toUpperCase()}
+            </div>
+          )}
+          <div className="text-xs text-muted-foreground">Profile photo can be provided with an image URL.</div>
+        </div>
+        <div className="space-y-2">
+          <Label>Full name</Label>
+          <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" />
+        </div>
+        <div className="space-y-2">
+          <Label>Phone number</Label>
+          <Input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+234..." />
+        </div>
+        <div className="space-y-2">
+          <Label>Profile photo URL</Label>
+          <Input type="url" value={avatarUrl} onChange={e => setAvatarUrl(e.target.value)} placeholder="https://..." />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="rounded-lg border border-border/60 p-3">
+            <div className="text-xs text-muted-foreground">Role</div>
+            <div className="font-medium capitalize">{role || "—"}</div>
+          </div>
+          <div className="rounded-lg border border-border/60 p-3">
+            <div className="text-xs text-muted-foreground">Current clinic</div>
+            <div className="font-medium truncate">{clinic?.name || "—"}</div>
+          </div>
+        </div>
+        <Button onClick={saveProfile} disabled={profileSaving}>
+          {profileSaving ? "Saving..." : "Save profile"}
+        </Button>
       </div>
 
       <div className="form-section space-y-3">
