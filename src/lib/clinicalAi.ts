@@ -121,7 +121,7 @@ function buildAppConfig() {
     ...record,
     // WebLLM resolves mlc-chat-config.json and tensor shards relative to
     // model, so the model directory itself must be proxied.
-    model: `/api/clinical-ai-model/${encodeURIComponent(record.model_id)}/`,
+    model: `/api/clinical-ai-model/${encodeURIComponent(record.model_id)}/resolve/main/`,
     model_lib: `/api/clinical-ai-model-lib?source=${encodeURIComponent(record.model_lib)}`,
   });
 
