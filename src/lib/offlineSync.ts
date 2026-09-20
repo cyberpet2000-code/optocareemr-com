@@ -4,7 +4,7 @@
 import { apiClient } from "@/lib/apiClient";
 import { offlineStore } from "@/lib/offlineStore";
 import { toast } from "sonner";
-import { getOfflineOperations, removeOfflineOperation, markOfflineOperationFailed } from "@/lib/offlineEngine";
+import { enqueueOfflineOperation, getOfflineOperations, removeOfflineOperation, markOfflineOperationFailed } from "@/lib/offlineEngine";
 
 function appointmentsQueueKey(clinicId: string) { return `appointments-queue:${clinicId}`; }
 function billsQueueKey(clinicId: string) { return `bills-queue:${clinicId}`; }
@@ -35,6 +35,25 @@ async function removeQueueItemAndSave<T extends { [k:string]: any }>(key:string,
   queue.splice(idx,1);
   if (queue.length === 0) await normalizeMaybePromise(offlineStore.remove(key));
   else await normalizeMaybePromise(offlineStore.save(key, queue));
+}
+
+async function migrateLegacyQueues(clinicId: string): Promise<void> {
+  const appointmentKey = appointmentsQueueKey(clinicId);
+  const appointmentQueue = offlineStore.get<AppointmentQueueItem[]>(appointmentKey) ?? [];
+  for (const item of appointmentQueue) {
+    const payload = { ...(item.payload ?? item), clinic_id: clinicId };
+    const entityId = String(payload.id || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "appointment-legacy-" + Date.now() + "-" + Math.random().toString(36).slice(2)));
+    await enqueueOfflineOperation({ clinicId, userId: null, kind: "appointment.save", entityId, payload: { ...payload, id: entityId } });
+  }
+  if (appointmentQueue.length) offlineStore.remove(appointmentKey);
+
+  const billKey = billsQueueKey(clinicId);
+  const billQueue = offlineStore.get<BillQueueItem[]>(billKey) ?? [];
+  for (const item of billQueue) {
+    const entityId = String(item.editing_billing_id || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "billing-legacy-" + Date.now() + "-" + Math.random().toString(36).slice(2)));
+    await enqueueOfflineOperation({ clinicId, userId: null, kind: "billing.save", entityId, payload: item });
+  }
+  if (billQueue.length) offlineStore.remove(billKey);
 }
 
 export async function processCoreOfflineOperations(clinicId: string): Promise<{ success: number; failed: number }> {
@@ -75,6 +94,13 @@ export async function processCoreOfflineOperations(clinicId: string): Promise<{ 
           const { error: itemError } = await apiClient.from("inventory_sale_items").insert(payload.items);
           if (itemError) throw new Error(itemError.message);
         }
+      } else if (operation.kind === "billing.save") {
+        const key = billsQueueKey(clinicId);
+        const queue = offlineStore.get<BillQueueItem[]>(key) ?? [];
+        queue.push(operation.payload as BillQueueItem);
+        offlineStore.save(key, queue);
+        await removeOfflineOperation(clinicId, operation.id);
+        continue;
       } else if (operation.kind === "payment.create") {
         const payload = operation.payload as any;
         const { data: existingPayment } = await apiClient.from("payments").select("id").eq("id", operation.entityId).eq("clinic_id", clinicId).maybeSingle();
@@ -337,6 +363,7 @@ export async function runOfflineSync(clinicId: string): Promise<void> {
   _syncRunning = true;
   try {
     toast.info('Offline sync started');
+    await migrateLegacyQueues(clinicId);
     await processCoreOfflineOperations(clinicId);
     await processAppointmentsQueue(clinicId);
     await processBillsQueue(clinicId);
