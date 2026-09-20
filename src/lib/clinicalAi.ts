@@ -1,6 +1,7 @@
 import { CreateMLCEngine, prebuiltAppConfig, type MLCEngineInterface, type InitProgressReport } from "@mlc-ai/web-llm";
 
-const MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
+const MOBILE_MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
+const DESKTOP_MODEL_ID = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
 
 let enginePromise: Promise<MLCEngineInterface> | null = null;
 
@@ -80,7 +81,35 @@ export function isClinicalAiSupported() {
 }
 
 export function clinicalAiModelId() {
-  return MODEL_ID;
+  return getClinicalAiModelId();
+}
+
+function getClinicalAiModelId() {
+  if (typeof window === "undefined") return MOBILE_MODEL_ID;
+
+  const nav = navigator as Navigator & {
+    deviceMemory?: number;
+    userAgentData?: { mobile?: boolean };
+  };
+
+  const isMobile =
+    Boolean(nav.userAgentData?.mobile) ||
+    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+  if (isMobile) return MOBILE_MODEL_ID;
+
+  const memory = nav.deviceMemory;
+  const cores = navigator.hardwareConcurrency || 0;
+  const capableDesktop = memory === undefined ? cores >= 4 : memory >= 4 || cores >= 6;
+
+  return capableDesktop ? DESKTOP_MODEL_ID : MOBILE_MODEL_ID;
+}
+
+function buildAppConfig() {
+  return {
+    ...prebuiltAppConfig,
+    cacheBackend: "indexeddb" as const,
+  };
 }
 
 export async function loadClinicalAi(onProgress?: (p: ClinicalAiProgress) => void) {
@@ -90,15 +119,20 @@ export async function loadClinicalAi(onProgress?: (p: ClinicalAiProgress) => voi
 
   if (!enginePromise) {
     enginePromise = (async () => {
-      const appConfig = {
-        ...prebuiltAppConfig,
-        cacheBackend: "indexeddb" as const,
-      };
+      const modelId = getClinicalAiModelId();
+      const appConfig = buildAppConfig();
+
+      onProgress?.({
+        text: modelId === DESKTOP_MODEL_ID
+          ? "Preparing desktop OptoCare AI..."
+          : "Preparing mobile OptoCare AI...",
+      });
       let lastError: unknown;
 
       for (let attempt = 1; attempt <= 3; attempt += 1) {
         try {
-          return await CreateMLCEngine(MODEL_ID, {\n            appConfig,
+          return await CreateMLCEngine(modelId, {
+            appConfig,
             initProgressCallback: (report: InitProgressReport) => {
               onProgress?.({
                 text: report.text,
