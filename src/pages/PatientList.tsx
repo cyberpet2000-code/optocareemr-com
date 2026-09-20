@@ -143,7 +143,7 @@ export default function PatientList() {
         }
         const patientIds = data.map(p => p.id);
         const [visitResponse, billingResponse] = await Promise.all([
-          apiClient.from("visits").select("id, patient_id, created_at, status").eq("clinic_id", cid).in("patient_id", patientIds).order("created_at", { ascending: false }),
+          apiClient.from("visits").select(isReceptionist ? "id, patient_id, created_at, status" : "*").eq("clinic_id", cid).in("patient_id", patientIds).order("created_at", { ascending: false }),
           canViewPayments ? apiClient.from("billing").select("patient_id, balance, amount_paid, status, payer_type").eq("clinic_id", cid).in("patient_id", patientIds) : Promise.resolve({ data: [] }),
         ]);
         const visitRows = visitResponse.data || [];
