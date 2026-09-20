@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
   const source = typeof req.query?.source === "string" ? req.query.source : "";
 
-  if (!source || !/^https:\/\/raw\.githubusercontent\.com\/mlc-ai\/binary-mlc-llm-libs\//.test(source)) {
+  if (!source || !/^https:\/\/(?:raw\.githubusercontent\.com\/mlc-ai\/binary-mlc-llm-libs|huggingface\.co\/mlc-ai\/)/.test(source)) {
     return res.status(400).json({ error: "Invalid model source." });
   }
 
