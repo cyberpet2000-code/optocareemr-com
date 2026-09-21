@@ -62,7 +62,7 @@ export function ClinicalAiAssistant({ clinicalCase, disabled }: Props) {
       </Button>
 
       <Dialog open={open} onOpenChange={handleOpen}>
-        <DialogContent className="rounded-3xl max-w-lg">
+        <DialogContent className="rounded-3xl max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Brain size={18} />
