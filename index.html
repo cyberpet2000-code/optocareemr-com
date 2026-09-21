@@ -8,6 +8,13 @@
     <meta http-equiv="Expires" content="0" />
     <!-- TODO: Set the document title to the name of your application -->
     <title>Optocareemr</title>
+
+    <!-- Register the offline app shell before the React bundle starts. -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }).catch(function () {});
+      }
+    </script>
     <meta name="description" content="A modern cloud-based EMR platform for eye clinics and optometry practices with multi-clinic support, patient management, refraction workflows, billing, appointm">
 
     <!-- TODO: Update og:title to match your application name -->
