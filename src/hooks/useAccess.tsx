@@ -505,7 +505,6 @@ console.debug("[access:stage1_complete]", {
           clinicUsersSettled.status === "rejected";
 
         if (
-          accessLookupHadError &&
           previousAccess.accessReady &&
           previousAccess.role &&
           (!nextAccessState.role || nextAccessState.roles.length === 0)
