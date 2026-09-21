@@ -1450,3 +1450,66 @@
     background: linear-gradient(180deg,#001D39 0%,#0A4174 62%,#001D39 100%) !important;
   }
 }
+
+/* ============================================================
+   OPTOCARE LOGIN — #7BBDE8 TOP-DOWN FADE
+   Login starts with the requested Light Sky Blue and gradually
+   deepens downward into the OptoCare clinical navy.
+   ============================================================ */
+@layer components {
+  .login-aurora {
+    background:
+      linear-gradient(
+        180deg,
+        #7BBDE8 0%,
+        #6EA2B3 30%,
+        #4E8EA2 58%,
+        #0A4174 82%,
+        #001D39 100%
+      ) !important;
+    color: #001D39 !important;
+  }
+
+  .login-aurora::before {
+    background: rgba(255,255,255,.16) !important;
+  }
+
+  .login-aurora::after {
+    background: rgba(0,29,57,.12) !important;
+  }
+
+  .login-design-panel {
+    background: rgba(0,29,57,.20) !important;
+    border-color: rgba(255,255,255,.30) !important;
+    box-shadow: 0 20px 60px rgba(0,29,57,.22) !important;
+    backdrop-filter: blur(18px);
+  }
+
+  .login-design-input {
+    background: rgba(0,29,57,.22) !important;
+    color: #001D39 !important;
+    border-color: rgba(255,255,255,.38) !important;
+  }
+
+  .login-design-input::placeholder {
+    color: rgba(0,29,57,.62) !important;
+  }
+
+  .login-design-primary {
+    background: #001D39 !important;
+    color: #FFFFFF !important;
+    border-color: #001D39 !important;
+  }
+
+  .login-design-secondary {
+    background: rgba(255,255,255,.16) !important;
+    color: #001D39 !important;
+    border-color: rgba(255,255,255,.38) !important;
+  }
+
+  .login-eye-visual {
+    background:
+      radial-gradient(circle at 50% 25%, rgba(123,189,232,.45), transparent 50%),
+      linear-gradient(180deg,#4E8EA2 0%,#0A4174 55%,#001D39 100%) !important;
+  }
+}
