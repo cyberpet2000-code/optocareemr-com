@@ -831,29 +831,29 @@ if (user?.id) {
 
   return (
     <div className="dashboard-page min-h-screen">
-      <div className="dashboard-hero mb-6 overflow-hidden rounded-3xl border border-border/60">
+      <div className="dashboard-hero mb-6 overflow-hidden rounded-3xl border border-border/70">
         <div className="relative p-5 sm:p-6 lg:p-7">
           <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">
               <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/80 backdrop-blur-sm">
-                <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.8)]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-teal-300 shadow-[0_0_10px_rgba(94,234,212,0.65)]" />
                 {roleLabel}
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                {getGreeting()}, <span className="text-cyan-200">{displayName}</span>
+                {getGreeting()}, <span className="text-teal-100">{displayName}</span>
               </h1>
-              <p className="mt-1.5 text-xs text-white/65 sm:text-sm">
+              <p className="mt-1.5 text-xs text-white/70 sm:text-sm">
                 {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-                {clinic?.name ? <> <span className="mx-1.5 text-white/30">•</span> {clinic.name}</> : null}
+                {clinic?.name ? <> <span className="mx-1.5 text-white/35">•</span> {clinic.name}</> : null}
               </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
               <Link to="/register" className="dashboard-hero-action dashboard-hero-action-primary">
-                <Users size={15} /> New patient
+                <Users size={15} /> New patient <ChevronRight size={14} />
               </Link>
               <Link to="/appointments" className="dashboard-hero-action">
-                <CalendarDays size={15} /> Appointments
+                <CalendarDays size={15} /> Appointments <ChevronRight size={14} />
               </Link>
             </div>
           </div>
