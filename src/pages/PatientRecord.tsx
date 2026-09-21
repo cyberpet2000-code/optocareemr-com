@@ -1943,6 +1943,7 @@ transition-colors
       <Tabs defaultValue="history" className="space-y-4">
         <TabsList
 className="
+optocare-clinical-tabs
 sticky
 top-14
 z-30
@@ -1951,7 +1952,6 @@ flex
 overflow-x-auto
 rounded-2xl
 border
-bg-background/95
 backdrop-blur
 p-1
 shadow-sm
