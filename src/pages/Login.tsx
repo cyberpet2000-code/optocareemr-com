@@ -208,17 +208,6 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="mt-5 space-y-2">
-          <div className="login-eye-visual" aria-hidden="true">
-            <div className="login-eye-shape">
-              <div className="login-eye-iris" />
-            </div>
-          </div>
-          <p className="text-center text-[11px] login-eye-caption">
-            Trusted by eye care professionals
-          </p>
-        </div>
-
         <div className="mt-4 text-center space-y-2">
           <p className="text-[11px] text-muted-foreground/80">
             Trusted by Eye Clinics • Secure • HIPAA-Aligned
