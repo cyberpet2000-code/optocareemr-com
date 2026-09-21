@@ -764,6 +764,27 @@
     color: #001D39;
   }
 
+  /* Patient records/cards and clinical text-entry surfaces use the
+     official #BDD8E9 background to keep the interface calm and consistent. */
+  .patient-card-surface {
+    background: #BDD8E9 !important;
+    border-color: hsl(205 32% 55% / 0.38) !important;
+    color: #001D39;
+  }
+
+  textarea,
+  textarea.bg-background,
+  textarea.bg-card,
+  textarea.bg-white {
+    background-color: #BDD8E9 !important;
+    color: #001D39;
+    border-color: hsl(205 32% 55% / 0.42);
+  }
+
+  textarea::placeholder {
+    color: hsl(210 52% 25% / 0.62);
+  }
+
   /* OptoCare brand-only status system: semantic states remain distinct through
      tone/opacity, while avoiding unrelated red/yellow/green UI colours. */
   :root {
