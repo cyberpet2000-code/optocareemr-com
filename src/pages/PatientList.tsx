@@ -96,6 +96,26 @@ export default function PatientList() {
   const [searchParams] = useSearchParams();
   const filter = searchParams.get("filter");
 
+  const patientListStateKey = `optocare:patient-list-state:${filter || "all"}`;
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(patientListStateKey) || "{}");
+      if (typeof saved.search === "string") setSearch(saved.search);
+      if (["all", "hmo", "private", "family"].includes(saved.searchMode)) setSearchMode(saved.searchMode);
+      if (typeof saved.selectedHmo === "string") setSelectedHmo(saved.selectedHmo);
+      if (typeof saved.selectedFamily === "string") setSelectedFamily(saved.selectedFamily);
+      if (typeof saved.showAdvancedSearch === "boolean") setShowAdvancedSearch(saved.showAdvancedSearch);
+    } catch {}
+  }, [patientListStateKey]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(patientListStateKey, JSON.stringify({
+        search, searchMode, selectedHmo, selectedFamily, showAdvancedSearch,
+      }));
+    } catch {}
+  }, [patientListStateKey, search, searchMode, selectedHmo, selectedFamily, showAdvancedSearch]);
+
   useEffect(() => {
     if (!cid) { setPatients([]); setLoading(false); return; }
     if (roleLoading) return;
