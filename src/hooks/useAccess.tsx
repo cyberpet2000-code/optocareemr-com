@@ -479,7 +479,7 @@ console.debug("[access:stage1_complete]", {
           membershipRows = sortMemberships(mergeMemberships({ userRolesRows, clinicUsersRows, clinicMap }));
         }
 
-        const nextAccessState: AccessState = {
+        let nextAccessState: AccessState = {
           accessReady: true,
           profile: nextProfile,
           clinic: null,
@@ -490,6 +490,41 @@ console.debug("[access:stage1_complete]", {
           resolvedClinicId: null,
           clinicResolutionFailed: false,
         };
+
+        // A background/network refresh must never erase a previously verified
+        // role or clinic membership just because one of the access queries
+        // temporarily failed or returned no rows. Preserve the last known-good
+        // access state and let a later successful refresh replace it.
+        const previousAccess = accessStateRef.current;
+        const accessLookupHadError =
+          !!profileResult.error ||
+          !!userRolesResult.error ||
+          !!clinicUsersResult.error ||
+          profileSettled.status === "rejected" ||
+          userRolesSettled.status === "rejected" ||
+          clinicUsersSettled.status === "rejected";
+
+        if (
+          accessLookupHadError &&
+          previousAccess.accessReady &&
+          previousAccess.role &&
+          (!nextAccessState.role || nextAccessState.roles.length === 0)
+        ) {
+          nextAccessState = {
+            ...previousAccess,
+            accessReady: true,
+            profileError: profileResult.error || previousAccess.profileError || null,
+            clinicResolutionFailed: false,
+          };
+          completedLoadKeyRef.current = loadKey;
+          console.warn("[access:preserve_last_known_good]", {
+            reason,
+            user_id: nextUser.id,
+            role: previousAccess.role,
+            clinic_id: previousAccess.resolvedClinicId,
+          });
+          return;
+        }
 
         const isSuperAdminUser = primaryRole === "super_admin" || nextProfile?.is_super_admin === true;
 
