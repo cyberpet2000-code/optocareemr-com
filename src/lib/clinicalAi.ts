@@ -1,9 +1,10 @@
-import { CreateMLCEngine, prebuiltAppConfig, type MLCEngineInterface, type InitProgressReport } from "@mlc-ai/web-llm";
+import { CreateWebWorkerMLCEngine, prebuiltAppConfig, type MLCEngineInterface, type InitProgressReport } from "@mlc-ai/web-llm";
 
 const MOBILE_MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
 const DESKTOP_MODEL_ID = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
 
 let enginePromise: Promise<MLCEngineInterface> | null = null;
+let engineWorker: Worker | null = null;
 
 export type ClinicalAiProgress = {
   text: string;
@@ -199,7 +200,11 @@ export async function loadClinicalAi(onProgress?: (p: ClinicalAiProgress) => voi
 
       for (let attempt = 1; attempt <= 3; attempt += 1) {
         try {
-          return await CreateMLCEngine(modelId, {
+          engineWorker = new Worker(new URL("./clinicalAi.worker.ts", import.meta.url), {
+            type: "module",
+          });
+
+          return await CreateWebWorkerMLCEngine(engineWorker, modelId, {
             appConfig,
             initProgressCallback: (report: InitProgressReport) => {
               onProgress?.({
@@ -244,6 +249,8 @@ export async function loadClinicalAi(onProgress?: (p: ClinicalAiProgress) => voi
     enginePromise.catch(() => {
       // Allow the next Analyze attempt to retry initialization after a failed download.
       enginePromise = null;
+      engineWorker?.terminate();
+      engineWorker = null;
     });
   }
 
