@@ -117,18 +117,55 @@ function buildAppConfig() {
     throw new Error("OptoCare AI model configuration is unavailable in this WebLLM build.");
   }
 
-  // Use WebLLM's canonical Hugging Face model URLs directly.
-  // Keeping the model assets direct avoids routing large model shards through
-  // Vercel serverless functions. WebLLM stores downloaded assets in IndexedDB.
-  // Prefer OPFS on modern Chrome/Android because it is designed for
-  // large local binary model files. Fall back to IndexedDB where OPFS
-  // is unavailable.
+  // Keep model downloads on the OptoCare origin. Vercel's external
+  // rewrites proxy these requests through the OptoCare CDN instead of making
+  // the phone/browser connect directly to Hugging Face or raw.githubusercontent.com.
+  // This avoids common mobile-network/CORS failures while preserving WebLLM's
+  // normal large-file downloads and range requests.
   const supportsOpfs =
     typeof navigator !== "undefined" &&
     typeof navigator.storage?.getDirectory === "function";
 
+  const proxyModelUrl = (modelUrl: string, modelId: string) => {
+    try {
+      const parsed = new URL(modelUrl);
+      if (parsed.hostname !== "huggingface.co") return modelUrl;
+
+      const marker = "/resolve/main/";
+      const markerIndex = parsed.pathname.indexOf(marker);
+      const encodedModelId = encodeURIComponent(modelId);
+
+      if (markerIndex >= 0) {
+        const assetPath = parsed.pathname.slice(markerIndex + marker.length);
+        return assetPath
+          ? `/clinical-ai-assets/${encodedModelId}/${assetPath}`
+          : `/clinical-ai-assets/${encodedModelId}`;
+      }
+
+      return `/clinical-ai-assets/${encodedModelId}`;
+    } catch {
+      return modelUrl;
+    }
+  };
+
+  const proxyModelLibUrl = (modelLibUrl: string) => {
+    try {
+      const parsed = new URL(modelLibUrl);
+      if (parsed.hostname !== "raw.githubusercontent.com") return modelLibUrl;
+      return `/clinical-ai-lib${parsed.pathname}`;
+    } catch {
+      return modelLibUrl;
+    }
+  };
+
+  const proxyRecord = (record: typeof mobileRecord) => ({
+    ...record,
+    model: proxyModelUrl(record.model, record.model_id),
+    model_lib: proxyModelLibUrl(record.model_lib),
+  });
+
   return {
-    model_list: [mobileRecord, desktopRecord],
+    model_list: [proxyRecord(mobileRecord), proxyRecord(desktopRecord)],
     cacheBackend: supportsOpfs ? ("opfs" as const) : ("indexeddb" as const),
     ...(supportsOpfs ? { opfsAccessMode: "auto" as const } : {}),
   };
@@ -173,6 +210,21 @@ export async function loadClinicalAi(onProgress?: (p: ClinicalAiProgress) => voi
             await new Promise((resolve) => setTimeout(resolve, 1200 * attempt));
           }
         }
+      }
+
+      const message = lastError instanceof Error ? lastError.message : "";
+      const normalized = message.toLowerCase();
+
+      if (
+        normalized.includes("failed to fetch") ||
+        normalized.includes("network error") ||
+        normalized.includes("networkerror") ||
+        normalized.includes("cache") ||
+        normalized.includes("unexpected token '<'")
+      ) {
+        throw new Error(
+          "OptoCare AI could not download its local model. Please stay connected to the internet and try again. If the problem continues on Wi-Fi, the model service may be temporarily unavailable.",
+        );
       }
 
       throw lastError instanceof Error
