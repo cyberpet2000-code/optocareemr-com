@@ -28,7 +28,12 @@ export function ClinicalAiAssistant({ clinicalCase, disabled }: Props) {
       const result = await analyzeClinicalCase(clinicalCase, setProgress);
       setAnalysis(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to run OptoCare AI.");
+      const message = err instanceof Error ? err.message : "Unable to run OptoCare AI.";
+      setError(
+        message === "Failed to fetch" || message === "NetworkError"
+          ? "OptoCare AI could not connect to the local model service. Please stay connected and try again."
+          : message,
+      );
     } finally {
       setLoading(false);
     }
