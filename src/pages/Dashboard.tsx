@@ -976,7 +976,7 @@ if (user?.id) {
 
       {(isDoctor || isReceptionist || isAdmin || isSuperAdmin) && (
         <section className="mb-6">
-          <div className="medical-card">
+          <div className="medical-card dashboard-soft-section">
             <SectionHeader title="Recent patients" to="/patients" />
             {loading ? (
               <div className="flex items-center justify-center py-7"><OptoLoader size={36} /></div>
@@ -1098,7 +1098,7 @@ function TodaySchedule({
   });
 
   return (
-    <div className="medical-card mb-6 overflow-hidden">
+    <div className="medical-card dashboard-soft-section mb-6 overflow-hidden">
       <div className="flex items-center justify-between gap-3 mb-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
