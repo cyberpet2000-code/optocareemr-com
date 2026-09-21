@@ -752,8 +752,58 @@
   .stat-card,
   .form-section,
   .glass-panel {
-    background: linear-gradient(135deg, #C8DFEC 0%, #BDD8E9 100%);
+    background: #C8DFEC;
     border-color: hsl(205 32% 55% / 0.34);
+  }
+
+  /* Clinical cards use one calm surface to reduce visual contrast and screen fatigue. */
+  .medical-card,
+  .stat-card,
+  .form-section,
+  .glass-panel {
+    color: #001D39;
+  }
+
+  /* OptoCare brand-only status system: semantic states remain distinct through
+     tone/opacity, while avoiding unrelated red/yellow/green UI colours. */
+  :root {
+    --success: 194 35% 47%;          /* #4E8EA2 Teal Blue */
+    --success-foreground: 0 0% 100%;
+    --warning: 203 68% 70%;          /* #7BBDE8 Light Sky Blue */
+    --warning-foreground: 210 100% 11%;
+    --destructive: 210 35% 45%;      /* Slate/navy brand tone */
+    --destructive-foreground: 0 0% 100%;
+    --info: 208 84% 25%;              /* #0A4174 Navy Blue */
+    --info-foreground: 0 0% 100%;
+    --violet: 193 32% 57%;            /* #6EA2B3 Muted Aqua */
+  }
+
+  /* Clinical record tabs: dark navy navigation for History, VA,
+     Refraction, Exam, Dx & Tx, Past and Payment History. */
+  .optocare-clinical-tabs {
+    background: hsl(203 47% 83% / 0.92);
+    border-color: hsl(210 100% 11% / 0.20);
+  }
+
+  .optocare-clinical-tabs [data-radix-collection-item] {
+    color: #001D39;
+    font-weight: 600;
+  }
+
+  .optocare-clinical-tabs [data-radix-collection-item]:hover {
+    background: hsl(203 68% 70% / 0.34);
+    color: #001D39;
+  }
+
+  .optocare-clinical-tabs [data-state="active"] {
+    background: #001D39;
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px -6px hsl(210 100% 11% / 0.55);
+  }
+
+  .optocare-clinical-tabs [data-state="active"]:hover {
+    background: #001D39;
+    color: #FFFFFF;
   }
 
   .glass-card {
