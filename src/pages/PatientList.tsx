@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAccess } from "@/hooks/useAccess";
 import { useRole } from "@/hooks/useRole";
 import { offlineStore } from "@/lib/offlineStore";
-import { cachePatientOffline, cacheVisitsOffline, cacheStaffProfilesOffline } from "@/lib/offlineEngine";
+import { cachePatientsOffline, cacheVisitsOffline, cacheStaffProfilesOffline } from "@/lib/offlineEngine";
 import { useOffline } from "@/hooks/useOffline";
 import PatientHistoryMeta from "@/components/patients/PatientHistoryMeta";
 import { buildBillingSummaryMap, buildVisitSummaryMap, getPaymentStatus, type PatientBillingSummary, type PatientVisitSummary } from "@/lib/patientHistory";
@@ -178,28 +178,18 @@ export default function PatientList() {
         offlineStore.save(cacheKey, rows);
         offlineStore.save(`patients:${cid}:all`, data);
 
-        // Keep the clinical workspace useful when the connection drops.
-        // Patient demographics are cached for every role. Full visit history
-        // is cached only for roles that are allowed to see clinical details.
-        rows.forEach((patient: any) => {
-          cachePatientOffline(cid, {
-            ...patient,
-            hmo_name: patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : undefined,
-          });
-        });
-        if (!isReceptionist) {
-          const visitsByPatient = new Map<string, any[]>();
-          visitRows.forEach((visit: any) => {
-            const list = visitsByPatient.get(visit.patient_id) || [];
-            list.push(visit);
-            visitsByPatient.set(visit.patient_id, list);
-          });
-          visitsByPatient.forEach((patientVisits, patientId) => {
-            cacheVisitsOffline(cid, patientId, patientVisits);
-          });
+        // Cache the complete patient list in one write. Repeatedly rewriting
+        // the growing patient array for every patient can freeze the browser
+        // and exhaust localStorage on larger clinics.
+        cachePatientsOffline(cid, rows.map((patient: any) => ({
+          ...patient,
+          hmo_name: patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : undefined,
+        })));
 
-          // Cache the staff identities referenced by these visits so offline
-          // records can still show Doctor/Registered by names.
+        if (!isReceptionist) {
+          // Do not preload every patient's complete clinical history from the
+          // patient list. PatientRecord caches a patient's full history when
+          // that record is opened, keeping PatientList lightweight and reliable.
           const staffIds = Array.from(new Set(
             visitRows.flatMap((visit: any) => [visit.doctor_id, visit.registered_by]).filter(Boolean),
           ));
