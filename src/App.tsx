@@ -231,26 +231,75 @@ const LandingRedirect = memo(function LandingRedirect() {
 
 function RouteScrollRestoration() {
   const location = useLocation();
-  const positions = useRef<Record<string, number>>({});
-  const previousKey = useRef<string | null>(null);
+  const stateKey = location.pathname + location.search;
+  const currentKey = useRef(stateKey);
+
+  const getScrollableElements = () =>
+    Array.from(document.querySelectorAll<HTMLElement>("[data-oc-scroll]"));
+
+  const saveState = () => {
+    const containers: Record<string, number> = {};
+    getScrollableElements().forEach((element, index) => {
+      containers[String(index)] = element.scrollTop;
+    });
+    try {
+      sessionStorage.setItem("optocare:navigation-state", JSON.stringify({
+        key: currentKey.current,
+        windowY: window.scrollY,
+        containers,
+      }));
+    } catch {}
+  };
 
   useEffect(() => {
-    const currentKey = location.key;
-    if (previousKey.current && previousKey.current !== currentKey) {
-      positions.current[previousKey.current] = window.scrollY;
-    }
-    previousKey.current = currentKey;
-    const saved = positions.current[currentKey];
-    window.requestAnimationFrame(() => window.scrollTo(0, saved ?? 0));
-  }, [location.key]);
+    if (currentKey.current !== stateKey) saveState();
+    currentKey.current = stateKey;
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        const raw = sessionStorage.getItem("optocare:navigation-state");
+        const saved = raw ? JSON.parse(raw) : null;
+        if (!saved || saved.key !== stateKey) {
+          window.scrollTo(0, 0);
+          return;
+        }
+        window.scrollTo(0, saved.windowY ?? 0);
+        getScrollableElements().forEach((element, index) => {
+          const position = saved.containers?.[String(index)];
+          if (typeof position === "number") element.scrollTop = position;
+        });
+      } catch {
+        window.scrollTo(0, 0);
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [stateKey]);
 
   useEffect(() => {
-    const save = () => {
-      if (previousKey.current) positions.current[previousKey.current] = window.scrollY;
-    };
+    const save = () => saveState();
     window.addEventListener("scroll", save, { passive: true });
-    return () => window.removeEventListener("scroll", save);
+    window.addEventListener("beforeunload", save);
+    return () => {
+      window.removeEventListener("scroll", save);
+      window.removeEventListener("beforeunload", save);
+    };
   }, []);
+
+  useEffect(() => {
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+    history.pushState = function (...args) {
+      saveState();
+      return originalPushState.apply(this, args);
+    };
+    history.replaceState = function (...args) {
+      saveState();
+      return originalReplaceState.apply(this, args);
+    };
+    return () => {
+      history.pushState = originalPushState;
+      history.replaceState = originalReplaceState;
+    };
+  });
 
   return null;
 }
