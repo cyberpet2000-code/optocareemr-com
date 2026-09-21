@@ -1268,3 +1268,45 @@
     background-color: #C8DFEC !important;
   }
 }
+
+/* OptoCare Design System v1.1 — neutral primary application background */
+@layer base {
+  :root {
+    --oc-primary-background: #E5E5E5;
+    --background: 0 0% 90.2%;
+  }
+  body {
+    background: #E5E5E5 !important;
+    background-image: none !important;
+  }
+}
+@layer components {
+  .dashboard-page {
+    background: #E5E5E5 !important;
+  }
+
+  /* Keep clinical cards distinct from the neutral application background. */
+  .medical-card,
+  .stat-card,
+  .form-section,
+  .glass-panel,
+  .glass-card,
+  .dashboard-soft-section,
+  .appointment-item,
+  .dashboard-rating,
+  .bg-card,
+  .bg-popover {
+    background: #C8DFEC !important;
+  }
+
+  .patient-card-surface,
+  .patient-card,
+  .patient-record-card {
+    background: #BDD8E9 !important;
+  }
+
+  header.sticky,
+  .bottom-nav {
+    background: rgba(229, 229, 229, 0.96) !important;
+  }
+}
