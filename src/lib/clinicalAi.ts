@@ -117,16 +117,11 @@ function buildAppConfig() {
     throw new Error("OptoCare AI model configuration is unavailable in this WebLLM build.");
   }
 
-  const proxyRecord = (record: typeof mobileRecord) => ({
-    ...record,
-    // WebLLM resolves mlc-chat-config.json and tensor shards relative to
-    // model, so the model directory itself must be proxied.
-    model: `${window.location.origin}/api/clinical-ai-model/${encodeURIComponent(record.model_id)}/resolve/main/`,
-    model_lib: `${window.location.origin}/api/clinical-ai-model-lib?source=${encodeURIComponent(record.model_lib)}`,
-  });
-
+  // Use WebLLM's canonical Hugging Face model URLs directly.
+  // Keeping the model assets direct avoids routing large model shards through
+  // Vercel serverless functions. WebLLM stores downloaded assets in IndexedDB.
   return {
-    model_list: [proxyRecord(mobileRecord), proxyRecord(desktopRecord)],
+    model_list: [mobileRecord, desktopRecord],
     cacheBackend: "indexeddb" as const,
   };
 }
