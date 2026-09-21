@@ -248,6 +248,29 @@
     transform: translateY(-1px);
   }
 
+  /* Dashboard content sections share the same calm clinical surface as the
+     Today and monthly overview areas, including in dark mode. */
+  .dashboard-soft-section {
+    background:
+      linear-gradient(135deg, hsl(190 38% 92% / 0.88), hsl(202 34% 95% / 0.92));
+    border-color: hsl(195 28% 84% / 0.85);
+    box-shadow: 0 5px 20px -14px hsl(205 35% 20% / 0.28);
+  }
+
+  .dashboard-soft-section .bg-card {
+    background: hsl(195 30% 97% / 0.78);
+  }
+
+  .dark .dashboard-soft-section {
+    background:
+      linear-gradient(135deg, hsl(195 30% 16% / 0.94), hsl(205 28% 13% / 0.96));
+    border-color: hsl(195 24% 25% / 0.9);
+  }
+
+  .dark .dashboard-soft-section .bg-card {
+    background: hsl(205 25% 17% / 0.88);
+  }
+
   .dashboard-rating {
     background: hsl(var(--card) / 0.82);
     border-color: hsl(var(--border) / 0.8);
