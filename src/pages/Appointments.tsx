@@ -632,9 +632,9 @@ export default function Appointments() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
         <div className="medical-card appointment-stat appointment-stat-teal p-3"><p className="text-[10px] text-muted-foreground">Today</p><p className="text-xl font-bold mt-1">{stats.today}</p></div>
-        <div className="medical-card appointment-stat appointment-stat-blue p-3"><p className="text-[10px] text-muted-foreground">Pending</p><p className="text-xl font-bold mt-1">{stats.pending}</p></div>
+        <div className="medical-card appointment-stat appointment-stat-teal p-3"><p className="text-[10px] text-muted-foreground">Pending</p><p className="text-xl font-bold mt-1">{stats.pending}</p></div>
         <div className="medical-card appointment-stat appointment-stat-blue p-3"><p className="text-[10px] text-muted-foreground">Confirmed</p><p className="text-xl font-bold mt-1">{stats.confirmed}</p></div>
-        <div className="medical-card appointment-stat appointment-stat-warning p-3"><p className="text-[10px] text-muted-foreground">Reminder due</p><p className="text-xl font-bold mt-1">{stats.reminders}</p></div>
+        <div className="medical-card appointment-stat appointment-stat-blue p-3"><p className="text-[10px] text-muted-foreground">Reminder due</p><p className="text-xl font-bold mt-1">{stats.reminders}</p></div>
       </div>
 
       <div className="flex flex-col gap-1 mb-4">
