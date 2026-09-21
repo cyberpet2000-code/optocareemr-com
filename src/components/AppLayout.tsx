@@ -15,7 +15,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { diag } from "@/lib/diag";
 import { useOffline } from "@/hooks/useOffline";
 import { registerAutomaticSync, runOfflineSync } from "@/lib/offlineSync";
-import { getOfflineOperations } from "@/lib/offlineEngine";
+import { getOfflineSyncStatus } from "@/lib/offlineEngine";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -58,9 +58,9 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
 
   const refreshOfflineSyncStatus = useCallback(async () => {
     if (!effectiveClinicId || isSuperAdminWs) return;
-    const operations = await getOfflineOperations(effectiveClinicId);
-    setOfflineSyncPending(operations.length);
-    setOfflineSyncFailed(operations.filter((operation) => operation.attempts > 0).length);
+    const status = await getOfflineSyncStatus(effectiveClinicId);
+    setOfflineSyncPending(status.pending);
+    setOfflineSyncFailed(status.failed);
   }, [effectiveClinicId, isSuperAdminWs]);
 
   useEffect(() => {
