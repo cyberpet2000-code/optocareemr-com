@@ -830,24 +830,38 @@ if (user?.id) {
   const roleLabel = isDoctor ? "Clinical dashboard" : isReceptionist ? "Front desk dashboard" : isSuperAdmin ? "System management dashboard" : "Clinic management dashboard";
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ background: "linear-gradient(180deg,#F7FAFC 0%,#EEF5F9 100%)" }}
-    >
-      <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-            {getGreeting()}, <span className="text-primary">{displayName}</span>
-          </h1>
-          <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
-            {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-          </p>
-        </div>
+    <div className="dashboard-page min-h-screen">
+      <div className="dashboard-hero mb-6 overflow-hidden rounded-3xl border border-border/60">
+        <div className="relative p-5 sm:p-6 lg:p-7">
+          <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/80 backdrop-blur-sm">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.8)]" />
+                {roleLabel}
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                {getGreeting()}, <span className="text-cyan-200">{displayName}</span>
+              </h1>
+              <p className="mt-1.5 text-xs text-white/65 sm:text-sm">
+                {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                {clinic?.name ? <> <span className="mx-1.5 text-white/30">•</span> {clinic.name}</> : null}
+              </p>
+            </div>
 
+            <div className="flex flex-wrap gap-2">
+              <Link to="/register" className="dashboard-hero-action dashboard-hero-action-primary">
+                <Users size={15} /> New patient
+              </Link>
+              <Link to="/appointments" className="dashboard-hero-action">
+                <CalendarDays size={15} /> Appointments
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
 
       {!isAdmin && (isDoctor || isReceptionist) && (
-        <div className="mb-5 inline-flex items-center gap-2 rounded-xl border bg-card px-3 py-2 shadow-sm">
+        <div className="dashboard-rating mb-5 inline-flex items-center gap-2 rounded-xl border px-3 py-2">
           <Star size={14} className="fill-current text-amber-500" />
           {staffRating !== null ? (
             <span className="text-xs font-medium">{staffRating.toFixed(1)} · {staffRatingCount} patient rating{staffRatingCount === 1 ? "" : "s"}</span>
@@ -858,15 +872,15 @@ if (user?.id) {
       )}
 
       {appointmentReminderDue > 0 && (isReceptionist || isAdmin || isSuperAdmin) && (
-        <Link to="/appointments" className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-300/70 bg-amber-50/80 p-3.5 shadow-sm transition-colors hover:bg-amber-50">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+        <Link to="/appointments" className="dashboard-alert mb-5 flex items-start gap-3 rounded-2xl border p-3.5 shadow-sm transition-colors">
+          <div className="dashboard-alert-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
             <BellRing size={17} className="text-amber-700" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-amber-900">{appointmentReminderDue} appointment reminder{appointmentReminderDue === 1 ? "" : "s"} due</p>
-            <p className="mt-0.5 text-xs text-amber-800/80">Open Appointments to prepare and send the WhatsApp reminder.</p>
+            <p className="text-sm font-semibold dashboard-alert-title">{appointmentReminderDue} appointment reminder{appointmentReminderDue === 1 ? "" : "s"} due</p>
+            <p className="mt-0.5 text-xs dashboard-alert-copy">Open Appointments to prepare and send the WhatsApp reminder.</p>
           </div>
-          <ChevronRight size={16} className="mt-1 shrink-0 text-amber-700" />
+          <ChevronRight size={16} className="mt-1 shrink-0 dashboard-alert-icon-text" />
         </Link>
       )}
 
@@ -1005,8 +1019,8 @@ if (user?.id) {
               <SectionHeader title="Needs attention" subtitle="Items that may need staff action." />
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                 {appointmentReminderDue > 0 && (
-                  <Link to="/appointments" className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 hover:bg-amber-50">
-                    <BellRing size={16} className="mb-2 text-amber-700" />
+                  <Link to="/appointments" className="dashboard-attention-warning rounded-xl border p-3">
+                    <BellRing size={16} className="mb-2 dashboard-attention-warning-icon" />
                     <p className="text-xs font-semibold">Reminders</p>
                     <p className="text-lg font-bold">{appointmentReminderDue}</p>
                     <p className="text-[10px] text-muted-foreground">Due now</p>
@@ -1022,7 +1036,7 @@ if (user?.id) {
                 )}
                 {(lowStockCount > 0 || drugAlerts > 0) && (
                   <Link to="/inventory" className="rounded-xl border bg-card p-3 hover:border-primary/30">
-                    <AlertTriangle size={16} className="mb-2 text-amber-600" />
+                    <AlertTriangle size={16} className="mb-2 dashboard-attention-warning-icon" />
                     <p className="text-xs font-semibold">Stock alerts</p>
                     <p className="text-lg font-bold">{lowStockCount + drugAlerts}</p>
                     <p className="text-[10px] text-muted-foreground">Review inventory</p>
@@ -1166,12 +1180,12 @@ function TodaySchedule({
                 </p>
 
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[9px] font-semibold text-green-700">
+                  <span className="dashboard-status-success inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold">
                     <CheckCircle2 size={10} />
                     {a.status === "confirmed" ? "Confirmed" : "Pending"}
                   </span>
                   {a.priority && a.priority !== "normal" && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold text-amber-700">
+                    <span className="dashboard-status-warning inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold">
                       <CircleDot size={10} />
                       {String(a.priority).replace(/_/g, " ")}
                     </span>
