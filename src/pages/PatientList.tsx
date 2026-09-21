@@ -4,7 +4,10 @@ import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Search, ChevronRight, UserPlus, Phone, MessageCircle, Users, FileText, Play,
   CheckCircle,
-  XCircle,} from "lucide-react";
+  XCircle,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -43,6 +46,8 @@ interface PatientRow {
   balance?: number;
   visitSummary: PatientVisitSummary;
   billingSummary: PatientBillingSummary;
+  family_id?: string | null;
+  family_name?: string | null;
 }
 
 
@@ -72,6 +77,12 @@ export default function PatientList() {
   const { isOffline } = useOffline();
   const [patients, setPatients] = useState<PatientRow[]>([]);
   const [search, setSearch] = useState("");
+  const [searchMode, setSearchMode] = useState<"all" | "hmo" | "private" | "family">("all");
+  const [selectedHmo, setSelectedHmo] = useState("");
+  const [selectedFamily, setSelectedFamily] = useState("");
+  const [hmoOptions, setHmoOptions] = useState<{ id: string; name: string }[]>([]);
+  const [familyOptions, setFamilyOptions] = useState<{ id: string; family_name: string; family_number?: string | null }[]>([]);
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [loading, setLoading] = useState(true);
   const [feedbackStatusMap, setFeedbackStatusMap] = useState<Record<string, "none" | "pending" | "completed">>({});
   const [feedbackFollowups, setFeedbackFollowups] = useState<any[]>([]);
@@ -150,10 +161,29 @@ export default function PatientList() {
           : allPatientData;
         const hmoIds = [...new Set(data.map((p: any) => p.active_hmo_id).filter(Boolean))];
         let hmoMap = new Map<string, string>();
-        if (hmoIds.length > 0) {
-          const { data: hmos } = await apiClient.from("hmos").select("id, name").eq("clinic_id", cid).in("id", hmoIds as string[]);
-          hmoMap = new Map((hmos || []).map((h: any) => [h.id, h.name]));
+        const { data: allHmos } = await apiClient.from("hmos").select("id, name").eq("clinic_id", cid).eq("status", "active").order("name");
+        if (allHmos) {
+          setHmoOptions(allHmos as { id: string; name: string }[]);
+          hmoMap = new Map((allHmos || []).map((h: any) => [h.id, h.name]));
         }
+
+        const familyIds = [...new Set(data.map((p: any) => p.family_id).filter(Boolean))];
+        let familyMap = new Map<string, string>();
+        if (familyIds.length > 0) {
+          const { data: familyRows } = await apiClient
+            .from("families")
+            .select("id, family_name, family_number")
+            .eq("clinic_id", cid)
+            .in("id", familyIds as string[]);
+          familyMap = new Map((familyRows || []).map((f: any) => [f.id, f.family_name]));
+        }
+        const { data: allFamilyRows } = await apiClient
+          .from("families")
+          .select("id, family_name, family_number")
+          .eq("clinic_id", cid)
+          .order("family_name");
+        if (allFamilyRows) setFamilyOptions(allFamilyRows as any);
+
         const patientIds = data.map(p => p.id);
         const [visitResponse, billingResponse] = await Promise.all([
           apiClient.from("visits").select(isReceptionist ? "id, patient_id, created_at, status" : "*").eq("clinic_id", cid).in("patient_id", patientIds).order("created_at", { ascending: false }),
@@ -173,7 +203,7 @@ export default function PatientList() {
         const paymentTypes = new Map(data.map((p: any) => [p.id, p.payment_type]));
         const visitSummaryMap = buildVisitSummaryMap(visitRows || []);
         const billingSummaryMap = buildBillingSummaryMap(bills || [], paymentTypes);
-        const rows = data.map((p: any) => ({ ...p, hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined, balance: balanceMap.get(p.id) || 0, visitSummary: visitSummaryMap.get(p.id) || { visitCount: 0, lastVisit: null }, billingSummary: billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type), feedbackStatus: nextFeedbackStatusMap[p.id] || "none" }));
+        const rows = data.map((p: any) => ({ ...p, hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined, family_name: p.family_id ? familyMap.get(p.family_id) : undefined, balance: balanceMap.get(p.id) || 0, visitSummary: visitSummaryMap.get(p.id) || { visitCount: 0, lastVisit: null }, billingSummary: billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type), feedbackStatus: nextFeedbackStatusMap[p.id] || "none" }));
         setPatients(rows);
         offlineStore.save(cacheKey, rows);
         offlineStore.save(`patients:${cid}:all`, data);
@@ -227,12 +257,128 @@ export default function PatientList() {
     } catch (error) { console.error("Failed to update follow-up:", error); alert("Unable to update this follow-up. Please try again."); }
     finally { setUpdatingFollowup(false); }
   };
-  const filtered = patients.filter(p => p.full_name.toLowerCase().includes(search.toLowerCase()) || p.phone?.includes(search));
+  const normalizedSearch = search.trim().toLowerCase().replace(/[\\p{P}\\p{S}]+/gu, " ").replace(/\\s+/g, " ");
+  const searchTerms = normalizedSearch.split(" ").filter(Boolean);
+  const wantsHmo = searchTerms.includes("hmo") || searchTerms.includes("insurance") || searchTerms.includes("insurer");
+  const wantsFamily = searchTerms.includes("family") || searchTerms.includes("families");
+  const wantsPrivate = searchTerms.includes("private");
+  const filtered = patients.filter(p => {
+    const isHmo = p.payment_type === "hmo";
+    const isFamily = !!p.family_id;
+    const matchesMode =
+      searchMode === "all"
+        ? true
+        : searchMode === "hmo"
+          ? isHmo
+          : searchMode === "private"
+            ? !isHmo
+            : isFamily;
+    if (!matchesMode) return false;
+
+    if (selectedHmo && p.active_hmo_id !== selectedHmo) return false;
+    if (selectedFamily && p.family_id !== selectedFamily) return false;
+
+    const explicitCategory = wantsHmo || wantsFamily || wantsPrivate;
+    const categoryMatches =
+      (!wantsHmo || isHmo) &&
+      (!wantsFamily || isFamily) &&
+      (!wantsPrivate || !isHmo);
+
+    const termsToMatch = searchTerms.filter(term =>
+      !["all", "patient", "patients", "hmo", "insurance", "insurer", "family", "families", "private"].includes(term)
+    );
+
+    if (!categoryMatches) return false;
+    if (termsToMatch.length === 0) return true;
+
+    const haystack = [
+      p.full_name,
+      p.phone,
+      p.patient_number,
+      p.hmo_name,
+      p.family_name,
+      p.family_id,
+    ].filter(Boolean).join(" ").toLowerCase();
+
+    return termsToMatch.every(term => haystack.includes(term));
+  });
 
   return (
     <>
       <div className="flex items-center justify-between gap-3 mb-5"><h1 className="page-header">{filter === "thismonth" ? "Patients This Month" : filter === "followup" ? "Patient Follow-ups" : "Patients"}</h1><Link to="/register"><Button size="sm" className="rounded-xl gap-1.5"><UserPlus size={14} /> New</Button></Link></div>
-      <div className="sticky top-0 z-10 bg-background pb-3 mb-4"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input placeholder="Search name or phone..." className="pl-9 rounded-xl bg-card" value={search} onChange={e => setSearch(e.target.value)} /></div>
+      <div className="sticky top-0 z-10 bg-background pb-3 mb-4 space-y-2">
+        <div className="relative">
+          <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder='Search patients, e.g. "All AXA Mansard HMO patients" or "All family patients"'
+            className="pl-10 pr-20 rounded-xl bg-card h-11"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            autoComplete="off"
+          />
+          {search && (
+            <button type="button" onClick={() => setSearch("")} className="absolute right-11 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Clear search">
+              <X size={16} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowAdvancedSearch(v => !v)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
+            aria-label="Advanced patient search"
+          >
+            <SlidersHorizontal size={16} />
+          </button>
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {[
+            ["all", "All Patients"],
+            ["hmo", "HMO Patients"],
+            ["private", "Private"],
+            ["family", "Family Patients"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setSearchMode(value as typeof searchMode)}
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${searchMode === value ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border hover:bg-muted"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {showAdvancedSearch && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-2xl border border-border bg-card p-3">
+            <select
+              value={selectedHmo}
+              onChange={e => setSelectedHmo(e.target.value)}
+              className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+            >
+              <option value="">All HMO providers</option>
+              {hmoOptions.map(hmo => <option key={hmo.id} value={hmo.id}>{hmo.name}</option>)}
+            </select>
+            <select
+              value={selectedFamily}
+              onChange={e => setSelectedFamily(e.target.value)}
+              className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+            >
+              <option value="">All families</option>
+              {familyOptions.map(family => <option key={family.id} value={family.id}>{family.family_name}{family.family_number ? ` — ${family.family_number}` : ""}</option>)}
+            </select>
+          </div>
+        )}
+
+        {(search || selectedHmo || selectedFamily || searchMode !== "all") && (
+          <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+            <span>{filtered.length} patient{filtered.length === 1 ? "" : "s"} found</span>
+            <button type="button" className="text-primary font-semibold" onClick={() => { setSearch(""); setSelectedHmo(""); setSelectedFamily(""); setSearchMode("all"); }}>
+              Clear filters
+            </button>
+          </div>
+        )}
+      </div>
       {filter === "followup" ? (
         <div className="space-y-3">{feedbackFollowups.length === 0 ? <EmptyState icon={MessageCircle} title="No pending follow-ups" description="Patient feedback follow-ups that need attention will appear here." /> : feedbackFollowups.map((followup: any) => (
           <div key={followup.id} className="patient-card-surface medical-card p-4 rounded-3xl border shadow-md"><div className="flex items-start gap-3"><div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0 bg-gradient-to-br from-blue-600 to-cyan-400"><span className="text-lg font-bold">{(followup.patient_name || "?")[0]}</span></div><div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><p className="text-base font-bold truncate">{followup.patient_name}</p>{followup.patient_number && <span className="text-xs font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-lg">{followup.patient_number}</span>}</div>{followup.phone && <p className="text-xs text-muted-foreground mt-1">{followup.phone}</p>}<div className="mt-3"><span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${followup.status === "in_progress" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>{followup.status === "in_progress" ? "In Progress" : "Pending"}</span></div><div className="mt-3 rounded-xl bg-muted/40 p-3"><p className="text-xs font-semibold text-foreground mb-1">Follow-up reason</p><p className="text-sm text-muted-foreground leading-relaxed">{followup.reason}</p></div><p className="text-[11px] text-muted-foreground mt-3">Created {new Date(followup.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}</p><div className="mt-4 space-y-3"><div className="space-y-1.5"><label className="text-xs font-semibold text-foreground">Assigned to</label><select value={followup.assigned_to || ""} disabled={assigningFollowup} onChange={async (e) => { const staffId = e.target.value || null; setAssigningFollowup(true); try { const { error } = await apiClient.rpc("update_feedback_followup", { p_followup_id: followup.id, p_status: followup.status, p_assigned_to: staffId, p_notes: followup.notes || null }); if (error) throw error; setFeedbackFollowups(prev => prev.map(item => item.id === followup.id ? { ...item, assigned_to: staffId } : item)); } catch (error) { console.error("Failed to assign follow-up:", error); alert("Unable to assign this follow-up. Please try again."); } finally { setAssigningFollowup(false); } }} className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"><option value="">Unassigned</option>{clinicStaff.map((staff: any) => <option key={staff.id} value={staff.id}>{staff.full_name} — {staff.role}</option>)}</select></div><div className="flex flex-wrap gap-2">{followup.status === "pending" && <Button size="sm" className="rounded-xl gap-1.5" onClick={async () => { setUpdatingFollowup(true); try { const { error } = await apiClient.rpc("update_feedback_followup", { p_followup_id: followup.id, p_status: "in_progress", p_assigned_to: followup.assigned_to || null, p_notes: followup.notes || null }); if (error) throw error; setFeedbackFollowups(prev => prev.map(item => item.id === followup.id ? { ...item, status: "in_progress" } : item)); } catch (error) { console.error("Failed to start follow-up:", error); alert("Unable to start this follow-up. Please try again."); } finally { setUpdatingFollowup(false); } }} disabled={updatingFollowup}><Play size={14} />{updatingFollowup ? "Starting..." : "Start Follow-up"}</Button>}{followup.status === "in_progress" && <Button size="sm" variant="outline" className="rounded-xl gap-1.5" onClick={() => openFollowupAction(followup, "complete")} disabled={updatingFollowup}><CheckCircle size={14} />Complete</Button>}<Button size="sm" variant="outline" className="rounded-xl gap-1.5 text-destructive" onClick={() => openFollowupAction(followup, "cancel")} disabled={updatingFollowup}><XCircle size={14} />Cancel</Button></div></div></div><Link to={`/patient/${followup.patient_id}`} className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors shrink-0" title="Open patient"><ChevronRight size={16} className="text-primary" /></Link></div></div>
