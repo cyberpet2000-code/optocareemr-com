@@ -120,9 +120,17 @@ function buildAppConfig() {
   // Use WebLLM's canonical Hugging Face model URLs directly.
   // Keeping the model assets direct avoids routing large model shards through
   // Vercel serverless functions. WebLLM stores downloaded assets in IndexedDB.
+  // Prefer OPFS on modern Chrome/Android because it is designed for
+  // large local binary model files. Fall back to IndexedDB where OPFS
+  // is unavailable.
+  const supportsOpfs =
+    typeof navigator !== "undefined" &&
+    typeof navigator.storage?.getDirectory === "function";
+
   return {
     model_list: [mobileRecord, desktopRecord],
-    cacheBackend: "indexeddb" as const,
+    cacheBackend: supportsOpfs ? ("opfs" as const) : ("indexeddb" as const),
+    ...(supportsOpfs ? { opfsAccessMode: "auto" as const } : {}),
   };
 }
 
