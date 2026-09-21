@@ -166,12 +166,21 @@ export function cacheAppointmentsOffline(clinicId: string, appointments: any[]) 
   offlineStore.save("appointments:" + clinicId, appointments);
 }
 
+export function cachePatientsOffline(clinicId: string, patients: any[]) {
+  // Bulk-write the patient list once. Calling cachePatientOffline for every
+  // row repeatedly serializes the growing list and can exhaust localStorage
+  // on larger clinics.
+  offlineStore.save(`patients:${clinicId}:all`, patients);
+  offlineStore.save(`patients:${clinicId}`, patients);
+}
+
 export function cachePatientOffline(clinicId: string, patient: any) {
   offlineStore.save(`patient-record:${clinicId}:${patient.id}`, patient);
-  const key = `patients:${clinicId}`;
+  const key = `patients:${clinicId}:all`;
   const rows = offlineStore.get<any[]>(key) ?? [];
   const next = [patient, ...rows.filter((row) => row.id !== patient.id)];
   offlineStore.save(key, next);
+  offlineStore.save(`patients:${clinicId}`, next);
 }
 
 export function cacheVisitsOffline(clinicId: string, patientId: string, visits: any[]) {
