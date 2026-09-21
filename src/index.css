@@ -271,6 +271,38 @@
     background: hsl(205 25% 17% / 0.88);
   }
 
+  /* Appointment cards inherit the same calm dashboard palette. */
+  .appointment-stat {
+    border-color: hsl(var(--border) / 0.75);
+  }
+  .appointment-stat-teal {
+    background: linear-gradient(135deg, hsl(184 48% 90% / 0.90), hsl(192 48% 93% / 0.94));
+  }
+  .appointment-stat-blue {
+    background: linear-gradient(135deg, hsl(205 52% 91% / 0.92), hsl(217 45% 94% / 0.95));
+  }
+  .appointment-stat-warning {
+    background: linear-gradient(135deg, hsl(42 55% 91% / 0.92), hsl(34 48% 94% / 0.95));
+  }
+  .appointment-item {
+    background:
+      linear-gradient(135deg, hsl(190 38% 92% / 0.88), hsl(202 34% 95% / 0.92));
+    border-color: hsl(195 28% 84% / 0.85);
+  }
+  .dark .appointment-stat-teal {
+    background: linear-gradient(135deg, hsl(184 34% 18% / 0.94), hsl(192 30% 16% / 0.96));
+  }
+  .dark .appointment-stat-blue {
+    background: linear-gradient(135deg, hsl(205 32% 18% / 0.94), hsl(217 28% 16% / 0.96));
+  }
+  .dark .appointment-stat-warning {
+    background: linear-gradient(135deg, hsl(42 30% 18% / 0.94), hsl(34 27% 16% / 0.96));
+  }
+  .dark .appointment-item {
+    background: linear-gradient(135deg, hsl(195 30% 16% / 0.94), hsl(205 28% 13% / 0.96));
+    border-color: hsl(195 24% 25% / 0.9);
+  }
+
   .dashboard-rating {
     background: hsl(var(--card) / 0.82);
     border-color: hsl(var(--border) / 0.8);
