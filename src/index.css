@@ -953,3 +953,274 @@
     border-color: hsl(203 68% 70% / 0.16);
   }
 }
+
+
+/* ============================================================
+   OPTOCARE OFFICIAL DESIGN SYSTEM v1.0
+   Reference: OptoCare clinical UI direction
+   Applies to every module, breakpoint and workspace.
+   ============================================================ */
+@layer base {
+  :root {
+    --oc-deep-navy: #001D39;
+    --oc-navy-blue: #0A4174;
+    --oc-slate-blue: #49769F;
+    --oc-teal-blue: #4E8EA2;
+    --oc-muted-aqua: #6EA2B3;
+    --oc-light-sky: #7BBDE8;
+    --oc-pale-blue: #BDD8E9;
+    --oc-clinical-surface: #C8DFEC;
+    --oc-white: #F7FBFD;
+
+    --background: 203 47% 83%;
+    --foreground: 210 100% 11%;
+    --card: 202 47% 85%;
+    --card-foreground: 210 100% 11%;
+    --popover: 202 47% 88%;
+    --popover-foreground: 210 100% 11%;
+    --primary: 208 84% 25%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 203 68% 70%;
+    --secondary-foreground: 210 100% 11%;
+    --muted: 203 35% 73%;
+    --muted-foreground: 210 52% 25%;
+    --accent: 194 35% 47%;
+    --accent-foreground: 0 0% 100%;
+    --border: 205 32% 67%;
+    --input: 205 32% 67%;
+    --ring: 208 84% 25%;
+
+    /* Brand-only status language. No unrelated traffic-light colours. */
+    --success: 194 35% 47%;
+    --success-foreground: 0 0% 100%;
+    --warning: 203 68% 70%;
+    --warning-foreground: 210 100% 11%;
+    --destructive: 210 52% 25%;
+    --destructive-foreground: 0 0% 100%;
+    --info: 208 84% 25%;
+    --info-foreground: 0 0% 100%;
+    --violet: 193 32% 57%;
+
+    --gradient-card: linear-gradient(135deg, #C8DFEC 0%, #BDD8E9 100%);
+    --gradient-primary: linear-gradient(135deg, #0A4174 0%, #4E8EA2 100%);
+    --gradient-brand: linear-gradient(135deg, #001D39 0%, #0A4174 52%, #4E8EA2 100%);
+  }
+
+  body {
+    background: #BDD8E9 !important;
+    background-image: none !important;
+    color: #001D39;
+  }
+}
+
+@layer components {
+  /* One OptoCare surface language. */
+  .medical-card,
+  .stat-card,
+  .form-section,
+  .glass-panel,
+  .glass-card {
+    background: #C8DFEC !important;
+    color: #001D39;
+    border-color: rgba(73, 118, 159, 0.32) !important;
+    box-shadow: 0 6px 20px rgba(0, 29, 57, 0.08);
+  }
+
+  .patient-card-surface,
+  .patient-card,
+  .patient-record-card {
+    background: #BDD8E9 !important;
+    color: #001D39;
+    border-color: rgba(73, 118, 159, 0.38) !important;
+  }
+
+  /* Clinical working fields: same pale-blue environment, never white. */
+  textarea,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  [data-radix-select-trigger],
+  .premium-input {
+    background: #BDD8E9 !important;
+    color: #001D39 !important;
+    border-color: rgba(73, 118, 159, 0.40) !important;
+  }
+
+  textarea::placeholder,
+  input::placeholder {
+    color: rgba(0, 29, 57, 0.58) !important;
+  }
+
+  /* Clinical record navigation is always dark navy when selected. */
+  .optocare-clinical-tabs [data-radix-collection-item][data-state="active"],
+  .optocare-clinical-tabs [data-state="active"] {
+    background: #001D39 !important;
+    color: #FFFFFF !important;
+  }
+
+  .optocare-clinical-tabs [data-radix-collection-item] {
+    color: #001D39;
+  }
+
+  /* App chrome — same system on phone and desktop. */
+  header.sticky {
+    background: rgba(189, 216, 233, 0.94) !important;
+    border-color: rgba(73, 118, 159, 0.28) !important;
+  }
+
+  .bottom-nav {
+    background: rgba(189, 216, 233, 0.97) !important;
+    border-color: rgba(73, 118, 159, 0.30) !important;
+  }
+
+  [data-sidebar="sidebar"] {
+    background: linear-gradient(180deg, #001D39 0%, #0A4174 58%, #4E8EA2 100%) !important;
+  }
+
+  [data-sidebar="menu-button"][data-active="true"] {
+    background: rgba(123, 189, 232, 0.22) !important;
+    color: #FFFFFF !important;
+    box-shadow: inset 0 0 0 1px rgba(123, 189, 232, 0.22);
+  }
+
+  /* Dashboard is the same pale-blue clinical workspace as every other page. */
+  .dashboard-page {
+    background: #BDD8E9 !important;
+  }
+
+  .dashboard-soft-section,
+  .appointment-item,
+  .dashboard-rating {
+    background: #C8DFEC !important;
+    border-color: rgba(73, 118, 159, 0.28) !important;
+  }
+
+  .dashboard-page .stat-card,
+  .dashboard-page .medical-card {
+    background: #C8DFEC !important;
+  }
+
+  .dashboard-hero {
+    background: linear-gradient(135deg, #001D39 0%, #0A4174 52%, #4E8EA2 100%) !important;
+  }
+
+  /* Buttons use the official hierarchy from the reference UI. */
+  .bg-gradient-primary,
+  button.bg-primary,
+  a.bg-primary {
+    background: linear-gradient(135deg, #0A4174 0%, #4E8EA2 100%) !important;
+  }
+
+  .btn-primary,
+  .optocare-primary-action {
+    background: #0A4174;
+    color: #FFFFFF;
+    border: 1px solid #0A4174;
+  }
+
+  .optocare-primary-action:hover { background: #001D39; }
+
+  /* Brand-only status mapping for legacy utility classes throughout modules. */
+  [class*="bg-green-"], [class*="bg-emerald-"] {
+    background-color: rgba(78, 142, 162, 0.14) !important;
+  }
+  [class*="text-green-"], [class*="text-emerald-"] { color: #4E8EA2 !important; }
+  [class*="border-green-"], [class*="border-emerald-"] { border-color: rgba(78, 142, 162, 0.35) !important; }
+
+  [class*="bg-amber-"], [class*="bg-yellow-"] {
+    background-color: rgba(123, 189, 232, 0.22) !important;
+  }
+  [class*="text-amber-"], [class*="text-yellow-"] { color: #49769F !important; }
+  [class*="border-amber-"], [class*="border-yellow-"] { border-color: rgba(123, 189, 232, 0.45) !important; }
+
+  [class*="bg-red-"], [class*="bg-rose-"] {
+    background-color: rgba(73, 118, 159, 0.16) !important;
+  }
+  [class*="text-red-"], [class*="text-rose-"] { color: #0A4174 !important; }
+  [class*="border-red-"], [class*="border-rose-"] { border-color: rgba(10, 65, 116, 0.40) !important; }
+
+  /* Remove accidental pure-white panels from legacy screens. */
+  .bg-white,
+  [class*="bg-white/"] {
+    background-color: #BDD8E9 !important;
+  }
+
+  /* Login reference design: deep navy clinical welcome screen. */
+  .login-aurora {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #001D39 0%, #0A4174 58%, #001D39 100%) !important;
+  }
+  .login-aurora::before {
+    background: rgba(123, 189, 232, 0.12) !important;
+    filter: blur(120px);
+  }
+  .login-aurora::after {
+    background: rgba(78, 142, 162, 0.16) !important;
+    filter: blur(120px);
+  }
+
+  .login-design-panel {
+    background: rgba(10, 65, 116, 0.70);
+    border: 1px solid rgba(123, 189, 232, 0.24);
+    box-shadow: 0 20px 60px rgba(0, 29, 57, 0.40);
+    backdrop-filter: blur(20px);
+  }
+
+  .login-design-input {
+    background: rgba(0, 29, 57, 0.55) !important;
+    color: #FFFFFF !important;
+    border-color: rgba(123, 189, 232, 0.32) !important;
+  }
+
+  .login-design-primary {
+    background: #7BBDE8 !important;
+    color: #001D39 !important;
+  }
+
+  .login-design-secondary {
+    background: rgba(78, 142, 162, 0.25) !important;
+    color: #FFFFFF !important;
+    border-color: rgba(123, 189, 232, 0.35) !important;
+  }
+
+  /* The reference eye area belongs to the login experience, not a generic card. */
+  .login-eye-visual {
+    width: 100%;
+    height: 150px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 28px;
+    background: radial-gradient(circle at 50% 35%, rgba(78,142,162,.28), transparent 52%), linear-gradient(180deg, rgba(10,65,116,.12), rgba(0,29,57,.78));
+  }
+  .login-eye-visual::before {
+    content: "";
+    position: absolute;
+    width: 180px;
+    height: 76px;
+    left: 50%;
+    top: 35px;
+    transform: translateX(-50%);
+    border: 4px solid rgba(123,189,232,.85);
+    border-radius: 50% 50% 48% 48%;
+    box-shadow: 0 0 34px rgba(123,189,232,.20);
+  }
+  .login-eye-shape {
+    position: absolute;
+    width: 56px;
+    height: 56px;
+    left: 50%;
+    top: 45px;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: #4E8EA2;
+    box-shadow: inset 0 0 0 9px #0A4174, inset 0 0 0 17px #7BBDE8, 0 0 30px rgba(123,189,232,.28);
+  }
+  .login-eye-iris { width: 16px; height: 16px; margin: 20px auto; border-radius: 50%; background: #001D39; }
+  .login-eye-caption { color: rgba(255,255,255,.72); }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-page,
+  main {
+    color: #001D39;
+  }
+}
