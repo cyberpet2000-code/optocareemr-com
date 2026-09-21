@@ -51,15 +51,25 @@ export async function enqueueOfflineOperation(
   };
 
   const db = await openDb();
+  let storedInIndexedDb = false;
   if (db) {
-    await new Promise<void>((resolve) => {
-      const tx = db.transaction(STORE, "readwrite");
-      tx.objectStore(STORE).put(item);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
+    storedInIndexedDb = await new Promise<boolean>((resolve) => {
+      try {
+        const tx = db.transaction(STORE, "readwrite");
+        tx.objectStore(STORE).put(item);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+        tx.onabort = () => resolve(false);
+      } catch {
+        resolve(false);
+      }
     });
     db.close();
-  } else {
+  }
+
+  // Never report an offline write as successful if IndexedDB rejected it.
+  // Fall back to localStorage so the operation remains recoverable.
+  if (!storedInIndexedDb) {
     const key = `operations:${operation.clinicId}`;
     const queue = offlineStore.get<OfflineOperation[]>(key) ?? [];
     offlineStore.save(key, [...queue, item]);
@@ -71,18 +81,39 @@ export async function enqueueOfflineOperation(
 export async function getOfflineOperations(clinicId: string): Promise<OfflineOperation[]> {
   const db = await openDb();
   if (db) {
-    const rows = await new Promise<OfflineOperation[]>((resolve) => {
-      const tx = db.transaction(STORE, "readonly");
-      const request = tx.objectStore(STORE).index("clinicId").getAll(clinicId);
-      request.onsuccess = () => resolve((request.result || []) as OfflineOperation[]);
-      request.onerror = () => resolve([]);
+    const result = await new Promise<{ ok: boolean; rows: OfflineOperation[] }>((resolve) => {
+      try {
+        const tx = db.transaction(STORE, "readonly");
+        const request = tx.objectStore(STORE).index("clinicId").getAll(clinicId);
+        request.onsuccess = () => resolve({ ok: true, rows: (request.result || []) as OfflineOperation[] });
+        request.onerror = () => resolve({ ok: false, rows: [] });
+        tx.onerror = () => resolve({ ok: false, rows: [] });
+      } catch {
+        resolve({ ok: false, rows: [] });
+      }
     });
     db.close();
-    return rows.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+
+    if (result.ok) {
+      return result.rows.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    }
   }
 
   return (offlineStore.get<OfflineOperation[]>(`operations:${clinicId}`) ?? [])
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+export async function getOfflineSyncStatus(clinicId: string): Promise<{ pending: number; failed: number }> {
+  const operations = await getOfflineOperations(clinicId);
+  const legacyAppointments = offlineStore.get<any[]>(`appointments-queue:${clinicId}`) ?? [];
+  const legacyBills = offlineStore.get<any[]>(`bills-queue:${clinicId}`) ?? [];
+  const legacy = [...legacyAppointments, ...legacyBills];
+
+  return {
+    pending: operations.length + legacy.length,
+    failed: operations.filter((operation) => operation.attempts > 0).length +
+      legacy.filter((item: any) => Number(item?.attempts ?? 0) > 0).length,
+  };
 }
 
 export async function removeOfflineOperation(clinicId: string, id: string) {
