@@ -229,6 +229,32 @@ const LandingRedirect = memo(function LandingRedirect() {
   return <Navigate to={target} replace />;
 });
 
+function RouteScrollRestoration() {
+  const location = useLocation();
+  const positions = React.useRef<Record<string, number>>({});
+  const previousKey = React.useRef<string | null>(null);
+
+  useEffect(() => {
+    const currentKey = location.key;
+    if (previousKey.current && previousKey.current !== currentKey) {
+      positions.current[previousKey.current] = window.scrollY;
+    }
+    previousKey.current = currentKey;
+    const saved = positions.current[currentKey];
+    window.requestAnimationFrame(() => window.scrollTo(0, saved ?? 0));
+  }, [location.key]);
+
+  useEffect(() => {
+    const save = () => {
+      if (previousKey.current) positions.current[previousKey.current] = window.scrollY;
+    };
+    window.addEventListener("scroll", save, { passive: true });
+    return () => window.removeEventListener("scroll", save);
+  }, []);
+
+  return null;
+}
+
 export function AppRoutes() {
   const location = useLocation();
   const { user, isAuthReady } = useAuth();
@@ -316,6 +342,7 @@ const App = () => (
         <Sonner />
         <AccessProvider>
           <BrowserRouter>
+            <RouteScrollRestoration />
             <AppRoutes />
           </BrowserRouter>
         </AccessProvider>
