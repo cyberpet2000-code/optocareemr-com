@@ -1224,3 +1224,47 @@
     color: #001D39;
   }
 }
+
+/* Final consistency pass for module-specific legacy surfaces. */
+@layer components {
+  .medical-card.appointment-stat,
+  .medical-card.appointment-stat.appointment-stat-teal,
+  .medical-card.appointment-stat.appointment-stat-blue,
+  .medical-card.appointment-stat.appointment-stat-warning,
+  .medical-card.appointment-item {
+    background: #C8DFEC !important;
+    border-color: rgba(73, 118, 159, 0.30) !important;
+    color: #001D39;
+  }
+
+  .dashboard-status-success,
+  .dashboard-status-warning,
+  .pill-success,
+  .pill-warning,
+  .pill-danger,
+  .pill-info {
+    background: rgba(78, 142, 162, 0.14) !important;
+    color: #0A4174 !important;
+    border-color: rgba(73, 118, 159, 0.28) !important;
+  }
+
+  .dashboard-alert,
+  .dashboard-attention-warning {
+    background: rgba(123, 189, 232, 0.18) !important;
+    border-color: rgba(73, 118, 159, 0.30) !important;
+  }
+
+  .dashboard-alert-title,
+  .dashboard-alert-icon-text,
+  .dashboard-alert-icon,
+  .dashboard-attention-warning-icon {
+    color: #49769F !important;
+  }
+
+  /* Keep the reference UI clean: pale blue surfaces, navy hierarchy,
+     brand blue/teal actions, and restrained status accents. */
+  .bg-card,
+  .bg-popover {
+    background-color: #C8DFEC !important;
+  }
+}
