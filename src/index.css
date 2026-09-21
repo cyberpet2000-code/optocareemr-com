@@ -1253,3 +1253,200 @@
     color: #001D39;
   }
 }
+
+/* ============================================================
+   OPTOCARE REFERENCE MATCH v3.0
+   Final visual correction based on supplied reference screens.
+   The reference image is the visual source of truth.
+   ============================================================ */
+@layer base {
+  :root {
+    /* Reference screen surfaces */
+    --oc-primary-background: #F0F8FA;
+    --oc-reference-white: #F8FCFD;
+    --oc-reference-card: #F8FCFD;
+    --oc-reference-soft: #E0F2F7;
+    --oc-reference-blue-soft: #D8EEF6;
+    --oc-reference-border: #D4E6EC;
+
+    --background: 195 42% 96%;
+    --card: 195 42% 98%;
+    --popover: 195 42% 98%;
+    --muted: 195 32% 90%;
+    --border: 195 30% 88%;
+    --input: 195 30% 88%;
+  }
+
+  html,
+  body,
+  #root {
+    background: #F0F8FA !important;
+    color: #001D39 !important;
+  }
+
+  body {
+    background-image: linear-gradient(180deg,#F0F8FA 0%,#EAF6F9 100%) !important;
+  }
+}
+
+@layer components {
+  /* The reference uses a pale blue clinical canvas, NOT grey. */
+  .dashboard-page,
+  .page-background,
+  .app-background,
+  main {
+    background: linear-gradient(180deg,#F0F8FA 0%,#EAF6F9 100%) !important;
+  }
+
+  /* Elevated reference cards: almost-white with a cool clinical tint. */
+  .medical-card,
+  .stat-card,
+  .form-section,
+  .glass-panel,
+  .glass-card,
+  .dashboard-soft-section,
+  .dashboard-rating,
+  .appointment-item,
+  .bg-card,
+  .bg-popover {
+    background: #F8FCFD !important;
+    color: #001D39 !important;
+    border: 1px solid #D7E8EE !important;
+    box-shadow: 0 5px 16px rgba(0,29,57,.055) !important;
+  }
+
+  /* The reference's smaller working/stat surfaces use soft blue. */
+  .dashboard-page .stat-card,
+  .dashboard-page .medical-card,
+  .appointment-stat,
+  .dashboard-soft-section {
+    background: #F8FCFD !important;
+  }
+
+  .patient-card-surface,
+  .patient-card,
+  .patient-record-card {
+    background: #EEF8FB !important;
+    color: #001D39 !important;
+    border-color: #D4E7EE !important;
+  }
+
+  /* Forms remain pale blue instead of grey/white. */
+  textarea,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  [data-radix-select-trigger],
+  .premium-input {
+    background: #F2FAFC !important;
+    color: #001D39 !important;
+    border-color: #D2E5EC !important;
+  }
+
+  /* Header and bottom navigation follow the same cool reference canvas. */
+  header.sticky {
+    background: #F0F8FA !important;
+    border-color: #D8E9EE !important;
+  }
+
+  .bottom-nav {
+    background: rgba(240,248,250,.98) !important;
+    border-color: #D8E9EE !important;
+  }
+
+  /* The desktop sidebar remains the deep clinical navy/blue anchor. */
+  [data-sidebar="sidebar"] {
+    background: linear-gradient(180deg,#001D39 0%,#0A4174 58%,#4E8EA2 100%) !important;
+  }
+
+  /* Reference hero: dark navy to blue/teal, with soft depth. */
+  .dashboard-hero {
+    background:
+      radial-gradient(circle at 88% 20%,rgba(123,189,232,.25),transparent 36%),
+      linear-gradient(135deg,#001D39 0%,#0A4174 55%,#4E8EA2 100%) !important;
+    color: #FFFFFF !important;
+    border-color: rgba(123,189,232,.20) !important;
+  }
+
+  /* Clinical tabs are pale; selected tab is the deep navy reference pill. */
+  .optocare-clinical-tabs {
+    background: #E4F3F7 !important;
+    border-color: #D1E5EC !important;
+  }
+
+  .optocare-clinical-tabs [data-radix-collection-item] {
+    color: #0A4174 !important;
+  }
+
+  .optocare-clinical-tabs [data-radix-collection-item]:hover {
+    background: #D8EEF6 !important;
+  }
+
+  .optocare-clinical-tabs [data-state="active"] {
+    background: #001D39 !important;
+    color: #FFFFFF !important;
+  }
+
+  /* Reference primary actions. */
+  .bg-gradient-primary,
+  button.bg-primary,
+  a.bg-primary,
+  .btn-primary,
+  .optocare-primary-action {
+    background: #0A4174 !important;
+    color: #FFFFFF !important;
+    border-color: #0A4174 !important;
+    box-shadow: 0 4px 10px rgba(10,65,116,.12);
+  }
+
+  .bg-gradient-primary:hover,
+  button.bg-primary:hover,
+  a.bg-primary:hover,
+  .btn-primary:hover,
+  .optocare-primary-action:hover {
+    background: #001D39 !important;
+  }
+
+  /* Reference status chips: soft brand tints rather than harsh traffic-light blocks. */
+  [class*="bg-green-"],
+  [class*="bg-emerald-"] {
+    background-color: #DDF3EE !important;
+  }
+  [class*="text-green-"],
+  [class*="text-emerald-"] {
+    color: #2F8E7D !important;
+  }
+
+  [class*="bg-amber-"],
+  [class*="bg-yellow-"] {
+    background-color: #FFF4D9 !important;
+  }
+  [class*="text-amber-"],
+  [class*="text-yellow-"] {
+    color: #A97918 !important;
+  }
+
+  [class*="bg-red-"],
+  [class*="bg-rose-"] {
+    background-color: #F4E3E5 !important;
+  }
+  [class*="text-red-"],
+  [class*="text-rose-"] {
+    color: #8B4050 !important;
+  }
+
+  /* Never let legacy white utilities recreate a stark white screen. */
+  .bg-white,
+  .bg-white\/95,
+  .bg-white\/90,
+  .bg-white\/80,
+  .bg-white\/75,
+  .bg-white\/70,
+  .bg-white\/60 {
+    background-color: #F8FCFD !important;
+  }
+
+  /* Login remains the dark reference experience. */
+  .login-aurora {
+    background: linear-gradient(180deg,#001D39 0%,#0A4174 62%,#001D39 100%) !important;
+  }
+}
