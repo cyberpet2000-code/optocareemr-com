@@ -135,14 +135,7 @@ export default function Login() {
         </div>
 
         <div
-  className="p-6 md:p-8 space-y-6 rounded-[32px] border border-white/20"
-  style={{
-    background: "rgba(255,255,255,0.50)",
-    backdropFilter: "blur(24px)",
-    WebkitBackdropFilter: "blur(32px)",
-    boxShadow:
-      "0 20px 60px rgba(15,23,42,0.12), 0 8px 24px rgba(15,23,42,0.08)",
-  }}
+  className="login-design-panel p-6 md:p-8 space-y-6 rounded-[32px]"
 >
           <div className="text-center space-y-2">
             <h1 className="text-2xl font-bold tracking-tight">
@@ -163,7 +156,7 @@ export default function Login() {
                 <Label>Offline PIN</Label>
                 <Input inputMode="numeric" autoComplete="off" maxLength={6} pattern="[0-9]{6}" type="password" required value={offlinePin} onChange={e => setOfflinePin(e.target.value.replace(/\\D/g, "").slice(0, 6))} />
               </div>
-              <Button type="submit" className="w-full h-12 bg-gradient-primary text-primary-foreground shadow-glow" disabled={loading || offlinePin.length !== 6}>
+              <Button type="submit" className="login-design-primary w-full h-12 shadow-glow" disabled={loading || offlinePin.length !== 6}>
                 {loading ? "Unlocking..." : "Unlock Offline"}
               </Button>
               <p className="text-xs text-center text-muted-foreground">Offline access is limited to data already authorized and cached on this device.</p>
@@ -172,17 +165,17 @@ export default function Login() {
             <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label>Email</Label>
-              <Input type="email" required value={email} onChange={e => setEmail(e.target.value)} />
+              <Input className="login-design-input" type="email" required value={email} onChange={e => setEmail(e.target.value)} />
             </div>
             {mode !== "forgot" && (
               <div className="space-y-1.5">
                 <Label>Password</Label>
-                <PasswordInput required minLength={6} value={password} onChange={e => setPassword(e.target.value)} />
+                <PasswordInput className="login-design-input" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} />
               </div>
             )}
             <Button
               type="submit"
-              className="w-full h-12 bg-gradient-primary text-primary-foreground shadow-glow hover:scale-[1.02] hover:shadow-elevated transition-all duration-300"
+              className="login-design-primary w-full h-12 shadow-glow hover:scale-[1.02] hover:shadow-elevated transition-all duration-300"
               disabled={loading}
             >
               {loading ? "Please wait..." : mode === "forgot" ? "Send Reset Link" : mode === "signup" ? "Sign Up" : "Sign In"}
