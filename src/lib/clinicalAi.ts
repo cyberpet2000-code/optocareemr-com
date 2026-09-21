@@ -126,9 +126,11 @@ function buildAppConfig() {
     typeof navigator !== "undefined" &&
     typeof navigator.storage?.getDirectory === "function";
 
+  const proxyOrigin = typeof window !== "undefined" ? window.location.origin : "";
+
   const proxyModelUrl = (modelUrl: string, modelId: string) => {
     try {
-      const parsed = new URL(modelUrl);
+      const parsed = new URL(modelUrl, proxyOrigin || "https://optocareemr.com");
       if (parsed.hostname !== "huggingface.co") return modelUrl;
 
       const marker = "/resolve/main/";
@@ -137,12 +139,16 @@ function buildAppConfig() {
 
       if (markerIndex >= 0) {
         const assetPath = parsed.pathname.slice(markerIndex + marker.length);
-        return assetPath
+        const path = assetPath
           ? `/clinical-ai-assets/${encodedModelId}/${assetPath}`
           : `/clinical-ai-assets/${encodedModelId}`;
+        return new URL(path, proxyOrigin || "https://optocareemr.com").toString();
       }
 
-      return `/clinical-ai-assets/${encodedModelId}`;
+      return new URL(
+        `/clinical-ai-assets/${encodedModelId}`,
+        proxyOrigin || "https://optocareemr.com",
+      ).toString();
     } catch {
       return modelUrl;
     }
@@ -150,9 +156,12 @@ function buildAppConfig() {
 
   const proxyModelLibUrl = (modelLibUrl: string) => {
     try {
-      const parsed = new URL(modelLibUrl);
+      const parsed = new URL(modelLibUrl, proxyOrigin || "https://optocareemr.com");
       if (parsed.hostname !== "raw.githubusercontent.com") return modelLibUrl;
-      return `/clinical-ai-lib${parsed.pathname}`;
+      return new URL(
+        `/clinical-ai-lib${parsed.pathname}`,
+        proxyOrigin || "https://optocareemr.com",
+      ).toString();
     } catch {
       return modelLibUrl;
     }
