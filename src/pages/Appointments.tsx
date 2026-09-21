@@ -631,10 +631,10 @@ export default function Appointments() {
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-        <div className="medical-card p-3"><p className="text-[10px] text-muted-foreground">Today</p><p className="text-xl font-bold mt-1">{stats.today}</p></div>
-        <div className="medical-card p-3"><p className="text-[10px] text-muted-foreground">Pending</p><p className="text-xl font-bold mt-1">{stats.pending}</p></div>
-        <div className="medical-card p-3"><p className="text-[10px] text-muted-foreground">Confirmed</p><p className="text-xl font-bold mt-1">{stats.confirmed}</p></div>
-        <div className="medical-card p-3"><p className="text-[10px] text-muted-foreground">Reminder due</p><p className="text-xl font-bold mt-1">{stats.reminders}</p></div>
+        <div className="medical-card appointment-stat appointment-stat-teal p-3"><p className="text-[10px] text-muted-foreground">Today</p><p className="text-xl font-bold mt-1">{stats.today}</p></div>
+        <div className="medical-card appointment-stat appointment-stat-blue p-3"><p className="text-[10px] text-muted-foreground">Pending</p><p className="text-xl font-bold mt-1">{stats.pending}</p></div>
+        <div className="medical-card appointment-stat appointment-stat-blue p-3"><p className="text-[10px] text-muted-foreground">Confirmed</p><p className="text-xl font-bold mt-1">{stats.confirmed}</p></div>
+        <div className="medical-card appointment-stat appointment-stat-warning p-3"><p className="text-[10px] text-muted-foreground">Reminder due</p><p className="text-xl font-bold mt-1">{stats.reminders}</p></div>
       </div>
 
       <div className="flex flex-col gap-1 mb-4">
@@ -682,7 +682,7 @@ export default function Appointments() {
       ) : (
         <div className="space-y-2">
           {appointments.map(a => (
-            <div key={a.id} className="medical-card p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => a.patient_id && (window.location.href = "/patient/" + a.patient_id)}>
+            <div key={a.id} className="medical-card appointment-item p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => a.patient_id && (window.location.href = "/patient/" + a.patient_id)}>
               <div className="flex items-start gap-3">
                 <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0"><Clock size={17} className="text-primary" /></div>
                 <div className="flex-1 min-w-0">
