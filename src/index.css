@@ -22,32 +22,34 @@
   }
 
   :root {
-    /* Surfaces — soft tinted, never harsh white */
-    --background: 210 33% 97%;          /* #F5F8FB premium surface */
-    --foreground: 222 47% 11%;
+    /* Official OptoCare palette
+       #001D39 Deep Navy · #0A4174 Navy Blue · #49769F Slate Blue
+       #4E8EA2 Teal Blue · #6EA2B3 Muted Aqua · #7BBDE8 Light Sky Blue
+       #BDD8E9 Pale Blue — primary application background */
+    --background: 203 47% 83%;
+    --foreground: 210 100% 11%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card: 202 47% 89%;
+    --card-foreground: 210 100% 11%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover: 202 47% 91%;
+    --popover-foreground: 210 100% 11%;
 
-    /* Brand */
-    --navy: 222 65% 16%;
-    --primary: 217 91% 55%;          /* royal blue */
+    --navy: 210 100% 11%;
+    --primary: 208 84% 25%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 199 95% 60%;     /* cyan glow */
+    --primary-glow: 203 68% 70%;
 
-    --secondary: 214 32% 93%;
-    --secondary-foreground: 222 47% 18%;
+    --secondary: 193 32% 57%;
+    --secondary-foreground: 210 100% 11%;
 
-    --muted: 214 25% 95%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 203 35% 73%;
+    --muted-foreground: 210 52% 25%;
 
-    --accent: 184 78% 40%;           /* teal */
+    --accent: 194 35% 47%;
     --accent-foreground: 0 0% 100%;
 
-    --cyan: 192 92% 50%;
+    --cyan: 203 68% 70%;
 
     /* Status — preserved semantics */
     --destructive: 0 72% 51%;
@@ -60,22 +62,22 @@
     --info-foreground: 0 0% 100%;
     --violet: 262 70% 62%;           /* soft violet */
 
-    --border: 214 25% 90%;
-    --input: 214 25% 90%;
-    --ring: 217 91% 55%;
+    --border: 205 32% 67%;
+    --input: 205 32% 67%;
+    --ring: 208 84% 25%;
 
     --radius: 0.85rem;
 
     /* Premium gradients */
-    --gradient-brand: linear-gradient(135deg, hsl(222 65% 16%) 0%, hsl(217 91% 45%) 55%, hsl(184 78% 45%) 100%);
-    --gradient-brand-soft: linear-gradient(135deg, hsl(217 91% 55% / 0.10) 0%, hsl(184 78% 45% / 0.10) 100%);
-    --gradient-card: linear-gradient(135deg, hsl(190 38% 92% / 0.88), hsl(202 34% 95% / 0.92));
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
-    --gradient-teal: linear-gradient(135deg, hsl(184 78% 40%) 0%, hsl(192 92% 50%) 100%);
-    --gradient-success: linear-gradient(135deg, hsl(152 58% 42%) 0%, hsl(168 70% 45%) 100%);
-    --gradient-warning: linear-gradient(135deg, hsl(38 92% 50%) 0%, hsl(28 92% 55%) 100%);
-    --gradient-violet: linear-gradient(135deg, hsl(262 70% 62%) 0%, hsl(217 91% 60%) 100%);
-    --gradient-surface: linear-gradient(180deg, hsl(210 40% 97%) 0%, hsl(214 30% 94%) 100%);
+    --gradient-brand: linear-gradient(135deg, #001D39 0%, #0A4174 52%, #4E8EA2 100%);
+    --gradient-brand-soft: linear-gradient(135deg, hsl(208 84% 25% / 0.14) 0%, hsl(194 35% 47% / 0.16) 100%);
+    --gradient-card: linear-gradient(135deg, #C8DFEC 0%, #BDD8E9 100%);
+    --gradient-primary: linear-gradient(135deg, #0A4174 0%, #4E8EA2 100%);
+    --gradient-teal: linear-gradient(135deg, #4E8EA2 0%, #6EA2B3 100%);
+    --gradient-success: linear-gradient(135deg, hsl(152 58% 42%) 0%, #4E8EA2 100%);
+    --gradient-warning: linear-gradient(135deg, hsl(38 92% 50%) 0%, hsl(34 75% 60%) 100%);
+    --gradient-violet: linear-gradient(135deg, #49769F 0%, #7BBDE8 100%);
+    --gradient-surface: linear-gradient(180deg, #BDD8E9 0%, #AFCFDF 100%);
 
     /* Premium shadows */
     --shadow-sm: 0 1px 2px hsl(222 47% 11% / 0.04), 0 1px 1px hsl(222 47% 11% / 0.03);
@@ -84,14 +86,14 @@
     --shadow-glow: 0 0 0 1px hsl(var(--primary) / 0.15), 0 8px 24px -8px hsl(var(--primary) / 0.35);
 
     /* Sidebar */
-    --sidebar-background: 210 40% 98%;
-    --sidebar-foreground: 222 30% 25%;
-    --sidebar-primary: 217 91% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 214 32% 93%;
-    --sidebar-accent-foreground: 222 47% 18%;
-    --sidebar-border: 214 25% 88%;
-    --sidebar-ring: 217 91% 55%;
+    --sidebar-background: 210 100% 11%;
+    --sidebar-foreground: 203 47% 90%;
+    --sidebar-primary: 203 68% 70%;
+    --sidebar-primary-foreground: 210 100% 11%;
+    --sidebar-accent: 208 84% 25%;
+    --sidebar-accent-foreground: 203 47% 96%;
+    --sidebar-border: 194 35% 47%;
+    --sidebar-ring: 203 68% 70%;
   }
 
   .dark {
@@ -515,65 +517,39 @@
   .login-aurora {
     position: relative;
     min-height: 100vh;
-
-     background:
-    radial-gradient(circle at 15% 20%,
-      hsl(var(--primary) / 0.22) 0%,
-      transparent 35%),
-
-    radial-gradient(circle at 85% 15%,
-      hsl(var(--accent) / 0.22) 0%,
-      transparent 35%),
-
-    radial-gradient(circle at 50% 85%,
-      hsl(var(--primary-glow) / 0.18) 0%,
-      transparent 40%),
-
-    linear-gradient(
-      180deg,
-      #f8fbff 0%,
-      #f2f7fb 50%,
-      #edf4fa 100%
-    );
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 15% 12%, hsl(203 68% 70% / 0.34), transparent 32%),
+      radial-gradient(circle at 88% 22%, hsl(194 35% 47% / 0.24), transparent 34%),
+      radial-gradient(circle at 50% 86%, hsl(203 68% 70% / 0.14), transparent 34%),
+      linear-gradient(180deg, #C7DFEC 0%, #BDD8E9 52%, #AFCFDF 100%);
   }
 
-     .login-aurora::before {
-  content: "";
-  position: absolute;
-
-  width: 420px;
-  height: 420px;
-
-  top: -120px;
-  left: -120px;
-
-  border-radius: 9999px;
-
-  background: hsl(var(--primary) / 0.12);
-
-  filter: blur(90px);
-
-  pointer-events: none;
-}
+  .login-aurora::before {
+    content: "";
+    position: absolute;
+    width: 520px;
+    height: 520px;
+    top: -220px;
+    left: -180px;
+    border-radius: 9999px;
+    background: hsl(203 68% 70% / 0.22);
+    filter: blur(110px);
+    pointer-events: none;
+  }
 
 .login-aurora::after {
-  content: "";
-  position: absolute;
-
-  width: 420px;
-  height: 420px;
-
-  bottom: -120px;
-  right: -120px;
-
-  border-radius: 9999px;
-
-  background: hsl(var(--accent) / 0.12);
-
-  filter: blur(90px);
-
-  pointer-events: none;
-}
+    content: "";
+    position: absolute;
+    width: 520px;
+    height: 520px;
+    bottom: -250px;
+    right: -160px;
+    border-radius: 9999px;
+    background: hsl(194 35% 47% / 0.18);
+    filter: blur(110px);
+    pointer-events: none;
+  }
 
   /* ===== Global form controls — premium polish ===== */
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
@@ -741,3 +717,168 @@
   .dark .medical-card.appointment-item {
     background: linear-gradient(135deg, hsl(195 30% 16% / 0.94), hsl(205 28% 13% / 0.96));
   }
+
+
+@layer components {
+  /* Official light theme: #BDD8E9 is the dominant application surface. */
+  .theme-optocare-surface { background: #BDD8E9; color: #001D39; }
+
+  .bg-white,
+  .bg-white\/95,
+  .bg-white\/90,
+  .bg-white\/80,
+  .bg-white\/75,
+  .bg-white\/70,
+  .bg-white\/60 {
+    background-color: hsl(203 47% 83% / 0.88) !important;
+  }
+
+  .border-white\/20,
+  .border-white\/30,
+  .border-white\/40,
+  .border-white\/50 {
+    border-color: hsl(210 100% 11% / 0.14) !important;
+  }
+
+  .dashboard-page {
+    background:
+      radial-gradient(ellipse 70% 45% at 8% 0%, hsl(203 68% 70% / 0.18), transparent 62%),
+      radial-gradient(ellipse 60% 45% at 95% 5%, hsl(194 35% 47% / 0.12), transparent 62%),
+      linear-gradient(180deg, #C7DFEC 0%, #BDD8E9 100%);
+  }
+
+  .dashboard-soft-section,
+  .medical-card,
+  .stat-card,
+  .form-section,
+  .glass-panel {
+    background: linear-gradient(135deg, #C8DFEC 0%, #BDD8E9 100%);
+    border-color: hsl(205 32% 55% / 0.34);
+  }
+
+  .glass-card {
+    background: linear-gradient(160deg, hsl(203 47% 91% / 0.86), hsl(203 47% 83% / 0.82));
+    border-color: hsl(205 32% 55% / 0.34);
+    box-shadow: 0 18px 44px -22px hsl(210 100% 11% / 0.34), inset 0 1px 0 hsl(0 0% 100% / 0.28);
+  }
+
+  .bottom-nav {
+    background: hsl(203 47% 83% / 0.96);
+    border-top-color: hsl(210 100% 11% / 0.14);
+  }
+
+  [data-sidebar="sidebar"] {
+    background: linear-gradient(180deg, #001D39 0%, #0A4174 62%, #4E8EA2 100%);
+    color: #F7FBFE;
+  }
+
+  [data-sidebar="menu-button"] {
+    color: hsl(203 47% 92%);
+  }
+
+  [data-sidebar="menu-button"]:hover {
+    background: hsl(203 68% 70% / 0.14);
+    color: #FFFFFF;
+  }
+
+  [data-sidebar="menu-button"][data-active="true"] {
+    background: linear-gradient(90deg, hsl(203 68% 70% / 0.20), hsl(194 35% 47% / 0.14));
+    color: #FFFFFF;
+    box-shadow: inset 0 0 0 1px hsl(203 68% 70% / 0.20);
+  }
+
+  .login-eye-visual {
+    position: relative;
+    width: min(92vw, 420px);
+    height: 150px;
+    margin: 0 auto;
+    overflow: hidden;
+    border-radius: 999px 999px 42px 42px;
+    background: linear-gradient(180deg, #0A4174 0%, #001D39 100%);
+    box-shadow: 0 18px 40px -18px hsl(210 100% 11% / 0.48), inset 0 1px 0 hsl(0 0% 100% / 0.18);
+  }
+
+  .login-eye-shape {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 280px;
+    height: 88px;
+    transform: translate(-50%, -50%);
+    border: 2px solid hsl(203 68% 70% / 0.72);
+    border-radius: 70% 30% 70% 30% / 60% 40% 60% 40%;
+    background: radial-gradient(ellipse at center, #D9EEF9 0 18%, #6EA2B3 19% 33%, #4E8EA2 34% 60%, #0A4174 61% 100%);
+    box-shadow: 0 0 26px hsl(203 68% 70% / 0.24), inset 0 0 26px hsl(210 100% 11% / 0.26);
+  }
+
+  .login-eye-shape::before,
+  .login-eye-shape::after {
+    content: "";
+    position: absolute;
+    inset: 7px 24px;
+    border-radius: 55%;
+    border-top: 2px solid hsl(203 68% 70% / 0.52);
+  }
+
+  .login-eye-shape::after { transform: rotate(180deg); }
+
+  .login-eye-iris {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 58px;
+    height: 58px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 38% 34%, #F4FBFF 0 7%, transparent 8%),
+      radial-gradient(circle, #001D39 0 22%, #0A4174 23% 44%, #4E8EA2 45% 68%, #7BBDE8 69% 100%);
+    box-shadow: 0 0 18px hsl(203 68% 70% / 0.45);
+  }
+
+  .login-eye-iris::after {
+    content: "";
+    position: absolute;
+    inset: 21px;
+    border-radius: 50%;
+    background: #001D39;
+  }
+
+  .dark .theme-optocare-surface {
+    background: #001D39;
+    color: #F3FAFF;
+  }
+
+  .dark .dashboard-page {
+    background:
+      radial-gradient(ellipse 70% 45% at 8% 0%, hsl(203 68% 70% / 0.12), transparent 62%),
+      radial-gradient(ellipse 60% 45% at 95% 5%, hsl(194 35% 47% / 0.09), transparent 62%),
+      linear-gradient(180deg, #0A2944 0%, #001D39 100%);
+  }
+
+  .dark .dashboard-soft-section,
+  .dark .medical-card,
+  .dark .stat-card,
+  .dark .form-section,
+  .dark .glass-panel {
+    background: linear-gradient(135deg, #0B3556 0%, #082946 100%);
+    border-color: hsl(203 68% 70% / 0.14);
+  }
+
+  .dark .glass-card {
+    background: linear-gradient(160deg, #0D3B60 0%, #082946 100%);
+  }
+
+  .dark .bottom-nav {
+    background: #001D39;
+  }
+
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  .dark textarea,
+  .dark [data-radix-select-trigger],
+  .dark .premium-input {
+    background-color: #082946;
+    color: #F3FAFF;
+    border-color: hsl(203 68% 70% / 0.16);
+  }
+}
