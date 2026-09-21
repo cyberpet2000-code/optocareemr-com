@@ -893,7 +893,19 @@ completedLoadKeyRef.current = loadKey;
   const isAuthenticated = !!user;
   const isAuthReady = !authLoading && (!isAuthenticated || accessState.accessReady);
   const isSuperAdminUser = accessState.role === "super_admin" || accessState.profile?.is_super_admin === true;
-  const roleMissing = isAuthenticated && isAuthReady && !accessState.role && !isSuperAdminUser;
+
+  // Do not convert a transient access-hydration gap into a fatal route error.
+  // PatientRecord can trigger several background requests (visits, dispensing,
+  // feedback, staff) and an auth refresh/network hiccup must never make the
+  // whole application report that the user's role disappeared.
+  const roleMissing =
+    isAuthenticated &&
+    isAuthReady &&
+    !accessState.role &&
+    accessState.roles.length === 0 &&
+    !isSuperAdminUser &&
+    !accessState.profile?.role &&
+    accessState.memberships.length === 0;
   const effectiveClinicId = isSuperAdminUser
     ? (activeClinicId || accessState.resolvedClinicId || null)
     : accessState.resolvedClinicId;
