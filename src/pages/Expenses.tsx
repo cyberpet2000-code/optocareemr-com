@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Search, Pencil, Trash2, Download, Receipt, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import { confirmDestructiveAction } from "@/lib/safeDelete";
 
 interface ExpenseRow {
   id: string;
@@ -153,7 +154,7 @@ export default function Expenses() {
   }
 
   async function remove(r: ExpenseRow) {
-    if (!confirm("Delete this expense?")) return;
+    if (!confirmDestructiveAction({ item: `expense "${r.description || r.category}"` })) return;
     const { error } = await apiClient.from("expenses").delete().eq("id", r.id);
     if (error) return toast.error(error.message);
     toast.success("Deleted");
