@@ -16,14 +16,16 @@ export function installRuntimeErrorDetector() {
     });
   });
 
-  window.addEventListener(
-    "unhandledrejection",
-    (event) => {
-      diag.error(
-        "diagnostics",
-        "unhandled-promise",
-        event.reason
-      );
-    }
-  );
+  window.addEventListener("unhandledrejection", (event) => {
+    const reason = event.reason;
+    diag.error("diagnostics", "unhandled-promise", reason);
+    void reportIncident({
+      error_name: reason?.name || "UnhandledPromiseRejection",
+      error_message: reason?.message || String(reason),
+      stack: reason?.stack,
+      source: "unhandled-promise",
+      severity: "critical",
+      route: window.location.pathname,
+    });
+  });
 }
