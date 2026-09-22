@@ -260,11 +260,11 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
                 <button
                   type="button"
                   onClick={() => navigate("/super-admin")}
-                  className="hidden sm:flex items-center gap-1.5 rounded-lg border border-border/60 px-2.5 h-9 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                  className="flex items-center gap-1.5 rounded-lg border border-border/60 px-2.5 h-9 text-xs font-medium text-foreground hover:bg-muted transition-colors"
                   title="Back to Super Admin dashboard"
                 >
                   <LayoutDashboard size={14} />
-                  <span>Super Admin</span>
+                  <span className="hidden sm:inline">Super Admin</span>
                 </button>
               )}
 
