@@ -6,7 +6,7 @@ import {
 import { diag } from "@/lib/diag";
 import { apiClient } from "@/lib/apiClient";
 import { analyzeRootCause, classifyIssue, analyzePriority, analyzeTrend, forecastHealth } from "@/lib/diag";
-import { reportIncident } from "@/lib/diag/incidentReporter";
+import { getQueuedIncidentCount, reportIncident } from "@/lib/diag/incidentReporter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +51,7 @@ export default function SystemHealth() {
   const [online, setOnline] = useState(navigator.onLine);
   const [now, setNow] = useState(Date.now());
   const [loadingIncidents, setLoadingIncidents] = useState(false);
-  const [selected, setSelected] = useState<Incident | null>(null);
+  const [selected, setSelected] = useState<Incident | null>(null);\n  const [queuedIncidents, setQueuedIncidents] = useState(getQueuedIncidentCount());
 
   const loadIncidents = async () => {
     setLoadingIncidents(true);
@@ -76,7 +76,7 @@ export default function SystemHealth() {
     void loadIncidents();
     const interval = setInterval(() => {
       setEntries(diag.snapshot());
-      setNow(Date.now());
+      setNow(Date.now());\n      setQueuedIncidents(getQueuedIncidentCount());
     }, 2000);
     const refresh = setInterval(() => void loadIncidents(), 15000);
     const handleOnline = () => { setOnline(true); void loadIncidents(); };
@@ -172,7 +172,7 @@ export default function SystemHealth() {
         <HealthCard title="Local Errors" value={stats.errors} icon={<ShieldAlert className="h-5 w-5" />} description="Current browser diagnostic errors" />
         <HealthCard title="Warnings" value={stats.warnings} icon={<AlertTriangle className="h-5 w-5" />} description="Current browser warnings" />
         <HealthCard title="Avg Response" value={`${stats.avgPerf}ms`} icon={<Clock3 className="h-5 w-5" />} description="Measured request timing" />
-        <HealthCard title="Connection" value={online ? "Online" : "Offline"} icon={<Wifi className="h-5 w-5" />} description="Current maintenance connection" />
+        <HealthCard title="Connection" value={online ? "Online" : "Offline"} icon={<Wifi className="h-5 w-5" />} description="Current maintenance connection" />\n        <HealthCard title="Queued Offline" value={queuedIncidents} icon={<CloudOff className="h-5 w-5" />} description="Incidents waiting to sync" />
       </div>
 
       <Card className="rounded-2xl shadow-sm">
@@ -304,7 +304,7 @@ export default function SystemHealth() {
               <Info label="Current Route" value={window.location.pathname} />
               <Info label="Last refresh" value={new Date(now).toLocaleTimeString()} />
               <Info label="Buffered Events" value={String(entries.length)} />
-              <Info label="Cached Incidents" value={String(incidents.length)} />
+              <Info label="Cached Incidents" value={String(incidents.length)} />\n              <Info label="Offline Queue" value={String(queuedIncidents)} />
               <Info label="Forecast" value={forecast.prediction} />
             </CardContent>
           </Card>
