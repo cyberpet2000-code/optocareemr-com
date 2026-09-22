@@ -1782,7 +1782,7 @@ transition-colors
     <DropdownMenuItem
       className="text-red-600"
       onClick={async () => {
-        const confirmed = confirmDestructiveAction({ item: "this completed visit", details: "Clinical records should only be removed deliberately. If you only want it out of active work, use Archive instead.", highRisk: true });
+        const confirmed = await confirmDestructiveAction({ item: "this completed visit", details: "Clinical records should only be removed deliberately. If you only want it out of active work, use Archive instead.", highRisk: true });
 
         if (!confirmed) return;
 
