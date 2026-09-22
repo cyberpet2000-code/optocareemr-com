@@ -386,7 +386,8 @@ export function AppRoutes() {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <AppErrorBoundary>
+    <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <TooltipProvider>
         <Toaster />
