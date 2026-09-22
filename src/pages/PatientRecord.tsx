@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { confirmDestructiveAction } from "@/lib/safeDelete";
 import {
   ArrowLeft,
   Eye,
@@ -1760,9 +1761,7 @@ transition-colors
     <DropdownMenuItem
       className="text-red-600"
       onClick={async () => {
-        const confirmed = window.confirm(
-          "Delete this visit permanently?"
-        );
+        const confirmed = confirmDestructiveAction({ item: "this completed visit", details: "Clinical records should only be removed deliberately. If you only want it out of active work, use Archive instead.", highRisk: true });
 
         if (!confirmed) return;
 
