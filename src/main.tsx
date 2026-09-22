@@ -1,6 +1,9 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { installRuntimeErrorDetector } from "./lib/diag";
+
+if (typeof window !== "undefined") installRuntimeErrorDetector();
 
 // ---------------------------------------------------------------------------
 // Global fetch guard — strips the legacy `x-optocare-shared-client` header
