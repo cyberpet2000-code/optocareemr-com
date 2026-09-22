@@ -230,6 +230,11 @@ const canViewFinancials =
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Prevent rapid double-clicks from creating a second visit.
+  const savingVisitRef = useRef(false);
+  // A new visit keeps one stable id for the whole save attempt, making the
+  // database insert idempotent even if two submit events race each other.
+  const newVisitIdRef = useRef<string | null>(null);
   const [appointmentDate, setAppointmentDate] = useState("");
   const [appointmentTime, setAppointmentTime] = useState("");
   const [appointmentType, setAppointmentType] = useState("Follow-up");
@@ -995,9 +1000,16 @@ subVaOutcome: v.sub_va_outcome || "",
       return;
     }
 
+    if (savingVisitRef.current) {
+      toast.warning("This visit is already being saved. Please wait for it to finish.");
+      return;
+    }
+
+    savingVisitRef.current = true;
     setSaving(true);
 
-const visitId = editingVisitId || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "visit-" + Date.now() + "-" + Math.random().toString(36).slice(2));
+const visitId = editingVisitId || newVisitIdRef.current || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "visit-" + Date.now() + "-" + Math.random().toString(36).slice(2));
+if (!editingVisitId) newVisitIdRef.current = visitId;
 
 const visitPayload = {
   id: visitId,
@@ -1088,6 +1100,8 @@ if (typeof navigator !== "undefined" && !navigator.onLine) {
   const currentVisits = offlineStore.get<any[]>("patient-visits:" + cid + ":" + patient.id) ?? visits;
   setVisits([localVisit, ...currentVisits.filter(v => v.id !== localVisit.id)]);
   setSaving(false);
+  savingVisitRef.current = false;
+  newVisitIdRef.current = null;
   toast.success(markCompleted ? "Visit completed offline — it will sync automatically." : "Visit saved offline — it will sync automatically.");
   setEditingVisitId(null);
   setForm(emptyVisitForm());
@@ -1108,8 +1122,12 @@ const { data, error } = editingVisitId
       .single();
     setSaving(false);
     if (error) {
-  alert(JSON.stringify(error, null, 2));
-  toast.error(error.message);
+  savingVisitRef.current = false;
+  if (error.code === "23505" && !editingVisitId) {
+    toast.warning("This visit has already been saved or completed. It was not saved twice.");
+  } else {
+    toast.error(error.message);
+  }
   return;
     }
 
@@ -1142,6 +1160,8 @@ if (
     return;
   }
 }
+    savingVisitRef.current = false;
+    newVisitIdRef.current = null;
     toast.success(markCompleted ? "Visit completed — bill auto-created" : "Visit saved");
     setEditingVisitId(null);
     setForm(emptyVisitForm());
