@@ -15,6 +15,7 @@ const filter = searchParams.get("filter");
 
   const [visits, setVisits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [doctorMap, setDoctorMap] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (!cid) return;
@@ -64,10 +65,35 @@ const filter = searchParams.get("filter");
   )
 ];
 
-const { data: patients } = await apiClient
-  .from("patients")
-  .select("id, full_name, phone")
-  .in("id", patientIds);
+const { data: patients } = patientIds.length
+  ? await apiClient
+      .from("patients")
+      .select("id, full_name, phone")
+      .in("id", patientIds)
+  : { data: [] };
+
+const doctorIds = [
+  ...new Set(
+    (data || [])
+      .map((v: any) => v.doctor_id)
+      .filter(Boolean)
+  )
+];
+
+const { data: doctorProfiles } = doctorIds.length
+  ? await apiClient
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", doctorIds)
+  : { data: [] };
+
+const nextDoctorMap = new Map<string, string>(
+  (doctorProfiles || []).map((p: any) => [
+    p.id,
+    p.full_name || "Doctor",
+  ])
+);
+setDoctorMap(nextDoctorMap);
 
 const patientMap = new Map(
   (patients || []).map((p: any) => [
@@ -88,7 +114,13 @@ const visitsWithNames = (data || []).map(
 );
 
 
-      setVisits(visitsWithNames);
+      const finalVisits = visitsWithNames.map((visit: any) => ({
+        ...visit,
+        doctor_name:
+          nextDoctorMap.get(visit.doctor_id) ||
+          (visit.doctor_id ? "Assigned doctor" : "Not assigned"),
+      }));
+      setVisits(finalVisits);
       setLoading(false);
     })();
   }, [cid, filter]);
@@ -153,11 +185,10 @@ const visitsWithNames = (data || []).map(
   </p>
 )}
 
-      <p className="text-xs text-muted-foreground mt-1">
-        {new Date(
-          visit.created_at
-        ).toLocaleString()}
-      </p>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
+        <span>Doctor: {visit.doctor_name}</span>
+        <span>{new Date(visit.created_at).toLocaleString()}</span>
+      </div>
     </div>
   </Link>
 ))}
