@@ -13,6 +13,7 @@ import { useAccess } from "@/hooks/useAccess";
 import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
 import { enqueueOfflineOperation } from "@/lib/offlineEngine";
+import { confirmDestructiveAction } from "@/lib/safeDelete";
 
 
 const CATEGORIES = ["Frames", "Lenses", "Contact Lenses", "Accessories", "Drugs"];
@@ -154,7 +155,8 @@ export default function Inventory() {
 
   const handleDelete = async (id: string) => {
     if (!cid) return;
-    if (!confirm("Delete?")) return;
+    const item = items.find((i) => i.id === id);
+    if (!confirmDestructiveAction({ item: `inventory item "${item?.name || id}"`, details: "This removes the item from the clinic inventory.", highRisk: true })) return;
     if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
       await enqueueOfflineOperation({ clinicId: cid, userId: user?.id ?? null, kind: "inventory.delete", entityId: id, payload: { id } });
       const current = offlineStore.get<InventoryItem[]>(`inventory:${cid}`) ?? items;
