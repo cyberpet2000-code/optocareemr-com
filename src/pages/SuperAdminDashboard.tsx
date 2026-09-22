@@ -197,7 +197,7 @@ if (!cancelled) {
     { to: "/super-admin/create-clinic", label: "Create Clinic", icon: Plus, desc: "Provision new clinic + admin" },
     { to: "/super-admin/clinics", label: "All Clinics", icon: Building2, desc: "Manage clinic accounts" },
     { to: "/super-admin/users", label: "Platform Users", icon: Users, desc: "Manage all users" },
-    { to: "/super-admin", label: "Performance", icon: Activity, desc: "System health & metrics" },
+    { to: "/super-admin/system-health", label: "Performance", icon: Activity, desc: "System health & metrics" },
     { to: "/super-admin/clinics", label: "Clinic Control", icon: Sparkles, desc: "Lifecycle and access oversight" },
     { to: "/super-admin/users", label: "Safety & Roles", icon: ShieldCheck, desc: "User access and safeguards" },
     { to: "/super-admin/users", label: "Staff Ratings", icon: Star, desc: "View staff ratings for the active clinic" },
