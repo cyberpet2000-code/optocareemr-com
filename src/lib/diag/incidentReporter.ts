@@ -81,7 +81,9 @@ async function send(incident: Incident) {
   if (error) throw error;
 }
 
-export function getQueuedIncidentCount() { return readQueue().length; }\n\nexport async function flushIncidentQueue() {
+export function getQueuedIncidentCount() { return readQueue().length; }
+
+export async function flushIncidentQueue() {
   if (!navigator.onLine) return;
   const queue = readQueue();
   if (!queue.length) return;
