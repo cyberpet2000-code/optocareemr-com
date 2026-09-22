@@ -39,8 +39,16 @@ export default class AppErrorBoundary extends Component<Props, State> {
     try {
       window.location.reload();
     } catch {
-      window.location.href = "/";
+      window.location.href = window.location.pathname || "/";
     }
+  };
+
+  handleDashboard = () => {
+    window.location.href = "/dashboard";
+  };
+
+  handleSystemHealth = () => {
+    window.location.href = "/super-admin/system-health";
   };
 
   render() {
@@ -82,14 +90,36 @@ export default class AppErrorBoundary extends Component<Props, State> {
             </div>
           </div>
 
-          <Button
-            type="button"
-            onClick={this.handleRetry}
-            className="mt-6 w-full h-11 bg-[#0A4174] hover:bg-[#001D39] text-white"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
-            Try Again
-          </Button>
+          <div className="mt-6 grid gap-2 sm:grid-cols-2">
+            <Button
+              type="button"
+              onClick={this.handleRetry}
+              className="w-full h-11 bg-[#0A4174] hover:bg-[#001D39] text-white"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
+              Try Again
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={this.handleDashboard}
+              className="w-full h-11"
+            >
+              Continue to Dashboard
+            </Button>
+          </div>
+
+          {typeof window !== "undefined" &&
+            window.location.pathname.startsWith("/super-admin") && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={this.handleSystemHealth}
+                className="mt-2 w-full h-11 border-[#B8D7E3] text-[#0A4174]"
+              >
+                Open Super Admin System Health
+              </Button>
+            )}
 
           <p className="mt-4 text-xs text-[#6A7F8E]">
             If this continues, please contact OptoCare Support. We’ll help you restore access to your workspace.
