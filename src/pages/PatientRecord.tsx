@@ -91,16 +91,28 @@ interface PatientData {
   family_relationship?: string | null;
 }
 
+interface PaymentHistoryItem {
+  item_name: string;
+  item_type: string | null;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
+
 interface PaymentHistoryRow {
   id: string;
   visit_id: string | null;
+  visit_date: string | null;
   total_amount: number;
   amount_paid: number;
   balance: number;
+  consultation_fee: number;
+  discount_amount: number;
+  discount_reason: string | null;
   status: string;
   notes: string | null;
   created_at: string;
-  description: string;
+  items: PaymentHistoryItem[];
   payments: Array<{ amount: number; method: string; created_at: string; paid_by: string }>;
 }
 
@@ -648,41 +660,63 @@ if (visRes.data && visRes.data.length > 0) {
       if (canViewFinancials) {
         const { data: billingRows } = await apiClient
           .from("billing")
-          .select("id, visit_id, total_amount, amount_paid, balance, status, notes, created_at")
+          .select("id, visit_id, total_amount, amount_paid, balance, consultation_fee, discount_amount, discount_reason, status, notes, created_at")
           .eq("clinic_id", cid)
           .eq("patient_id", patientId)
           .order("created_at", { ascending: false });
         const billingIds = (billingRows || []).map((bill: any) => bill.id);
         const [{ data: billingItems }, { data: paymentRows }] = billingIds.length > 0
           ? await Promise.all([
-              apiClient.from("billing_items").select("billing_id, item_name, quantity").eq("clinic_id", cid).in("billing_id", billingIds),
-              apiClient.from("payments").select("billing_id, amount, method, paid_by, created_at").eq("clinic_id", cid).in("billing_id", billingIds).order("created_at", { ascending: false }),
+              apiClient
+                .from("billing_items")
+                .select("billing_id, item_name, item_type, quantity, unit_price, total_price")
+                .eq("clinic_id", cid)
+                .in("billing_id", billingIds)
+                .order("created_at", { ascending: true }),
+              apiClient
+                .from("payments")
+                .select("billing_id, amount, method, paid_by, created_at")
+                .eq("clinic_id", cid)
+                .in("billing_id", billingIds)
+                .order("created_at", { ascending: false }),
             ])
           : [{ data: [] }, { data: [] }];
-        const itemMap = new Map<string, string[]>();
+
+        const itemsMap = new Map<string, PaymentHistoryItem[]>();
         (billingItems || []).forEach((item: any) => {
-          const names = itemMap.get(item.billing_id) || [];
-          names.push(`${item.item_name}${item.quantity > 1 ? ` × ${item.quantity}` : ""}`);
-          itemMap.set(item.billing_id, names);
+          const rows = itemsMap.get(item.billing_id) || [];
+          rows.push({
+            item_name: item.item_name || item.item_type || "Item",
+            item_type: item.item_type || null,
+            quantity: Number(item.quantity) || 1,
+            unit_price: Number(item.unit_price) || 0,
+            total_price: Number(item.total_price) || 0,
+          });
+          itemsMap.set(item.billing_id, rows);
         });
+
         const paymentsMap = new Map<string, PaymentHistoryRow["payments"]>();
         (paymentRows || []).forEach((payment: any) => {
           const rows = paymentsMap.get(payment.billing_id) || [];
           rows.push(payment);
           paymentsMap.set(payment.billing_id, rows);
         });
-        const actualBillingRows = (billingRows || []).filter(
-  (bill: any) =>
-    Number(bill.total_amount) > 0 ||
-    Number(bill.amount_paid) > 0
-);
 
-setPaymentHistory(actualBillingRows.map((bill: any) => {
+        const actualBillingRows = (billingRows || []).filter(
+          (bill: any) =>
+            Number(bill.total_amount) > 0 ||
+            Number(bill.amount_paid) > 0
+        );
+
+        setPaymentHistory(actualBillingRows.map((bill: any) => {
           const visit = (visRes.data || []).find((entry: any) => entry.id === bill.visit_id);
-          const description = itemMap.get(bill.id)?.join(", ") || bill.notes || visit?.diagnosis || visit?.chief_complaint || "Clinical care";
           return {
             ...bill,
-            description,
+            visit_date: visit?.created_at || bill.created_at,
+            consultation_fee: Number(bill.consultation_fee) || 0,
+            discount_amount: Number(bill.discount_amount) || 0,
+            discount_reason: bill.discount_reason || null,
+            items: itemsMap.get(bill.id) || [],
             payments: paymentsMap.get(bill.id) || [],
           };
         }));
@@ -3178,17 +3212,20 @@ shadow-sm
                      : "No outstanding balance"}
                  </p>
                </div>
-               <Link
-                 to={"/billing?patient_id=" + patient.id}
-                 className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-primary px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-primary-foreground hover:opacity-90"
-                 title="Create or open this patient's billing"
-               >
-                 <FileText size={12} /> New Bill
-               </Link>
-               <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${getPaymentStatusClass(paymentSummary.paymentStatus)}`}>
-                 {paymentSummary.paymentStatus}
-               </span>
+               <div className="flex items-center gap-2">
+                 <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${getPaymentStatusClass(paymentSummary.paymentStatus)}`}>
+                   {paymentSummary.paymentStatus}
+                 </span>
+                 <Link
+                   to={"/billing?patient_id=" + patient.id}
+                   className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-primary px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-primary-foreground hover:opacity-90"
+                   title="Create or open this patient's billing"
+                 >
+                   <FileText size={12} /> New Bill
+                 </Link>
+               </div>
              </div>
+
              {paymentHistory.length === 0 ? (
                <div className="py-6 text-center">
                  <p className="text-sm text-muted-foreground">No payment history recorded.</p>
@@ -3200,54 +3237,132 @@ shadow-sm
                  </Link>
                </div>
              ) : (
-               <div className="space-y-3">
-                 {paymentHistory.map((bill) => (
-                   <div key={bill.id} className="rounded-2xl border bg-card p-4">
-                     <div className="flex items-start justify-between gap-3">
-                       <div className="min-w-0">
-                         <p className="font-semibold truncate">{bill.description}</p>
-                         <p className="text-xs text-muted-foreground mt-1">
-                           {new Date(bill.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-                           {` • Invoice ${bill.id.slice(0, 8).toUpperCase()}`}
-                         </p>
+               <div className="space-y-4">
+                 {paymentHistory.map((bill) => {
+                   const visitItems = bill.items;
+                   const status =
+                     Number(bill.total_amount) > 0 && Number(bill.balance) <= 0
+                       ? "Paid"
+                       : Number(bill.amount_paid) > 0
+                         ? "Partially Paid"
+                         : "Not Paid";
+
+                   return (
+                     <div key={bill.id} className="rounded-2xl border bg-card overflow-hidden">
+                       <div className="p-4 border-b bg-muted/20">
+                         <div className="flex items-start justify-between gap-3">
+                           <div>
+                             <p className="font-semibold">
+                               {bill.visit_date
+                                 ? new Date(bill.visit_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+                                 : "Visit"}
+                             </p>
+                             <p className="text-xs text-muted-foreground mt-1">
+                               {bill.visit_id ? "Visit billing" : "Billing record"} • Invoice {bill.id.slice(0, 8).toUpperCase()}
+                             </p>
+                           </div>
+                           <span className={`shrink-0 text-[11px] px-2 py-1 rounded-md font-medium ${getPaymentStatusClass(status)}`}>
+                             {status}
+                           </span>
+                         </div>
                        </div>
-                       <span
-  className={`shrink-0 text-[11px] px-2 py-1 rounded-md font-medium ${getPaymentStatusClass(
-    Number(bill.total_amount) > 0 &&
-    Number(bill.balance) <= 0
-      ? "Paid"
-      : bill.status || "Due"
-  )}`}
->
-  {Number(bill.total_amount) > 0 &&
-  Number(bill.balance) <= 0
-    ? "Paid"
-    : bill.status || "Due"}
-</span>
-                       
+
+                       <div className="p-4">
+                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">
+                           Charges
+                         </p>
+
+                         <div className="divide-y rounded-xl border overflow-hidden">
+                           {Number(bill.consultation_fee) > 0 && (
+                             <div className="flex items-start justify-between gap-3 px-3 py-2.5 text-xs">
+                               <div>
+                                 <p className="font-medium">Consultation</p>
+                                 <p className="text-[10px] text-muted-foreground">Eye examination / consultation</p>
+                               </div>
+                               <span className="font-medium whitespace-nowrap">₦{Number(bill.consultation_fee).toLocaleString()}</span>
+                             </div>
+                           )}
+
+                           {visitItems.length > 0 ? visitItems.map((item, index) => (
+                             <div key={`${bill.id}-item-${index}`} className="flex items-start justify-between gap-3 px-3 py-2.5 text-xs">
+                               <div className="min-w-0">
+                                 <p className="font-medium">{item.item_name}</p>
+                                 <p className="text-[10px] text-muted-foreground">
+                                   {item.item_type || "Item"}{item.quantity > 1 ? ` • Qty ${item.quantity}` : ""}
+                                 </p>
+                               </div>
+                               <span className="font-medium whitespace-nowrap">₦{Number(item.total_price).toLocaleString()}</span>
+                             </div>
+                           )) : (
+                             <div className="px-3 py-2.5 text-xs text-muted-foreground">No itemized charges recorded.</div>
+                           )}
+
+                           {Number(bill.discount_amount) > 0 && (
+                             <div className="flex items-start justify-between gap-3 px-3 py-2.5 text-xs">
+                               <div>
+                                 <p className="font-medium">Discount</p>
+                                 {bill.discount_reason && <p className="text-[10px] text-muted-foreground">{bill.discount_reason}</p>}
+                               </div>
+                               <span className="font-medium whitespace-nowrap">-₦{Number(bill.discount_amount).toLocaleString()}</span>
+                             </div>
+                           )}
+                         </div>
+
+                         <div className="grid grid-cols-3 gap-2 mt-3">
+                           <div className="rounded-xl bg-muted/30 p-2.5">
+                             <p className="text-[10px] text-muted-foreground">Total Charged</p>
+                             <p className="font-semibold text-xs mt-1">₦{Number(bill.total_amount).toLocaleString()}</p>
+                           </div>
+                           <div className="rounded-xl bg-muted/30 p-2.5">
+                             <p className="text-[10px] text-muted-foreground">Paid</p>
+                             <p className="font-semibold text-xs mt-1">₦{Number(bill.amount_paid).toLocaleString()}</p>
+                           </div>
+                           <div className="rounded-xl bg-muted/30 p-2.5">
+                             <p className="text-[10px] text-muted-foreground">Balance</p>
+                             <p className={`font-semibold text-xs mt-1 ${Number(bill.balance) > 0 ? "text-warning" : "text-success"}`}>
+                               ₦{Number(bill.balance).toLocaleString()}
+                             </p>
+                           </div>
+                         </div>
+
+                         {bill.payments.length > 0 && (
+                           <div className="mt-4">
+                             <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">
+                               Payment Transactions
+                             </p>
+                             <div className="space-y-2">
+                               {bill.payments.map((payment, index) => (
+                                 <div key={`${bill.id}-payment-${index}`} className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-xs">
+                                   <div>
+                                     <p className="font-medium">{payment.method || "Payment"}</p>
+                                     <p className="text-[10px] text-muted-foreground">
+                                       {new Date(payment.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                                     </p>
+                                   </div>
+                                   <span className="font-medium">₦{Number(payment.amount).toLocaleString()}</span>
+                                 </div>
+                               ))}
+                             </div>
+                           </div>
+                         )}
+
+                         <div className="flex items-center justify-between gap-2 flex-wrap mt-4">
+                           <span className="text-[10px] text-muted-foreground">
+                             {bill.visit_id ? "All charges shown are attached to this visit." : "Billing record not linked to a visit."}
+                           </span>
+                           {bill.visit_id && (
+                             <Link
+                               to={"/billing?patient_id=" + patient.id + "&visit_id=" + bill.visit_id}
+                               className="inline-flex items-center gap-1 rounded-xl bg-primary px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-primary-foreground hover:opacity-90"
+                             >
+                               <FileText size={12} /> View Bill
+                             </Link>
+                           )}
+                         </div>
+                       </div>
                      </div>
-                     <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
-                       <div><p className="text-muted-foreground">Amount</p><p className="font-medium">₦{Number(bill.total_amount).toLocaleString()}</p></div>
-                       <div><p className="text-muted-foreground">Paid</p><p className="font-medium">₦{Number(bill.amount_paid).toLocaleString()}</p></div>
-                       <div><p className="text-muted-foreground">Balance</p><p className={`font-medium ${bill.balance > 0 ? "text-warning" : "text-success"}`}>₦{Number(bill.balance).toLocaleString()}</p></div>
-                     </div>
-                     <div className="flex items-center justify-between gap-2 flex-wrap mt-3">
-                       {bill.payments.length > 0 && (
-                       <p className="text-[11px] text-muted-foreground">
-                         Payments: {bill.payments.map((payment) => `${payment.method} ₦${Number(payment.amount).toLocaleString()}`).join(" • ")}
-                       </p>
-                     )}
-                       {bill.visit_id && (
-                         <Link
-                           to={"/billing?patient_id=" + patient.id + "&visit_id=" + bill.visit_id}
-                           className="inline-flex items-center gap-1 rounded-xl bg-primary px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-primary-foreground hover:opacity-90"
-                         >
-                           <FileText size={12} /> Bill / View Bill
-                         </Link>
-                       )}
-                     </div>
-                   </div>
-                 ))}
+                   );
+                 })}
                </div>
              )}
            </div>
