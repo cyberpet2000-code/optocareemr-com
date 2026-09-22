@@ -8,6 +8,7 @@ import { diag } from "@/lib/diag";
 import { apiClient } from "@/lib/apiClient";
 import { analyzeRootCause, classifyIssue, analyzePriority, analyzeTrend, forecastHealth } from "@/lib/diag";
 import { getQueuedIncidentCount, reportIncident } from "@/lib/diag/incidentReporter";
+import { runSelfHealing, reportHealingResult } from "@/lib/diag/selfHealing";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +56,7 @@ export default function SystemHealth() {
   const [loadingIncidents, setLoadingIncidents] = useState(false);
   const [selected, setSelected] = useState<Incident | null>(null);
   const [queuedIncidents, setQueuedIncidents] = useState(getQueuedIncidentCount());
+  const [healing, setHealing] = useState(false);
 
   const loadIncidents = async () => {
     setLoadingIncidents(true);
@@ -177,6 +179,19 @@ export default function SystemHealth() {
     await loadIncidents();
   };
 
+  const runSafeRecovery = async () => {
+    setHealing(true);
+    try {
+      const result = await runSelfHealing();
+      await reportHealingResult(result);
+      await loadIncidents();
+      setQueuedIncidents(getQueuedIncidentCount());
+      window.setTimeout(() => window.location.reload(), 500);
+    } finally {
+      setHealing(false);
+    }
+  };
+
   const exportDiagnostics = () => {
     const payload = { generatedAt: new Date().toISOString(), online, incidents, localEvents: entries };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -204,6 +219,9 @@ export default function SystemHealth() {
           <Badge variant="outline">{online ? "CENTRAL SYNC" : "OFFLINE / LOCAL EVIDENCE"}</Badge>
           <Button variant="outline" onClick={() => void loadIncidents()} disabled={loadingIncidents}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loadingIncidents ? "animate-spin" : ""}`} /> Refresh
+          </Button>
+          <Button variant="outline" onClick={() => void runSafeRecovery()} disabled={healing}>
+            <Wrench className={`h-4 w-4 mr-2 ${healing ? "animate-spin" : ""}`} /> {healing ? "Running Recovery…" : "Run Safe Recovery"}
           </Button>
           <Button variant="outline" onClick={exportDiagnostics}>
             <Download className="h-4 w-4 mr-2" /> Export Diagnostic Bundle
