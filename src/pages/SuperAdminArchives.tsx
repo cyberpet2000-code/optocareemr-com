@@ -13,6 +13,7 @@ import {
   CheckCircle2, AlertCircle, Loader2, Calendar, User, Building2, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
+import { confirmDestructiveAction } from "@/lib/safeDelete";
 
 type ArchiveRow = {
   id: string;
@@ -162,6 +163,8 @@ export default function SuperAdminArchives() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    const clinicName = clinics.find((c) => c.id === deleteTarget.clinic_id)?.name || "selected clinic";
+    if (!confirmDestructiveAction({ item: `archive for ${clinicName}`, details: "This permanently removes the archive file and cannot be undone.", highRisk: true })) return;
     const { data, error } = await apiClient.functions.invoke("manage-clinic-archive", {
       body: { action: "delete", archive_id: deleteTarget.id },
     });
