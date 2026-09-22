@@ -33,12 +33,6 @@ BEGIN
   IF NOT (
     public.has_role(auth.uid(), 'super_admin')
     OR public.has_role(auth.uid(), 'admin')
-    OR EXISTS (
-      SELECT 1
-      FROM public.user_clinic_memberships m
-      WHERE m.user_id = auth.uid()
-        AND m.clinic_id = v_inventory.clinic_id
-    )
   ) THEN
     RAISE EXCEPTION 'Not authorized to count this inventory item';
   END IF;
