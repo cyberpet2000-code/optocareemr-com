@@ -49,35 +49,18 @@ function fingerprint(input: Incident) {
   return (hash >>> 0).toString(16);
 }
 
-async function getIdentity() {
-  try {
-    const { data } = await apiClient.auth.getUser();
-    return {
-      user_id: data.user?.id ?? null,
-      clinic_id: null as string | null,
-    };
-  } catch {
-    return { user_id: null, clinic_id: null };
-  }
-}
-
 async function send(incident: Incident) {
-  const identity = await getIdentity();
-  const payload = {
-    ...incident,
-    user_id: incident.user_id ?? identity.user_id,
-    clinic_id: incident.clinic_id ?? identity.clinic_id,
-  };
-  const { error } = await apiClient.from("system_incidents").upsert(
-    {
-      ...payload,
-      occurrence_count: 1,
-      first_seen: new Date().toISOString(),
-      last_seen: new Date().toISOString(),
-      context: payload.context ?? {},
-    },
-    { onConflict: "fingerprint" },
-  );
+  const { error } = await (apiClient as any).rpc("report_system_incident", {
+    p_fingerprint: incident.fingerprint,
+    p_page_name: incident.page_name ?? null,
+    p_route: incident.route ?? null,
+    p_error_name: incident.error_name ?? null,
+    p_error_message: incident.error_message ?? null,
+    p_stack: incident.stack ?? null,
+    p_source: incident.source,
+    p_severity: incident.severity,
+    p_context: incident.context ?? {},
+  });
   if (error) throw error;
 }
 
