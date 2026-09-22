@@ -1,5 +1,5 @@
 import OptoLoader from "@/components/OptoLoader";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { apiClient } from "@/lib/apiClient";
 import { ensureBillingForVisit } from "@/lib/ensureBilling";
