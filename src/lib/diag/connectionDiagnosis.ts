@@ -107,6 +107,42 @@ export async function checkDatabaseService(): Promise<ServiceStatus> {
   }
 }
 
+export async function diagnoseRequestFailure(error: unknown): Promise<ConnectionDiagnosis> {
+  const text = error instanceof Error ? error.message : String(error ?? "");
+  const status = Number((error as any)?.status ?? (error as any)?.code);
+
+  // A request that failed because the device lost connectivity should use
+  // the full layered diagnosis so Login can distinguish internet failure
+  // from an actual OptoCare service outage.
+  if (
+    (typeof navigator !== "undefined" && !navigator.onLine) ||
+    NETWORK_ERROR.test(text)
+  ) {
+    return diagnoseConnection();
+  }
+
+  // Server-side failures are diagnosed against the live OptoCare services.
+  if (status >= 500) {
+    return diagnoseConnection();
+  }
+
+  // Client-side authentication/application errors (for example, an
+  // incorrect email or password) are not system outages. Preserve the
+  // service error returned by Supabase instead of masking it.
+  const code: DiagnosisCode = status >= 400 ? "APPLICATION" : "UNKNOWN";
+  return {
+    code,
+    message: text || messageFor(code),
+    technicalMessage: text || "The request failed without a network or server status.",
+    network: typeof navigator !== "undefined" && navigator.onLine ? "online" : "offline",
+    internet: "unknown",
+    authentication: "unknown",
+    database: "unknown",
+    edgeFunctions: "unknown",
+    application: "online",
+  };
+}
+
 export async function diagnoseConnection(): Promise<ConnectionDiagnosis> {
   if (typeof navigator !== "undefined" && !navigator.onLine) {
     return {
