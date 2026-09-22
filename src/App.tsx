@@ -25,6 +25,7 @@ import SuperAdminClinics from "./pages/SuperAdminClinics";
 import SuperAdminCreateClinic from "./pages/SuperAdminCreateClinic";
 import SuperAdminArchives from "./pages/SuperAdminArchives";
 import SystemHealth from "./pages/SystemHealth";
+import EmergencyResponse from "./pages/EmergencyResponse";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
 import SelectClinic from "./pages/SelectClinic";
@@ -354,6 +355,7 @@ export function AppRoutes() {
         <Route element={<AppLayout />}>
           <Route path="/super-admin" element={<SuperAdminOnly><PageErrorBoundary pageName="Super Admin Dashboard"><SuperAdminDashboard /></PageErrorBoundary></SuperAdminOnly>} />
           <Route path="/super-admin/system-health" element={<SuperAdminOnly><PageErrorBoundary pageName="System Health"><SystemHealth /></PageErrorBoundary></SuperAdminOnly>} />
+          <Route path="/super-admin/emergency-response" element={<SuperAdminOnly><PageErrorBoundary pageName="Emergency Response"><EmergencyResponse /></PageErrorBoundary></SuperAdminOnly>} />
           <Route path="/super-admin-dashboard" element={<Navigate to="/super-admin" replace />} />
           <Route path="/super-admin/create-clinic" element={<SuperAdminOnly><PageErrorBoundary pageName="Create Clinic"><SuperAdminCreateClinic /></PageErrorBoundary></SuperAdminOnly>} />
           <Route path="/super-admin/clinics" element={<SuperAdminOnly><PageErrorBoundary pageName="Clinics"><SuperAdminClinics /></PageErrorBoundary></SuperAdminOnly>} />
