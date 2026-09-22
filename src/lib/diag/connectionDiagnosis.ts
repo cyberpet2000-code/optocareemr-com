@@ -83,6 +83,30 @@ async function probe(url: string, timeoutMs = 4000) {
   }
 }
 
+
+export async function checkDatabaseService(): Promise<ServiceStatus> {
+  try {
+    if (!SUPABASE_URL) return "unknown";
+
+    const client = getSupabaseClient();
+    const started = performance.now();
+    const { error } = await client
+      .from("clinics")
+      .select("id")
+      .limit(1);
+
+    if (error) {
+      const status = (error as any)?.status;
+      return typeof status === "number" && status >= 500 ? "offline" : "degraded";
+    }
+
+    const elapsed = performance.now() - started;
+    return elapsed >= 2500 ? "degraded" : "online";
+  } catch {
+    return "offline";
+  }
+}
+
 export async function diagnoseConnection(): Promise<ConnectionDiagnosis> {
   if (typeof navigator !== "undefined" && !navigator.onLine) {
     return {
