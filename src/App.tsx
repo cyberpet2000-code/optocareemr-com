@@ -57,6 +57,7 @@ import { toast } from "sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import OptoLoader from "@/components/OptoLoader";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
+import PageErrorBoundary from "@/components/PageErrorBoundary";
 
 installDiagFetchPatch();
 
@@ -347,34 +348,34 @@ export function AppRoutes() {
   ) : (
     <ProtectedRouteGate>
       <Routes>
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/select-clinic" element={<SelectClinic />} />
+        <Route path="/onboarding" element={<PageErrorBoundary pageName="Onboarding"><Onboarding /></PageErrorBoundary>} />
+        <Route path="/select-clinic" element={<PageErrorBoundary pageName="Clinic Selection"><SelectClinic /></PageErrorBoundary>} />
 
         <Route element={<AppLayout />}>
-          <Route path="/super-admin" element={<SuperAdminOnly><SuperAdminDashboard /></SuperAdminOnly>} />
-          <Route path="/super-admin/system-health" element={<SuperAdminOnly><SystemHealth /></SuperAdminOnly>} />
+          <Route path="/super-admin" element={<SuperAdminOnly><PageErrorBoundary pageName="Super Admin Dashboard"><SuperAdminDashboard /></PageErrorBoundary></SuperAdminOnly>} />
+          <Route path="/super-admin/system-health" element={<SuperAdminOnly><PageErrorBoundary pageName="System Health"><SystemHealth /></PageErrorBoundary></SuperAdminOnly>} />
           <Route path="/super-admin-dashboard" element={<Navigate to="/super-admin" replace />} />
-          <Route path="/super-admin/create-clinic" element={<SuperAdminOnly><SuperAdminCreateClinic /></SuperAdminOnly>} />
-          <Route path="/super-admin/clinics" element={<SuperAdminOnly><SuperAdminClinics /></SuperAdminOnly>} />
-          <Route path="/super-admin/archives" element={<SuperAdminOnly><SuperAdminArchives /></SuperAdminOnly>} />
-          <Route path="/super-admin/users" element={<SuperAdminOnly><AdminRoles embedded /></SuperAdminOnly>} />
+          <Route path="/super-admin/create-clinic" element={<SuperAdminOnly><PageErrorBoundary pageName="Create Clinic"><SuperAdminCreateClinic /></PageErrorBoundary></SuperAdminOnly>} />
+          <Route path="/super-admin/clinics" element={<SuperAdminOnly><PageErrorBoundary pageName="Clinics"><SuperAdminClinics /></PageErrorBoundary></SuperAdminOnly>} />
+          <Route path="/super-admin/archives" element={<SuperAdminOnly><PageErrorBoundary pageName="Clinic Data Archives"><SuperAdminArchives /></PageErrorBoundary></SuperAdminOnly>} />
+          <Route path="/super-admin/users" element={<SuperAdminOnly><PageErrorBoundary pageName="User Management"><AdminRoles embedded /></PageErrorBoundary></SuperAdminOnly>} />
 
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/visits" element={<Visits />} />
-          <Route path="/register" element={<PatientRegister />} />
-          <Route path="/patients/followups" element={<PatientList />} />
+          <Route path="/dashboard" element={<PageErrorBoundary pageName="Dashboard"><Dashboard /></PageErrorBoundary>} />
+          <Route path="/visits" element={<PageErrorBoundary pageName="Visits"><Visits /></PageErrorBoundary>} />
+          <Route path="/register" element={<PageErrorBoundary pageName="Patient Registration"><PatientRegister /></PageErrorBoundary>} />
+          <Route path="/patients/followups" element={<PageErrorBoundary pageName="Patients"><PatientList /></PageErrorBoundary>} />
           <Route path="/patients" element={<PatientList />} />
-          <Route path="/patient/:id" element={<PatientRecord />} />
-          <Route path="/hmos" element={<HmoManagement />} />
-          <Route path="/appointments" element={<Appointments />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/billing" element={<Billing />} />
-          <Route path="/admin/roles" element={<AdminRoles />} />
-          <Route path="/finance/expenses" element={<Expenses />} />
-          <Route path="/inventory/audit" element={<InventoryAudit />} />
-          <Route path="/settings/account" element={<AccountSettings />} />
-          <Route path="/reports/monthly" element={<MonthlyReports />} />
-          <Route path="/reports/daily-front-desk" element={<DailyFrontDeskReport />} />
+          <Route path="/patient/:id" element={<PageErrorBoundary pageName="Patient Record"><PatientRecord /></PageErrorBoundary>} />
+          <Route path="/hmos" element={<PageErrorBoundary pageName="HMO Management"><HmoManagement /></PageErrorBoundary>} />
+          <Route path="/appointments" element={<PageErrorBoundary pageName="Appointments"><Appointments /></PageErrorBoundary>} />
+          <Route path="/inventory" element={<PageErrorBoundary pageName="Inventory"><Inventory /></PageErrorBoundary>} />
+          <Route path="/billing" element={<PageErrorBoundary pageName="Billing"><Billing /></PageErrorBoundary>} />
+          <Route path="/admin/roles" element={<PageErrorBoundary pageName="Staff & Roles"><AdminRoles /></PageErrorBoundary>} />
+          <Route path="/finance/expenses" element={<PageErrorBoundary pageName="Expenses"><Expenses /></PageErrorBoundary>} />
+          <Route path="/inventory/audit" element={<PageErrorBoundary pageName="Inventory Audit"><InventoryAudit /></PageErrorBoundary>} />
+          <Route path="/settings/account" element={<PageErrorBoundary pageName="Account Settings"><AccountSettings /></PageErrorBoundary>} />
+          <Route path="/reports/monthly" element={<PageErrorBoundary pageName="Monthly Reports"><MonthlyReports /></PageErrorBoundary>} />
+          <Route path="/reports/daily-front-desk" element={<PageErrorBoundary pageName="Daily Front Desk Report"><DailyFrontDeskReport /></PageErrorBoundary>} />
           <Route path="*" element={<NotFound />} />
         </Route>
 
