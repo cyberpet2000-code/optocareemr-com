@@ -75,7 +75,7 @@ export default function PendingInvitesPanel() {
   };
 
   const cancel = async (inv: Invite) => {
-    if (!confirmDestructiveAction({ item: `pending invite for ${inv.email}` })) return;
+    if (!(await confirmDestructiveAction({ item: `pending invite for ${inv.email}` })) return;
     setBusyId(inv.id);
     const { error } = await apiClient.from("clinic_invites").delete().eq("id", inv.id);
     setBusyId(null);
