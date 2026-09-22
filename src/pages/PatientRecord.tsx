@@ -85,6 +85,7 @@ interface PatientData {
   priority: string;
   patient_number?: string | null;
   preferred_contact_method?: string | null;
+  created_by?: string | null;
   family_id?: string | null;
   family_relationship?: string | null;
 }
@@ -224,6 +225,7 @@ const canViewFinancials =
   const [visits, setVisits] = useState<any[]>([]);
   const [doctorMap, setDoctorMap] = useState<Map<string, string>>(new Map());
   const [registrarMap, setRegistrarMap] = useState<Map<string, string>>(new Map());
+  const [patientRegistrarName, setPatientRegistrarName] = useState<string | null>(null);
   const [responsibleDoctor, setResponsibleDoctor] = useState<{ id: string; full_name: string } | null>(null);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -297,6 +299,9 @@ const canViewFinancials =
           const cachedStaffMap = new Map(cachedStaff.map((staff: any) => [staff.id, staff]));
           const cachedDoctorMap = new Map<string, string>();
           const cachedRegistrarMap = new Map<string, string>();
+          const cachedPatientRegistrar = cachedPatient.created_by
+            ? cachedStaffMap.get(cachedPatient.created_by)
+            : null;
           cachedVisits.forEach((visit: any) => {
             const staffDoctor = cachedStaffMap.get(visit.doctor_id);
             const staffRegistrar = cachedStaffMap.get(visit.registered_by);
@@ -305,6 +310,19 @@ const canViewFinancials =
           });
           setDoctorMap(cachedDoctorMap);
           setRegistrarMap(cachedRegistrarMap);
+          if (cachedPatientRegistrar) {
+            const name = (cachedPatientRegistrar.full_name || "").trim();
+            const title = (cachedPatientRegistrar.title || "").trim();
+            setPatientRegistrarName(
+              title
+                ? (/^dr\.?$/i.test(title)
+                    ? `Dr. ${name.replace(/^dr\.?\s+/i, "")}`
+                    : `${title} ${name}`)
+                : name
+            );
+          } else {
+            setPatientRegistrarName(null);
+          }
 
           setLoading(false);
           toast.info(
@@ -443,7 +461,8 @@ const canViewFinancials =
     ),
   ];
 
-  const staffIds = [...new Set([...doctorIds, ...registeredByIds])];
+  const patientCreatedById = (patRes.data as any)?.created_by || null;
+  const staffIds = [...new Set([...doctorIds, ...registeredByIds, patientCreatedById].filter(Boolean))];
 
   if (staffIds.length > 0) {
     const { data: staffProfiles } = await apiClient
@@ -476,6 +495,14 @@ const canViewFinancials =
 
     setDoctorMap(nextDoctorMap);
     setRegistrarMap(nextRegistrarMap);
+    setPatientRegistrarName(
+      patientCreatedById
+        ? formatStaffName(
+            (staffProfiles || []).find((staff: any) => staff.id === patientCreatedById),
+            false,
+          )
+        : null,
+    );
   } else {
     setDoctorMap(new Map());
     setRegistrarMap(new Map());
@@ -2532,10 +2559,10 @@ shadow-sm
   {new Date(v.created_at).toLocaleDateString()}
 </p>
 
-        {v.registered_by && (
+        {(patientRegistrarName || v.registered_by) && (
   <p className="text-xs text-muted-foreground mt-1">
     Registered by: <span className="font-medium text-foreground">
-      {registrarMap.get(v.registered_by) || "Not recorded"}
+      {patientRegistrarName || registrarMap.get(v.registered_by) || "Not recorded"}
     </span>
   </p>
 )}
