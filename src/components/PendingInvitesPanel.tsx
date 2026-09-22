@@ -3,6 +3,7 @@ import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Mail, RefreshCw, X, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { confirmDestructiveAction } from "@/lib/safeDelete";
 
 type Invite = {
   id: string;
@@ -74,7 +75,7 @@ export default function PendingInvitesPanel() {
   };
 
   const cancel = async (inv: Invite) => {
-    if (!confirm(`Cancel invite for ${inv.email}?`)) return;
+    if (!confirmDestructiveAction({ item: `pending invite for ${inv.email}` })) return;
     setBusyId(inv.id);
     const { error } = await apiClient.from("clinic_invites").delete().eq("id", inv.id);
     setBusyId(null);
