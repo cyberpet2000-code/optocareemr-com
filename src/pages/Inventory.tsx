@@ -521,7 +521,7 @@ export default function Inventory() {
               </div>;
             })}
           </div>
-        </TabsContent>
+        </TabsContent>}
       </Tabs>
     </>
   );
