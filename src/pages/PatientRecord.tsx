@@ -1008,8 +1008,29 @@ subVaOutcome: v.sub_va_outcome || "",
       if (!isValidAxis(val)) { toast.error(`${label} must be 1–180: "${val}"`); return; }
     }
 
-    if (!selectedDoctorId) {
-      toast.error("No clinic doctor is available for this visit");
+    // Resolve the doctor again at submit time so a slow staff/profile
+    // lookup cannot incorrectly block an otherwise valid clinic visit.
+    // Priority: selected doctor -> existing visit doctor -> logged-in clinic
+    // doctor -> resolved operational doctor.
+    const editingVisit = editingVisitId
+      ? visits.find((visit: any) => visit.id === editingVisitId)
+      : null;
+
+    let visitDoctorId =
+      selectedDoctorId ||
+      editingVisit?.doctor_id ||
+      null;
+
+    if (!visitDoctorId && role === "doctor" && user?.id) {
+      visitDoctorId = user.id;
+    }
+
+    if (!visitDoctorId && responsibleDoctor?.id) {
+      visitDoctorId = responsibleDoctor.id;
+    }
+
+    if (!visitDoctorId) {
+      toast.error("No clinic doctor is available for this visit. Please assign a clinic doctor and try again.");
       return;
     }
 
@@ -1028,7 +1049,7 @@ const visitPayload = {
   id: visitId,
   clinic_id: cid,
   patient_id: patient.id,
-  doctor_id: selectedDoctorId || null,
+  doctor_id: visitDoctorId,
   registered_by: editingVisitId
     ? visits.find(v => v.id === editingVisitId)?.registered_by || user.id
     : user.id,
