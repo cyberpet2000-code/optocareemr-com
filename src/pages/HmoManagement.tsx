@@ -75,7 +75,7 @@ export default function HmoManagement() {
 
   const deleteHmo = async (id: string) => {
     if (!cid) return;
-    if (!confirmDestructiveAction({ item: `HMO "${hmos.find(h => h.id === id)?.name || "selected HMO"}`, details: "Deleting an HMO may affect related plans and records.", highRisk: true })) return;
+    if (!(await confirmDestructiveAction({ item: `HMO "${hmos.find(h => h.id === id)?.name || "selected HMO"}`, details: "Deleting an HMO may affect related plans and records.", highRisk: true })) return;
     const { error } = await apiClient.from("hmos").delete().eq("clinic_id", cid).eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Deleted"); load();
