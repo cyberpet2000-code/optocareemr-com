@@ -39,7 +39,19 @@ export default class PageErrorBoundary extends Component<Props, State> {
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false });
+    try {
+      window.location.reload();
+    } catch {
+      window.location.href = window.location.pathname;
+    }
+  };
+
+  handleSafeNavigation = () => {
+    window.location.href = "/dashboard";
+  };
+
+  handleSystemHealth = () => {
+    window.location.href = "/super-admin/system-health";
   };
 
   render() {
@@ -68,14 +80,47 @@ export default class PageErrorBoundary extends Component<Props, State> {
               Try the page again. If the problem continues, you can use the other OptoCare pages from the navigation while we troubleshoot this page.
             </p>
           </div>
-          <Button
-            type="button"
-            onClick={this.handleRetry}
-            className="mt-6 h-11 w-full bg-[#0A4174] text-white hover:bg-[#001D39]"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
-            Reload {this.props.pageName}
-          </Button>
+          <div className="mt-6 grid gap-2 sm:grid-cols-2">
+            <Button
+              type="button"
+              onClick={this.handleRetry}
+              className="h-11 w-full bg-[#0A4174] text-white hover:bg-[#001D39]"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
+              Reload {this.props.pageName}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={this.handleSafeNavigation}
+              className="h-11 w-full"
+            >
+              Continue to Dashboard
+            </Button>
+          </div>
+          {typeof window !== "undefined" &&
+            window.location.pathname.startsWith("/super-admin") &&
+            window.location.pathname !== "/super-admin/system-health" && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={this.handleSystemHealth}
+                className="mt-2 h-11 w-full border-[#B8D7E3] text-[#0A4174]"
+              >
+                Open Super Admin System Health
+              </Button>
+            )}
+          {typeof window !== "undefined" &&
+            window.location.pathname === "/super-admin/system-health" && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => { window.location.href = "/super-admin"; }}
+                className="mt-2 h-11 w-full border-[#B8D7E3] text-[#0A4174]"
+              >
+                Back to Super Admin
+              </Button>
+            )}
           <p className="mt-4 text-xs text-[#6A7F8E]">
             If this keeps happening, please contact OptoCare Support and tell us which page was affected.
           </p>
