@@ -12,12 +12,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAccess } from "@/hooks/useAccess";
 import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
+import { useRole } from "@/hooks/useRole";
 import { enqueueOfflineOperation } from "@/lib/offlineEngine";
 import { confirmDestructiveAction } from "@/lib/safeDelete";
 
 
 const CATEGORIES = ["Frames", "Lenses", "Contact Lenses", "Accessories", "Drugs"];
-const DRUG_CATEGORIES = ["Antibiotics", "Anti-inflammatory", "Lubricants", "Anti-glaucoma", "Mydriatics", "Others"];
+const DRUG_CATEGORIES = ["Antibiotics", "Anti-inflammatory", "Anti-Allergy", "Lubricants", "Antioxidant", "Anti-glaucoma", "Mydriatics", "Others"];
 
 interface InventoryItem {
   id: string; name: string; category: string; price: number; stock_quantity: number;
@@ -34,6 +35,8 @@ export default function Inventory() {
   const { user } = useAuth();
   const { effectiveClinicId: cid } = useAccess();
   const { isOffline } = useOffline();
+  const { isAdmin, isSuperAdmin } = useRole();
+  const canFinalizeStockCount = isAdmin || isSuperAdmin;
   const [items, setItems] = useState<InventoryItem[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -47,6 +50,9 @@ export default function Inventory() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [patients, setPatients] = useState<{ id: string; full_name: string }[]>([]);
   const [salePatientId, setSalePatientId] = useState("");
+  const [physicalCounts, setPhysicalCounts] = useState<Record<string, string>>({});
+  const [countNotes, setCountNotes] = useState<Record<string, string>>({});
+  const [countingId, setCountingId] = useState<string | null>(null);
 
   const loadItems = async () => {
     if (!cid) { setItems([]); setLoading(false); return; }
@@ -115,7 +121,7 @@ export default function Inventory() {
       low_stock_threshold: parseInt(form.lowStockThreshold) || 5,
       min_stock: parseInt(form.lowStockThreshold) || 5,
       drug_category: form.category === "Drugs" ? (form.drugCategory || null) : null,
-      expiry_date: form.category === "Drugs" && form.expiryDate ? form.expiryDate : null,
+      expiry_date: form.expiryDate ? form.expiryDate : null,
     };
     if (imageUrl) payload.image_url = imageUrl;
     const offline = isOffline || (typeof navigator !== "undefined" && !navigator.onLine);
@@ -273,7 +279,52 @@ export default function Inventory() {
 
   const filtered = items.filter(i => (filterCat === "All" || i.category === filterCat) && i.name.toLowerCase().includes(search.toLowerCase()));
   const lowStockItems = items.filter(i => i.stock_quantity <= i.low_stock_threshold);
+  const today = new Date();
+  const expirySoonDays = 30;
+  const expirySoonCutoff = new Date(today);
+  expirySoonCutoff.setDate(expirySoonCutoff.getDate() + expirySoonDays);
+  const expiredItems = items.filter(i => !!i.expiry_date && new Date(i.expiry_date + "T23:59:59") < today);
+  const expiringSoonItems = items.filter(i => {
+    if (!i.expiry_date) return false;
+    const d = new Date(i.expiry_date + "T23:59:59");
+    return d >= today && d <= expirySoonCutoff;
+  });
   const totalValue = items.reduce((sum, i) => sum + i.price * i.stock_quantity, 0);
+
+  const getExpiryStatus = (expiryDate: string | null) => {
+    if (!expiryDate) return null;
+    const d = new Date(expiryDate + "T23:59:59");
+    if (d < today) return "Expired";
+    if (d <= expirySoonCutoff) return "Expires soon";
+    return "Valid";
+  };
+
+  const finalizeStockCount = async (item: InventoryItem) => {
+    if (!cid || !canFinalizeStockCount) return;
+    const raw = physicalCounts[item.id];
+    const quantity = Number.parseInt(raw ?? "", 10);
+    if (!Number.isInteger(quantity) || quantity < 0) {
+      toast.error("Enter a valid physical quantity");
+      return;
+    }
+    setCountingId(item.id);
+    const { error } = await apiClient.rpc("finalize_inventory_stock_count", {
+      p_inventory_id: item.id,
+      p_physical_quantity: quantity,
+      p_notes: countNotes[item.id] || null,
+    });
+    setCountingId(null);
+    if (error) {
+      toast.error("Stock count could not be completed");
+      return;
+    }
+    const delta = quantity - item.stock_quantity;
+    setItems(current => current.map(row => row.id === item.id ? { ...row, stock_quantity: quantity } : row));
+    offlineStore.save("inventory:" + cid, items.map(row => row.id === item.id ? { ...row, stock_quantity: quantity } : row));
+    setPhysicalCounts(current => ({ ...current, [item.id]: "" }));
+    setCountNotes(current => ({ ...current, [item.id]: "" }));
+    toast.success(delta === 0 ? "Stock count recorded" : "Stock count completed and inventory adjusted");
+  };
 
   return (
     <>
@@ -295,10 +346,11 @@ export default function Inventory() {
       </div>
 
       <Tabs defaultValue="products" className="space-y-4">
-        <TabsList className="bg-muted/50 rounded-2xl p-1">
+        <TabsList className="bg-muted/50 rounded-2xl p-1 flex-wrap h-auto">
           <TabsTrigger value="products" className="rounded-xl text-xs gap-1"><Package size={12} /> Products</TabsTrigger>
           <TabsTrigger value="sell" className="rounded-xl text-xs gap-1"><ShoppingCart size={12} /> Sell</TabsTrigger>
-          <TabsTrigger value="alerts" className="rounded-xl text-xs gap-1"><AlertTriangle size={12} /> Alerts ({lowStockItems.length})</TabsTrigger>
+          <TabsTrigger value="alerts" className="rounded-xl text-xs gap-1"><AlertTriangle size={12} /> Alerts ({lowStockItems.length + expiredItems.length + expiringSoonItems.length})</TabsTrigger>
+          {canFinalizeStockCount && <TabsTrigger value="stock-count" className="rounded-xl text-xs gap-1"><BarChart3 size={12} /> Stock Count</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="products" className="space-y-3">
@@ -332,16 +384,14 @@ export default function Inventory() {
                 <div className="space-y-1"><Label className="text-xs">Low Alert</Label><Input className="rounded-xl" type="number" min={0} value={form.lowStockThreshold} onChange={e => set("lowStockThreshold", e.target.value)} /></div>
                 <div className="space-y-1 sm:col-span-2"><Label className="text-xs">Image</Label><Input className="rounded-xl" type="file" accept="image/*" onChange={e => setImageFile(e.target.files?.[0] || null)} /></div>
                 {form.category === "Drugs" && (
-                  <>
-                    <div className="space-y-1"><Label className="text-xs">Drug Category</Label>
-                      <Select value={form.drugCategory} onValueChange={v => set("drugCategory", v)}>
-                        <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
-                        <SelectContent>{DRUG_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1"><Label className="text-xs">Expiry</Label><Input className="rounded-xl" type="date" value={form.expiryDate} onChange={e => set("expiryDate", e.target.value)} /></div>
-                  </>
+                  <div className="space-y-1"><Label className="text-xs">Eye Drop / Drug Category</Label>
+                    <Select value={form.drugCategory} onValueChange={v => set("drugCategory", v)}>
+                      <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectContent>{DRUG_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
                 )}
+                <div className="space-y-1"><Label className="text-xs">Expiry (if applicable)</Label><Input className="rounded-xl" type="date" value={form.expiryDate} onChange={e => set("expiryDate", e.target.value)} /></div>
               </div>
               <Button className="rounded-xl mt-2" onClick={handleSubmit} disabled={saving}>{saving ? "Saving..." : editId ? "Update" : "Add"}</Button>
             </div>
@@ -367,6 +417,7 @@ export default function Inventory() {
                       {item.stock_quantity <= item.low_stock_threshold && <span className="text-[10px] bg-destructive/10 text-destructive px-1 py-0.5 rounded-md">Low</span>}
                     </div>
                     <p className="text-xs text-muted-foreground">₦{item.price.toLocaleString()} • Stock: {item.stock_quantity}</p>
+                    {item.expiry_date && <div className="flex items-center gap-1 mt-1"><span className="text-[10px] text-muted-foreground">Expiry: {item.expiry_date}</span><span className={getExpiryStatus(item.expiry_date) === "Expired" ? "text-[10px] text-destructive" : getExpiryStatus(item.expiry_date) === "Expires soon" ? "text-[10px] text-amber-700" : "text-[10px] text-success"}>{getExpiryStatus(item.expiry_date)}</span></div>}
                   </div>
                   <div className="flex gap-0.5 shrink-0">
                     <button onClick={() => startEdit(item)} className="p-2 rounded-xl hover:bg-muted transition-colors" title="Edit inventory item" aria-label="Edit inventory item"><Edit2 size={12} /></button>
@@ -432,25 +483,44 @@ export default function Inventory() {
           </div>
         </TabsContent>
 
-        <TabsContent value="alerts">
-          {lowStockItems.length === 0 ? (
-            <div className="text-center py-8 text-sm text-muted-foreground">All items well stocked!</div>
-          ) : (
-            <div className="space-y-2">
-              {lowStockItems.map(item => (
-                <div key={item.id} className="medical-card p-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center"><AlertTriangle size={16} className="text-destructive" /></div>
-                    <div>
-                      <p className="text-sm font-semibold">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">Stock: {item.stock_quantity} / Min: {item.low_stock_threshold}</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" className="rounded-xl text-xs" onClick={() => startEdit(item)}>Restock</Button>
+        <TabsContent value="alerts" className="space-y-4">
+          {expiredItems.length > 0 && <div>
+            <h3 className="text-sm font-semibold text-destructive mb-2">Expired ({expiredItems.length})</h3>
+            <div className="space-y-2">{expiredItems.map(item => <div key={item.id} className="medical-card p-3 flex items-center justify-between"><div><p className="text-sm font-semibold">{item.name}</p><p className="text-xs text-destructive">Expired: {item.expiry_date} • Stock: {item.stock_quantity}</p></div><Button variant="outline" size="sm" className="rounded-xl text-xs" onClick={() => startEdit(item)}>Edit</Button></div>)}</div>
+          </div>}
+          {expiringSoonItems.length > 0 && <div>
+            <h3 className="text-sm font-semibold mb-2">Expiring within 30 days ({expiringSoonItems.length})</h3>
+            <div className="space-y-2">{expiringSoonItems.map(item => <div key={item.id} className="medical-card p-3 flex items-center justify-between"><div><p className="text-sm font-semibold">{item.name}</p><p className="text-xs text-muted-foreground">Expiry: {item.expiry_date} • Stock: {item.stock_quantity}</p></div><Button variant="outline" size="sm" className="rounded-xl text-xs" onClick={() => startEdit(item)}>Edit</Button></div>)}</div>
+          </div>}
+          {lowStockItems.length > 0 && <div>
+            <h3 className="text-sm font-semibold mb-2">Low stock ({lowStockItems.length})</h3>
+            <div className="space-y-2">{lowStockItems.map(item => <div key={item.id} className="medical-card p-3 flex items-center justify-between"><div><p className="text-sm font-semibold">{item.name}</p><p className="text-xs text-muted-foreground">Stock: {item.stock_quantity} / Min: {item.low_stock_threshold}</p></div><Button variant="outline" size="sm" className="rounded-xl text-xs" onClick={() => startEdit(item)}>Restock</Button></div>)}</div>
+          </div>}
+          {expiredItems.length === 0 && expiringSoonItems.length === 0 && lowStockItems.length === 0 && <div className="text-center py-8 text-sm text-muted-foreground">All inventory alerts are clear.</div>}
+        </TabsContent>
+        {canFinalizeStockCount && <TabsContent value="stock-count" className="space-y-3">
+          <div className="form-section">
+            <h2 className="section-title text-sm">Physical Stock Count</h2>
+            <p className="text-xs text-muted-foreground">Compare the system quantity with the physical quantity. Finalizing a count updates stock and records the variance in Inventory Audit.</p>
+          </div>
+          <div className="space-y-2">
+            {filtered.map(item => {
+              const physical = physicalCounts[item.id];
+              const qty = Number.parseInt(physical ?? "", 10);
+              const variance = Number.isInteger(qty) ? qty - item.stock_quantity : null;
+              return <div key={item.id} className="medical-card p-3 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div><p className="text-sm font-semibold">{item.name}</p><p className="text-xs text-muted-foreground">{item.category} • System: {item.stock_quantity}</p></div>
+                  {variance !== null && <span className={variance === 0 ? "text-xs text-success" : "text-xs font-semibold text-destructive"}>Variance: {variance > 0 ? "+" : ""}{variance}</span>}
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="space-y-1"><Label className="text-xs">Physical quantity</Label><Input className="rounded-xl" type="number" min={0} value={physical ?? ""} onChange={e => setPhysicalCounts(current => ({ ...current, [item.id]: e.target.value }))} /></div>
+                  <div className="space-y-1 sm:col-span-2"><Label className="text-xs">Note (optional)</Label><Input className="rounded-xl" placeholder="Reason for variance, if needed" value={countNotes[item.id] ?? ""} onChange={e => setCountNotes(current => ({ ...current, [item.id]: e.target.value }))} /></div>
+                </div>
+                <Button size="sm" className="rounded-xl" onClick={() => finalizeStockCount(item)} disabled={countingId === item.id || !Number.isInteger(qty) || qty < 0}>{countingId === item.id ? "Saving..." : variance === 0 ? "Record Count" : "Finalize Count"}</Button>
+              </div>;
+            })}
+          </div>
         </TabsContent>
       </Tabs>
     </>
