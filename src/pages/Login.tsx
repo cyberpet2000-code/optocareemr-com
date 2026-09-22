@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { APP_URL } from "@/lib/app-url";
 import OptoCareLogo from "@/components/OptoCareLogo";
 import { authenticateOffline, hasOfflineAccess } from "@/lib/offlineAuth";
+import { diagnoseRequestFailure } from "@/lib/diag/connectionDiagnosis";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -103,10 +104,8 @@ export default function Login() {
           return;
         }
 
-        const message = isNetworkError
-          ? "OptoCare could not reach the authentication service. Please check your internet connection and try again."
-          : error.message;
-        toast.error(message);
+        const diagnosis = await diagnoseRequestFailure(error);
+        toast.error(diagnosis.message);
         return;
       }
       if (data.user) {
