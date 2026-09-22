@@ -1513,3 +1513,184 @@
       linear-gradient(180deg,#4E8EA2 0%,#0A4174 55%,#001D39 100%) !important;
   }
 }
+
+
+/* ============================================================
+   OPTOCARE DARK MODE — FINAL OVERRIDE
+   ThemeProvider adds .dark to <html>.  These rules intentionally
+   come LAST so the reference/light-mode !important rules above
+   cannot force the application back to light colours.
+   ============================================================ */
+@layer components {
+  html.dark,
+  html.dark body,
+  html.dark #root {
+    background: #071521 !important;
+    color: #EAF6FB !important;
+  }
+
+  html.dark body {
+    background-image: linear-gradient(180deg,#071521 0%,#0B1F2D 100%) !important;
+  }
+
+  html.dark .dashboard-page,
+  html.dark .page-background,
+  html.dark .app-background,
+  html.dark main {
+    background: linear-gradient(180deg,#071521 0%,#0B1F2D 100%) !important;
+    color: #EAF6FB !important;
+  }
+
+  html.dark .medical-card,
+  html.dark .stat-card,
+  html.dark .form-section,
+  html.dark .glass-panel,
+  html.dark .glass-card,
+  html.dark .dashboard-soft-section,
+  html.dark .dashboard-rating,
+  html.dark .appointment-item,
+  html.dark .bg-card,
+  html.dark .bg-popover {
+    background: #102A3A !important;
+    color: #EAF6FB !important;
+    border-color: rgba(123,189,232,.20) !important;
+    box-shadow: 0 5px 18px rgba(0,0,0,.24) !important;
+  }
+
+  html.dark .patient-card-surface,
+  html.dark .patient-card,
+  html.dark .patient-record-card {
+    background: #16394B !important;
+    color: #F1FAFD !important;
+    border-color: rgba(123,189,232,.25) !important;
+  }
+
+  html.dark textarea,
+  html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  html.dark select,
+  html.dark [data-radix-select-trigger],
+  html.dark .premium-input {
+    background: #0C2535 !important;
+    color: #F1FAFD !important;
+    border-color: rgba(123,189,232,.28) !important;
+  }
+
+  html.dark textarea::placeholder,
+  html.dark input::placeholder {
+    color: rgba(234,246,251,.52) !important;
+  }
+
+  html.dark header.sticky {
+    background: #0B1F2D !important;
+    color: #EAF6FB !important;
+    border-color: rgba(123,189,232,.18) !important;
+  }
+
+  html.dark .bottom-nav {
+    background: rgba(7,21,33,.98) !important;
+    color: #EAF6FB !important;
+    border-color: rgba(123,189,232,.22) !important;
+  }
+
+  html.dark [data-sidebar="sidebar"] {
+    background: linear-gradient(180deg,#020F1D 0%,#073A62 58%,#246477 100%) !important;
+    color: #F7FBFD !important;
+  }
+
+  html.dark .dashboard-hero {
+    background:
+      radial-gradient(circle at 88% 20%,rgba(123,189,232,.18),transparent 36%),
+      linear-gradient(135deg,#020F1D 0%,#073A62 55%,#246477 100%) !important;
+    color: #FFFFFF !important;
+  }
+
+  html.dark .optocare-clinical-tabs {
+    background: #16394B !important;
+    border-color: rgba(123,189,232,.22) !important;
+  }
+
+  html.dark .optocare-clinical-tabs [data-radix-collection-item] {
+    color: #D9EFF8 !important;
+  }
+
+  html.dark .optocare-clinical-tabs [data-radix-collection-item]:hover {
+    background: #20516A !important;
+    color: #FFFFFF !important;
+  }
+
+  html.dark .optocare-clinical-tabs [data-state="active"] {
+    background: #7BBDE8 !important;
+    color: #001D39 !important;
+  }
+
+  html.dark .bg-gradient-primary,
+  html.dark button.bg-primary,
+  html.dark a.bg-primary,
+  html.dark .btn-primary,
+  html.dark .optocare-primary-action {
+    background: #4E8EA2 !important;
+    color: #FFFFFF !important;
+    border-color: #4E8EA2 !important;
+  }
+
+  html.dark .bg-gradient-primary:hover,
+  html.dark button.bg-primary:hover,
+  html.dark a.bg-primary:hover,
+  html.dark .btn-primary:hover,
+  html.dark .optocare-primary-action:hover {
+    background: #7BBDE8 !important;
+    color: #001D39 !important;
+  }
+
+  /* Override legacy white utility rules in dark mode. */
+  html.dark .bg-white,
+  html.dark .bg-white\/95,
+  html.dark .bg-white\/90,
+  html.dark .bg-white\/80,
+  html.dark .bg-white\/75,
+  html.dark .bg-white\/70,
+  html.dark .bg-white\/60 {
+    background-color: #102A3A !important;
+    color: #EAF6FB !important;
+  }
+
+  html.dark .login-aurora {
+    background:
+      linear-gradient(180deg,#123A52 0%,#0A4174 58%,#020F1D 100%) !important;
+    color: #FFFFFF !important;
+  }
+
+  html.dark .login-design-panel {
+    background: rgba(2,15,29,.58) !important;
+    border-color: rgba(123,189,232,.28) !important;
+  }
+
+  html.dark .login-design-input {
+    background: rgba(2,15,29,.72) !important;
+    color: #FFFFFF !important;
+  }
+
+  /* Radix/shadcn semantic tokens for components that use bg-background,
+     bg-card, text-foreground, border-border, etc. */
+  html.dark {
+    --background: 210 53% 7%;
+    --foreground: 195 45% 94%;
+    --card: 203 57% 15%;
+    --card-foreground: 195 45% 94%;
+    --popover: 203 57% 13%;
+    --popover-foreground: 195 45% 94%;
+    --primary: 203 68% 70%;
+    --primary-foreground: 210 100% 11%;
+    --secondary: 203 35% 25%;
+    --secondary-foreground: 195 45% 94%;
+    --muted: 203 35% 20%;
+    --muted-foreground: 203 25% 72%;
+    --accent: 194 35% 47%;
+    --accent-foreground: 0 0% 100%;
+    --border: 203 30% 27%;
+    --input: 203 30% 27%;
+    --ring: 203 68% 70%;
+    --sidebar-background: 210 80% 7%;
+    --sidebar-foreground: 195 45% 94%;
+  }
+}
