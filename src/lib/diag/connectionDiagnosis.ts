@@ -112,21 +112,32 @@ export async function diagnoseConnection(): Promise<ConnectionDiagnosis> {
     };
   }
 
-  const [internetProbe, authProbe] = await Promise.all([
+  // Probe each layer independently. This prevents an unavailable OptoCare
+  // service from being mislabeled as a user's internet problem.
+  const [internetProbe, authProbe, databaseStatus, edgeProbe] = await Promise.all([
     probe("https://www.gstatic.com/generate_204", 3500),
     probe(`${SUPABASE_URL}/auth/v1/health`, 4000),
+    checkDatabaseService(),
+    probe(`${SUPABASE_URL}/functions/v1/health-check`, 4000),
   ]);
 
-  const latencyMs = Math.max(internetProbe.latencyMs, authProbe.latencyMs);
+  const latencyMs = Math.max(
+    internetProbe.latencyMs,
+    authProbe.latencyMs,
+    edgeProbe.latencyMs,
+  );
 
-  if (!internetProbe.ok && !authProbe.ok) {
+  // If the public internet probe is unavailable and Supabase is also
+  // unreachable, this is a connectivity problem rather than an OptoCare
+  // outage. Do not blame the platform when the device cannot reach it.
+  if (!internetProbe.ok && authProbe.status === 0 && edgeProbe.status === 0) {
     return {
-      code: internetProbe.status === 0 ? "NO_INTERNET" : "DATABASE_SERVICE",
-      message: messageFor(internetProbe.status === 0 ? "NO_INTERNET" : "DATABASE_SERVICE"),
-      technicalMessage: `Internet probe failed and Supabase health probe failed (status ${authProbe.status || "network error"}).`,
+      code: "NO_INTERNET",
+      message: messageFor("NO_INTERNET"),
+      technicalMessage: `Internet probe failed and OptoCare endpoints were unreachable (Auth: ${authProbe.status || "network error"}, Edge: ${edgeProbe.status || "network error"}).`,
       network: "online",
       internet: "offline",
-      authentication: "offline",
+      authentication: "unknown",
       database: "unknown",
       edgeFunctions: "unknown",
       application: "online",
@@ -134,16 +145,47 @@ export async function diagnoseConnection(): Promise<ConnectionDiagnosis> {
     };
   }
 
-  if (!authProbe.ok && authProbe.status >= 500) {
+  // The device has internet access, but an OptoCare service is actually down.
+  if (internetProbe.ok && authProbe.status >= 500) {
     return {
       code: "AUTH_SERVICE",
       message: messageFor("AUTH_SERVICE"),
-      technicalMessage: `Supabase Auth health endpoint returned HTTP ${authProbe.status}.`,
+      technicalMessage: `Internet is reachable, but Supabase Auth health returned HTTP ${authProbe.status}.`,
       network: "online",
-      internet: internetProbe.ok ? "online" : "degraded",
+      internet: "online",
       authentication: "offline",
-      database: "unknown",
-      edgeFunctions: "unknown",
+      database: databaseStatus,
+      edgeFunctions: edgeProbe.ok ? "online" : "offline",
+      application: "online",
+      latencyMs,
+    };
+  }
+
+  if (internetProbe.ok && databaseStatus === "offline") {
+    return {
+      code: "DATABASE_SERVICE",
+      message: messageFor("DATABASE_SERVICE"),
+      technicalMessage: "Internet is reachable, but the OptoCare database health query failed with a server-side or connectivity error.",
+      network: "online",
+      internet: "online",
+      authentication: authProbe.ok ? "online" : "degraded",
+      database: "offline",
+      edgeFunctions: edgeProbe.ok ? "online" : "offline",
+      application: "online",
+      latencyMs,
+    };
+  }
+
+  if (internetProbe.ok && !edgeProbe.ok && edgeProbe.status >= 500) {
+    return {
+      code: "EDGE_FUNCTION",
+      message: messageFor("EDGE_FUNCTION"),
+      technicalMessage: `Internet and core authentication are reachable, but the OptoCare Edge Function health check returned HTTP ${edgeProbe.status}.`,
+      network: "online",
+      internet: "online",
+      authentication: authProbe.ok ? "online" : "degraded",
+      database: databaseStatus,
+      edgeFunctions: "offline",
       application: "online",
       latencyMs,
     };
@@ -157,8 +199,8 @@ export async function diagnoseConnection(): Promise<ConnectionDiagnosis> {
       network: "online",
       internet: internetProbe.ok ? "online" : "degraded",
       authentication: authProbe.ok ? "online" : "degraded",
-      database: "unknown",
-      edgeFunctions: "unknown",
+      database: databaseStatus,
+      edgeFunctions: edgeProbe.ok ? "online" : "degraded",
       application: "online",
       latencyMs,
     };
@@ -167,47 +209,14 @@ export async function diagnoseConnection(): Promise<ConnectionDiagnosis> {
   return {
     code: "UNKNOWN",
     message: "OptoCare services are reachable. The request may have failed for an application-specific reason.",
-    technicalMessage: `Internet probe HTTP ${internetProbe.status}; Auth health HTTP ${authProbe.status}.`,
+    technicalMessage: `Internet: HTTP ${internetProbe.status}; Auth: HTTP ${authProbe.status}; Database: ${databaseStatus}; Edge Functions: HTTP ${edgeProbe.status}.`,
     network: "online",
     internet: internetProbe.ok ? "online" : "degraded",
     authentication: authProbe.ok ? "online" : "degraded",
-    database: "unknown",
-    edgeFunctions: "unknown",
+    database: databaseStatus,
+    edgeFunctions: edgeProbe.ok ? "online" : "degraded",
     application: "online",
     latencyMs,
   };
 }
 
-export async function diagnoseRequestFailure(error: unknown): Promise<ConnectionDiagnosis> {
-  const initial = classifyConnectionError(error);
-  if (initial === "AUTH_SERVICE" || initial === "APPLICATION") {
-    const base = await diagnoseConnection();
-    if (base.code !== "UNKNOWN") return base;
-  }
-  if (initial !== "UNKNOWN") {
-    const message = messageFor(initial);
-    return {
-      code: initial,
-      message,
-      technicalMessage: error instanceof Error ? error.message : String(error ?? ""),
-      network: typeof navigator !== "undefined" && navigator.onLine ? "online" : "offline",
-      internet: initial === "NO_NETWORK" || initial === "NO_INTERNET" ? "offline" : "unknown",
-      authentication: initial === "AUTH_SERVICE" ? "offline" : "unknown",
-      database: initial === "DATABASE_SERVICE" ? "offline" : "unknown",
-      edgeFunctions: initial === "EDGE_FUNCTION" ? "offline" : "unknown",
-      application: initial === "APPLICATION" ? "offline" : "unknown",
-    };
-  }
-  return diagnoseConnection();
-}
-
-export async function checkDatabaseService(): Promise<ServiceStatus> {
-  try {
-    const { error } = await (apiClient as any).from("clinics").select("id").limit(1);
-    if (!error) return "online";
-    const status = Number(error?.status);
-    return status >= 500 ? "offline" : "degraded";
-  } catch {
-    return "offline";
-  }
-}
