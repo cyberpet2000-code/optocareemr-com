@@ -89,7 +89,13 @@ export default function Login() {
         // airplane mode is enabled. If this trusted device has offline
         // access, fall back to the offline PIN instead of surfacing the
         // network/auth fetch error.
-        if (await hasOfflineAccess()) {
+        const isNetworkError = /fetch|network|offline|failed to fetch|load failed|timeout/i.test(error?.message || "");
+
+        // Only offer the offline PIN when the authentication request actually
+        // failed because the network is unavailable. A real Supabase auth
+        // error (for example, an incorrect password) must remain a normal
+        // login error instead of being masked by the offline-login flow.
+        if (isNetworkError && await hasOfflineAccess()) {
           setOfflineAvailable(true);
           setIsOffline(true);
           setOfflinePin("");
@@ -97,8 +103,8 @@ export default function Login() {
           return;
         }
 
-        const message = /fetch|network|offline|failed to fetch|load failed/i.test(error?.message || "")
-          ? "Offline access has not been enabled on this browser. Please connect to the internet and enable Offline Access from Account Settings first."
+        const message = isNetworkError
+          ? "OptoCare could not reach the authentication service. Please check your internet connection and try again."
           : error.message;
         toast.error(message);
         return;
