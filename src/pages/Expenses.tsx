@@ -154,7 +154,7 @@ export default function Expenses() {
   }
 
   async function remove(r: ExpenseRow) {
-    if (!(await confirmDestructiveAction({ item: `expense "${r.description || r.category}"` })) return;
+    if (!(await confirmDestructiveAction({ item: `expense "${r.description || r.category}"` }))) return;
     const { error } = await apiClient.from("expenses").delete().eq("id", r.id);
     if (error) return toast.error(error.message);
     toast.success("Deleted");
