@@ -22,5 +22,5 @@ from "./trendAnalyzer";
 export { analyzePriority } from "./priorityAnalyzer";
 export { forecastHealth } from "./healthForecast";
 export { getExecutiveSummary } from "./executiveSummary";
-export { runSelfHealing } from "./selfHealing";
+export { runSelfHealing, reportHealingResult } from "./selfHealing";
 
