@@ -15,6 +15,7 @@ import { useAccess } from "@/hooks/useAccess";
 import { offlineStore } from "@/lib/offlineStore";
 import { useOffline } from "@/hooks/useOffline";
 import { enqueueOfflineOperation } from "@/lib/offlineEngine";
+import { confirmDestructiveAction } from "@/lib/safeDelete";
 import WalkInSale from "@/components/billing/WalkInSale";
 const PAYMENT_METHODS = ["Cash", "Card", "Transfer", "HMO"];
 const ITEM_TYPES = ["Lens", "Lens Transfer", "Frame", "Frame Fixing", "Contact Lens", "Eye Drop", "Drugs", "Accessories", "Others"];
