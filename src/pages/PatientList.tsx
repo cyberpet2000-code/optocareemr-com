@@ -176,7 +176,11 @@ export default function PatientList() {
           .select("*")
           .eq("clinic_id", cid)
           .order("created_at", { ascending: false });
-        if (error || !allPatientData) {\n          const diagnosis = await diagnoseRequestFailure(error || new Error("Patient data unavailable"));\n          loadFromCache(diagnosis.code);\n          return;\n        }
+        if (error || !allPatientData) {
+          const diagnosis = await diagnoseRequestFailure(error || new Error("Patient data unavailable"));
+          loadFromCache(diagnosis.code);
+          return;
+        }
         const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
         const data = filter === "thismonth"
           ? allPatientData.filter((patient: any) => new Date(patient.created_at) >= monthStart)
