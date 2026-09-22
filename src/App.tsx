@@ -56,6 +56,7 @@ import { apiClient } from "@/lib/apiClient";
 import { toast } from "sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import OptoLoader from "@/components/OptoLoader";
+import AppErrorBoundary from "@/components/AppErrorBoundary";
 
 installDiagFetchPatch();
 
@@ -71,7 +72,7 @@ function FullScreenLoader({ label }: { label?: string }) {
     <OptoLoader
       fullscreen
       size={56}
-      label={label || `Loading ${localStorage.getItem("active_clinic_name") || "Clinic"}...`}
+      label={label || `Loading ${(() => { try { return localStorage.getItem("active_clinic_name") || "Clinic"; } catch { return "Clinic"; } })()}...`}
     />
   );
 }
@@ -399,6 +400,7 @@ const App = () => (
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
+  </AppErrorBoundary>
 );
 
 export default App;
