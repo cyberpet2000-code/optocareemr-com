@@ -132,7 +132,7 @@ export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision
 
   // c. Role error (non-super admin only)
   if (roleMissing) {
-    return { type: "error", label: "User role not configured. Contact support." };
+    return { type: "error", label: "Your clinic is loading. Please try again." };
   }
 
   // e. Root redirect
