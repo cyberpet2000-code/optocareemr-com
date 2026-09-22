@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Activity, AlertTriangle, CheckCircle2, Clock3, Database, ShieldAlert,
   Wifi, RefreshCw, Bug, ServerCrash, Copy, Download, Wrench, CloudOff
@@ -27,6 +28,7 @@ type Incident = {
   first_seen: string;
   last_seen: string;
   context: Record<string, unknown>;
+  clinic_name?: string | null;
 };
 
 const CACHE_KEY = "optocare:system-health-incidents";
@@ -57,13 +59,20 @@ export default function SystemHealth() {
   const loadIncidents = async () => {
     setLoadingIncidents(true);
     try {
-      const { data, error } = await (apiClient as any)
-        .from("system_incidents")
-        .select("*")
-        .order("last_seen", { ascending: false })
-        .limit(100);
+      const [{ data, error }, { data: clinicRows }] = await Promise.all([
+        (apiClient as any)
+          .from("system_incidents")
+          .select("*")
+          .order("last_seen", { ascending: false })
+          .limit(100),
+        apiClient.from("clinics").select("id,name"),
+      ]);
       if (error) throw error;
-      const rows = (data ?? []) as Incident[];
+      const clinicMap = new Map((clinicRows ?? []).map((c: any) => [c.id, c.name]));
+      const rows = ((data ?? []) as Incident[]).map((incident) => ({
+        ...incident,
+        clinic_name: clinicMap.get(incident.clinic_id ?? "") ?? incident.clinic_name ?? null,
+      }));
       setIncidents(rows);
       cacheIncidents(rows);
     } catch {
@@ -110,14 +119,53 @@ export default function SystemHealth() {
   const forecast = forecastHealth();
   const recentEntries = [...entries].reverse().slice(0, 30);
 
+  const copyText = async (value: string, label = "Copied") => {
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const copyIncident = async (incident: Incident) => {
-    await navigator.clipboard.writeText(JSON.stringify({
+    await copyText(JSON.stringify({
       incident,
       classification: classifyIssue(incident.error_name || incident.error_message || incident.source),
       priority: analyzePriority(incident.error_name || incident.error_message || incident.source),
       trend: analyzeTrend(incident.fingerprint, incident.occurrence_count),
       rootCause: analyzeRootCause(incident.error_name || incident.error_message || incident.source, incident),
-    }, null, 2));
+    }, null, 2), "Investigation copied");
+  };
+
+  const maintenanceBrief = (incident: Incident) => {
+    const label = incident.error_name || incident.error_message || incident.source;
+    const root = analyzeRootCause(label, incident);
+    const priority = analyzePriority(label);
+    const classification = classifyIssue(label);
+    return [
+      "OPTCARE MAINTENANCE INCIDENT",
+      `Clinic: ${incident.clinic_name || "Unknown clinic"}`,
+      `Page: ${incident.page_name || "Application"}`,
+      `Route: ${incident.route || "Unknown"}`,
+      `Error: ${incident.error_name || "Unknown"} — ${incident.error_message || "Unknown"}`,
+      `Occurrences: ${incident.occurrence_count}`,
+      `First seen: ${new Date(incident.first_seen).toLocaleString()}`,
+      `Last seen: ${new Date(incident.last_seen).toLocaleString()}`,
+      `Classification: ${classification.category} (${classification.confidence}%)`,
+      `Priority: ${priority.priority} — ${priority.businessImpact}`,
+      `Likely cause: ${root.cause}`,
+      `Recommended fix: ${root.fix}`,
+      `Confidence: ${root.confidence}%`,
+      `Fingerprint: ${incident.fingerprint}`,
+      "",
+      "STACK TRACE:",
+      incident.stack || "Not available",
+    ].join("\n");
+  };
+
+  const copyMaintenanceBrief = async (incident: Incident) => {
+    await copyText(maintenanceBrief(incident));
   };
 
   const exportDiagnostics = () => {
@@ -198,6 +246,7 @@ export default function SystemHealth() {
                       <Badge variant="outline">{priority.priority}</Badge>
                       <Badge variant="outline">{incident.source}</Badge>
                       <span className="font-semibold">{incident.page_name || incident.route || "Application"}</span>
+                      {incident.clinic_name && <Badge variant="outline">{incident.clinic_name}</Badge>}
                       <span className="ml-auto text-xs text-muted-foreground">{incident.occurrence_count} occurrence{incident.occurrence_count === 1 ? "" : "s"}</span>
                     </div>
                     <div className="mt-2 text-sm">{incident.error_message || "Runtime failure reported"}</div>
@@ -224,30 +273,45 @@ export default function SystemHealth() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-3 text-sm">
-              <Info label="Page" value={selected.page_name || "Application"} />
-              <Info label="Route" value={selected.route || "Unknown"} />
+              <Info label="Clinic" value={selected.clinic_name || "Unknown clinic"} copyable />
+              <Info label="Page" value={selected.page_name || "Application"} copyable />
+              <Info label="Route" value={selected.route || "Unknown"} copyable />
               <Info label="Source" value={selected.source} />
               <Info label="Occurrences" value={String(selected.occurrence_count)} />
               <Info label="First seen" value={new Date(selected.first_seen).toLocaleString()} />
               <Info label="Last seen" value={new Date(selected.last_seen).toLocaleString()} />
+              <Info label="Fingerprint" value={selected.fingerprint} copyable />
             </div>
             <div>
               <div className="font-semibold mb-1">Error</div>
-              <pre className="text-xs bg-muted p-3 rounded-lg overflow-auto whitespace-pre-wrap">{selected.error_message || selected.error_name || "Unknown error"}</pre>
+              <div className="flex gap-2 items-start">
+                <pre className="text-xs bg-muted p-3 rounded-lg overflow-auto whitespace-pre-wrap flex-1">{selected.error_message || selected.error_name || "Unknown error"}</pre>
+                <CopyButton value={selected.error_message || selected.error_name || "Unknown error"} />
+              </div>
             </div>
             <div className="grid lg:grid-cols-3 gap-3">
               <AnalysisCard title="Classification" value={JSON.stringify(classifyIssue(selected.error_name || selected.error_message || selected.source), null, 2)} />
               <AnalysisCard title="Priority / Impact" value={JSON.stringify(analyzePriority(selected.error_name || selected.error_message || selected.source), null, 2)} />
               <AnalysisCard title="Root Cause Assistance" value={JSON.stringify(analyzeRootCause(selected.error_name || selected.error_message || selected.source, selected), null, 2)} />
             </div>
+            <div className="rounded-xl border p-4">
+              <div className="font-semibold mb-2">Maintenance Brief</div>
+              <p className="text-xs text-muted-foreground mb-3">A clean, copyable summary for troubleshooting with the OptoCare maintenance team or ChatGPT.</p>
+              <Button onClick={() => void copyMaintenanceBrief(selected)}><Copy className="h-4 w-4 mr-2" /> Copy Maintenance Brief</Button>
+            </div>
             {selected.stack && (
               <details>
                 <summary className="cursor-pointer font-medium">Technical stack trace</summary>
-                <pre className="mt-2 text-xs bg-muted p-3 rounded-lg overflow-auto whitespace-pre-wrap max-h-80">{selected.stack}</pre>
+                <div className="flex gap-2 items-start mt-2">
+                  <pre className="text-xs bg-muted p-3 rounded-lg overflow-auto whitespace-pre-wrap max-h-80 flex-1">{selected.stack}</pre>
+                  <CopyButton value={selected.stack} />
+                </div>
               </details>
             )}
             <div className="flex flex-wrap gap-2">
+              {selected.route && <Button variant="outline" onClick={() => { window.open(selected.route!, "_blank", "noopener,noreferrer"); }}>Open Affected Page</Button>}
               <Button onClick={() => void copyIncident(selected)}><Copy className="h-4 w-4 mr-2" /> Copy Investigation</Button>
+              <CopyButton value={selected.error_message || selected.error_name || ""} label="Copy Error" />
               <Button variant="outline" onClick={() => {
                 void reportIncident({
                   page_name: selected.page_name,
@@ -326,8 +390,20 @@ function StatusRow({ label, ok, value }: { label: string; ok: boolean; value?: s
   return <div className="flex items-center justify-between border rounded-lg px-3 py-2"><div className="flex items-center gap-2">{ok ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <AlertTriangle className="h-4 w-4 text-red-600" />}<span className="text-sm">{label}</span></div><span className="text-sm font-medium">{value ?? (ok ? "OK" : "Attention")}</span></div>;
 }
 
-function Info({ label, value }: { label: string; value: string }) {
-  return <div className="flex justify-between gap-3 border rounded-lg px-3 py-2"><span className="text-muted-foreground">{label}</span><span className="text-right break-all">{value}</span></div>;
+function Info({ label, value, copyable }: { label: string; value: string; copyable?: boolean }) {
+  return <div className="flex items-center justify-between gap-3 border rounded-lg px-3 py-2"><span className="text-muted-foreground shrink-0">{label}</span><div className="flex items-center gap-2 min-w-0"><span className="text-right break-all min-w-0">{value}</span>{copyable && <CopyButton value={value} />}</div></div>;
+}
+
+function CopyButton({ value, label = "Copy" }: { value: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {}
+  };
+  return <Button type="button" size="sm" variant="outline" onClick={() => void handleCopy()} title={label} aria-label={label} className="shrink-0 px-2">{copied ? "✓" : <Copy className="h-3.5 w-3.5" />}</Button>;
 }
 
 function AnalysisCard({ title, value }: { title: string; value: string }) {
