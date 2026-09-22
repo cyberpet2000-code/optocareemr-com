@@ -7,6 +7,7 @@ import {
   Building2,
   Users,
   Activity,
+  AlertOctagon,
   Sparkles,
   ShieldCheck,
   Plus,
