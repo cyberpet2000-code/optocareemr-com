@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Users, ShoppingBag, DollarSign, ShieldCheck, Calendar,
+  LayoutDashboard, Users, ShoppingBag, DollarSign, ShieldCheck, Calendar, AlertOctagon,
   UserPlus, Building2, Sparkles, LifeBuoy, CheckCircle2, CircleDashed, Clock, Activity, Archive,
   Wallet, ClipboardList, FileBarChart, UserCog,
 } from "lucide-react";
@@ -53,6 +53,7 @@ export default function ClinicSidebar() {
           { to: "/super-admin", label: "Overview", icon: LayoutDashboard },
           { to: "/super-admin/clinics", label: "Clinics", icon: Building2 },
           { to: "/super-admin/system-health", label: "System Health", icon: Activity },
+          { to: "/super-admin/emergency-response", label: "Emergency Response", icon: AlertOctagon },
         ],
         secondary: [
           { to: "/settings/account", label: "Account", icon: UserCog },
