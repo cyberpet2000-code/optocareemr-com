@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/apiClient";
+import { supabase } from "@/integrations/supabase/client";
 
 export type ServiceStatus = "online" | "degraded" | "offline" | "unknown";
 export type DiagnosisCode =
@@ -88,7 +89,7 @@ export async function checkDatabaseService(): Promise<ServiceStatus> {
   try {
     if (!SUPABASE_URL) return "unknown";
 
-    const client = getSupabaseClient();
+    const client = supabase;
     const started = performance.now();
     const { error } = await client
       .from("clinics")
