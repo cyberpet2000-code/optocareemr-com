@@ -57,7 +57,7 @@ export default function SystemHealth() {
   const loadIncidents = async () => {
     setLoadingIncidents(true);
     try {
-      const { data, error } = await apiClient
+      const { data, error } = await (apiClient as any)
         .from("system_incidents")
         .select("*")
         .order("last_seen", { ascending: false })
