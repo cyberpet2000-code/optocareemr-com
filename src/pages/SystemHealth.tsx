@@ -114,6 +114,7 @@ export default function SystemHealth() {
   }, [entries]);
 
   const openIncidents = incidents.filter((i) => i.status !== "resolved");
+  const resolvedIncidents = incidents.filter((i) => i.status === "resolved");
   const criticalIncidents = openIncidents.filter((i) => i.severity === "critical");
   const healthStatus = criticalIncidents.length || stats.errors > 5 ? "critical" : openIncidents.length || stats.warnings > 5 ? "warning" : "healthy";
   const forecast = forecastHealth();
@@ -166,6 +167,14 @@ export default function SystemHealth() {
 
   const copyMaintenanceBrief = async (incident: Incident) => {
     await copyText(maintenanceBrief(incident));
+  };
+
+  const resolveIncident = async (incident: Incident) => {
+    if (!window.confirm("Mark this incident as resolved? This will move it out of Active Incidents.")) return;
+    const { error } = await (apiClient as any).rpc("resolve_system_incident", { p_incident_id: incident.id });
+    if (error) return;
+    setSelected((current) => current?.id === incident.id ? { ...current, status: "resolved" } : current);
+    await loadIncidents();
   };
 
   const exportDiagnostics = () => {
@@ -312,6 +321,9 @@ export default function SystemHealth() {
               {selected.route && <Button variant="outline" onClick={() => { window.open(selected.route!, "_blank", "noopener,noreferrer"); }}>Open Affected Page</Button>}
               <Button onClick={() => void copyIncident(selected)}><Copy className="h-4 w-4 mr-2" /> Copy Investigation</Button>
               <CopyButton value={selected.error_message || selected.error_name || ""} label="Copy Error" />
+              <Button variant="outline" onClick={() => void resolveIncident(selected)} className="border-green-300 text-green-700">
+                <CheckCircle2 className="h-4 w-4 mr-2" /> Mark Resolved
+              </Button>
               <Button variant="outline" onClick={() => {
                 void reportIncident({
                   page_name: selected.page_name,
@@ -327,6 +339,32 @@ export default function SystemHealth() {
           </CardContent>
         </Card>
       )}
+
+      <Card className="rounded-2xl shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5" /> Resolved Incidents</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {resolvedIncidents.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">No resolved incidents yet.</div>
+          ) : (
+            <div className="space-y-2">
+              {resolvedIncidents.slice(0, 20).map((incident) => (
+                <button key={incident.id} onClick={() => setSelected(incident)} className="w-full text-left border rounded-xl p-3 hover:bg-muted/50 transition">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className="border-green-300 text-green-700">RESOLVED</Badge>
+                    <span className="font-medium">{incident.page_name || incident.route || "Application"}</span>
+                    {incident.clinic_name && <Badge variant="outline">{incident.clinic_name}</Badge>}
+                    <span className="ml-auto text-xs text-muted-foreground">{incident.occurrence_count} occurrence{incident.occurrence_count === 1 ? "" : "s"}</span>
+                  </div>
+                  <div className="mt-1 text-sm">{incident.error_message || "Incident"}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">Last seen: {new Date(incident.last_seen).toLocaleString()}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <Card className="xl:col-span-2 rounded-2xl shadow-sm">
