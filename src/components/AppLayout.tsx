@@ -256,12 +256,13 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
                 />
               </div>
 
-              {isSuperAdminWs && location.pathname !== "/super-admin" && (
+              {isSuperAdmin && location.pathname !== "/super-admin" && (
                 <button
                   type="button"
                   onClick={() => navigate("/super-admin")}
-                  className="flex items-center gap-1.5 rounded-lg border border-border/60 px-2.5 h-9 text-xs font-medium text-foreground hover:bg-muted transition-colors"
-                  title="Back to Super Admin dashboard"
+                  className="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 text-primary px-2.5 h-9 text-xs font-medium hover:bg-primary/10 transition-colors shrink-0"
+                  title="Return to Super Admin dashboard"
+                  aria-label="Return to Super Admin dashboard"
                 >
                   <LayoutDashboard size={14} />
                   <span className="hidden sm:inline">Super Admin</span>
