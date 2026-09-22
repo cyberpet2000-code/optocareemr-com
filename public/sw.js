@@ -1,4 +1,4 @@
-const CACHE_NAME = "optocare-shell-v5";
+const CACHE_NAME = "optocare-shell-v6";
 const APP_SHELL = ["/", "/index.html"];
 
 self.addEventListener("install", (event) => {
