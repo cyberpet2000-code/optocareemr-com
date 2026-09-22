@@ -24,3 +24,4 @@ export { forecastHealth } from "./healthForecast";
 export { getExecutiveSummary } from "./executiveSummary";
 export { runSelfHealing, reportHealingResult } from "./selfHealing";
 
+export { diagnoseConnection, diagnoseRequestFailure, checkDatabaseService, classifyConnectionError } from "./connectionDiagnosis";
