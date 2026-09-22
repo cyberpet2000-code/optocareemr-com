@@ -9,6 +9,7 @@ import { apiClient } from "@/lib/apiClient";
 import { analyzeRootCause, classifyIssue, analyzePriority, analyzeTrend, forecastHealth } from "@/lib/diag";
 import { getQueuedIncidentCount, reportIncident } from "@/lib/diag/incidentReporter";
 import { runSelfHealing, reportHealingResult } from "@/lib/diag/selfHealing";
+import { diagnoseConnection, checkDatabaseService, type ConnectionDiagnosis } from "@/lib/diag/connectionDiagnosis";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,7 @@ export default function SystemHealth() {
   const [selected, setSelected] = useState<Incident | null>(null);
   const [queuedIncidents, setQueuedIncidents] = useState(getQueuedIncidentCount());
   const [healing, setHealing] = useState(false);
+  const [connectionDiagnosis, setConnectionDiagnosis] = useState<ConnectionDiagnosis | null>(null);
 
   const loadIncidents = async () => {
     setLoadingIncidents(true);
@@ -86,14 +88,15 @@ export default function SystemHealth() {
 
   useEffect(() => {
     void loadIncidents();
+    void diagnoseConnection().then(setConnectionDiagnosis);
     const interval = setInterval(() => {
       setEntries(diag.snapshot());
       setNow(Date.now());
       setQueuedIncidents(getQueuedIncidentCount());
     }, 2000);
     const refresh = setInterval(() => void loadIncidents(), 15000);
-    const handleOnline = () => { setOnline(true); void loadIncidents(); };
-    const handleOffline = () => setOnline(false);
+    const handleOnline = () => { setOnline(true); void loadIncidents(); void diagnoseConnection().then(setConnectionDiagnosis); };
+    const handleOffline = () => { setOnline(false); void diagnoseConnection().then(setConnectionDiagnosis); };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     return () => {
@@ -239,6 +242,22 @@ export default function SystemHealth() {
                 Local runtime events remain available. Incidents captured while offline will sync automatically when connectivity returns.
               </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {connectionDiagnosis && (
+        <Card className="rounded-2xl shadow-sm border-primary/20">
+          <CardHeader><CardTitle className="flex items-center gap-2"><Wifi className="h-5 w-5" /> Connection & Service Diagnosis</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <div className="text-sm font-medium">{connectionDiagnosis.message}</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+              <StatusRow label="Network" ok={connectionDiagnosis.network === "online"} value={connectionDiagnosis.network} />
+              <StatusRow label="Internet" ok={connectionDiagnosis.internet === "online"} value={connectionDiagnosis.internet} />
+              <StatusRow label="Authentication" ok={connectionDiagnosis.authentication === "online"} value={connectionDiagnosis.authentication} />
+              <StatusRow label="Database" ok={connectionDiagnosis.database !== "offline"} value={connectionDiagnosis.database} />
+            </div>
+            <div className="text-xs text-muted-foreground">{connectionDiagnosis.technicalMessage}</div>
           </CardContent>
         </Card>
       )}
