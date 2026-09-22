@@ -230,7 +230,8 @@ export default function PatientList() {
         const visitSummaryMap = buildVisitSummaryMap(visitRows || []);
         const billingSummaryMap = buildBillingSummaryMap(bills || [], paymentTypes);
         const rows = data.map((p: any) => ({ ...p, hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined, family_name: p.family_id ? familyMap.get(p.family_id) : undefined, balance: balanceMap.get(p.id) || 0, visitSummary: visitSummaryMap.get(p.id) || { visitCount: 0, lastVisit: null }, billingSummary: billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type), feedbackStatus: nextFeedbackStatusMap[p.id] || "none" }));
-        setPatients(rows);\n        setLoadError(null);
+        setPatients(rows);
+        setLoadError(null);
         offlineStore.save(cacheKey, rows);
         offlineStore.save(`patients:${cid}:all`, data);
 
