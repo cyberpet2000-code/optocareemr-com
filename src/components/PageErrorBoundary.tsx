@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw, ShieldCheck } from "lucide-react";
+import { reportIncident } from "@/lib/diag/incidentReporter";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -19,6 +20,15 @@ export default class PageErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: unknown, info: ErrorInfo) {
+    void reportIncident({
+      page_name: this.props.pageName,
+      error_name: error instanceof Error ? error.name : "RuntimeError",
+      error_message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      source: "page-boundary",
+      severity: "error",
+      context: { route: window.location.pathname },
+    });
     console.error("[OptoCare] Page runtime error", {
       page: this.props.pageName,
       path: window.location.pathname,
