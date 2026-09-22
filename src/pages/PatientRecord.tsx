@@ -938,6 +938,18 @@ subVaOutcome: v.sub_va_outcome || "",
     }
     if (!patient) return;
     if (!cid) { toast.error("No active clinic"); return; }
+
+    // A completed visit must never be submitted as a brand-new visit.
+    // This also protects against reopening an already-completed visit and
+    // pressing Complete again.
+    if (markCompleted && editingVisitId) {
+      const existingVisit = visits.find(v => v.id === editingVisitId);
+      if (existingVisit?.status === "completed") {
+        toast.warning("This visit has already been completed and saved. No second visit was created.");
+        return;
+      }
+    }
+
     const {
     data: { user },
     error: authError,
@@ -1754,17 +1766,24 @@ transition-colors
 
         if (!confirmed) return;
 
-        const { error } = await apiClient
+        const { data: deletedVisit, error } = await apiClient
           .from("visits")
           .delete()
-          .eq("id", editingVisitId);
+          .eq("clinic_id", cid)
+          .eq("id", editingVisitId)
+          .select("id");
 
         if (error) {
           toast.error(error.message);
           return;
         }
 
-        toast.success("Visit deleted");
+        if (!deletedVisit || deletedVisit.length === 0) {
+          toast.error("The visit was not deleted. You may not have permission to delete it.");
+          return;
+        }
+
+        toast.success("Visit deleted permanently");
 
         setVisits(prev =>
           prev.filter(v => v.id !== editingVisitId)
