@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { RefreshCw, WifiOff, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { reportIncident } from "@/lib/diag/incidentReporter";
 
 interface Props {
   children: ReactNode;
@@ -22,6 +23,15 @@ export default class AppErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: unknown, info: ErrorInfo) {
+    void reportIncident({
+      error_name: error instanceof Error ? error.name : "ApplicationRuntimeError",
+      error_message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      source: "app-boundary",
+      severity: "critical",
+      route: window.location.pathname,
+      context: { componentStack: info.componentStack || null },
+    });
     console.error("[OptoCare] Application runtime error", error, info);
   }
 
@@ -85,16 +95,7 @@ export default class AppErrorBoundary extends Component<Props, State> {
             If this continues, please contact OptoCare Support. We’ll help you restore access to your workspace.
           </p>
 
-          {this.state.errorMessage && (
-            <details className="mt-4 text-left">
-              <summary className="cursor-pointer text-[11px] text-[#78909C]">
-                Technical details
-              </summary>
-              <p className="mt-2 break-words rounded-lg bg-[#F2FAFC] p-2 text-[10px] text-[#607D8B]">
-                {this.state.errorMessage}
-              </p>
-            </details>
-          )}
+
         </div>
       </div>
     );
