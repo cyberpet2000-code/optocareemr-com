@@ -55,7 +55,7 @@ export function ClinicalAiAssistant({ clinicalCase, disabled }: Props) {
         className="h-8 rounded-lg px-2.5 text-[10px] font-semibold gap-1.5"
         disabled={disabled}
         onClick={() => handleOpen(true)}
-        title="Analyze this clinical case with the local OptoCare AI"
+        title="Analyze this clinical case with OptoCare Clinical AI"
       >
         <Sparkles size={13} />
         Analyze Case
@@ -69,7 +69,7 @@ export function ClinicalAiAssistant({ clinicalCase, disabled }: Props) {
               OptoCare Clinical AI
             </DialogTitle>
             <DialogDescription>
-              On-demand clinical decision support based only on the findings entered for this visit.
+              On-demand clinical decision support based only on the de-identified findings entered for this visit.
             </DialogDescription>
           </DialogHeader>
 
@@ -93,7 +93,7 @@ export function ClinicalAiAssistant({ clinicalCase, disabled }: Props) {
                   </div>
                 )}
                 <p className="text-[11px] text-muted-foreground mt-2">
-                  The first use downloads the local AI model. It is cached for later use.
+                  Analysis is processed through OptoCare's secure AI service. No model is downloaded to this device.
                 </p>
               </div>
             )}
