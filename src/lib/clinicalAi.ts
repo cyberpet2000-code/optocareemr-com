@@ -1,3 +1,4 @@
+import { analyzeClinicalFlags } from "@/lib/clinicalRules";
 // OptoCare Clinical AI — secure cloud decision support.
 // The browser sends only de-identified clinical findings to /api/clinical-ai.
 // The Gemini API key stays server-side in Vercel environment variables.
@@ -179,6 +180,14 @@ export async function analyzeClinicalCase(
   onProgress?: (p: ClinicalAiProgress) => void,
 ) {
   const clinicalData = caseLines(clinicalCase);
+  const deterministicFlags = analyzeClinicalFlags(clinicalCase);
+  const safetyFlags = deterministicFlags.length
+    ? "\n\nOPTOCARE RULE-BASED SAFETY FLAGS (use these as documented decision-support prompts; do not treat them as diagnoses):\n" +
+      deterministicFlags.map((flag) =>
+        "- " + flag.severity.toUpperCase() + ": " + flag.title + " — " + flag.detail +
+        (flag.actions.length ? " Suggested checks: " + flag.actions.join("; ") : "")
+      ).join("\n")
+    : "";
   if (!clinicalData) {
     throw new Error("Enter the patient's clinical findings before using Analyze Case.");
   }
@@ -187,6 +196,10 @@ export async function analyzeClinicalCase(
     throw new Error("OptoCare Clinical AI requires an internet connection.");
   }
 
+  const requestData = clinicalData + safetyFlags;
+
+  onProgress?.({ text: "Checking OptoCare clinical safety rules..." });
+
   onProgress?.({ text: "Sending clinical findings securely to OptoCare AI..." });
 
   let response: Response;
@@ -194,7 +207,7 @@ export async function analyzeClinicalCase(
     response = await fetch("/api/clinical-ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clinicalData }),
+      body: JSON.stringify({ clinicalData: requestData }),
     });
   } catch {
     throw new Error("OptoCare Clinical AI could not connect to its AI service. Please check your internet connection and try again.");
