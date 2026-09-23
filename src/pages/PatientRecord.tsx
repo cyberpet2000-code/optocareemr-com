@@ -2285,19 +2285,6 @@ shadow-sm
             vaAidedOu={form.vaAidedOu}
             vaUnaidedNearOu={form.vaUnaidedNearOu}
             vaAidedNearOu={form.vaAidedNearOu}
-            autoVaOd={form.autoVaOd}
-            autoVaOs={form.autoVaOs}
-            subVaOd={form.subVaOd}
-            subVaOs={form.subVaOs}
-            subVaOutcome={form.subVaOutcome}
-            autoOdSphere={form.autoOdSphere}
-            autoOdCyl={form.autoOdCyl}
-            autoOsSphere={form.autoOsSphere}
-            autoOsCyl={form.autoOsCyl}
-            subOdSphere={form.subOdSphere}
-            subOdCyl={form.subOdCyl}
-            subOsSphere={form.subOsSphere}
-            subOsCyl={form.subOsCyl}
           />
         </TabsContent>
       )}
@@ -2425,8 +2412,6 @@ shadow-sm
             subVaOd={form.subVaOd}
             subVaOs={form.subVaOs}
             subVaOutcome={form.subVaOutcome}
-            vaUnaidedOd={form.vaUnaidedOd}
-            vaUnaidedOs={form.vaUnaidedOs}
             autoOdSphere={form.autoOdSphere}
             autoOdCyl={form.autoOdCyl}
             autoOsSphere={form.autoOsSphere}
