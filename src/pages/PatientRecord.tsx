@@ -49,6 +49,7 @@ import { normalizeWhatsAppNumber, whatsappLink } from "@/lib/whatsapp";
 import { HMOVerificationCard, type HmoVerifStatus } from "@/components/HMOVerificationCard";
 import { PatientWhatsAppMessages } from "@/components/PatientWhatsAppMessages";
 import { ClinicalAiAssistant } from "@/components/ClinicalAiAssistant";
+import { ClinicalVisitInsights } from "@/components/ClinicalVisitInsights";
 import { enqueueOfflineOperation, cachePatientOffline, cacheVisitsOffline, cacheVisitOffline, cacheStaffProfilesOffline, getStaffProfilesOffline } from "@/lib/offlineEngine";
 import { offlineStore } from "@/lib/offlineStore";
 import {
@@ -2273,6 +2274,31 @@ shadow-sm
               </>
             );
           })()}
+          <ClinicalVisitInsights
+            vaUnaidedOd={form.vaUnaidedOd}
+            vaUnaidedOs={form.vaUnaidedOs}
+            vaUnaidedOu={form.vaUnaidedOu}
+            vaUnaidedOdPh={form.vaUnaidedOdPh}
+            vaUnaidedOsPh={form.vaUnaidedOsPh}
+            vaAidedOd={form.vaAidedOd}
+            vaAidedOs={form.vaAidedOs}
+            vaAidedOu={form.vaAidedOu}
+            vaUnaidedNearOu={form.vaUnaidedNearOu}
+            vaAidedNearOu={form.vaAidedNearOu}
+            autoVaOd={form.autoVaOd}
+            autoVaOs={form.autoVaOs}
+            subVaOd={form.subVaOd}
+            subVaOs={form.subVaOs}
+            subVaOutcome={form.subVaOutcome}
+            autoOdSphere={form.autoOdSphere}
+            autoOdCyl={form.autoOdCyl}
+            autoOsSphere={form.autoOsSphere}
+            autoOsCyl={form.autoOsCyl}
+            subOdSphere={form.subOdSphere}
+            subOdCyl={form.subOdCyl}
+            subOsSphere={form.subOsSphere}
+            subOsCyl={form.subOsCyl}
+          />
         </TabsContent>
       )}
 
@@ -2393,6 +2419,23 @@ shadow-sm
               </>
             );
           })()}
+          <ClinicalVisitInsights
+            autoVaOd={form.autoVaOd}
+            autoVaOs={form.autoVaOs}
+            subVaOd={form.subVaOd}
+            subVaOs={form.subVaOs}
+            subVaOutcome={form.subVaOutcome}
+            vaUnaidedOd={form.vaUnaidedOd}
+            vaUnaidedOs={form.vaUnaidedOs}
+            autoOdSphere={form.autoOdSphere}
+            autoOdCyl={form.autoOdCyl}
+            autoOsSphere={form.autoOsSphere}
+            autoOsCyl={form.autoOsCyl}
+            subOdSphere={form.subOdSphere}
+            subOdCyl={form.subOdCyl}
+            subOsSphere={form.subOsSphere}
+            subOsCyl={form.subOsCyl}
+          />
         </TabsContent>
       )}
 
@@ -2485,7 +2528,7 @@ shadow-sm
         {!isReceptionist && (
         <TabsContent value="dx" className="space-y-4">
           <div className="form-section">
-            <div className="flex items-center justify-between gap-2 flex-wrap"><h2 className="section-title text-sm"><Stethoscope size={16} /> Diagnosis & Management</h2>{isClinicalUser && <ClinicalAiAssistant clinicalCase={{ age: patient?.age, gender: patient?.gender, chiefComplaint: form.chiefComplaint, history: form.history, oldLensPrescription: form.oldLensPrescription, vaUnaidedOd: form.vaUnaidedOd, vaUnaidedOs: form.vaUnaidedOs, vaUnaidedOu: form.vaUnaidedOu, vaAidedOd: form.vaAidedOd, vaAidedOs: form.vaAidedOs, vaAidedOu: form.vaAidedOu, autoOdSphere: form.autoOdSphere, autoOdCyl: form.autoOdCyl, autoOdAxis: form.autoOdAxis, autoOsSphere: form.autoOsSphere, autoOsCyl: form.autoOsCyl, autoOsAxis: form.autoOsAxis, subOdSphere: form.subOdSphere, subOdCyl: form.subOdCyl, subOdAxis: form.subOdAxis, subVaOd: form.subVaOd, subOsSphere: form.subOsSphere, subOsCyl: form.subOsCyl, subOsAxis: form.subOsAxis, subVaOs: form.subVaOs, subReadingAdd: form.subReadingAdd, examination: form.examination, iopOd: form.iopOd, iopOs: form.iopOs, diagnosis: form.diagnosis, lensType: form.lensType, medication: form.medication, notes: form.notes, previousVisits: visits.filter((visit: any) => visit.id !== editingVisitId).slice(0, 8) }} />}</div>
+            <div className="flex items-center justify-between gap-2 flex-wrap"><h2 className="section-title text-sm"><Stethoscope size={16} /> Diagnosis & Management</h2>{isClinicalUser && <ClinicalAiAssistant clinicalCase={{ age: patient?.age, gender: patient?.gender, chiefComplaint: form.chiefComplaint, history: form.history, oldLensPrescription: form.oldLensPrescription, vaUnaidedOd: form.vaUnaidedOd, vaUnaidedOs: form.vaUnaidedOs, vaUnaidedOu: form.vaUnaidedOu, vaUnaidedOdPh: form.vaUnaidedOdPh, vaUnaidedOsPh: form.vaUnaidedOsPh, vaUnaidedNearOu: form.vaUnaidedNearOu, vaAidedOd: form.vaAidedOd, vaAidedOs: form.vaAidedOs, vaAidedOu: form.vaAidedOu, vaAidedNearOu: form.vaAidedNearOu, autoVaOd: form.autoVaOd, autoVaOs: form.autoVaOs, autoOdSphere: form.autoOdSphere, autoOdCyl: form.autoOdCyl, autoOdAxis: form.autoOdAxis, autoOsSphere: form.autoOsSphere, autoOsCyl: form.autoOsCyl, autoOsAxis: form.autoOsAxis, subOdSphere: form.subOdSphere, subOdCyl: form.subOdCyl, subOdAxis: form.subOdAxis, subVaOd: form.subVaOd, subOsSphere: form.subOsSphere, subOsCyl: form.subOsCyl, subOsAxis: form.subOsAxis, subVaOs: form.subVaOs, subReadingAdd: form.subReadingAdd, subVaOutcome: form.subVaOutcome, examination: form.examination, iopOd: form.iopOd, iopOs: form.iopOs, iopTime: form.iopTime, diagnosis: form.diagnosis, lensType: form.lensType, medication: form.medication, notes: form.notes, previousVisits: visits.filter((visit: any) => visit.id !== editingVisitId).slice(0, 8) }} />}</div>
             <div className="space-y-3">
               <div className="space-y-1">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -3198,338 +3241,3 @@ shadow-sm
 </div>
                 ))}
               </div>
-            )}
-          </div>
-        </TabsContent>
-         {canViewFinancials && <TabsContent value="payments">
-           <div className="medical-card">
-             <div className="flex items-center justify-between gap-3 mb-4">
-               <div>
-                 <h2 className="section-title text-sm"><FileText size={16} /> Payment History</h2>
-                 <p className="text-xs text-muted-foreground mt-1">
-                   {paymentSummary.outstandingBalance > 0
-                     ? `Outstanding balance: ₦${paymentSummary.outstandingBalance.toLocaleString()}`
-                     : "No outstanding balance"}
-                 </p>
-               </div>
-               <div className="flex items-center gap-2">
-                 <span className={`text-xs px-2.5 py-1 rounded-md font-medium ${getPaymentStatusClass(paymentSummary.paymentStatus)}`}>
-                   {paymentSummary.paymentStatus}
-                 </span>
-                 <Link
-                   to={"/billing?patient_id=" + patient.id}
-                   className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-primary px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-primary-foreground hover:opacity-90"
-                   title="Create or open this patient's billing"
-                 >
-                   <FileText size={12} /> New Bill
-                 </Link>
-               </div>
-             </div>
-
-             {paymentHistory.length === 0 ? (
-               <div className="py-6 text-center">
-                 <p className="text-sm text-muted-foreground">No payment history recorded.</p>
-                 <Link
-                   to={"/billing?patient_id=" + patient.id}
-                   className="mt-3 inline-flex items-center gap-1 rounded-xl bg-primary px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-primary-foreground hover:opacity-90"
-                 >
-                   <FileText size={12} /> Create Bill
-                 </Link>
-               </div>
-             ) : (
-               <div className="space-y-4">
-                 {paymentHistory.map((bill) => {
-                   const visitItems = bill.items;
-                   const status =
-                     Number(bill.total_amount) > 0 && Number(bill.balance) <= 0
-                       ? "Paid"
-                       : Number(bill.amount_paid) > 0
-                         ? "Partially Paid"
-                         : "Not Paid";
-
-                   return (
-                     <div key={bill.id} className="rounded-2xl border bg-card overflow-hidden">
-                       <div className="p-4 border-b bg-muted/20">
-                         <div className="flex items-start justify-between gap-3">
-                           <div>
-                             <p className="font-semibold">
-                               {bill.visit_date
-                                 ? new Date(bill.visit_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-                                 : "Visit"}
-                             </p>
-                             <p className="text-xs text-muted-foreground mt-1">
-                               {bill.visit_id ? "Visit billing" : "Billing record"} • Invoice {bill.id.slice(0, 8).toUpperCase()}
-                             </p>
-                           </div>
-                           <span className={`shrink-0 text-[11px] px-2 py-1 rounded-md font-medium ${getPaymentStatusClass(status)}`}>
-                             {status}
-                           </span>
-                         </div>
-                       </div>
-
-                       <div className="p-4">
-                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">
-                           Charges
-                         </p>
-
-                         <div className="divide-y rounded-xl border overflow-hidden">
-                           {Number(bill.consultation_fee) > 0 && (
-                             <div className="flex items-start justify-between gap-3 px-3 py-2.5 text-xs">
-                               <div>
-                                 <p className="font-medium">Consultation</p>
-                                 <p className="text-[10px] text-muted-foreground">Eye examination / consultation</p>
-                               </div>
-                               <span className="font-medium whitespace-nowrap">₦{Number(bill.consultation_fee).toLocaleString()}</span>
-                             </div>
-                           )}
-
-                           {visitItems.length > 0 ? visitItems.map((item, index) => (
-                             <div key={`${bill.id}-item-${index}`} className="flex items-start justify-between gap-3 px-3 py-2.5 text-xs">
-                               <div className="min-w-0">
-                                 <p className="font-medium">{item.item_name}</p>
-                                 <p className="text-[10px] text-muted-foreground">
-                                   {item.item_type || "Item"}{item.quantity > 1 ? ` • Qty ${item.quantity}` : ""}
-                                 </p>
-                               </div>
-                               <span className="font-medium whitespace-nowrap">₦{Number(item.total_price).toLocaleString()}</span>
-                             </div>
-                           )) : (
-                             <div className="px-3 py-2.5 text-xs text-muted-foreground">No itemized charges recorded.</div>
-                           )}
-
-                           {Number(bill.discount_amount) > 0 && (
-                             <div className="flex items-start justify-between gap-3 px-3 py-2.5 text-xs">
-                               <div>
-                                 <p className="font-medium">Discount</p>
-                                 {bill.discount_reason && <p className="text-[10px] text-muted-foreground">{bill.discount_reason}</p>}
-                               </div>
-                               <span className="font-medium whitespace-nowrap">-₦{Number(bill.discount_amount).toLocaleString()}</span>
-                             </div>
-                           )}
-                         </div>
-
-                         <div className="grid grid-cols-3 gap-2 mt-3">
-                           <div className="rounded-xl bg-muted/30 p-2.5">
-                             <p className="text-[10px] text-muted-foreground">Total Charged</p>
-                             <p className="font-semibold text-xs mt-1">₦{Number(bill.total_amount).toLocaleString()}</p>
-                           </div>
-                           <div className="rounded-xl bg-muted/30 p-2.5">
-                             <p className="text-[10px] text-muted-foreground">Paid</p>
-                             <p className="font-semibold text-xs mt-1">₦{Number(bill.amount_paid).toLocaleString()}</p>
-                           </div>
-                           <div className="rounded-xl bg-muted/30 p-2.5">
-                             <p className="text-[10px] text-muted-foreground">Balance</p>
-                             <p className={`font-semibold text-xs mt-1 ${Number(bill.balance) > 0 ? "text-warning" : "text-success"}`}>
-                               ₦{Number(bill.balance).toLocaleString()}
-                             </p>
-                           </div>
-                         </div>
-
-                         {bill.payments.length > 0 && (
-                           <div className="mt-4">
-                             <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-2">
-                               Payment Transactions
-                             </p>
-                             <div className="space-y-2">
-                               {bill.payments.map((payment, index) => (
-                                 <div key={`${bill.id}-payment-${index}`} className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-xs">
-                                   <div>
-                                     <p className="font-medium">{payment.method || "Payment"}</p>
-                                     <p className="text-[10px] text-muted-foreground">
-                                       {new Date(payment.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-                                     </p>
-                                   </div>
-                                   <span className="font-medium">₦{Number(payment.amount).toLocaleString()}</span>
-                                 </div>
-                               ))}
-                             </div>
-                           </div>
-                         )}
-
-                         <div className="flex items-center justify-between gap-2 flex-wrap mt-4">
-                           <span className="text-[10px] text-muted-foreground">
-                             {bill.visit_id ? "All charges shown are attached to this visit." : "Billing record not linked to a visit."}
-                           </span>
-                           {bill.visit_id && (
-                             <Link
-                               to={"/billing?patient_id=" + patient.id + "&visit_id=" + bill.visit_id}
-                               className="inline-flex items-center gap-1 rounded-xl bg-primary px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-primary-foreground hover:opacity-90"
-                             >
-                               <FileText size={12} /> View Bill
-                             </Link>
-                           )}
-                         </div>
-                       </div>
-                     </div>
-                   );
-                 })}
-               </div>
-             )}
-           </div>
-          </TabsContent>}
-      </Tabs>
-
-      <Dialog
-        open={showAppointmentBooking}
-        onOpenChange={(open) => {
-          if (savingAppointment) return;
-          setShowAppointmentBooking(open);
-          if (!open) {
-            setAppointmentCreated(false);
-            setAppointmentDate("");
-            setAppointmentTime("");
-            setAppointmentReason("");
-          }
-        }}
-      >
-        <DialogContent className="rounded-3xl max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CalendarPlus size={18} />
-              Book appointment
-            </DialogTitle>
-            <DialogDescription>
-              Schedule a follow-up, advice or referral appointment for this patient.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="rounded-2xl border bg-muted/30 p-3">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                Patient
-              </p>
-              <p className="text-sm font-semibold mt-1">{patient.full_name}</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="patient-appointment-date">Date</Label>
-                <Input
-                  id="patient-appointment-date"
-                  type="date"
-                  className="rounded-xl"
-                  value={appointmentDate}
-                  min={new Date().toISOString().slice(0, 10)}
-                  onChange={(e) => setAppointmentDate(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="patient-appointment-time">Time</Label>
-                <Input
-                  id="patient-appointment-time"
-                  type="time"
-                  className="rounded-xl"
-                  value={appointmentTime}
-                  onChange={(e) => setAppointmentTime(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="patient-appointment-reason">Reason</Label>
-              <Textarea
-                id="patient-appointment-reason"
-                className="rounded-xl"
-                rows={3}
-                value={appointmentReason}
-                onChange={(e) => setAppointmentReason(e.target.value)}
-                placeholder="e.g. IOP follow-up, glaucoma follow-up, advice, referral..."
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-xl"
-              onClick={() => setShowAppointmentBooking(false)}
-              disabled={savingAppointment}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              className="rounded-xl"
-              onClick={bookFollowUpAppointment}
-              disabled={
-                savingAppointment ||
-                !appointmentDate ||
-                !appointmentTime ||
-                !selectedDoctorId
-              }
-            >
-              {savingAppointment ? "Booking..." : "Book appointment"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <div className="sticky bottom-20 lg:bottom-4 mt-6 flex justify-end gap-2">
-        
-      {editingVisitId ? (
-  <>
-    <Button
-      variant="destructive"
-      size="lg"
-      className="rounded-2xl"
-      onClick={async () => {
-        const confirmed = window.confirm(
-          "Delete this visit permanently?"
-        );
-
-        if (!confirmed) return;
-
-        const { error } = await apiClient
-          .from("visits")
-          .delete()
-          .eq("id", editingVisitId);
-
-        if (error) {
-          toast.error(error.message);
-          return;
-        }
-
-        toast.success("Visit deleted");
-
-        setVisits(prev =>
-          prev.filter(v => v.id !== editingVisitId)
-        );
-
-        setEditingVisitId(null);
-        setForm(emptyVisitForm());
-      }}
-      >
-        Delete Visit
-      </Button>
-
-      <Button
-        size="lg"
-        className="shadow-lg rounded-2xl px-6"
-        onClick={() => handleSaveVisit(true)}
-        disabled={saving}
-      >
-        <Pencil size={16} className="mr-1" />
-        Update Visit
-      </Button>
-    </>
-  ) : (
-    <>
-
-      <Button
-        onClick={() => handleSaveVisit(true)}
-        size="lg"
-        className="shadow-lg rounded-2xl px-6"
-        disabled={saving}
-      >
-        <CheckCircle2 size={16} className="mr-1" />
-        Complete Visit
-      </Button>
-    </>
-  )}
-        
-</div>
-    </>
-  );
-}
