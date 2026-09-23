@@ -251,15 +251,19 @@ export default function DailyFrontDeskReport() {
       <Summary icon={CheckCircle2} label="Outstanding" value={outstanding} detail={outstanding ? "Requires attention" : "All clear"} />
     </div>
 
-    <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
-      <div className="p-3 md:p-4 border-b flex flex-col md:flex-row gap-3 md:items-center md:justify-between"><div><h2 className="font-semibold">Patient Activity</h2><p className="text-xs text-muted-foreground">Automatically generated from today's visits. Receptionist completes operational statuses.</p></div><Input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search patient or number…" className="md:w-[260px]" /></div>
-      {loading ? <div className="py-16 flex justify-center"><Loader2 className="animate-spin" /></div> : <>
-        <div className="hidden xl:block overflow-x-auto"><table className="w-full min-w-[1500px] text-xs"><thead className="bg-muted/40 text-muted-foreground"><tr><Th>Patient</Th><Th>Type</Th><Th>HMO</Th><Th>HMO Request Status</Th><Th>Lens Prescription</Th><Th>Lens Type</Th><Th>Order Status</Th><Th>Medication</Th><Th>Dispensed</Th><Th>Feedback</Th><Th>Follow-up</Th><Th>Remarks</Th><Th>Action</Th></tr></thead><tbody>{filtered.map((row) => <DesktopRow key={row.key} row={row} editable={canOperate && report?.status !== "submitted"} saving={saving === row.key} patch={patch} save={savePatient} />)}</tbody></table></div>
-        <div className="xl:hidden divide-y">{filtered.map((row) => <MobileRow key={row.key} row={row} open={mobileRow === row.key} setOpen={() => setMobileRow(mobileRow === row.key ? null : row.key)} editable={canOperate && report?.status !== "submitted"} saving={saving === row.key} patch={patch} save={savePatient} />)}</div>
-        {!filtered.length && <div className="py-12 text-center text-sm text-muted-foreground">No patients match this report.</div>}
-      </>}
+    <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+      <div className="p-3 md:p-4 border-b flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+        <div><h2 className="font-semibold">Patient Activity — Spreadsheet</h2><p className="text-[11px] text-muted-foreground">Receptionist completes HMO request, lens order and operational statuses.</p></div>
+        <Input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search patient or number…" className="sm:w-[260px]" />
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1450px] border-collapse text-xs">
+          <thead className="bg-primary/10"><tr><Th># / Patient</Th><Th>Type</Th><Th>HMO</Th><Th>HMO Request</Th><Th>Rx Sent</Th><Th>Lens Type</Th><Th>Lens Order</Th><Th>Medication</Th><Th>Dispensed</Th><Th>Feedback</Th><Th>Follow-up</Th><Th>Remarks</Th><Th>Action</Th></tr></thead>
+          <tbody>{loading ? <tr><td colSpan={13} className="p-12 text-center"><Loader2 className="animate-spin inline" /></td></tr> : filtered.map((row, index) => <DesktopRow key={row.key} row={row} index={index + 1} editable={canOperate && report?.status !== "submitted"} saving={saving === row.key} patch={patch} save={savePatient} />)}</tbody>
+        </table>
+      </div>
+      {!loading && !filtered.length && <div className="py-10 text-center text-sm text-muted-foreground">No patients match this report.</div>}
     </div>
-
     <div className="grid lg:grid-cols-3 gap-4">
       <div className="rounded-2xl border bg-card p-4 lg:col-span-2"><div className="flex items-center gap-2 mb-3"><Wallet size={18} className="text-primary" /><h2 className="font-semibold">Daily Financial Summary</h2></div><div className="grid grid-cols-2 md:grid-cols-4 gap-3"><Money label="Total Income" value={financials?.total_income} /><Money label="Total Expenditure" value={financials?.total_expenses} /><Money label="Daily Balance" value={financials?.daily_balance} /><Money label="HMO Received" value={financials?.hmo_received} /></div><div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs"><Mini label="Cash" value={financials?.cash_received} /><Mini label="Transfer" value={financials?.transfer_received} /><Mini label="POS / Card" value={financials?.card_received} /><Mini label="Private patient payments" value={financials?.total_patient_payments} /></div></div>
       <div className="rounded-2xl border bg-card p-4"><div className="flex items-center gap-2 mb-3"><Banknote size={18} className="text-primary" /><h2 className="font-semibold">Expenditure</h2></div>{expenses.length ? <div className="space-y-2 max-h-44 overflow-auto">{expenses.map((e) => <div key={e.id} className="flex justify-between gap-3 text-sm"><span>{e.description}<span className="block text-xs text-muted-foreground">{e.payment_method}{e.paid_to ? ` · ${e.paid_to}` : ""}</span></span><strong>{money(e.amount)}</strong></div>)}</div> : <p className="text-sm text-muted-foreground">No expenditure recorded.</p>}</div>
@@ -277,8 +281,22 @@ function Mini({ label, value }: { label: string; value?: number | null }) { retu
 function Th({ children }: { children: ReactNode }) { return <th className="p-3 text-left font-semibold whitespace-nowrap">{children}</th>; }
 function SelectStatus({ value, options, disabled, onChange }: { value: string; options: string[]; disabled?: boolean; onChange: (v: string) => void }) { return <Select value={value} onValueChange={onChange} disabled={disabled}><SelectTrigger className="h-8 min-w-[125px] text-xs"><SelectValue /></SelectTrigger><SelectContent>{options.map((o) => <SelectItem key={o} value={o}>{LENS_LABELS[o] || o}</SelectItem>)}</SelectContent></Select>; }
 
-function DesktopRow({ row, editable, saving, patch, save }: any) {
-  return <tr className="border-t align-top hover:bg-muted/20"><td className="p-3 font-medium min-w-[180px]">{row.patient_name}<span className="block text-[10px] text-muted-foreground">{row.patient_number || "No patient number"}</span></td><td className="p-3"><Status value={row.patient_type === "hmo" ? "HMO" : "Private"} /></td><td className="p-3">{row.hmo_name || "—"}</td><td className="p-3">{row.patient_type === "hmo" ? <SelectStatus value={row.hmo_request_status || "Not sent"} options={HMO_REQUEST_STATUSES} disabled={!editable} onChange={(v) => patch(row.key,{hmo_request_status:v})} /> : "—"}</td><td className="p-3"><Status value={row.glasses_prescription_sent ? "Sent" : row.prescription_available ? "Not sent" : "Not required"} /></td><td className="p-3">{row.lens_type || "—"}</td><td className="p-3">{row.lens_order_required ? <SelectStatus value={row.lens_order_status || "pending"} options={LENS_ORDER_STATUSES} disabled={!editable} onChange={(v) => patch(row.key,{lens_order_status:v})} /> : <Status value="Not required" />}</td><td className="p-3 min-w-[130px]">{row.medication_name || "—"}</td><td className="p-3">{row.medication_name ? <Status value={row.medication_dispensed ? "Dispensed" : "Not dispensed"} /> : "—"}</td><td className="p-3"><Status value={row.feedback_form_sent ? "Sent" : "Not sent"} /></td><td className="p-3">{row.feedback_follow_up === "Not required" ? "—" : <div><Status value={row.feedback_follow_up} />{row.feedback_follow_up_note && <div className="mt-1 max-w-[160px] text-[10px] text-muted-foreground">{row.feedback_follow_up_note}</div>}</div>}</td><td className="p-3 min-w-[160px]">{row.hmo_request_remarks || row.remarks || "—"}</td><td className="p-3"><Button size="sm" onClick={() => void save(row)} disabled={!editable || saving}>{saving ? <Loader2 size={13} className="mr-1 animate-spin" /> : null}Save</Button></td></tr>;
+function DesktopRow({ row, index, editable, saving, patch, save }: any) {
+  return <tr className="border-t hover:bg-muted/20 align-middle">
+    <td className="p-2 md:p-3 font-medium whitespace-nowrap"><span className="text-muted-foreground mr-2">{index}</span>{row.patient_name}<span className="block text-[10px] text-muted-foreground ml-5">{row.patient_number || "No patient number"}</span></td>
+    <td className="p-2 md:p-3"><Status value={row.patient_type === "hmo" ? "HMO" : "Private"} /></td>
+    <td className="p-2 md:p-3 whitespace-nowrap">{row.hmo_name || "—"}</td>
+    <td className="p-2 md:p-3">{row.patient_type === "hmo" ? <SelectStatus value={row.hmo_request_status || "Not sent"} options={HMO_REQUEST_STATUSES} disabled={!editable} onChange={(v) => patch(row.key,{hmo_request_status:v})} /> : "—"}</td>
+    <td className="p-2 md:p-3"><Status value={row.glasses_prescription_sent ? "Sent" : row.prescription_available ? "Not sent" : "Not required"} /></td>
+    <td className="p-2 md:p-3 whitespace-nowrap">{row.lens_type || "—"}</td>
+    <td className="p-2 md:p-3">{row.lens_order_required ? <SelectStatus value={row.lens_order_status || "pending"} options={LENS_ORDER_STATUSES} disabled={!editable} onChange={(v) => patch(row.key,{lens_order_status:v})} /> : <Status value="Not required" />}</td>
+    <td className="p-2 md:p-3 min-w-[130px]">{row.medication_name || "—"}</td>
+    <td className="p-2 md:p-3">{row.medication_name ? <Status value={row.medication_dispensed ? "Dispensed" : "Not dispensed"} /> : "—"}</td>
+    <td className="p-2 md:p-3"><Status value={row.feedback_form_sent ? "Sent" : "Not sent"} /></td>
+    <td className="p-2 md:p-3">{row.feedback_follow_up === "Not required" ? "—" : <Status value={row.feedback_follow_up} />}</td>
+    <td className="p-2 md:p-3 min-w-[150px]">{row.hmo_request_remarks || row.remarks || "—"}</td>
+    <td className="p-2 md:p-3"><Button size="sm" onClick={() => void save(row)} disabled={!editable || saving}>{saving ? <Loader2 size={13} className="mr-1 animate-spin" /> : null}Save</Button></td>
+  </tr>;
 }
 
 function MobileRow({ row, open, setOpen, editable, saving, patch, save }: any) {
