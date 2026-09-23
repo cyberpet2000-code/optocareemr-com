@@ -34,12 +34,12 @@ export default async function handler(req, res) {
   if (!clinicalData) return res.status(400).json({ error: "No clinical findings were supplied." });
   if (clinicalData.length > 30000) return res.status(413).json({ error: "Clinical case is too large for analysis." });
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
   try {
     const upstream = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
         contents: [{ role: "user", parts: [{ text: "Analyze this de-identified optometry case:\n\n" + clinicalData }] }],
