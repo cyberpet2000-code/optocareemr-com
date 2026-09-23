@@ -124,10 +124,8 @@ function buildAppConfig() {
   // the phone/browser connect directly to Hugging Face or raw.githubusercontent.com.
   // This avoids common mobile-network/CORS failures while preserving WebLLM's
   // normal large-file downloads and range requests.
-  const supportsOpfs =
-    typeof navigator !== "undefined" &&
-    typeof navigator.storage?.getDirectory === "function";
-
+  // Use WebLLM's Cache API on mobile/desktop. It is the most broadly tested
+  // persistent cache backend and avoids Android OPFS/IndexedDB compatibility issues.
   const proxyOrigin = typeof window !== "undefined" ? window.location.origin : "";
 
   const proxyModelUrl = (modelUrl: string, modelId: string) => {
@@ -177,8 +175,7 @@ function buildAppConfig() {
 
   return {
     model_list: [proxyRecord(mobileRecord), proxyRecord(desktopRecord)],
-    cacheBackend: supportsOpfs ? ("opfs" as const) : ("indexeddb" as const),
-    ...(supportsOpfs ? { opfsAccessMode: "auto" as const } : {}),
+    cacheBackend: "cache" as const,
   };
 }
 
