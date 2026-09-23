@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bell, CheckCheck, MessageSquare, CalendarDays, CreditCard, Package, FileText, ShieldAlert, Users, ClipboardCheck } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 type StaffNotification = {
   id: string;
@@ -17,22 +18,25 @@ type StaffNotification = {
   entity_id: string | null;
   read_at: string | null;
   created_at: string;
+  expires_at: string | null;
 };
 
 export default function Notifications() {
   const { effectiveClinicId } = useClinic();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<StaffNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
 
   const load = useCallback(async () => {
-    if (!effectiveClinicId) return;
+    if (!effectiveClinicId || !user?.id) return;
     setLoading(true);
     const { data, error } = await apiClient
       .from("staff_notifications")
-      .select("id,title,body,link,notification_type,category,priority,entity_type,entity_id,read_at,created_at")
+      .select("id,title,body,link,notification_type,category,priority,entity_type,entity_id,read_at,created_at,expires_at")
       .eq("clinic_id", effectiveClinicId)
+      .eq("recipient_user_id", user?.id || "")
       .order("created_at", { ascending: false })
       .limit(50);
     if (!error) setItems((data || []) as StaffNotification[]);
@@ -44,19 +48,25 @@ export default function Notifications() {
   }, [load]);
 
   useEffect(() => {
-    if (!effectiveClinicId) return;
+    if (!effectiveClinicId || !user?.id) return;
     const channel = apiClient
       .channel(`staff-notifications-${effectiveClinicId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "staff_notifications", filter: `clinic_id=eq.${effectiveClinicId}` },
-        () => void load()
+        (payload: any) => {
+          if (payload?.new?.recipient_user_id === user.id) void load();
+        }
       )
       .subscribe();
     return () => { apiClient.removeChannel(channel); };
-  }, [effectiveClinicId, load]);
+  }, [effectiveClinicId, load, user?.id]);
 
-  const visibleItems = filter === "all" ? items : items.filter(item => item.category === filter);
+  const visibleItems = useMemo(() => {
+    const now = Date.now();
+    const active = items.filter(item => !item.expires_at || new Date(item.expires_at).getTime() > now);
+    return filter === "all" ? active : active.filter(item => item.category === filter);
+  }, [filter, items]);
 
   const iconFor = (item: StaffNotification) => {
     if (item.category === "appointments") return <CalendarDays size={18} />;
