@@ -79,6 +79,8 @@ export default function ClinicSidebar() {
     if (isReceptionist && !isAdmin && !isDoctor) {
       return {
         primary: [
+          { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+          { to: "/patients", label: "Patients", icon: Users },
           { to: "/register", label: "Register", icon: UserPlus },
           { to: "/appointments", label: "Appointments", icon: Calendar },
           { to: "/billing", label: "Billing", icon: DollarSign },
