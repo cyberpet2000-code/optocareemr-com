@@ -74,6 +74,18 @@ type ClinicalCaseHistory = {
   notes?: string | null;
 };
 
+const analysisCache = new Map<string, { text: string; expiresAt: number }>();
+const analysisInFlight = new Map<string, Promise<string>>();
+
+function caseKey(value: string) {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16);
+}
+
 export function isClinicalAiSupported() {
   return typeof window !== "undefined" && typeof navigator !== "undefined" && navigator.onLine;
 }
@@ -197,37 +209,56 @@ export async function analyzeClinicalCase(
   }
 
   const requestData = clinicalData + safetyFlags;
+  const key = caseKey(requestData);
+  const cached = analysisCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    onProgress?.({ text: "Using the recent OptoCare AI analysis for this unchanged case." });
+    return cached.text;
+  }
+  if (cached) analysisCache.delete(key);
+
+  const existing = analysisInFlight.get(key);
+  if (existing) {
+    onProgress?.({ text: "OptoCare AI is already analyzing this case..." });
+    return existing;
+  }
 
   onProgress?.({ text: "Checking OptoCare clinical safety rules..." });
-
   onProgress?.({ text: "Sending clinical findings securely to OptoCare AI..." });
 
-  let response: Response;
+  const request = (async () => {
+    let response: Response;
+    try {
+      response = await fetch("/api/clinical-ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clinicalData: requestData }),
+      });
+    } catch {
+      throw new Error("OptoCare Clinical AI could not connect to its AI service. Please check your internet connection and try again.");
+    }
+
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error("OptoCare AI is temporarily at its free-tier request limit. Please wait a moment and try again.");
+      }
+      throw new Error(typeof payload?.error === "string" ? payload.error : "OptoCare Clinical AI could not complete the analysis.");
+    }
+
+    const result = typeof payload?.text === "string" ? payload.text.trim() : "";
+    if (!result) throw new Error("The AI service returned no clinical analysis.");
+
+    analysisCache.set(key, { text: result, expiresAt: Date.now() + 10 * 60 * 1000 });
+    onProgress?.({ text: "Clinical analysis ready." });
+    return result;
+  })();
+
+  analysisInFlight.set(key, request);
   try {
-    response = await fetch("/api/clinical-ai", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clinicalData: requestData }),
-    });
-  } catch {
-    throw new Error("OptoCare Clinical AI could not connect to its AI service. Please check your internet connection and try again.");
-  }
-
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(
-      typeof payload?.error === "string"
-        ? payload.error
-        : "OptoCare Clinical AI could not complete the analysis.",
-    );
-  }
-
-  const result = typeof payload?.text === "string" ? payload.text.trim() : "";
-  if (!result) {
-    throw new Error("The AI service returned no clinical analysis.");
-  }
-
-  onProgress?.({ text: "Clinical analysis ready." });
-  return result;
+    return await request;
+  } finally {
+    analysisInFlight.delete(key);
+  }  return result;
 }
