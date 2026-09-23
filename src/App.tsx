@@ -42,6 +42,7 @@ import LegalCompliance from "./pages/legal/Compliance";
 import LegalMedical from "./pages/legal/MedicalDisclaimer";
 import LegalContact from "./pages/legal/Contact";
 import PatientFeedback from "./pages/PatientFeedback";
+import Notifications from "./pages/Notifications";
 import Expenses from "./pages/Expenses";
 import InventoryAudit from "./pages/InventoryAudit";
 import AccountSettings from "./pages/AccountSettings";
@@ -333,6 +334,7 @@ export function AppRoutes() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
       <Route path="/feedback/:token" element={<PatientFeedback />} />
+      <Route path="/notifications" element={<PageErrorBoundary pageName="Notifications"><Notifications /></PageErrorBoundary>} />
       <Route path="/signup" element={<AcceptInvite />} />
       <Route path="/no-access" element={<NoAccess />} />
       <Route path="/legal" element={<LegalIndex />} />
