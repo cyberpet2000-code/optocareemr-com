@@ -1,20 +1,12 @@
 {
   "rewrites": [
     {
-      "source": "/clinical-ai-assets/Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
-      "destination": "https://huggingface.co/mlc-ai/Qwen2.5-0.5B-Instruct-q4f16_1-MLC/resolve/main"
+      "source": "/clinical-ai-assets/:model/:path*",
+      "destination": "/api/clinical-ai-model/:model/:path*"
     },
     {
-      "source": "/clinical-ai-assets/Qwen2.5-0.5B-Instruct-q4f16_1-MLC/:path*",
-      "destination": "https://huggingface.co/mlc-ai/Qwen2.5-0.5B-Instruct-q4f16_1-MLC/resolve/main/:path*"
-    },
-    {
-      "source": "/clinical-ai-assets/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
-      "destination": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/main"
-    },
-    {
-      "source": "/clinical-ai-assets/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/:path*",
-      "destination": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/main/:path*"
+      "source": "/clinical-ai-assets/:model",
+      "destination": "/api/clinical-ai-model/:model/index"
     },
     {
       "source": "/clinical-ai-lib/:path*",
