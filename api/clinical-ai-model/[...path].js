@@ -21,7 +21,8 @@ export default async function handler(req, res) {
   const source = `${baseUrl}/${assetPath}`;
 
   try {
-    const response = await fetch(source);
+    const range = req.headers.range;
+    const response = await fetch(source, range ? { headers: { Range: range } } : undefined);
 
     if (!response.ok) {
       return res.status(response.status).json({
@@ -30,20 +31,21 @@ export default async function handler(req, res) {
       });
     }
 
-    const contentType =
-      response.headers.get("content-type") || "application/octet-stream";
-
-    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Type", response.headers.get("content-type") || "application/octet-stream");
     res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
     res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges, ETag");
 
-    const contentLength = response.headers.get("content-length");
-    if (contentLength) res.setHeader("Content-Length", contentLength);
+    for (const header of ["content-length", "content-range", "accept-ranges", "etag", "last-modified"]) {
+      const value = response.headers.get(header);
+      if (value) {
+        const target = header.split("-").map((part) => part[0].toUpperCase() + part.slice(1)).join("-");
+        res.setHeader(target, value);
+      }
+    }
 
-    return res.status(200).send(Buffer.from(await response.arrayBuffer()));
+    return res.status(response.status).send(Buffer.from(await response.arrayBuffer()));
   } catch {
-    return res.status(502).json({
-      error: "Unable to retrieve the clinical AI model asset.",
-    });
+    return res.status(502).json({ error: "Unable to retrieve the clinical AI model asset." });
   }
 }
