@@ -2761,8 +2761,7 @@ shadow-sm
   </p>
 )}
 
-        {!isReceptionist && (
-        {v.diagnosis && (
+        {!isReceptionist && v.diagnosis && (
   <div className="mt-1">
     <span
       className="
@@ -2779,7 +2778,6 @@ shadow-sm
     </span>
   </div>
 )}
-        )}
       </div>
 
       <span
