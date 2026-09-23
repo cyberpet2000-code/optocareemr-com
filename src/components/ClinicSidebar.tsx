@@ -272,8 +272,8 @@ export default function ClinicSidebar() {
             >
               <LifeBuoy size={12} /> Support
             </button>
-            <div className="text-[10px] text-muted-foreground/70 pt-1 border-t border-border/40 px-1">
-              Powered by <span className="font-medium">OptoCare-EMR</span>
+            <div className="text-[8px] text-muted-foreground/60 pt-1 border-t border-border/40 px-1">
+              Powered by <span>OptoCare EMR</span>
             </div>
           </>
         )}
