@@ -2799,6 +2799,54 @@ shadow-sm
     <pre className="text-[10px] overflow-auto">
       </pre>
   
+    {isReceptionist && (
+      <div className="mt-3 text-xs space-y-3">
+        {v.lens_type && (
+          <div className="rounded-xl bg-primary/5 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-medium text-primary">Optical order</p>
+              <span className="text-[11px] text-muted-foreground">{v.lens_type}</span>
+            </div>
+            {v.optical_dispensed ? (
+              <span className="mt-2 inline-flex h-7 items-center rounded-lg bg-green-100 px-2 text-[10px] font-medium text-green-700">
+                ✅ Dispensed
+              </span>
+            ) : (
+              <Button size="sm" variant="outline" className="mt-2 h-7 rounded-lg px-2 text-[10px] font-medium"
+                onClick={() => handleMarkDispensed(v.id, "optical")} title="Dispense optical order">
+                ✔️ Dispense
+              </Button>
+            )}
+          </div>
+        )}
+        {v.medication && (
+          <div className="rounded-xl bg-success/5 p-3">
+            <p className="font-medium text-success mb-2">Medication</p>
+            <div className="space-y-1.5">
+              {parseMedicationItems(v.medication).map((medicationItem) => {
+                const medicationKey = `${v.id}:${medicationItem.name.toLowerCase()}`;
+                const dispensing = medicationDispensingMap[medicationKey];
+                const isDispensed = dispensing?.dispensed ?? false;
+                return (
+                  <div key={`${v.id}-reception-${medicationItem.name}`} className="flex items-center justify-between gap-2">
+                    <p className="min-w-0 flex-1 text-[11px] font-medium">{medicationItem.name}</p>
+                    {isDispensed ? (
+                      <span className="shrink-0 inline-flex h-7 items-center rounded-lg bg-green-100 px-2 text-[10px] font-medium text-green-700">✅ Dispensed</span>
+                    ) : (
+                      <Button size="sm" variant="outline" className="h-7 shrink-0 rounded-lg px-2 text-[10px] font-medium"
+                        onClick={() => handleMarkMedicationDispensed(v.id, medicationItem.name)} title={`Dispense medication: ${medicationItem.name}`}>
+                        ✔️ Dispense
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    )}
+
     {!isReceptionist && (
     <div className="mt-3 text-xs space-y-2">
 
