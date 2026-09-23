@@ -17,6 +17,8 @@ import { useOffline } from "@/hooks/useOffline";
 import { registerAutomaticSync, runOfflineSync } from "@/lib/offlineSync";
 import { getOfflineSyncStatus } from "@/lib/offlineEngine";
 import ThemeToggle from "@/components/ThemeToggle";
+import { apiClient } from "@/lib/apiClient";
+import { showNotification } from "@/lib/notifications";
 
 const ROLE_LABEL: Record<string, string> = {
   doctor: "Doctor",
@@ -112,10 +114,8 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
         (payload: any) => {
           setNotificationUnread(value => value + 1);
           const row = payload.new;
-          if (row?.notification_type === "feedback_received") {
-            void import("@/lib/notifications").then(({ showNotification }) => {
-              showNotification("New Patient Feedback", "New patient feedback has been received.");
-            });
+          if (row?.title && row?.body) {
+            void showNotification(row.title, row.body);
           }
         }
       )
