@@ -95,25 +95,30 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   }, [effectiveClinicId, isSuperAdminWs]);
 
   useEffect(() => {
-    if (!effectiveClinicId || isSuperAdminWs) return;
+    if (!effectiveClinicId || isSuperAdminWs || !user?.id) {
+      setNotificationUnread(0);
+      return;
+    }
     let cancelled = false;
     const loadUnread = async () => {
       const { count } = await apiClient
         .from("staff_notifications")
         .select("id", { count: "exact", head: true })
         .eq("clinic_id", effectiveClinicId)
+        .eq("recipient_user_id", user.id)
         .is("read_at", null);
       if (!cancelled) setNotificationUnread(count || 0);
     };
     void loadUnread();
     const channel = apiClient
-      .channel(`header-notifications-${effectiveClinicId}`)
+      .channel(`header-notifications-${effectiveClinicId}-${user.id}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "staff_notifications", filter: `clinic_id=eq.${effectiveClinicId}` },
         (payload: any) => {
-          setNotificationUnread(value => value + 1);
           const row = payload.new;
+          if (row?.recipient_user_id !== user.id) return;
+          setNotificationUnread(value => value + 1);
           if (row?.title && row?.body) {
             void showNotification(row.title, row.body);
           }
@@ -124,7 +129,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
       cancelled = true;
       apiClient.removeChannel(channel);
     };
-  }, [effectiveClinicId, isSuperAdminWs]);
+  }, [effectiveClinicId, isSuperAdminWs, user?.id]);
 
   const handleLogout = useCallback(async () => {
     await signOut();
