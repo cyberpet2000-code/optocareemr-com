@@ -216,6 +216,11 @@ export default function DailyFrontDeskReport() {
         p_status: row.feedback_follow_up, p_note: row.feedback_follow_up_note,
       });
       if (followup.error) throw followup.error;
+      const feedback = await db.rpc("save_daily_front_desk_report_feedback_note", {
+        p_report_id: report.id, p_patient_id: row.patient_id, p_visit_id: row.visit_id,
+        p_feedback_note: row.feedback_note,
+      });
+      if (feedback.error) throw feedback.error;
       toast.success(`Saved ${row.patient_name}`);
     } catch (e: any) { toast.error(e?.message || "Failed to save patient entry"); } finally { setSaving(null); }
   }
