@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Bell, CheckCheck, MessageSquare } from "lucide-react";
+import { Bell, CheckCheck, MessageSquare, CalendarDays, CreditCard, Package, FileText, ShieldAlert, Users, ClipboardCheck } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,10 @@ type StaffNotification = {
   body: string;
   link: string | null;
   notification_type: string;
+  category: string;
+  priority: "information" | "attention" | "urgent";
+  entity_type: string | null;
+  entity_id: string | null;
   read_at: string | null;
   created_at: string;
 };
@@ -20,13 +24,14 @@ export default function Notifications() {
   const navigate = useNavigate();
   const [items, setItems] = useState<StaffNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>("all");
 
   const load = useCallback(async () => {
     if (!effectiveClinicId) return;
     setLoading(true);
     const { data, error } = await apiClient
       .from("staff_notifications")
-      .select("id,title,body,link,notification_type,read_at,created_at")
+      .select("id,title,body,link,notification_type,category,priority,entity_type,entity_id,read_at,created_at")
       .eq("clinic_id", effectiveClinicId)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -50,6 +55,20 @@ export default function Notifications() {
       .subscribe();
     return () => { apiClient.removeChannel(channel); };
   }, [effectiveClinicId, load]);
+
+  const visibleItems = filter === "all" ? items : items.filter(item => item.category === filter);
+
+  const iconFor = (item: StaffNotification) => {
+    if (item.category === "appointments") return <CalendarDays size={18} />;
+    if (item.category === "billing") return <CreditCard size={18} />;
+    if (item.category === "inventory") return <Package size={18} />;
+    if (item.category === "hmo") return <ClipboardCheck size={18} />;
+    if (item.category === "feedback") return <MessageSquare size={18} />;
+    if (item.category === "staff") return <Users size={18} />;
+    if (item.category === "system") return <ShieldAlert size={18} />;
+    if (item.category === "patient") return <FileText size={18} />;
+    return <Bell size={18} />;
+  };
 
   const markRead = async (id: string) => {
     await apiClient.from("staff_notifications").update({ read_at: new Date().toISOString() }).eq("id", id);
@@ -81,9 +100,17 @@ export default function Notifications() {
         </Button>
       </div>
 
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {["all","patient","appointments","billing","hmo","inventory","feedback","staff","system"].map(category => (
+          <button key={category} type="button" onClick={() => setFilter(category)} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium border transition ${filter === category ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:bg-muted"}`}>
+            {category === "all" ? "All" : category.replace(/_/g, " ").replace(/^./, c => c.toUpperCase())}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <div className="rounded-2xl border bg-card p-8 text-center text-sm text-muted-foreground">Loading notifications…</div>
-      ) : items.length === 0 ? (
+      ) : visibleItems.length === 0 ? (
         <div className="rounded-2xl border bg-card p-10 text-center">
           <Bell className="mx-auto h-8 w-8 text-muted-foreground/50" />
           <p className="mt-3 font-medium">No notifications</p>
@@ -91,16 +118,16 @@ export default function Notifications() {
         </div>
       ) : (
         <div className="space-y-2">
-          {items.map(item => (
+          {visibleItems.map(item => (
             <button
               key={item.id}
               type="button"
               onClick={() => void openNotification(item)}
-              className={`w-full rounded-2xl border p-4 text-left transition hover:bg-muted/40 ${item.read_at ? "bg-card" : "bg-primary/5 border-primary/20"}`}
+              className={`w-full rounded-2xl border p-4 text-left transition hover:bg-muted/40 ${item.read_at ? "bg-card" : item.priority === "urgent" ? "bg-destructive/5 border-destructive/30" : "bg-primary/5 border-primary/20"}`}
             >
               <div className="flex gap-3">
                 <div className="mt-0.5 rounded-xl bg-primary/10 p-2 text-primary">
-                  {item.notification_type === "feedback_received" ? <MessageSquare size={18} /> : <Bell size={18} />}
+                  {iconFor(item)}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3">
