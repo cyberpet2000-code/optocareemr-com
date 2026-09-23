@@ -54,8 +54,6 @@ import {
   installDiagFetchPatch,
   DiagOverlay,
 } from "@/lib/diag";
-import { apiClient } from "@/lib/apiClient";
-import { toast } from "sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import OptoLoader from "@/components/OptoLoader";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
@@ -65,11 +63,6 @@ installDiagFetchPatch();
 
 
 const queryClient = new QueryClient();
-function playAlert() {
-  const audio = new Audio("/notify.mp3");
-  audio.play().catch(() => {});
-}
-
 function FullScreenLoader({ label }: { label?: string }) {
   return (
     <OptoLoader
@@ -101,75 +94,6 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
   const { clinic, effectiveClinicId, memberships, profile } = useAccessClinic();
   const { role, roleMissing } = useAccessRole();
   
-  useEffect(() => {
-  if (!user || !effectiveClinicId) return;
-
-  if ("Notification" in window) {
-    Notification.requestPermission();
-  }
-
-  const patientsChannel = apiClient
-    .channel("patients-live")
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "patients",
-      },
-      payload => {
-        const p: any = payload.new;
-
-        if (p.clinic_id !== effectiveClinicId) return;
-
-        toast(
-          `🔔 New patient added — ${p.full_name || "Patient"} (#${p.queue_number || ""})`
-        );
-
-        playAlert();
-
-        if (Notification.permission === "granted") {
-          new Notification("OptoCare EMR", {
-            body: `New patient added — ${p.full_name || "Patient"}`,
-          });
-        }
-      }
-    )
-    .subscribe();
-
-  const visitsChannel = apiClient
-    .channel("visits-live")
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "visits",
-      },
-      payload => {
-        const v: any = payload.new;
-        if (v.clinic_id !== effectiveClinicId) return;
-
-        if (v.status === "completed") {
-          toast("✅ Visit completed");
-
-          playAlert();
-
-          if (Notification.permission === "granted") {
-            new Notification("OptoCare EMR", {
-              body: "Visit completed",
-            });
-          }
-        }
-      }
-    )
-    .subscribe();
-
-  return () => {
-    apiClient.removeChannel(patientsChannel);
-    apiClient.removeChannel(visitsChannel);
-  };
-}, [user,effectiveClinicId]);
   const location = useLocation();
   const [timedOut, setTimedOut] = useState(false);
   const setupCompleted = clinic?.setup_completed ?? null;
@@ -334,7 +258,6 @@ export function AppRoutes() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
       <Route path="/feedback/:token" element={<PatientFeedback />} />
-      <Route path="/notifications" element={<PageErrorBoundary pageName="Notifications"><Notifications /></PageErrorBoundary>} />
       <Route path="/signup" element={<AcceptInvite />} />
       <Route path="/no-access" element={<NoAccess />} />
       <Route path="/legal" element={<LegalIndex />} />
@@ -364,6 +287,7 @@ export function AppRoutes() {
           <Route path="/super-admin/archives" element={<SuperAdminOnly><PageErrorBoundary pageName="Clinic Data Archives"><SuperAdminArchives /></PageErrorBoundary></SuperAdminOnly>} />
           <Route path="/super-admin/users" element={<SuperAdminOnly><PageErrorBoundary pageName="User Management"><AdminRoles embedded /></PageErrorBoundary></SuperAdminOnly>} />
 
+          <Route path="/notifications" element={<PageErrorBoundary pageName="Notifications"><Notifications /></PageErrorBoundary>} />
           <Route path="/dashboard" element={<PageErrorBoundary pageName="Dashboard"><Dashboard /></PageErrorBoundary>} />
           <Route path="/visits" element={<PageErrorBoundary pageName="Visits"><Visits /></PageErrorBoundary>} />
           <Route path="/register" element={<PageErrorBoundary pageName="Patient Registration"><PatientRegister /></PageErrorBoundary>} />
