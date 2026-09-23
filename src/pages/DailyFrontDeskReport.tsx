@@ -48,7 +48,7 @@ type PatientRow = {
   medication_name: string | null;
   medication_dispensed: boolean;
   feedback_form_sent: boolean;
-  feedback_follow_up: "Not required" | "Pending" | "Completed" | "Required";
+  feedback_follow_up: "Not required" | "Pending" | "Completed";
   feedback_follow_up_note: string | null;
   remarks: string | null;
 };
@@ -166,8 +166,10 @@ export default function DailyFrontDeskReport() {
           lens_order_required: !!p.lens_order_required, lens_order_status: saved?.lens_order_status ?? (p.lens_order_required ? "pending" : "not_required"), lens_order_remarks: saved?.lens_order_remarks ?? null,
           hmo_request_status: saved?.hmo_claim_status ?? (p.patient_type === "hmo" ? "Not sent" : null), hmo_request_remarks: saved?.hmo_claim_remarks ?? null,
           medication_name: visit?.medication || null, medication_dispensed: !!visit?.medication_dispensed,
-          feedback_form_sent: saved?.feedback_form_sent ?? !!p.feedback_form_sent, feedback_follow_up: feedbackFollowUp,
-          feedback_follow_up_note: follow?.notes || follow?.reason || null, remarks: saved?.remarks ?? null,
+          feedback_form_sent: saved?.feedback_form_sent ?? !!p.feedback_form_sent,
+          feedback_follow_up: saved?.feedback_follow_up_status || "Not required",
+          feedback_follow_up_note: saved?.feedback_follow_up_note ?? null,
+          remarks: saved?.remarks ?? null,
         };
       });
       setReport({ ...header, id: reportId }); setReportNotes(header.report_notes || ""); setPatients(merged);
@@ -205,6 +207,8 @@ export default function DailyFrontDeskReport() {
         p_hmo_claim_status: row.patient_type === "hmo" ? row.hmo_request_status : null, p_hmo_claim_remarks: row.patient_type === "hmo" ? row.hmo_request_remarks : null,
         p_lens_order_required: row.lens_order_required, p_lens_order_status: row.lens_order_required ? row.lens_order_status : "not_required", p_lens_order_remarks: row.lens_order_remarks,
         p_feedback_form_sent: row.feedback_form_sent, p_eye_drop_dispensed: row.medication_dispensed, p_remarks: row.remarks,
+        p_feedback_follow_up_status: row.feedback_follow_up,
+        p_feedback_follow_up_note: row.feedback_follow_up_note,
       });
       if (error) throw error; toast.success(`Saved ${row.patient_name}`);
     } catch (e: any) { toast.error(e?.message || "Failed to save patient entry"); } finally { setSaving(null); }
@@ -245,13 +249,13 @@ export default function DailyFrontDeskReport() {
 
     <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
       <div className="p-3 md:p-4 border-b flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-        <div><h2 className="font-semibold">Patient Activity — Spreadsheet</h2><p className="text-[11px] text-muted-foreground">Receptionist completes HMO request, lens order and operational statuses.</p></div>
+        <div><h2 className="font-semibold">Patient Activity — Spreadsheet</h2><p className="text-[11px] text-muted-foreground">Clinical data supplies the final optical Rx; reception completes the operational fields.</p></div>
         <Input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search patient or number…" className="sm:w-[260px]" />
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1450px] border-collapse text-xs">
-          <thead className="bg-primary/10"><tr><Th># / Patient</Th><Th>Type</Th><Th>HMO</Th><Th>HMO Request</Th><Th>Rx Sent</Th><Th>Lens Type</Th><Th>Lens Order</Th><Th>Medication</Th><Th>Dispensed</Th><Th>Feedback</Th><Th>Follow-up</Th><Th>Remarks</Th><Th>Action</Th></tr></thead>
-          <tbody>{loading ? <tr><td colSpan={13} className="p-12 text-center"><Loader2 className="animate-spin inline" /></td></tr> : filtered.map((row, index) => <DesktopRow key={row.key} row={row} index={index + 1} editable={canOperate && report?.status !== "submitted"} saving={saving === row.key} patch={patch} save={savePatient} />)}</tbody>
+          <thead className="bg-primary/10"><tr><Th># / Patient</Th><Th>Type</Th><Th>HMO</Th><Th>HMO Request</Th><Th>Subjective Refraction</Th><Th>Rx Sent</Th><Th>Lens Type</Th><Th>Lens Order</Th><Th>Medication</Th><Th>Dispensed</Th><Th>Feedback</Th><Th>Follow-up</Th><Th>Remarks</Th><Th>Action</Th></tr></thead>
+          <tbody>{loading ? <tr><td colSpan={14} className="p-12 text-center"><Loader2 className="animate-spin inline" /></td></tr> : filtered.map((row, index) => <DesktopRow key={row.key} row={row} index={index + 1} editable={canOperate && report?.status !== "submitted"} saving={saving === row.key} patch={patch} save={savePatient} />)}</tbody>
         </table>
       </div>
       {!loading && !filtered.length && <div className="py-10 text-center text-sm text-muted-foreground">No patients match this report.</div>}
@@ -271,6 +275,10 @@ function Summary({ icon: Icon, label, value, detail }: any) { return <div classN
 function Money({ label, value }: { label: string; value?: number | null }) { return <div className="rounded-xl border bg-muted/20 p-3"><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1 font-bold">{money(value)}</div></div>; }
 function Mini({ label, value }: { label: string; value?: number | null }) { return <div className="rounded-lg bg-muted/30 p-2"><span className="text-muted-foreground">{label}</span><strong className="block mt-1">{money(value)}</strong></div>; }
 function Th({ children }: { children: ReactNode }) { return <th className="p-3 text-left font-semibold whitespace-nowrap">{children}</th>; }
+function RxCell({ row }: { row: PatientRow }) {
+  if (!row.prescription_available) return <span className="text-muted-foreground">—</span>;
+  return <div className="leading-5 whitespace-nowrap"><div>OD {rx(row.od_sphere,row.od_cylinder,row.od_axis)}</div><div>OS {rx(row.os_sphere,row.os_cylinder,row.os_axis)}</div>{row.reading_add ? <div>ADD {row.reading_add}</div> : null}</div>;
+}
 function SelectStatus({ value, options, disabled, onChange }: { value: string; options: string[]; disabled?: boolean; onChange: (v: string) => void }) { return <Select value={value} onValueChange={onChange} disabled={disabled}><SelectTrigger className="h-8 min-w-[125px] text-xs"><SelectValue /></SelectTrigger><SelectContent>{options.map((o) => <SelectItem key={o} value={o}>{LENS_LABELS[o] || o}</SelectItem>)}</SelectContent></Select>; }
 
 function DesktopRow({ row, index, editable, saving, patch, save }: any) {
@@ -279,14 +287,15 @@ function DesktopRow({ row, index, editable, saving, patch, save }: any) {
     <td className="p-2 md:p-3"><Status value={row.patient_type === "hmo" ? "HMO" : "Private"} /></td>
     <td className="p-2 md:p-3 whitespace-nowrap">{row.hmo_name || "—"}</td>
     <td className="p-2 md:p-3">{row.patient_type === "hmo" ? <SelectStatus value={row.hmo_request_status || "Not sent"} options={HMO_REQUEST_STATUSES} disabled={!editable} onChange={(v) => patch(row.key,{hmo_request_status:v})} /> : "—"}</td>
+    <td className="p-2 md:p-3 min-w-[220px]"><RxCell row={row} /></td>
     <td className="p-2 md:p-3"><Status value={row.glasses_prescription_sent ? "Sent" : row.prescription_available ? "Not sent" : "Not required"} /></td>
     <td className="p-2 md:p-3 whitespace-nowrap">{row.lens_type || "—"}</td>
     <td className="p-2 md:p-3">{row.lens_order_required ? <SelectStatus value={row.lens_order_status || "pending"} options={LENS_ORDER_STATUSES} disabled={!editable} onChange={(v) => patch(row.key,{lens_order_status:v})} /> : <Status value="Not required" />}</td>
     <td className="p-2 md:p-3 min-w-[130px]">{row.medication_name || "—"}</td>
     <td className="p-2 md:p-3">{row.medication_name ? <Status value={row.medication_dispensed ? "Dispensed" : "Not dispensed"} /> : "—"}</td>
-    <td className="p-2 md:p-3"><Status value={row.feedback_form_sent ? "Sent" : "Not sent"} /></td>
-    <td className="p-2 md:p-3">{row.feedback_follow_up === "Not required" ? "—" : <Status value={row.feedback_follow_up} />}</td>
-    <td className="p-2 md:p-3 min-w-[150px]">{row.hmo_request_remarks || row.remarks || "—"}</td>
+    <td className="p-2 md:p-3">{editable ? <SelectStatus value={row.feedback_form_sent ? "Sent" : "Not sent"} options={["Not sent","Sent"]} disabled={!editable} onChange={(v) => patch(row.key,{feedback_form_sent:v === "Sent"})} /> : <Status value={row.feedback_form_sent ? "Sent" : "Not sent"} />}</td>
+    <td className="p-2 md:p-3 min-w-[150px]">{editable ? <SelectStatus value={row.feedback_follow_up} options={["Not required","Pending","Completed"]} disabled={!editable} onChange={(v) => patch(row.key,{feedback_follow_up:v})} /> : row.feedback_follow_up === "Not required" ? "—" : <Status value={row.feedback_follow_up} />}</td>
+    <td className="p-2 md:p-3 min-w-[180px]">{editable ? <Input value={row.remarks || ""} onChange={(e) => patch(row.key,{remarks:e.target.value})} placeholder="Remarks" className="h-8 text-xs" /> : row.remarks || "—"}</td>
     <td className="p-2 md:p-3"><Button size="sm" onClick={() => void save(row)} disabled={!editable || saving}>{saving ? <Loader2 size={13} className="mr-1 animate-spin" /> : null}Save</Button></td>
   </tr>;
 }
