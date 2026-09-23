@@ -82,7 +82,7 @@ add("Near VA Aided (OU)", visit.va_aided_near_ou);
   add("Notes", visit.notes);
   lines.push("");
   lines.push("===============================================");
-  lines.push("Powered by OptoCare-EMR");
+  lines.push("Powered by OptoCare EMR");
 
   const content = lines.join("\n");
   const blob = new Blob([content], { type: "text/plain" });
