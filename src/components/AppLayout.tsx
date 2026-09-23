@@ -256,6 +256,19 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
                 />
               </div>
 
+              {isReceptionist && !isSuperAdminWs && location.pathname !== "/dashboard" && (
+                <button
+                  type="button"
+                  onClick={() => navigate("/dashboard")}
+                  className="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 text-primary px-2.5 h-9 text-xs font-medium hover:bg-primary/10 transition-colors shrink-0"
+                  title="Back to Dashboard"
+                  aria-label="Back to Dashboard"
+                >
+                  <LayoutDashboard size={14} />
+                  <span className="hidden sm:inline">Dashboard</span>
+                </button>
+              )}
+
               {isSuperAdmin && location.pathname !== "/super-admin" && (
                 <button
                   type="button"
