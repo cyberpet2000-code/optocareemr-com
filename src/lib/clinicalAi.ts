@@ -1,3 +1,4 @@
+// OptoCare Clinical AI local model configuration.
 import { CreateWebWorkerMLCEngine, prebuiltAppConfig, type MLCEngineInterface, type InitProgressReport } from "@mlc-ai/web-llm";
 
 const MOBILE_MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
