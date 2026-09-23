@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Brain, Loader2, Sparkles, AlertTriangle, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { analyzeClinicalCase, isClinicalAiSupported, type ClinicalCase, type ClinicalAiProgress } from "@/lib/clinicalAi";
 
@@ -62,7 +61,7 @@ export function ClinicalAiAssistant({ clinicalCase, disabled }: Props) {
       </Button>
 
       <Dialog open={open} onOpenChange={handleOpen}>
-        <DialogContent className="rounded-3xl max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="rounded-3xl max-w-lg max-h-[90vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Brain size={18} />
@@ -114,11 +113,12 @@ export function ClinicalAiAssistant({ clinicalCase, disabled }: Props) {
             )}
 
             {analysis && (
-              <ScrollArea className="max-h-[55vh] rounded-2xl border">
-                <div className="p-4 whitespace-pre-wrap text-sm leading-6">
-                  {analysis}
-                </div>
-              </ScrollArea>
+              <div
+                className="max-h-[55vh] overflow-y-auto overscroll-contain rounded-2xl border p-4 whitespace-pre-wrap text-sm leading-6"
+                style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+              >
+                {analysis}
+              </div>
             )}
 
             {!loading && (error || !analysis) && isClinicalAiSupported() && (
