@@ -447,8 +447,8 @@ export default function PatientFeedback() {
             and patient care.
           </p>
 
-          <div className="mt-6 text-xs text-muted-foreground">
-            Powered by OptoCare-EMR
+          <div className="mt-6 text-[9px] text-muted-foreground/60">
+            Powered by OptoCare EMR
           </div>
         </div>
       </div>
