@@ -114,6 +114,8 @@ export default function DailyFrontDeskReport() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [filter, setFilter] = useState("");
   const [mobileRow, setMobileRow] = useState<string | null>(null);
+  const [expenseDraft, setExpenseDraft] = useState({ description: "", amount: "", payment_method: "cash", paid_to: "", remarks: "" });
+  const [savingExpense, setSavingExpense] = useState(false);
 
   const load = useCallback(async () => {
     if (!effectiveClinicId || !canOperate) return;
@@ -225,6 +227,25 @@ export default function DailyFrontDeskReport() {
     } catch (e: any) { toast.error(e?.message || "Failed to save patient entry"); } finally { setSaving(null); }
   }
 
+  async function saveExpense() {
+    if (!report || report.status === "submitted") return;
+    const amount = Number(expenseDraft.amount);
+    if (!expenseDraft.description.trim() || !amount || amount <= 0) return toast.error("Enter an expense description and amount.");
+    setSavingExpense(true);
+    try {
+      const { data, error } = await db.rpc("save_daily_front_desk_expense", {
+        p_report_id: report.id, p_description: expenseDraft.description,
+        p_amount: amount, p_payment_method: expenseDraft.payment_method,
+        p_paid_to: expenseDraft.paid_to || null, p_remarks: expenseDraft.remarks || null,
+      });
+      if (error) throw error;
+      setExpenses((rows) => [...rows, data]);
+      setExpenseDraft({ description: "", amount: "", payment_method: "cash", paid_to: "", remarks: "" });
+      toast.success("Expenditure added");
+    } catch (e: any) { toast.error(e?.message || "Failed to save expenditure"); }
+    finally { setSavingExpense(false); }
+  }
+
   async function saveNotes() {
     if (!report || report.status === "submitted") return;
     const { data, error } = await db.rpc("save_daily_front_desk_report", { p_report_id: report.id, p_report_date: report.report_date, p_opening_cash: report.opening_cash || 0, p_report_notes: reportNotes || null });
@@ -273,7 +294,7 @@ export default function DailyFrontDeskReport() {
     </div>
     <div className="grid lg:grid-cols-3 gap-4">
       <div className="rounded-2xl border bg-card p-4 lg:col-span-2"><div className="flex items-center gap-2 mb-3"><Wallet size={18} className="text-primary" /><h2 className="font-semibold">Daily Financial Summary</h2></div><div className="grid grid-cols-2 md:grid-cols-4 gap-3"><Money label="Total Income" value={financials?.total_income} /><Money label="Total Expenditure" value={financials?.total_expenses} /><Money label="Daily Balance" value={financials?.daily_balance} /><Money label="HMO Received" value={financials?.hmo_received} /></div><div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs"><Mini label="Cash" value={financials?.cash_received} /><Mini label="Transfer" value={financials?.transfer_received} /><Mini label="POS / Card" value={financials?.card_received} /><Mini label="Private patient payments" value={financials?.total_patient_payments} /></div></div>
-      <div className="rounded-2xl border bg-card p-4"><div className="flex items-center gap-2 mb-3"><Banknote size={18} className="text-primary" /><h2 className="font-semibold">Expenditure</h2></div>{expenses.length ? <div className="space-y-2 max-h-44 overflow-auto">{expenses.map((e) => <div key={e.id} className="flex justify-between gap-3 text-sm"><span>{e.description}<span className="block text-xs text-muted-foreground">{e.payment_method}{e.paid_to ? ` · ${e.paid_to}` : ""}</span></span><strong>{money(e.amount)}</strong></div>)}</div> : <p className="text-sm text-muted-foreground">No expenditure recorded.</p>}</div>
+      <div className="rounded-2xl border bg-card p-4"><div className="flex items-center gap-2 mb-3"><Banknote size={18} className="text-primary" /><h2 className="font-semibold">Expenditure</h2></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-2"><Input placeholder="Description" value={expenseDraft.description} onChange={(e) => setExpenseDraft((x) => ({...x,description:e.target.value}))} disabled={report?.status === "submitted"} /><Input type="number" min="0" step="0.01" placeholder="Amount ₦" value={expenseDraft.amount} onChange={(e) => setExpenseDraft((x) => ({...x,amount:e.target.value}))} disabled={report?.status === "submitted"} /><Select value={expenseDraft.payment_method} onValueChange={(v) => setExpenseDraft((x) => ({...x,payment_method:v}))} disabled={report?.status === "submitted"}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="cash">Cash</SelectItem><SelectItem value="transfer">Transfer</SelectItem><SelectItem value="pos">POS</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><Input placeholder="Paid to (optional)" value={expenseDraft.paid_to} onChange={(e) => setExpenseDraft((x) => ({...x,paid_to:e.target.value}))} disabled={report?.status === "submitted"} /></div><Textarea className="mt-2 min-h-[60px]" placeholder="Expense note (optional)" value={expenseDraft.remarks} onChange={(e) => setExpenseDraft((x) => ({...x,remarks:e.target.value}))} disabled={report?.status === "submitted"} /><Button className="mt-2" variant="outline" onClick={() => void saveExpense()} disabled={savingExpense || report?.status === "submitted"}>{savingExpense ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Banknote size={14} className="mr-1" />}Add Expenditure</Button>{expenses.length ? <div className="mt-4 space-y-2 max-h-44 overflow-auto border-t pt-3">{expenses.map((e) => <div key={e.id} className="flex justify-between gap-3 text-sm"><span>{e.description}<span className="block text-xs text-muted-foreground">{e.payment_method}{e.paid_to ? ` · ${e.paid_to}` : ""}</span></span><strong>{money(e.amount)}</strong></div>)}</div> : null}</div>
     </div>
 
     <div className="rounded-2xl border bg-card p-4"><Label className="font-semibold">Notes / Additional Information</Label><Textarea className="mt-2 min-h-[100px]" value={reportNotes} onChange={(e) => setReportNotes(e.target.value)} disabled={report?.status === "submitted"} placeholder="Important issues, HMO responses, outstanding tasks, expenses, follow-ups or anything management should know…" /><div className="mt-3 flex justify-end"><Button variant="outline" onClick={() => void saveNotes()} disabled={!report || report.status === "submitted"}>Save Notes</Button></div></div>
