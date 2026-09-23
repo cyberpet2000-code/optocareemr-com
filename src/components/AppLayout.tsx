@@ -55,6 +55,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   const [offlineSyncPending, setOfflineSyncPending] = useState(0);
   const [offlineSyncFailed, setOfflineSyncFailed] = useState(0);
   const [syncingOffline, setSyncingOffline] = useState(false);
+  const [notificationUnread, setNotificationUnread] = useState(0);
 
   const refreshOfflineSyncStatus = useCallback(async () => {
     if (!effectiveClinicId || isSuperAdminWs) return;
@@ -89,6 +90,40 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
     if (!effectiveClinicId || isSuperAdminWs) return;
     const sync = registerAutomaticSync(effectiveClinicId, { debounceMs: 1200, autoTriggerIfOnline: true });
     return sync.unregister;
+  }, [effectiveClinicId, isSuperAdminWs]);
+
+  useEffect(() => {
+    if (!effectiveClinicId || isSuperAdminWs) return;
+    let cancelled = false;
+    const loadUnread = async () => {
+      const { count } = await apiClient
+        .from("staff_notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("clinic_id", effectiveClinicId)
+        .is("read_at", null);
+      if (!cancelled) setNotificationUnread(count || 0);
+    };
+    void loadUnread();
+    const channel = apiClient
+      .channel(`header-notifications-${effectiveClinicId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "staff_notifications", filter: `clinic_id=eq.${effectiveClinicId}` },
+        (payload: any) => {
+          setNotificationUnread(value => value + 1);
+          const row = payload.new;
+          if (row?.notification_type === "feedback_received") {
+            void import("@/lib/notifications").then(({ showNotification }) => {
+              showNotification("New Patient Feedback", "New patient feedback has been received.");
+            });
+          }
+        }
+      )
+      .subscribe();
+    return () => {
+      cancelled = true;
+      apiClient.removeChannel(channel);
+    };
   }, [effectiveClinicId, isSuperAdminWs]);
 
   const handleLogout = useCallback(async () => {
@@ -286,8 +321,19 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
 
               <div className="flex items-center gap-1.5 lg:gap-2 shrink-0">
                 <ThemeToggle />
-                <button className="hidden lg:flex items-center justify-center w-9 h-9 rounded-lg hover:bg-muted transition-colors text-muted-foreground" aria-label="Notifications" title="Notifications">
+                <button
+                  type="button"
+                  onClick={() => navigate("/notifications")}
+                  className="relative flex items-center justify-center w-9 h-9 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+                  aria-label="Notifications"
+                  title="Notifications"
+                >
                   <Bell size={16} />
+                  {notificationUnread > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 min-w-4 h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center">
+                      {notificationUnread > 9 ? "9+" : notificationUnread}
+                    </span>
+                  )}
                 </button>
                 <span className={`hidden sm:inline-flex text-[10px] lg:text-xs px-2 py-1 rounded-md font-medium capitalize ${ROLE_TONE[userRole] || "bg-muted text-foreground"}`}>
                   {ROLE_LABEL[userRole] || userRole}
@@ -334,7 +380,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
           </main>
 
           <footer className="hidden lg:block border-t border-border/40 px-6 py-2 text-[10px] text-muted-foreground/70 text-center">
-            Powered by <span className="font-medium">OptoCare-EMR</span>
+            <span className="text-[8px]">Powered by OptoCare EMR</span>
           </footer>
 
           <nav className="bottom-nav lg:hidden">
