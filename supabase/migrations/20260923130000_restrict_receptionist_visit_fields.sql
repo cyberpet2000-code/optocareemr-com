@@ -12,13 +12,6 @@ returns table(
   created_at timestamptz,
   completed_at timestamptz,
   status text,
-  sub_od_sphere text,
-  sub_od_cyl text,
-  sub_od_axis text,
-  sub_os_sphere text,
-  sub_os_cyl text,
-  sub_os_axis text,
-  sub_reading_add text,
   lens_type text,
   medication text,
   optical_dispensed boolean,
@@ -60,10 +53,19 @@ begin
   return query
   select
     v.id, v.patient_id, v.clinic_id, v.doctor_id, v.registered_by,
-    v.created_at, v.completed_at, v.status,
-    v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis,
-    v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis,
-    v.sub_reading_add, v.lens_type, v.medication,
+    v.created_at, v.completed_at, v.status, v.lens_type,
+    regexp_replace(v.medication, '\\s+—.*
+    v.medication_dispensed, v.medication_dispensed_at
+  from public.visits v
+  where v.patient_id = p_patient_id
+    and v.clinic_id = v_clinic_id
+    and v.status = 'completed'
+  order by v.created_at desc;
+end;
+$$;
+
+grant execute on function public.get_receptionist_patient_visits(uuid) to authenticated;
+, '', 'gm'),
     v.optical_dispensed, v.optical_dispensed_at,
     v.medication_dispensed, v.medication_dispensed_at
   from public.visits v
