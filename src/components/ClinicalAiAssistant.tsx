@@ -30,7 +30,7 @@ export function ClinicalAiAssistant({ clinicalCase, disabled }: Props) {
       const message = err instanceof Error ? err.message : "Unable to run OptoCare AI.";
       setError(
         message === "Failed to fetch" || message === "NetworkError"
-          ? "OptoCare AI could not connect to the local model service. Please stay connected and try again."
+          ? "OptoCare AI could not connect to the AI service. Please stay connected and try again."
           : message,
       );
     } finally {
@@ -107,7 +107,7 @@ export function ClinicalAiAssistant({ clinicalCase, disabled }: Props) {
               <Alert>
                 <WifiOff className="h-4 w-4" />
                 <AlertDescription className="text-xs">
-                  This browser/device does not currently expose WebGPU, so local AI cannot run here.
+                  OptoCare Clinical AI requires an internet connection because analysis is processed securely through OptoCare's cloud AI service.
                 </AlertDescription>
               </Alert>
             )}
