@@ -1293,13 +1293,19 @@ if (
       );
 
       // Refresh visit history from the database
-      const { data: fresh, error: refreshError } =
-        await apiClient
-          .from("visits")
-          .select("*")
-          .eq("clinic_id", cid)
-          .eq("patient_id", patient.id)
-          .order("created_at", { ascending: false });
+      const refreshResult = isReceptionist
+        ? await apiClient.rpc("get_receptionist_patient_visits", {
+            p_patient_id: patient.id,
+          })
+        : await apiClient
+            .from("visits")
+            .select("*")
+            .eq("clinic_id", cid)
+            .eq("patient_id", patient.id)
+            .order("created_at", { ascending: false });
+
+      const fresh = refreshResult.data;
+      const refreshError = refreshResult.error;
 
       if (refreshError) {
         console.error(
@@ -2755,6 +2761,7 @@ shadow-sm
   </p>
 )}
 
+        {!isReceptionist && (
         {v.diagnosis && (
   <div className="mt-1">
     <span
@@ -2772,6 +2779,7 @@ shadow-sm
     </span>
   </div>
 )}
+        )}
       </div>
 
       <span
@@ -2791,6 +2799,7 @@ shadow-sm
     <pre className="text-[10px] overflow-auto">
       </pre>
   
+    {!isReceptionist && (
     <div className="mt-3 text-xs space-y-2">
 
   {v.chief_complaint && (
@@ -2985,6 +2994,9 @@ shadow-sm
   )}
 
 </div>
+
+
+    )}
 
     {feedbackDetails[v.id] && (
   <details
