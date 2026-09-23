@@ -49,6 +49,7 @@ import { normalizeWhatsAppNumber, whatsappLink } from "@/lib/whatsapp";
 import { HMOVerificationCard, type HmoVerifStatus } from "@/components/HMOVerificationCard";
 import { PatientWhatsAppMessages } from "@/components/PatientWhatsAppMessages";
 import { ClinicalAiAssistant } from "@/components/ClinicalAiAssistant";
+import { ClinicalVisitInsights } from "@/components/ClinicalVisitInsights";
 import { enqueueOfflineOperation, cachePatientOffline, cacheVisitsOffline, cacheVisitOffline, cacheStaffProfilesOffline, getStaffProfilesOffline } from "@/lib/offlineEngine";
 import { offlineStore } from "@/lib/offlineStore";
 import {
@@ -2273,6 +2274,18 @@ shadow-sm
               </>
             );
           })()}
+          <ClinicalVisitInsights
+            vaUnaidedOd={form.vaUnaidedOd}
+            vaUnaidedOs={form.vaUnaidedOs}
+            vaUnaidedOu={form.vaUnaidedOu}
+            vaUnaidedOdPh={form.vaUnaidedOdPh}
+            vaUnaidedOsPh={form.vaUnaidedOsPh}
+            vaAidedOd={form.vaAidedOd}
+            vaAidedOs={form.vaAidedOs}
+            vaAidedOu={form.vaAidedOu}
+            vaUnaidedNearOu={form.vaUnaidedNearOu}
+            vaAidedNearOu={form.vaAidedNearOu}
+          />
         </TabsContent>
       )}
 
@@ -2393,6 +2406,21 @@ shadow-sm
               </>
             );
           })()}
+          <ClinicalVisitInsights
+            autoVaOd={form.autoVaOd}
+            autoVaOs={form.autoVaOs}
+            subVaOd={form.subVaOd}
+            subVaOs={form.subVaOs}
+            subVaOutcome={form.subVaOutcome}
+            autoOdSphere={form.autoOdSphere}
+            autoOdCyl={form.autoOdCyl}
+            autoOsSphere={form.autoOsSphere}
+            autoOsCyl={form.autoOsCyl}
+            subOdSphere={form.subOdSphere}
+            subOdCyl={form.subOdCyl}
+            subOsSphere={form.subOsSphere}
+            subOsCyl={form.subOsCyl}
+          />
         </TabsContent>
       )}
 
@@ -2485,7 +2513,7 @@ shadow-sm
         {!isReceptionist && (
         <TabsContent value="dx" className="space-y-4">
           <div className="form-section">
-            <div className="flex items-center justify-between gap-2 flex-wrap"><h2 className="section-title text-sm"><Stethoscope size={16} /> Diagnosis & Management</h2>{isClinicalUser && <ClinicalAiAssistant clinicalCase={{ age: patient?.age, gender: patient?.gender, chiefComplaint: form.chiefComplaint, history: form.history, oldLensPrescription: form.oldLensPrescription, vaUnaidedOd: form.vaUnaidedOd, vaUnaidedOs: form.vaUnaidedOs, vaUnaidedOu: form.vaUnaidedOu, vaAidedOd: form.vaAidedOd, vaAidedOs: form.vaAidedOs, vaAidedOu: form.vaAidedOu, autoOdSphere: form.autoOdSphere, autoOdCyl: form.autoOdCyl, autoOdAxis: form.autoOdAxis, autoOsSphere: form.autoOsSphere, autoOsCyl: form.autoOsCyl, autoOsAxis: form.autoOsAxis, subOdSphere: form.subOdSphere, subOdCyl: form.subOdCyl, subOdAxis: form.subOdAxis, subVaOd: form.subVaOd, subOsSphere: form.subOsSphere, subOsCyl: form.subOsCyl, subOsAxis: form.subOsAxis, subVaOs: form.subVaOs, subReadingAdd: form.subReadingAdd, examination: form.examination, iopOd: form.iopOd, iopOs: form.iopOs, diagnosis: form.diagnosis, lensType: form.lensType, medication: form.medication, notes: form.notes, previousVisits: visits.filter((visit: any) => visit.id !== editingVisitId).slice(0, 8) }} />}</div>
+            <div className="flex items-center justify-between gap-2 flex-wrap"><h2 className="section-title text-sm"><Stethoscope size={16} /> Diagnosis & Management</h2>{isClinicalUser && <ClinicalAiAssistant clinicalCase={{ age: patient?.age, gender: patient?.gender, chiefComplaint: form.chiefComplaint, history: form.history, oldLensPrescription: form.oldLensPrescription, vaUnaidedOd: form.vaUnaidedOd, vaUnaidedOs: form.vaUnaidedOs, vaUnaidedOu: form.vaUnaidedOu, vaUnaidedOdPh: form.vaUnaidedOdPh, vaUnaidedOsPh: form.vaUnaidedOsPh, vaUnaidedNearOu: form.vaUnaidedNearOu, vaAidedOd: form.vaAidedOd, vaAidedOs: form.vaAidedOs, vaAidedOu: form.vaAidedOu, vaAidedNearOu: form.vaAidedNearOu, autoVaOd: form.autoVaOd, autoVaOs: form.autoVaOs, autoOdSphere: form.autoOdSphere, autoOdCyl: form.autoOdCyl, autoOdAxis: form.autoOdAxis, autoOsSphere: form.autoOsSphere, autoOsCyl: form.autoOsCyl, autoOsAxis: form.autoOsAxis, subOdSphere: form.subOdSphere, subOdCyl: form.subOdCyl, subOdAxis: form.subOdAxis, subVaOd: form.subVaOd, subOsSphere: form.subOsSphere, subOsCyl: form.subOsCyl, subOsAxis: form.subOsAxis, subVaOs: form.subVaOs, subReadingAdd: form.subReadingAdd, subVaOutcome: form.subVaOutcome, examination: form.examination, iopOd: form.iopOd, iopOs: form.iopOs, iopTime: form.iopTime, diagnosis: form.diagnosis, lensType: form.lensType, medication: form.medication, notes: form.notes, previousVisits: visits.filter((visit: any) => visit.id !== editingVisitId).slice(0, 8) }} />}</div>
             <div className="space-y-3">
               <div className="space-y-1">
                 <div className="flex items-center justify-between gap-2 flex-wrap">

@@ -17,6 +17,17 @@ export type ClinicalCase = {
   vaUnaidedOd?: string | null;
   vaUnaidedOs?: string | null;
   vaUnaidedOu?: string | null;
+  vaUnaidedOdPh?: string | null;
+  vaUnaidedOsPh?: string | null;
+  vaUnaidedNearOu?: string | null;
+  vaAidedNearOu?: string | null;
+  vaAidedOdPh?: string | null;
+  vaAidedOsPh?: string | null;
+  autoVaOd?: string | null;
+  autoVaOs?: string | null;
+  subVaOutcome?: string | null;
+  iopTime?: string | null;
+  derivedAnalysis?: string | null;
   vaAidedOd?: string | null;
   vaAidedOs?: string | null;
   vaAidedOu?: string | null;
@@ -53,6 +64,14 @@ type ClinicalCaseHistory = {
   va_unaided_od?: string | null;
   va_unaided_os?: string | null;
   va_unaided_ou?: string | null;
+  va_unaided_od_ph?: string | null;
+  va_unaided_os_ph?: string | null;
+  va_unaided_near_ou?: string | null;
+  va_aided_near_ou?: string | null;
+  va_aided_od_ph?: string | null;
+  va_aided_os_ph?: string | null;
+  auto_va_od?: string | null;
+  auto_va_os?: string | null;
   va_aided_od?: string | null;
   va_aided_os?: string | null;
   va_aided_ou?: string | null;
@@ -64,10 +83,12 @@ type ClinicalCaseHistory = {
   sub_os_cyl?: string | null;
   sub_os_axis?: string | null;
   sub_va_os?: string | null;
+  sub_va_outcome?: string | null;
   sub_reading_add?: string | null;
   examination?: string | null;
   iop_od?: string | number | null;
   iop_os?: string | number | null;
+  iop_time?: string | null;
   diagnosis?: string | null;
   lens_type?: string | null;
   medication?: string | null;
@@ -105,23 +126,34 @@ function caseLines(c: ClinicalCase) {
     ["Unaided VA OD", c.vaUnaidedOd],
     ["Unaided VA OS", c.vaUnaidedOs],
     ["Unaided VA OU", c.vaUnaidedOu],
+    ["Pinhole VA OD", c.vaUnaidedOdPh],
+    ["Pinhole VA OS", c.vaUnaidedOsPh],
+    ["Unaided near VA OU", c.vaUnaidedNearOu],
+    ["Aided near VA OU", c.vaAidedNearOu],
+    ["Aided pinhole VA OD", c.vaAidedOdPh],
+    ["Aided pinhole VA OS", c.vaAidedOsPh],
     ["Aided VA OD", c.vaAidedOd],
     ["Aided VA OS", c.vaAidedOs],
     ["Aided VA OU", c.vaAidedOu],
     ["Auto-refraction OD", [c.autoOdSphere, c.autoOdCyl, c.autoOdAxis].filter(Boolean).join(" / ")],
+    ["Auto-refraction VA OD", c.autoVaOd],
     ["Auto-refraction OS", [c.autoOsSphere, c.autoOsCyl, c.autoOsAxis].filter(Boolean).join(" / ")],
+    ["Auto-refraction VA OS", c.autoVaOs],
     ["Subjective refraction OD", [c.subOdSphere, c.subOdCyl, c.subOdAxis].filter(Boolean).join(" / ")],
     ["Subjective refraction OS", [c.subOsSphere, c.subOsCyl, c.subOsAxis].filter(Boolean).join(" / ")],
     ["Subjective VA OD", c.subVaOd],
     ["Subjective VA OS", c.subVaOs],
     ["Near ADD", c.subReadingAdd],
+    ["Near VA outcome", c.subVaOutcome],
     ["Examination", c.examination],
     ["IOP OD", c.iopOd],
     ["IOP OS", c.iopOs],
+    ["IOP time", c.iopTime],
     ["Recorded diagnosis", c.diagnosis],
     ["Recorded lens/treatment", c.lensType],
     ["Recorded medication", c.medication],
     ["Notes/advice/referral", c.notes],
+    ["OptoCare-derived analysis", c.derivedAnalysis],
   ];
 
   const currentLines = fields
@@ -142,11 +174,14 @@ function caseLines(c: ClinicalCase) {
       v.history && "History: " + v.history,
       (v.va_unaided_od || v.va_unaided_os || v.va_unaided_ou) && "Unaided VA: OD " + (v.va_unaided_od || "—") + ", OS " + (v.va_unaided_os || "—") + ", OU " + (v.va_unaided_ou || "—"),
       (v.va_aided_od || v.va_aided_os || v.va_aided_ou) && "Aided VA: OD " + (v.va_aided_od || "—") + ", OS " + (v.va_aided_os || "—") + ", OU " + (v.va_aided_ou || "—"),
+      (v.va_unaided_od_ph || v.va_unaided_os_ph) && "Pinhole VA: OD " + (v.va_unaided_od_ph || "—") + ", OS " + (v.va_unaided_os_ph || "—"),
+      (v.va_unaided_near_ou || v.va_aided_near_ou) && "Near VA: unaided " + (v.va_unaided_near_ou || "—") + ", aided " + (v.va_aided_near_ou || "—"),
       (rxOd || rxOs) && "Subjective Rx: OD " + (rxOd || "—") + "; OS " + (rxOs || "—"),
       (v.sub_va_od || v.sub_va_os) && "Subjective VA: OD " + (v.sub_va_od || "—") + ", OS " + (v.sub_va_os || "—"),
+      v.sub_va_outcome && "Near VA outcome: " + v.sub_va_outcome,
       v.sub_reading_add && "ADD: " + v.sub_reading_add,
       v.examination && "Exam: " + v.examination,
-      (v.iop_od || v.iop_os) && "IOP: OD " + (v.iop_od || "—") + ", OS " + (v.iop_os || "—"),
+      (v.iop_od || v.iop_os) && "IOP: OD " + (v.iop_od || "—") + ", OS " + (v.iop_os || "—") + (v.iop_time ? " at " + v.iop_time : ""),
       v.diagnosis && "Diagnosis: " + v.diagnosis,
       v.lens_type && "Lens/treatment: " + v.lens_type,
       v.medication && "Medication: " + v.medication,
