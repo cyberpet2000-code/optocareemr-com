@@ -349,8 +349,13 @@ Suggested Assessment
 Treatment / Management
 Follow-up / Referral
 Red Flags
+Historical Trend
+Missing Information
 - Omit headings that have nothing useful to add.
-- Keep the total response normally under about 180 words.`;
+- Never present a differential as a confirmed diagnosis.
+- If a safety-sensitive finding is documented, prioritize the assessment needed to confirm or exclude it.
+- For reduced VA, explicitly distinguish refractive improvement, longstanding reduction/amblyopia considerations, and findings that require exclusion of ocular or neurological pathology.
+- Keep the total response normally under about 220 words.`;
 
 export async function analyzeClinicalCase(
   clinicalCase: ClinicalCase,
