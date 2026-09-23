@@ -117,6 +117,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
     if (isReceptionist && !isAdmin && !isDoctor) {
       return [
         { to: "/dashboard", label: "Home", icon: LayoutDashboard },
+        { to: "/patients", label: "Patients", icon: Users },
         { to: "/register", label: "Register", icon: UserPlus },
         { to: "/appointments", label: "Appts", icon: Calendar },
         { to: "/billing", label: "Billing", icon: DollarSign },
