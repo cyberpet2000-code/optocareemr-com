@@ -242,14 +242,6 @@ export default function DailyFrontDeskReport() {
       <div className="flex flex-wrap gap-2"><Input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)} className="w-[180px]" /><Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw size={15} className="mr-1" />Refresh</Button>{report?.status === "submitted" && email && <Button variant="outline" onClick={() => void sendEmail()} disabled={sendingEmail}>{sendingEmail ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Mail size={15} className="mr-1" />}Send Email</Button>}<Button onClick={() => void submitReport()} disabled={!report || report.status === "submitted" || submitting}>{submitting ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Send size={15} className="mr-1" />}Submit Report</Button></div>
     </header>
 
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-      <Summary icon={Users} label="Patients" value={patients.length} detail={`${privatePatients.length} Private · ${hmo.length} HMO`} />
-      <Summary icon={FileText} label="HMO Requests" value={hmo.length} detail={`${hmo.length - hmoPending} completed · ${hmoPending} pending`} />
-      <Summary icon={Glasses} label="Lens / Rx" value={`${rxSent}/${rxTotal}`} detail={`${lensOrders} lens orders`} />
-      <Summary icon={Pill} label="Medication" value={`${medsDispensed}/${meds.length}`} detail="Dispensed / prescribed" />
-      <Summary icon={MessageSquare} label="Feedback" value={`${feedbackSent}/${patients.length}`} detail={`${feedbackFollowupsPending} follow-ups pending`} />
-      <Summary icon={CheckCircle2} label="Outstanding" value={outstanding} detail={outstanding ? "Requires attention" : "All clear"} />
-    </div>
 
     <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
       <div className="p-3 md:p-4 border-b flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
