@@ -1,11 +1,6 @@
-// OptoCare Clinical AI local model configuration.
-import { CreateWebWorkerMLCEngine, prebuiltAppConfig, type MLCEngineInterface, type InitProgressReport } from "@mlc-ai/web-llm";
-
-const MOBILE_MODEL_ID = "Qwen2.5-0.5B-Instruct-q4f16_1-MLC";
-const DESKTOP_MODEL_ID = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
-
-let enginePromise: Promise<MLCEngineInterface> | null = null;
-let engineWorker: Worker | null = null;
+// OptoCare Clinical AI — secure cloud decision support.
+// The browser sends only de-identified clinical findings to /api/clinical-ai.
+// The Gemini API key stays server-side in Vercel environment variables.
 
 export type ClinicalAiProgress = {
   text: string;
@@ -63,10 +58,10 @@ type ClinicalCaseHistory = {
   sub_od_sphere?: string | null;
   sub_od_cyl?: string | null;
   sub_od_axis?: string | null;
+  sub_va_od?: string | null;
   sub_os_sphere?: string | null;
   sub_os_cyl?: string | null;
   sub_os_axis?: string | null;
-  sub_va_od?: string | null;
   sub_va_os?: string | null;
   sub_reading_add?: string | null;
   examination?: string | null;
@@ -79,192 +74,7 @@ type ClinicalCaseHistory = {
 };
 
 export function isClinicalAiSupported() {
-  return typeof window !== "undefined" && Boolean((navigator as Navigator & { gpu?: unknown }).gpu);
-}
-
-async function checkWebGpuAdapter() {
-  const gpu = (navigator as Navigator & { gpu?: GPU }).gpu;
-  if (!gpu) throw new Error("WebGPU is not available in this browser.");
-  const adapter = await gpu.requestAdapter();
-  if (!adapter) throw new Error("WebGPU is available but no compatible GPU adapter was found.");
-  return adapter;
-}
-
-export function clinicalAiModelId() {
-  return getClinicalAiModelId();
-}
-
-function getClinicalAiModelId() {
-  if (typeof window === "undefined") return MOBILE_MODEL_ID;
-
-  const nav = navigator as Navigator & {
-    deviceMemory?: number;
-    userAgentData?: { mobile?: boolean };
-  };
-
-  const isMobile =
-    Boolean(nav.userAgentData?.mobile) ||
-    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-
-  if (isMobile) return MOBILE_MODEL_ID;
-
-  const memory = nav.deviceMemory;
-  const cores = navigator.hardwareConcurrency || 0;
-  const capableDesktop = memory === undefined ? cores >= 4 : memory >= 4 || cores >= 6;
-
-  return capableDesktop ? DESKTOP_MODEL_ID : MOBILE_MODEL_ID;
-}
-
-function buildAppConfig() {
-  const mobileRecord = prebuiltAppConfig.model_list.find(
-    (model) => model.model_id === MOBILE_MODEL_ID,
-  );
-  const desktopRecord = prebuiltAppConfig.model_list.find(
-    (model) => model.model_id === DESKTOP_MODEL_ID,
-  );
-
-  if (!mobileRecord || !desktopRecord) {
-    throw new Error("OptoCare AI model configuration is unavailable in this WebLLM build.");
-  }
-
-  // Keep model downloads on the OptoCare origin. Vercel's external
-  // rewrites proxy these requests through the OptoCare CDN instead of making
-  // the phone/browser connect directly to Hugging Face or raw.githubusercontent.com.
-  // This avoids common mobile-network/CORS failures while preserving WebLLM's
-  // normal large-file downloads and range requests.
-  // Use WebLLM's Cache API on mobile/desktop. It is the most broadly tested
-  // persistent cache backend and avoids Android OPFS/IndexedDB compatibility issues.
-  const proxyOrigin = typeof window !== "undefined" ? window.location.origin : "";
-
-  const proxyModelUrl = (modelUrl: string, modelId: string) => {
-    try {
-      const parsed = new URL(modelUrl, proxyOrigin || "https://optocareemr.com");
-      if (parsed.hostname !== "huggingface.co") return modelUrl;
-
-      const marker = "/resolve/main/";
-      const markerIndex = parsed.pathname.indexOf(marker);
-      const encodedModelId = encodeURIComponent(modelId);
-
-      if (markerIndex >= 0) {
-        const assetPath = parsed.pathname.slice(markerIndex + marker.length);
-        const path = assetPath
-          ? `/clinical-ai-assets/${encodedModelId}/${assetPath}`
-          : `/clinical-ai-assets/${encodedModelId}`;
-        return new URL(path, proxyOrigin || "https://optocareemr.com").toString();
-      }
-
-      return new URL(
-        `/clinical-ai-assets/${encodedModelId}`,
-        proxyOrigin || "https://optocareemr.com",
-      ).toString();
-    } catch {
-      return modelUrl;
-    }
-  };
-
-  const proxyModelLibUrl = (modelLibUrl: string) => {
-    try {
-      const parsed = new URL(modelLibUrl, proxyOrigin || "https://optocareemr.com");
-      if (parsed.hostname !== "raw.githubusercontent.com") return modelLibUrl;
-      return new URL(
-        `/clinical-ai-lib${parsed.pathname}`,
-        proxyOrigin || "https://optocareemr.com",
-      ).toString();
-    } catch {
-      return modelLibUrl;
-    }
-  };
-
-  const proxyRecord = (record: typeof mobileRecord) => ({
-    ...record,
-    model: proxyModelUrl(record.model, record.model_id),
-    model_lib: proxyModelLibUrl(record.model_lib),
-  });
-
-  return {
-    model_list: [proxyRecord(mobileRecord), proxyRecord(desktopRecord)],
-    cacheBackend: "cache" as const,
-  };
-}
-
-export async function loadClinicalAi(onProgress?: (p: ClinicalAiProgress) => void) {
-  if (!isClinicalAiSupported()) {
-    throw new Error("This device/browser does not support WebGPU, which OptoCare AI requires.");
-  }
-
-  await checkWebGpuAdapter();
-
-  if (!enginePromise) {
-    enginePromise = (async () => {
-      const modelId = getClinicalAiModelId();
-      const appConfig = buildAppConfig();
-
-      onProgress?.({
-        text: modelId === DESKTOP_MODEL_ID
-          ? "Preparing desktop OptoCare AI..."
-          : "Preparing mobile OptoCare AI...",
-      });
-      let lastError: unknown;
-
-      for (let attempt = 1; attempt <= 3; attempt += 1) {
-        try {
-          engineWorker = new Worker(new URL("./clinicalAi.worker.ts", import.meta.url), {
-            type: "module",
-          });
-
-          return await CreateWebWorkerMLCEngine(engineWorker, modelId, {
-            appConfig,
-            initProgressCallback: (report: InitProgressReport) => {
-              onProgress?.({
-                text: report.text,
-                progress: typeof report.progress === "number" ? report.progress : undefined,
-              });
-            },
-            logLevel: "WARN",
-          });
-        } catch (error) {
-          lastError = error;
-
-          if (attempt < 3) {
-            onProgress?.({
-              text: "Model download interrupted. Retrying (" + (attempt + 1) + "/3)...",
-            });
-            await new Promise((resolve) => setTimeout(resolve, 1200 * attempt));
-          }
-        }
-      }
-
-      const message = lastError instanceof Error ? lastError.message : String(lastError || "");
-      const normalized = message.toLowerCase();
-
-      if (
-        normalized.includes("failed to fetch") ||
-        normalized.includes("network error") ||
-        normalized.includes("networkerror") ||
-        normalized.includes("cache") ||
-        normalized.includes("unexpected token '<'")
-      ) {
-        throw new Error(
-          "OptoCare AI could not download its local model. Please stay connected to the internet and try again. If the problem continues on Wi-Fi, the model service may be temporarily unavailable.",
-        );
-      }
-
-      throw new Error(
-        message
-          ? `Unable to load the local OptoCare AI model. ${message.slice(0, 500)}`
-          : "Unable to load the local OptoCare AI model.",
-      );
-    })();
-
-    enginePromise.catch(() => {
-      // Allow the next Analyze attempt to retry initialization after a failed download.
-      enginePromise = null;
-      engineWorker?.terminate();
-      engineWorker = null;
-    });
-  }
-
-  return enginePromise;
+  return typeof window !== "undefined" && typeof navigator !== "undefined" && navigator.onLine;
 }
 
 function clean(value: unknown) {
@@ -314,7 +124,7 @@ function caseLines(c: ClinicalCase) {
     const rxOd = [v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis].filter(Boolean).join(" / ");
     const rxOs = [v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis].filter(Boolean).join(" / ");
     return [
-      "Visit " + (index + 1) + " (" + date + ")",
+      `Visit ${index + 1} (${date})`,
       v.chief_complaint && "Complaint: " + v.chief_complaint,
       v.history && "History: " + v.history,
       (v.va_unaided_od || v.va_unaided_os || v.va_unaided_ou) && "Unaided VA: OD " + (v.va_unaided_od || "—") + ", OS " + (v.va_unaided_os || "—") + ", OU " + (v.va_unaided_ou || "—"),
@@ -337,22 +147,22 @@ function caseLines(c: ClinicalCase) {
   ].filter(Boolean).join("\n\n");
 }
 
-const SYSTEM_PROMPT = `You are OptoCare Clinical Assistant, an optometry-focused clinical decision-support assistant.
-
-Your task is to help an examining optometrist analyze the clinical information entered in an OptoCare visit.
+export const SYSTEM_PROMPT = `You are OptoCare Clinical Assistant, an optometry-focused clinical decision-support assistant helping an examining optometrist.
 
 Rules:
-- Be concise, brief, and clinically informative.
-- Do not invent findings, history, test results, diagnoses, medications, or contraindications.
+- Use only the documented clinical information supplied.
+- Never invent findings, history, test results, diagnoses, medications, or contraindications.
 - Distinguish documented findings from clinical considerations.
-- Suggest relevant differential diagnoses/clinical considerations, additional assessments, treatment considerations, management, follow-up, and referral/red flags when appropriate.
-- Treatment and medication suggestions must be framed as considerations for the examining clinician, not automatic prescriptions.
-- Do not replace the optometrist's clinical judgment.
-- If information is insufficient, say exactly what important information is missing.
-- Do not repeat the entire case.
-- Prioritize safety and clinically important red flags.\n- When previous visits are provided, compare them with the current visit and identify meaningful documented trends or changes. Do not assume a trend when relevant measurements are missing.
-- Do not use the patient's name or identifying information.
-- Return plain text with these short headings when applicable:
+- Differential diagnoses are considerations, never confirmed diagnoses unless already documented by the clinician.
+- Prioritize safety-sensitive findings and red flags.
+- For reduced visual acuity, distinguish refractive improvement, longstanding reduction/amblyopia considerations, and ocular or neurological pathology that requires exclusion.
+- Suggest appropriate additional assessments, management considerations, follow-up, and referral when justified.
+- Medication/treatment suggestions are considerations for the examining clinician, not automatic prescriptions.
+- When previous visits are provided, identify only documented meaningful trends.
+- State important missing information when it affects safe interpretation.
+- Never use patient names, phone numbers, enrollee numbers, addresses, or other identifiers.
+- Be concise and clinically useful.
+- Return plain text with these headings when useful:
 Clinical Impression
 Consider / Rule Out
 Suggested Assessment
@@ -361,35 +171,50 @@ Follow-up / Referral
 Red Flags
 Historical Trend
 Missing Information
-- Omit headings that have nothing useful to add.
-- Never present a differential as a confirmed diagnosis.
-- If a safety-sensitive finding is documented, prioritize the assessment needed to confirm or exclude it.
-- For reduced VA, explicitly distinguish refractive improvement, longstanding reduction/amblyopia considerations, and findings that require exclusion of ocular or neurological pathology.
-- Keep the total response normally under about 220 words.`;
+- Normally keep the response below 300 words.
+- Do not replace the examining optometrist's clinical judgment.`;
 
 export async function analyzeClinicalCase(
   clinicalCase: ClinicalCase,
   onProgress?: (p: ClinicalAiProgress) => void,
 ) {
-  const engine = await loadClinicalAi(onProgress);
   const clinicalData = caseLines(clinicalCase);
-
   if (!clinicalData) {
     throw new Error("Enter the patient's clinical findings before using Analyze Case.");
   }
 
-  const response = await engine.chat.completions.create({
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: `Analyze this optometry case. Use only the documented information below, including previous-visit history when provided.\n\n${clinicalData}`,
-      },
-    ],
-    temperature: 0.15,
-    max_tokens: 240,
-    enable_thinking: false,
-  });
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    throw new Error("OptoCare Clinical AI requires an internet connection.");
+  }
 
-  return response.choices[0]?.message?.content?.trim() || "No clinical analysis was generated.";
+  onProgress?.({ text: "Sending clinical findings securely to OptoCare AI..." });
+
+  let response: Response;
+  try {
+    response = await fetch("/api/clinical-ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clinicalData }),
+    });
+  } catch {
+    throw new Error("OptoCare Clinical AI could not connect to its AI service. Please check your internet connection and try again.");
+  }
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      typeof payload?.error === "string"
+        ? payload.error
+        : "OptoCare Clinical AI could not complete the analysis.",
+    );
+  }
+
+  const result = typeof payload?.text === "string" ? payload.text.trim() : "";
+  if (!result) {
+    throw new Error("The AI service returned no clinical analysis.");
+  }
+
+  onProgress?.({ text: "Clinical analysis ready." });
+  return result;
 }
