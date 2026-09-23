@@ -48,6 +48,7 @@ type PatientRow = {
   medication_name: string | null;
   medication_dispensed: boolean;
   feedback_form_sent: boolean;
+  feedback_note: string | null;
   feedback_follow_up: "Not required" | "Pending" | "Completed";
   feedback_follow_up_note: string | null;
   remarks: string | null;
@@ -167,6 +168,7 @@ export default function DailyFrontDeskReport() {
           hmo_request_status: saved?.hmo_claim_status ?? (p.patient_type === "hmo" ? "Not sent" : null), hmo_request_remarks: saved?.hmo_claim_remarks ?? null,
           medication_name: visit?.medication || null, medication_dispensed: !!visit?.medication_dispensed,
           feedback_form_sent: saved?.feedback_form_sent ?? !!p.feedback_form_sent,
+          feedback_note: saved?.feedback_note ?? null,
           feedback_follow_up: saved?.feedback_follow_up_status || "Not required",
           feedback_follow_up_note: saved?.feedback_follow_up_note ?? null,
           remarks: saved?.remarks ?? null,
@@ -207,10 +209,14 @@ export default function DailyFrontDeskReport() {
         p_hmo_claim_status: row.patient_type === "hmo" ? row.hmo_request_status : null, p_hmo_claim_remarks: row.patient_type === "hmo" ? row.hmo_request_remarks : null,
         p_lens_order_required: row.lens_order_required, p_lens_order_status: row.lens_order_required ? row.lens_order_status : "not_required", p_lens_order_remarks: row.lens_order_remarks,
         p_feedback_form_sent: row.feedback_form_sent, p_eye_drop_dispensed: row.medication_dispensed, p_remarks: row.remarks,
-        p_feedback_follow_up_status: row.feedback_follow_up,
-        p_feedback_follow_up_note: row.feedback_follow_up_note,
       });
-      if (error) throw error; toast.success(`Saved ${row.patient_name}`);
+      if (error) throw error;
+      const followup = await db.rpc("save_daily_front_desk_report_followup", {
+        p_report_id: report.id, p_patient_id: row.patient_id, p_visit_id: row.visit_id,
+        p_status: row.feedback_follow_up, p_note: row.feedback_follow_up_note,
+      });
+      if (followup.error) throw followup.error;
+      toast.success(`Saved ${row.patient_name}`);
     } catch (e: any) { toast.error(e?.message || "Failed to save patient entry"); } finally { setSaving(null); }
   }
 
@@ -293,7 +299,7 @@ function DesktopRow({ row, index, editable, saving, patch, save }: any) {
     <td className="p-2 md:p-3">{row.lens_order_required ? <SelectStatus value={row.lens_order_status || "pending"} options={LENS_ORDER_STATUSES} disabled={!editable} onChange={(v) => patch(row.key,{lens_order_status:v})} /> : <Status value="Not required" />}</td>
     <td className="p-2 md:p-3 min-w-[130px]">{row.medication_name || "—"}</td>
     <td className="p-2 md:p-3">{row.medication_name ? <Status value={row.medication_dispensed ? "Dispensed" : "Not dispensed"} /> : "—"}</td>
-    <td className="p-2 md:p-3">{editable ? <SelectStatus value={row.feedback_form_sent ? "Sent" : "Not sent"} options={["Not sent","Sent"]} disabled={!editable} onChange={(v) => patch(row.key,{feedback_form_sent:v === "Sent"})} /> : <Status value={row.feedback_form_sent ? "Sent" : "Not sent"} />}</td>
+    <td className="p-2 md:p-3 min-w-[180px]">{editable ? <Input value={row.feedback_note || ""} onChange={(e) => patch(row.key,{feedback_note:e.target.value})} placeholder="Feedback" className="h-8 text-xs" /> : row.feedback_note || "—"}</td>
     <td className="p-2 md:p-3 min-w-[150px]">{editable ? <SelectStatus value={row.feedback_follow_up} options={["Not required","Pending","Completed"]} disabled={!editable} onChange={(v) => patch(row.key,{feedback_follow_up:v})} /> : row.feedback_follow_up === "Not required" ? "—" : <Status value={row.feedback_follow_up} />}</td>
     <td className="p-2 md:p-3 min-w-[180px]">{editable ? <Input value={row.remarks || ""} onChange={(e) => patch(row.key,{remarks:e.target.value})} placeholder="Remarks" className="h-8 text-xs" /> : row.remarks || "—"}</td>
     <td className="p-2 md:p-3"><Button size="sm" onClick={() => void save(row)} disabled={!editable || saving}>{saving ? <Loader2 size={13} className="mr-1 animate-spin" /> : null}Save</Button></td>
