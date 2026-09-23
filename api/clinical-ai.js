@@ -45,7 +45,7 @@ export default async function handler(req, res) {
         contents: [{ role: "user", parts: [{ text: "Analyze this de-identified optometry case:\n\n" + clinicalData }] }],
         generationConfig: {
           temperature: 0.15,
-          maxOutputTokens: 500,
+          maxOutputTokens: 900,
         },
       }),
     });
