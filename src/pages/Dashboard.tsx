@@ -1,10 +1,7 @@
 import OptoLoader from "@/components/OptoLoader";
 import EmptyState from "@/components/EmptyState";
 import { useState, useEffect, useCallback } from "react";
-import {
-  enableNotifications,
-  showNotification,
-} from "@/lib/notifications";
+import { enableNotifications } from "@/lib/notifications";
 import {
   checkClinicSubscription,
 } from "@/lib/diag/healthChecks";
@@ -70,33 +67,7 @@ export default function Dashboard() {
   const showFinanceOverview = isAdmin || isSuperAdmin;
   const showInventoryAlerts = isAdmin || isDoctor || isSuperAdmin;
   
-  useEffect(() => {
-    if (!effectiveClinicId) return;
 
-    const channel = apiClient
-      .channel(`patients-${effectiveClinicId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "patients",
-          filter: `clinic_id=eq.${effectiveClinicId}`,
-        },
-        (payload) => {
-          showNotification(
-            "🔔 New Patient Added",
-            payload.new.full_name || "New patient"
-          );
-        }
-      )
-      .subscribe();
-
-    return () => {
-      apiClient.removeChannel(channel);
-    };
-  }, [effectiveClinicId]);
-  
   const { isOffline } = useOffline();
   const [offlineLastSync, setOfflineLastSync] = useState<string | null>(null);
 
@@ -198,35 +169,6 @@ export default function Dashboard() {
   ).toLocaleString("en-US", {
     month: "long",
   });
-
-  useEffect(() => {
-    if (!effectiveClinicId) return;
-
-    const channel = apiClient
-      .channel(`visits-${effectiveClinicId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "visits",
-          filter: `clinic_id=eq.${effectiveClinicId}`,
-        },
-        (payload) => {
-          if (payload.new.status === "completed") {
-            showNotification(
-              "✅ Visit Completed",
-              "A patient visit was completed"
-            );
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      apiClient.removeChannel(channel);
-    };
-  }, [effectiveClinicId]);
 
   const loadDashboard = useCallback(async () => {
     if (!effectiveClinicId) {
