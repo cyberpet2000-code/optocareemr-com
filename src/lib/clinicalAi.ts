@@ -82,6 +82,14 @@ export function isClinicalAiSupported() {
   return typeof window !== "undefined" && Boolean((navigator as Navigator & { gpu?: unknown }).gpu);
 }
 
+async function checkWebGpuAdapter() {
+  const gpu = (navigator as Navigator & { gpu?: GPU }).gpu;
+  if (!gpu) throw new Error("WebGPU is not available in this browser.");
+  const adapter = await gpu.requestAdapter();
+  if (!adapter) throw new Error("WebGPU is available but no compatible GPU adapter was found.");
+  return adapter;
+}
+
 export function clinicalAiModelId() {
   return getClinicalAiModelId();
 }
@@ -184,6 +192,8 @@ export async function loadClinicalAi(onProgress?: (p: ClinicalAiProgress) => voi
     throw new Error("This device/browser does not support WebGPU, which OptoCare AI requires.");
   }
 
+  await checkWebGpuAdapter();
+
   if (!enginePromise) {
     enginePromise = (async () => {
       const modelId = getClinicalAiModelId();
@@ -224,7 +234,7 @@ export async function loadClinicalAi(onProgress?: (p: ClinicalAiProgress) => voi
         }
       }
 
-      const message = lastError instanceof Error ? lastError.message : "";
+      const message = lastError instanceof Error ? lastError.message : String(lastError || "");
       const normalized = message.toLowerCase();
 
       if (
@@ -239,9 +249,11 @@ export async function loadClinicalAi(onProgress?: (p: ClinicalAiProgress) => voi
         );
       }
 
-      throw lastError instanceof Error
-        ? lastError
-        : new Error("Unable to load the local OptoCare AI model.");
+      throw new Error(
+        message
+          ? `Unable to load the local OptoCare AI model. ${message.slice(0, 500)}`
+          : "Unable to load the local OptoCare AI model.",
+      );
     })();
 
     enginePromise.catch(() => {
