@@ -260,5 +260,5 @@ export async function analyzeClinicalCase(
     return await request;
   } finally {
     analysisInFlight.delete(key);
-  }  return result;
+  }
 }
