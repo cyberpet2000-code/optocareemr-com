@@ -19,6 +19,8 @@ type StaffNotification = {
   read_at: string | null;
   created_at: string;
   expires_at: string | null;
+  patient_name?: string | null;
+  patient_id?: string | null;
 };
 
 export default function Notifications() {
@@ -28,6 +30,7 @@ export default function Notifications() {
   const [items, setItems] = useState<StaffNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
+  const [patientNames, setPatientNames] = useState<Record<string, { name: string; id: string }>>({});
 
   const load = useCallback(async () => {
     if (!effectiveClinicId || !user?.id) return;
@@ -39,7 +42,42 @@ export default function Notifications() {
       .eq("recipient_user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(50);
-    if (!error) setItems((data || []) as StaffNotification[]);
+    if (!error) {
+      const rows = (data || []) as StaffNotification[];
+      setItems(rows);
+
+      // Resolve patient names for patient-related notifications, including
+      // older notifications created before patient_name was added.
+      const feedbackIds = rows.filter(n => n.entity_type === "feedback_response").map(n => n.entity_id).filter(Boolean) as string[];
+      const appointmentIds = rows.filter(n => n.entity_type === "appointment").map(n => n.entity_id).filter(Boolean) as string[];
+      const patientIds = rows.filter(n => n.category === "patient" && n.entity_id).map(n => n.entity_id!) ;
+      const resolved: Record<string, { name: string; id: string }> = {};
+
+      if (feedbackIds.length) {
+        const { data: feedbackRows } = await apiClient.from("feedback_responses").select("id,patient_id").in("id", feedbackIds);
+        const ids = (feedbackRows || []).map((r: any) => r.patient_id).filter(Boolean);
+        if (ids.length) {
+          const { data: patients } = await apiClient.from("patients").select("id,full_name").in("id", ids);
+          (patients || []).forEach((p: any) => resolved[`feedback:${feedbackRows?.find((r: any) => r.patient_id === p.id)?.id}`] = { name: p.full_name, id: p.id });
+        }
+      }
+      if (appointmentIds.length) {
+        const { data: appointments } = await apiClient.from("appointments").select("id,patient_id").in("id", appointmentIds);
+        const ids = (appointments || []).map((r: any) => r.patient_id).filter(Boolean);
+        if (ids.length) {
+          const { data: patients } = await apiClient.from("patients").select("id,full_name").in("id", ids);
+          (patients || []).forEach((p: any) => {
+            const appointment = appointments?.find((a: any) => a.patient_id === p.id);
+            if (appointment) resolved[`appointment:${appointment.id}`] = { name: p.full_name, id: p.id };
+          });
+        }
+      }
+      if (patientIds.length) {
+        const { data: patients } = await apiClient.from("patients").select("id,full_name").in("id", patientIds);
+        (patients || []).forEach((p: any) => resolved[`patient:${p.id}`] = { name: p.full_name, id: p.id });
+      }
+      setPatientNames(resolved);
+    }
     setLoading(false);
   }, [effectiveClinicId, user?.id]);
 
@@ -108,6 +146,13 @@ export default function Notifications() {
     window.dispatchEvent(new CustomEvent("optocare:notifications:read-all"));
   };
 
+  const getPatientContext = (item: StaffNotification) => {
+    if (item.entity_type === "feedback_response") return patientNames[`feedback:${item.entity_id}`] || null;
+    if (item.entity_type === "appointment") return patientNames[`appointment:${item.entity_id}`] || null;
+    if (item.category === "patient" && item.entity_id) return patientNames[`patient:${item.entity_id}`] || null;
+    return null;
+  };
+
   const openNotification = (item: StaffNotification) => {
     // Navigate immediately; marking read must never block opening the notification.
     const fallbackByCategory: Record<string, string> = {
@@ -120,7 +165,8 @@ export default function Notifications() {
       patient: item.entity_id ? "/patient/" + item.entity_id : "/patients",
       system: "/super-admin/system-health",
     };
-    const target = item.link || fallbackByCategory[item.category] || "/dashboard";
+    const patient = getPatientContext(item);
+    const target = patient ? `/patient/${patient.id}` : item.link || fallbackByCategory[item.category] || "/dashboard";
     if (!item.read_at) void markRead(item.id);
     navigate(target);
   };
@@ -172,7 +218,7 @@ export default function Notifications() {
                     <p className="font-semibold">{item.title}</p>
                     {!item.read_at && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />}
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{item.body}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{item.body}</p>\n                  {getPatientContext(item) && (\n                    <p className="mt-1 text-xs font-semibold text-primary">Patient: {getPatientContext(item)?.name}</p>\n                  )}
                   <div className="mt-2 flex items-center justify-between gap-3">
                     <p className="text-[11px] text-muted-foreground">{new Date(item.created_at).toLocaleString("en-GB")}</p>
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
