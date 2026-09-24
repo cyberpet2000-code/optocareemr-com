@@ -2,7 +2,7 @@ import OptoLoader from "@/components/OptoLoader";
 import EmptyState from "@/components/EmptyState";
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search, ChevronRight, UserPlus, Phone, MessageCircle, Users, FileText, Play,
+import { Search, ChevronRight, UserPlus, Phone, MessageCircle, Users, Play,
   CheckCircle,
   XCircle,
   SlidersHorizontal,
@@ -215,86 +215,134 @@ export default function PatientList() {
         if (allFamilyRows) setFamilyOptions(allFamilyRows as any);
 
         const patientIds = data.map(p => p.id);
-        const [visitResponse, billingResponse, hmoClaimsResponse] = await Promise.all([
-          apiClient.from("visits").select(isReceptionist ? "id, patient_id, created_at, status" : "*").eq("clinic_id", cid).in("patient_id", patientIds).order("created_at", { ascending: false }),
-          canViewPayments ? apiClient.from("billing").select("id, patient_id, total_amount, balance, amount_paid, status, payer_type, hmo_id, hmo_covered_amount, patient_payable").eq("clinic_id", cid).in("patient_id", patientIds) : Promise.resolve({ data: [] }),
-          canViewPayments ? apiClient.from("hmo_claims").select("id, patient_id, billing_id, hmo_id, service_cost, approved_amount, status, created_at, updated_at").eq("clinic_id", cid).in("patient_id", patientIds).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
-        ]);
-        const visitRows = visitResponse.data || [];
-        const latestVisitByPatient = new Map<string, any>();
-        visitRows.forEach((visit: any) => { if (!latestVisitByPatient.has(visit.patient_id)) latestVisitByPatient.set(visit.patient_id, visit); });
-        const nextFeedbackStatusMap: Record<string, "none" | "pending" | "completed"> = {};
-        setFeedbackStatusMap(nextFeedbackStatusMap);
-        const bills = billingResponse.data || [];
-        const hmoClaims = hmoClaimsResponse.data || [];
-        const latestClaimByPatient = new Map<string, any>();
-        hmoClaims.forEach((claim: any) => {
-          if (!latestClaimByPatient.has(claim.patient_id)) latestClaimByPatient.set(claim.patient_id, claim);
-        });
-        const balanceMap = new Map<string, number>();
-        (bills || []).forEach((bill: any) => {
-          const current = balanceMap.get(bill.patient_id) || 0;
-          balanceMap.set(bill.patient_id, current + (bill.balance || 0));
-        });
         const paymentTypes = new Map(data.map((p: any) => [p.id, p.payment_type]));
-        const visitSummaryMap = buildVisitSummaryMap(visitRows || []);
-        const billingSummaryMap = buildBillingSummaryMap(bills || [], paymentTypes);
-        const rows = data.map((p: any) => {
-          const patientBills = bills.filter((bill: any) => bill.patient_id === p.id);
-          const latestBill = patientBills.length > 0 ? patientBills.reduce((latest: any, bill: any) =>
-            !latest || String(bill.created_at || "") > String(latest.created_at || "") ? bill : latest, null) : null;
-          const latestClaim = latestClaimByPatient.get(p.id);
-          const claimAmount = latestClaim
-            ? Number(latestClaim.approved_amount || 0) > 0
-              ? Number(latestClaim.approved_amount)
-              : Number(latestClaim.service_cost || 0)
-            : Number(latestBill?.hmo_covered_amount || 0);
-          const patientPayable = patientBills.reduce((sum: number, bill: any) => sum + Number(bill.patient_payable || 0), 0);
-          const patientBillsForDisplayHasCharge = patientBills.some((bill: any) => Number(bill.total_amount || 0) > 0 || Number(bill.amount_paid || 0) > 0);
-          return {
-            ...p,
-            hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined,
-            family_name: p.family_id ? familyMap.get(p.family_id) : undefined,
-            balance: balanceMap.get(p.id) || 0,
-            patientPayable,
-            hmoClaimStatus: latestClaim?.status || null,
-            hmoClaimAmount: claimAmount,
-            hmoClaimId: latestClaim?.id || null,
-            visitSummary: visitSummaryMap.get(p.id) || { visitCount: 0, lastVisit: null },
-            billingSummary: billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type),
-            feedbackStatus: nextFeedbackStatusMap[p.id] || "none",
-          };
-        });
-        setPatients(rows);
-        setLoadError(null);
-        offlineStore.save(cacheKey, rows);
-        offlineStore.save(`patients:${cid}:all`, data);
 
-        // Cache the complete patient list in one write. Repeatedly rewriting
-        // the growing patient array for every patient can freeze the browser
-        // and exhaust localStorage on larger clinics.
-        cachePatientsOffline(cid, rows.map((patient: any) => ({
+        // Render the patient list as soon as the patient records themselves
+        // are available. Billing, HMO claims and visit summaries are secondary
+        // enrichment and must never block the main list.
+        const baseRows = data.map((p: any) => ({
+          ...p,
+          hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined,
+          family_name: p.family_id ? familyMap.get(p.family_id) : undefined,
+          balance: 0,
+          patientPayable: 0,
+          hmoClaimStatus: null,
+          hmoClaimAmount: 0,
+          hmoClaimId: null,
+          visitSummary: { visitCount: 0, lastVisit: null },
+          billingSummary: getPaymentStatus([], p.payment_type),
+          feedbackStatus: "none",
+        }));
+        setPatients(baseRows);
+        setLoadError(null);
+        setLoading(false);
+        offlineStore.save(cacheKey, baseRows);
+        offlineStore.save(`patients:${cid}:all`, data);
+        cachePatientsOffline(cid, baseRows.map((patient: any) => ({
           ...patient,
           hmo_name: patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : undefined,
         })));
 
-        if (!isReceptionist) {
-          // Do not preload every patient's complete clinical history from the
-          // patient list. PatientRecord caches a patient's full history when
-          // that record is opened, keeping PatientList lightweight and reliable.
-          const staffIds = Array.from(new Set(
-            visitRows.flatMap((visit: any) => [visit.doctor_id, visit.registered_by]).filter(Boolean),
-          ));
-          if (staffIds.length > 0) {
-            const { data: staffProfiles } = await apiClient
-              .from("profiles")
-              .select("id, full_name, role, title, is_active")
-              .in("id", staffIds);
-            if (staffProfiles) cacheStaffProfilesOffline(cid, staffProfiles);
-          }
-        }
+        if (patientIds.length === 0) return;
 
-        setLoading(false);
+        try {
+          const [visitResponse, billingResponse, hmoClaimsResponse] = await Promise.allSettled([
+            apiClient.from("visits")
+              .select(isReceptionist ? "id, patient_id, created_at, status" : "*")
+              .eq("clinic_id", cid)
+              .in("patient_id", patientIds)
+              .order("created_at", { ascending: false }),
+            canViewPayments
+              ? apiClient.from("billing")
+                  .select("id, patient_id, total_amount, balance, amount_paid, status, payer_type, hmo_id, hmo_covered_amount, patient_payable, created_at")
+                  .eq("clinic_id", cid)
+                  .in("patient_id", patientIds)
+              : Promise.resolve({ data: [] }),
+            canViewPayments
+              ? apiClient.from("hmo_claims")
+                  .select("id, patient_id, billing_id, hmo_id, service_cost, approved_amount, status, created_at, updated_at")
+                  .eq("clinic_id", cid)
+                  .in("patient_id", patientIds)
+                  .order("created_at", { ascending: false })
+              : Promise.resolve({ data: [] }),
+          ]);
+
+          const visitRows = visitResponse.status === "fulfilled" ? (visitResponse.value.data || []) : [];
+          const bills = billingResponse.status === "fulfilled" ? (billingResponse.value.data || []) : [];
+          const hmoClaims = hmoClaimsResponse.status === "fulfilled" ? (hmoClaimsResponse.value.data || []) : [];
+
+          const latestVisitByPatient = new Map<string, any>();
+          visitRows.forEach((visit: any) => {
+            if (!latestVisitByPatient.has(visit.patient_id)) latestVisitByPatient.set(visit.patient_id, visit);
+          });
+
+          const latestClaimByPatient = new Map<string, any>();
+          hmoClaims.forEach((claim: any) => {
+            if (!latestClaimByPatient.has(claim.patient_id)) latestClaimByPatient.set(claim.patient_id, claim);
+          });
+
+          const balanceMap = new Map<string, number>();
+          bills.forEach((bill: any) => {
+            const current = balanceMap.get(bill.patient_id) || 0;
+            balanceMap.set(bill.patient_id, current + Number(bill.balance || 0));
+          });
+
+          const visitSummaryMap = buildVisitSummaryMap(visitRows);
+          const billingSummaryMap = buildBillingSummaryMap(bills, paymentTypes);
+
+          const enrichedRows = baseRows.map((p: any) => {
+            const patientBills = bills.filter((bill: any) => bill.patient_id === p.id);
+            const latestBill = patientBills.length > 0
+              ? patientBills.reduce((latest: any, bill: any) =>
+                  !latest || String(bill.created_at || "") > String(latest.created_at || "") ? bill : latest, null)
+              : null;
+            const latestClaim = latestClaimByPatient.get(p.id);
+            const claimAmount = latestClaim
+              ? Number(latestClaim.approved_amount || 0) > 0
+                ? Number(latestClaim.approved_amount)
+                : Number(latestClaim.service_cost || 0)
+              : Number(latestBill?.hmo_covered_amount || 0);
+            const patientPayable = patientBills.reduce(
+              (sum: number, bill: any) => sum + Number(bill.patient_payable || 0), 0,
+            );
+
+            return {
+              ...p,
+              balance: balanceMap.get(p.id) || 0,
+              patientPayable,
+              hmoClaimStatus: latestClaim?.status || null,
+              hmoClaimAmount: claimAmount,
+              hmoClaimId: latestClaim?.id || null,
+              visitSummary: visitSummaryMap.get(p.id) || { visitCount: 0, lastVisit: null },
+              billingSummary: billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type),
+            };
+          });
+
+          setPatients(enrichedRows);
+          offlineStore.save(cacheKey, enrichedRows);
+          cachePatientsOffline(cid, enrichedRows.map((patient: any) => ({
+            ...patient,
+            hmo_name: patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : undefined,
+          })));
+
+          if (!isReceptionist && visitRows.length > 0) {
+            const staffIds = Array.from(new Set(
+              visitRows.flatMap((visit: any) => [visit.doctor_id, visit.registered_by]).filter(Boolean),
+            ));
+            if (staffIds.length > 0) {
+              const { data: staffProfiles } = await apiClient
+                .from("profiles")
+                .select("id, full_name, role, title, is_active")
+                .in("id", staffIds);
+              if (staffProfiles) cacheStaffProfilesOffline(cid, staffProfiles);
+            }
+          }
+        } catch (enrichmentError) {
+          // The patient list is already rendered. A billing/visit/HMO
+          // enrichment failure must not blank the page or replace it with an
+          // error state.
+          console.warn("PatientList enrichment unavailable:", enrichmentError);
+        }
       } catch (error) {
         console.error("PatientList loading error:", error);
         loadFromCache();
@@ -345,7 +393,7 @@ export default function PatientList() {
 
     const explicitCategory = wantsHmo || wantsFamily || wantsPrivate;
     const isHmoAttention = isHmo && (!p.hmoClaimStatus || ["pending", "requested", "submitted", "sent", "processing", "approved"].includes(String(p.hmoClaimStatus).toLowerCase()));
-    const isPaid = !isHmo ? Number(p.balance || 0) <= 0 && Number(p.billingSummary?.outstandingBalance || 0) === 0 && patientBillsForDisplayHasCharge : false;
+    const isPaid = !isHmo ? p.billingSummary?.paymentStatus === "Paid" : false;
     const isDue = !isHmo ? Number(p.balance || 0) > 0 : Number(p.patientPayable || 0) > 0;
     const categoryMatches =
       (!wantsHmo || isHmo) &&
