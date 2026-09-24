@@ -4164,6 +4164,54 @@ export type Database = {
       freeze_extra_branches: { Args: { p_org_id: string }; Returns: undefined }
       generate_feedback_token: { Args: never; Returns: string }
       get_active_clinic_id: { Args: never; Returns: string }
+      get_patient_recall: {
+        Args: { p_clinic_id: string; p_patient_id: string }
+        Returns: {
+          id: string
+          clinic_id: string
+          patient_id: string
+          source_visit_id: string | null
+          recall_interval_months: number
+          due_date: string
+          status: string
+          contact_status: string
+          contacted_at: string | null
+          contacted_by: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        } | null
+      }
+      set_patient_recall: {
+        Args: {
+          p_clinic_id: string
+          p_patient_id: string
+          p_visit_id: string
+          p_action: string
+          p_prescription_event: string
+          p_interval_months?: number
+          p_reference_date?: string
+        }
+        Returns: {
+          id: string
+          clinic_id: string
+          patient_id: string
+          source_visit_id: string | null
+          recall_interval_months: number
+          due_date: string
+          status: string
+          contact_status: string
+          contacted_at: string | null
+          contacted_by: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        } | null
+      }
+      refresh_patient_recall_notifications: {
+        Args: { p_clinic_id: string }
+        Returns: number
+      }
       get_daily_front_desk_report_data: {\n        Args: { p_clinic_id: string; p_report_date: string }\n        Returns: { [key: string]: any }[]\n      }\n      get_daily_front_desk_financials: {\n        Args: { p_clinic_id: string; p_report_date: string }\n        Returns: { [key: string]: any }[]\n      }\n      open_daily_front_desk_report: {\n        Args: { p_clinic_id: string; p_report_date: string }\n        Returns: { [key: string]: any }[]\n      }\n      save_daily_front_desk_report: {\n        Args: { p_report_id: string; p_report_date: string; p_opening_cash?: number; p_report_notes?: string }\n        Returns: { [key: string]: any }[]\n      }\n      save_daily_front_desk_report_item: {\n        Args: { [key: string]: any }\n        Returns: { [key: string]: any }[]\n      }\n      save_daily_front_desk_activity: {\n        Args: { [key: string]: any }\n        Returns: { [key: string]: any }[]\n      }\n      save_daily_front_desk_expense: {\n        Args: { [key: string]: any }\n        Returns: { [key: string]: any }[]\n      }\n      submit_daily_front_desk_report: {\n        Args: { p_report_id: string }\n        Returns: { [key: string]: any }[]\n      }\n      mark_daily_front_desk_report_emailed: {\n        Args: { p_report_id: string }\n        Returns: { [key: string]: any }[]\n      }\n      get_admin_staff_feedback_ratings: {
         Args: { p_clinic_id: string }
         Returns: {
