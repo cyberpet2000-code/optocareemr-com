@@ -1,4 +1,4 @@
-const CACHE_NAME = "optocare-shell-v6";
+const CACHE_NAME = "optocare-shell-v7";
 const APP_SHELL = ["/", "/index.html"];
 
 self.addEventListener("install", (event) => {
@@ -93,16 +93,16 @@ self.addEventListener("fetch", (event) => {
     url.pathname.endsWith(".webp")
   ) {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request).then((response) => {
+      fetch(request, { cache: "no-store" })
+        .then((response) => {
           if (response.ok) {
             const copy = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => undefined);
           }
           return response;
-        });
-      }),
+        })
+        .catch(() => caches.match(request)),
+
     );
   }
 });
