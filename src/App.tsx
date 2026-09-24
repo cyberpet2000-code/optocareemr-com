@@ -288,6 +288,7 @@ export function AppRoutes() {
           <Route path="/super-admin/users" element={<SuperAdminOnly><PageErrorBoundary pageName="User Management"><AdminRoles embedded /></PageErrorBoundary></SuperAdminOnly>} />
 
           <Route path="/notifications" element={<PageErrorBoundary pageName="Notifications"><Notifications /></PageErrorBoundary>} />
+          <Route path="/outreach" element={<PageErrorBoundary pageName="Campaigns & Leads"><Outreach /></PageErrorBoundary>} />
           <Route path="/dashboard" element={<PageErrorBoundary pageName="Dashboard"><Dashboard /></PageErrorBoundary>} />
           <Route path="/visits" element={<PageErrorBoundary pageName="Visits"><Visits /></PageErrorBoundary>} />
           <Route path="/register" element={<PageErrorBoundary pageName="Patient Registration"><PatientRegister /></PageErrorBoundary>} />
