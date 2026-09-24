@@ -258,6 +258,10 @@ const canViewFinancials =
   const [appointmentReason, setAppointmentReason] = useState("");
   const [showAppointmentBooking, setShowAppointmentBooking] = useState(false);
   const [savingAppointment, setSavingAppointment] = useState(false);
+  const [patientRecall, setPatientRecall] = useState<any | null>(null);
+  const [recallIntervalMonths, setRecallIntervalMonths] = useState(18);
+  const [recallEvent, setRecallEvent] = useState<"new_prescription" | "previous_prescription_reused" | "follow_up" | "none">("new_prescription");
+  const [recallAction, setRecallAction] = useState<"reset" | "preserve" | "none">("reset");
   const [appointmentCreated, setAppointmentCreated] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingVisitId, setEditingVisitId] =
@@ -983,6 +987,25 @@ subVaOutcome: v.sub_va_outcome || "",
     }
   };
 
+  useEffect(() => {
+    if (!cid || !patient?.id) return;
+    let cancelled = false;
+    const loadRecall = async () => {
+      const { data, error } = await apiClient.rpc("get_patient_recall", { p_clinic_id: cid, p_patient_id: patient.id });
+      if (cancelled) return;
+      if (!error && data) {
+        setPatientRecall(data);
+        setRecallIntervalMonths(Number(data.recall_interval_months) || 18);
+        setRecallAction("preserve");
+      } else {
+        setPatientRecall(null);
+        setRecallAction("reset");
+      }
+    };
+    void loadRecall();
+    return () => { cancelled = true; };
+  }, [cid, patient?.id]);
+
   const handleSaveVisit = async (markCompleted: boolean) => {
     if (!isClinicalUser) {
   toast.error("You do not have permission to create or edit clinical visits");
@@ -1214,6 +1237,32 @@ const { data, error } = editingVisitId
     toast.error(error.message);
   }
   return;
+    }
+
+    // Persist recall only after the visit is safely saved. A replacement visit that
+    // reuses the old prescription preserves the existing recall; a genuinely new
+    // prescription resets it from this visit date.
+    if (markCompleted && data) {
+      try {
+        const { data: recallData, error: recallError } = await apiClient.rpc("set_patient_recall", {
+          p_clinic_id: cid,
+          p_patient_id: patient.id,
+          p_visit_id: data.id,
+          p_action: recallAction,
+          p_prescription_event: recallEvent,
+          p_interval_months: recallIntervalMonths,
+          p_reference_date: new Date(data.completed_at || data.created_at || new Date().toISOString()).toISOString().slice(0, 10),
+        });
+        if (recallError) {
+          console.error("Recall save failed:", recallError);
+          toast.error("Visit saved, but the recall reminder could not be updated.");
+        } else if (recallData) {
+          setPatientRecall(recallData);
+        }
+      } catch (recallErr) {
+        console.error("Recall save failed:", recallErr);
+        toast.error("Visit saved, but the recall reminder could not be updated.");
+      }
     }
 
     // ----------------------------------------------------
@@ -3567,6 +3616,41 @@ shadow-sm
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {patientRecall && (
+        <div className="mt-5 rounded-2xl border border-primary/15 bg-card p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">Patient Recall</p>
+              <p className="text-xs text-muted-foreground mt-1">Shared by doctors and reception. It does not appear on the Patient Card.</p>
+            </div>
+            <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">18-month capable</span>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+            <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Interval</span><div className="font-semibold mt-0.5">{patientRecall.recall_interval_months} months</div></div>
+            <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Due</span><div className="font-semibold mt-0.5">{patientRecall.due_date ? new Date(patientRecall.due_date + "T00:00:00").toLocaleDateString("en-GB") : "—"}</div></div>
+            <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Status</span><div className="font-semibold mt-0.5 capitalize">{patientRecall.status}</div></div>
+            <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Contact</span><div className="font-semibold mt-0.5 capitalize">{String(patientRecall.contact_status || "pending").replace(/_/g, " ")}</div></div>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-5 rounded-2xl border border-primary/15 bg-card p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div><p className="text-sm font-semibold">Recall for this visit</p><p className="text-xs text-muted-foreground">Choose what should happen after this completed visit.</p></div>
+        </div>
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <label className="rounded-xl border p-3 cursor-pointer"><input type="radio" name="recall-event" checked={recallEvent === "new_prescription"} onChange={() => {setRecallEvent("new_prescription");setRecallAction("reset");}} className="mr-2"/>New prescription</label>
+          <label className="rounded-xl border p-3 cursor-pointer"><input type="radio" name="recall-event" checked={recallEvent === "previous_prescription_reused"} onChange={() => {setRecallEvent("previous_prescription_reused");setRecallAction("preserve");}} className="mr-2"/>Previous prescription reused</label>
+          <label className="rounded-xl border p-3 cursor-pointer"><input type="radio" name="recall-event" checked={recallEvent === "follow_up"} onChange={() => {setRecallEvent("follow_up");setRecallAction("preserve");}} className="mr-2"/>Follow-up / no new Rx</label>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">Recall interval</span>
+          {[6,12,18].map(months => <Button key={months} type="button" size="sm" variant={recallIntervalMonths === months ? "default" : "outline"} onClick={() => setRecallIntervalMonths(months)} disabled={recallAction !== "reset"}>{months} months</Button>)}
+          <Input type="number" min={1} max={60} value={recallIntervalMonths} onChange={e => setRecallIntervalMonths(Math.max(1, Math.min(60, Number(e.target.value) || 1)))} className="w-24" disabled={recallAction !== "reset"} aria-label="Custom recall interval in months" />
+        </div>
+        {recallAction === "preserve" && <p className="mt-2 text-xs text-muted-foreground">The existing recall date will remain unchanged.</p>}
+      </div>
 
       <div className="sticky bottom-20 lg:bottom-4 mt-6 flex justify-end gap-2">
         
