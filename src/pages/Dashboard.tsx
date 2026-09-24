@@ -291,16 +291,16 @@ if (user?.id) {
   if (isDoctor && !isAdmin) {
     const { data: ratingRows, error: ratingError } = await apiClient
       .from("feedback_responses")
-      .select("doctor_rating")
+      .select("doctor_professionalism_rating")
       .eq("clinic_id", cid)
       .eq("doctor_id", user.id)
-      .not("doctor_rating", "is", null);
+      .not("doctor_professionalism_rating", "is", null);
 
     if (ratingError) {
       console.error("Failed to load doctor rating:", ratingError);
     } else {
       const ratings = (ratingRows || [])
-        .map((row: any) => Number(row.doctor_rating))
+        .map((row: any) => Number(row.doctor_professionalism_rating))
         .filter((rating: number) => Number.isFinite(rating));
 
       setStaffRatingCount(ratings.length);
