@@ -834,6 +834,7 @@ if (user?.id) {
             <>
               <Metric icon={Users} label="Patients today" value={todayVisits} gradient={tealGrad} iconColor="hsl(184 78% 40%)" to="/visits?filter=today" />
               <Metric icon={CalendarDays} label="Appointments" value={todayAppointments} gradient={blueGrad} iconColor="hsl(217 91% 55%)" to="/appointments" />
+              <Metric icon={TrendingUp} label="Feedback follow-ups" value={feedbackFollowups.length} gradient={navyGrad} iconColor="hsl(217 91% 55%)" to="/patients?filter=followup" hint={feedbackFollowups.length ? "Needs attention" : "All clear"} />
               <Metric icon={AlertTriangle} label="Stock alerts" value={lowStockCount + drugAlerts} gradient={amberGrad} iconColor="hsl(38 92% 50%)" to="/inventory" hint={lowStockCount + drugAlerts ? "Needs attention" : "All clear"} />
             </>
           )}
