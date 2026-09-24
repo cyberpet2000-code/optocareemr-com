@@ -49,6 +49,10 @@ interface PatientRow {
   billingSummary: PatientBillingSummary;
   family_id?: string | null;
   family_name?: string | null;
+  hmoClaimStatus?: string | null;
+  hmoClaimAmount?: number;
+  patientPayable?: number;
+  hmoClaimId?: string | null;
 }
 
 
@@ -211,9 +215,10 @@ export default function PatientList() {
         if (allFamilyRows) setFamilyOptions(allFamilyRows as any);
 
         const patientIds = data.map(p => p.id);
-        const [visitResponse, billingResponse] = await Promise.all([
+        const [visitResponse, billingResponse, hmoClaimsResponse] = await Promise.all([
           apiClient.from("visits").select(isReceptionist ? "id, patient_id, created_at, status" : "*").eq("clinic_id", cid).in("patient_id", patientIds).order("created_at", { ascending: false }),
-          canViewPayments ? apiClient.from("billing").select("patient_id, balance, amount_paid, status, payer_type").eq("clinic_id", cid).in("patient_id", patientIds) : Promise.resolve({ data: [] }),
+          canViewPayments ? apiClient.from("billing").select("id, patient_id, total_amount, balance, amount_paid, status, payer_type, hmo_id, hmo_covered_amount, patient_payable").eq("clinic_id", cid).in("patient_id", patientIds) : Promise.resolve({ data: [] }),
+          canViewPayments ? apiClient.from("hmo_claims").select("id, patient_id, billing_id, hmo_id, service_cost, approved_amount, status, created_at, updated_at").eq("clinic_id", cid).in("patient_id", patientIds).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
         ]);
         const visitRows = visitResponse.data || [];
         const latestVisitByPatient = new Map<string, any>();
@@ -221,6 +226,11 @@ export default function PatientList() {
         const nextFeedbackStatusMap: Record<string, "none" | "pending" | "completed"> = {};
         setFeedbackStatusMap(nextFeedbackStatusMap);
         const bills = billingResponse.data || [];
+        const hmoClaims = hmoClaimsResponse.data || [];
+        const latestClaimByPatient = new Map<string, any>();
+        hmoClaims.forEach((claim: any) => {
+          if (!latestClaimByPatient.has(claim.patient_id)) latestClaimByPatient.set(claim.patient_id, claim);
+        });
         const balanceMap = new Map<string, number>();
         (bills || []).forEach((bill: any) => {
           const current = balanceMap.get(bill.patient_id) || 0;
@@ -229,7 +239,31 @@ export default function PatientList() {
         const paymentTypes = new Map(data.map((p: any) => [p.id, p.payment_type]));
         const visitSummaryMap = buildVisitSummaryMap(visitRows || []);
         const billingSummaryMap = buildBillingSummaryMap(bills || [], paymentTypes);
-        const rows = data.map((p: any) => ({ ...p, hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined, family_name: p.family_id ? familyMap.get(p.family_id) : undefined, balance: balanceMap.get(p.id) || 0, visitSummary: visitSummaryMap.get(p.id) || { visitCount: 0, lastVisit: null }, billingSummary: billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type), feedbackStatus: nextFeedbackStatusMap[p.id] || "none" }));
+        const rows = data.map((p: any) => {
+          const patientBills = bills.filter((bill: any) => bill.patient_id === p.id);
+          const latestBill = patientBills.length > 0 ? patientBills.reduce((latest: any, bill: any) =>
+            !latest || String(bill.created_at || "") > String(latest.created_at || "") ? bill : latest, null) : null;
+          const latestClaim = latestClaimByPatient.get(p.id);
+          const claimAmount = latestClaim
+            ? Number(latestClaim.approved_amount || 0) > 0
+              ? Number(latestClaim.approved_amount)
+              : Number(latestClaim.service_cost || 0)
+            : 0;
+          const patientPayable = patientBills.reduce((sum: number, bill: any) => sum + Number(bill.patient_payable || 0), 0);
+          return {
+            ...p,
+            hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined,
+            family_name: p.family_id ? familyMap.get(p.family_id) : undefined,
+            balance: balanceMap.get(p.id) || 0,
+            patientPayable,
+            hmoClaimStatus: latestClaim?.status || null,
+            hmoClaimAmount: claimAmount,
+            hmoClaimId: latestClaim?.id || null,
+            visitSummary: visitSummaryMap.get(p.id) || { visitCount: 0, lastVisit: null },
+            billingSummary: billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type),
+            feedbackStatus: nextFeedbackStatusMap[p.id] || "none",
+          };
+        });
         setPatients(rows);
         setLoadError(null);
         offlineStore.save(cacheKey, rows);
@@ -289,6 +323,9 @@ export default function PatientList() {
   const wantsHmo = searchTerms.includes("hmo") || searchTerms.includes("insurance") || searchTerms.includes("insurer");
   const wantsFamily = searchTerms.includes("family") || searchTerms.includes("families");
   const wantsPrivate = searchTerms.includes("private");
+  const wantsPaid = searchTerms.includes("paid");
+  const wantsDue = searchTerms.includes("due") || searchTerms.includes("owing") || searchTerms.includes("owe");
+  const wantsHmoAttention = searchTerms.includes("attention") || searchTerms.includes("pending");
   const filtered = patients.filter(p => {
     const isHmo = p.payment_type === "hmo";
     const isFamily = !!p.family_id;
@@ -306,16 +343,22 @@ export default function PatientList() {
     if (selectedFamily && p.family_id !== selectedFamily) return false;
 
     const explicitCategory = wantsHmo || wantsFamily || wantsPrivate;
+    const isHmoAttention = isHmo && (!p.hmoClaimStatus || ["pending", "requested", "submitted", "sent", "processing", "approved"].includes(String(p.hmoClaimStatus).toLowerCase()));
+    const isPaid = !isHmo ? Number(p.balance || 0) <= 0 && Number(p.billingSummary?.totalAmount || 0) > 0 : false;
+    const isDue = !isHmo ? Number(p.balance || 0) > 0 : Number(p.patientPayable || 0) > 0;
     const categoryMatches =
       (!wantsHmo || isHmo) &&
       (!wantsFamily || isFamily) &&
       (!wantsPrivate || !isHmo);
 
     const termsToMatch = searchTerms.filter(term =>
-      !["all", "patient", "patients", "hmo", "insurance", "insurer", "family", "families", "private"].includes(term)
+      !["all", "patient", "patients", "hmo", "insurance", "insurer", "family", "families", "private", "paid", "due", "owing", "owe", "attention", "pending"].includes(term)
     );
 
     if (!categoryMatches) return false;
+    if (wantsPaid && !isPaid) return false;
+    if (wantsDue && !isDue) return false;
+    if (wantsHmoAttention && !isHmoAttention) return false;
     if (termsToMatch.length === 0) return true;
 
     const haystack = [
@@ -325,6 +368,7 @@ export default function PatientList() {
       p.hmo_name,
       p.family_name,
       p.family_id,
+      p.hmoClaimStatus,
     ].filter(Boolean).join(" ").toLowerCase();
 
     return termsToMatch.every(term => haystack.includes(term));
@@ -410,7 +454,25 @@ export default function PatientList() {
         <div className="space-y-3">{feedbackFollowups.length === 0 ? <EmptyState icon={MessageCircle} title="No pending follow-ups" description="Patient feedback follow-ups that need attention will appear here." /> : feedbackFollowups.map((followup: any) => (
           <div key={followup.id} className="patient-card-surface medical-card p-4 rounded-3xl border shadow-md"><div className="flex items-start gap-3"><div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0 bg-gradient-to-br from-blue-600 to-cyan-400"><span className="text-lg font-bold">{(followup.patient_name || "?")[0]}</span></div><div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><p className="text-base font-bold truncate">{followup.patient_name}</p>{followup.patient_number && <span className="text-xs font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-lg">{followup.patient_number}</span>}</div>{followup.phone && <p className="text-xs text-muted-foreground mt-1">{followup.phone}</p>}<div className="mt-3"><span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ${followup.status === "in_progress" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>{followup.status === "in_progress" ? "In Progress" : "Pending"}</span></div><div className="mt-3 rounded-xl bg-muted/40 p-3"><p className="text-xs font-semibold text-foreground mb-1">Follow-up reason</p><p className="text-sm text-muted-foreground leading-relaxed">{followup.reason}</p></div><p className="text-[11px] text-muted-foreground mt-3">Created {new Date(followup.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}</p><div className="mt-4 space-y-3"><div className="space-y-1.5"><label className="text-xs font-semibold text-foreground">Assigned to</label><select value={followup.assigned_to || ""} disabled={assigningFollowup} onChange={async (e) => { const staffId = e.target.value || null; setAssigningFollowup(true); try { const { error } = await apiClient.rpc("update_feedback_followup", { p_followup_id: followup.id, p_status: followup.status, p_assigned_to: staffId, p_notes: followup.notes || null }); if (error) throw error; setFeedbackFollowups(prev => prev.map(item => item.id === followup.id ? { ...item, assigned_to: staffId } : item)); } catch (error) { console.error("Failed to assign follow-up:", error); alert("Unable to assign this follow-up. Please try again."); } finally { setAssigningFollowup(false); } }} className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"><option value="">Unassigned</option>{clinicStaff.map((staff: any) => <option key={staff.id} value={staff.id}>{staff.full_name} — {staff.role}</option>)}</select></div><div className="flex flex-wrap gap-2">{followup.status === "pending" && <Button size="sm" className="rounded-xl gap-1.5" onClick={async () => { setUpdatingFollowup(true); try { const { error } = await apiClient.rpc("update_feedback_followup", { p_followup_id: followup.id, p_status: "in_progress", p_assigned_to: followup.assigned_to || null, p_notes: followup.notes || null }); if (error) throw error; setFeedbackFollowups(prev => prev.map(item => item.id === followup.id ? { ...item, status: "in_progress" } : item)); } catch (error) { console.error("Failed to start follow-up:", error); alert("Unable to start this follow-up. Please try again."); } finally { setUpdatingFollowup(false); } }} disabled={updatingFollowup}><Play size={14} />{updatingFollowup ? "Starting..." : "Start Follow-up"}</Button>}{followup.status === "in_progress" && <Button size="sm" variant="outline" className="rounded-xl gap-1.5" onClick={() => openFollowupAction(followup, "complete")} disabled={updatingFollowup}><CheckCircle size={14} />Complete</Button>}<Button size="sm" variant="outline" className="rounded-xl gap-1.5 text-destructive" onClick={() => openFollowupAction(followup, "cancel")} disabled={updatingFollowup}><XCircle size={14} />Cancel</Button></div></div></div><Link to={`/patient/${followup.patient_id}`} className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors shrink-0" title="Open patient"><ChevronRight size={16} className="text-primary" /></Link></div></div>
         ))}</div>
-      ) : loading ? <div className="flex items-center justify-center py-12"><OptoLoader size={40} /></div> : loadError && patients.length === 0 ? <EmptyState icon={Users} title={loadError === "NO_NETWORK" || loadError === "NO_INTERNET" ? "Connection lost. Your records are safe." : loadError === "DATABASE_SERVICE" || loadError === "AUTH_SERVICE" || loadError === "EDGE_FUNCTION" ? "Something went wrong. Your records are safe." : "Something went wrong. Your records are safe."} description="Please try again shortly." /> : filtered.length === 0 ? <EmptyState icon={Users} title={patients.length === 0 ? "No patients registered yet" : "No matching patients"} description={patients.length === 0 ? "Register your first patient to start building records." : "Try a different name or phone number."} /> : <div className="space-y-2">{filtered.map(p => { const isHmo = p.payment_type === "hmo"; return <div key={p.id} className="patient-card-surface medical-card p-4 flex items-center gap-3 rounded-3xl border shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"><Link to={`/patient/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0"><div className="relative shrink-0"><div title={isHmo ? "HMO Patient" : "Private Patient"} className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full z-20 ${isHmo ? "bg-amber-500" : "bg-green-500"}`} /><div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-md" style={{ background: "linear-gradient(135deg,#2563EB 0%,#22D3EE 100%)" }}><span className="text-lg font-bold text-white">{(p.full_name || "?")[0]}</span></div></div><div className="flex-1 min-w-0 flex flex-col justify-center"><div className="flex items-center gap-2 flex-wrap"><p className="text-base font-bold truncate">{p.full_name}</p>{p.patient_number && <span className="text-xs font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-lg">{p.patient_number}</span>}</div><div className="flex items-center gap-2 mt-1 flex-wrap"><span className="text-xs text-muted-foreground">{p.gender}</span><span className="text-xs text-muted-foreground">•</span><span className="text-xs text-muted-foreground">{getCurrentPatientAge(p.date_of_birth, p.age)}</span></div><div className="flex items-center gap-2 mt-2"><span className={`text-[11px] px-2 py-1 rounded-full font-medium ${isHmo ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"}`}>{isHmo ? (p.hmo_name || "HMO") : "PRIVATE"}</span></div><div className="mt-2"><span className="text-sm text-muted-foreground">{p.phone}</span></div><div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap"><span>Visits: {p.visitSummary.visitCount}</span><span>•</span><span>Last: {p.visitSummary.lastVisit ? new Date(p.visitSummary.lastVisit).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</span></div><div className="mt-2">{p.feedbackStatus === "completed" ? <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-[11px] font-medium text-green-700">✓ Feedback Completed</span> : p.feedbackStatus === "pending" ? <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-700">● Feedback Pending</span> : p.visitSummary.visitCount > 0 ? <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">○ No Feedback</span> : null}</div></div></Link><div className="flex items-center gap-1 shrink-0">{p.phone && <><a href={`tel:${p.phone}`} className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center hover:bg-green-100 transition-colors" title="Call"><Phone size={14} className="text-success" /></a><a href={`https://wa.me/${normalizeWhatsAppNumber(p.phone)}`} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center hover:bg-green-100 transition-colors" title="WhatsApp"><MessageCircle size={14} className="text-success" /></a></>}<Link to={`/patient/${p.id}`} className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"><ChevronRight size={16} className="text-primary" /></Link></div></div>; })}</div>}
+      ) : loading ? <div className="flex items-center justify-center py-12"><OptoLoader size={40} /></div> : loadError && patients.length === 0 ? <EmptyState icon={Users} title={loadError === "NO_NETWORK" || loadError === "NO_INTERNET" ? "Connection lost. Your records are safe." : loadError === "DATABASE_SERVICE" || loadError === "AUTH_SERVICE" || loadError === "EDGE_FUNCTION" ? "Something went wrong. Your records are safe." : "Something went wrong. Your records are safe."} description="Please try again shortly." /> : filtered.length === 0 ? <EmptyState icon={Users} title={patients.length === 0 ? "No patients registered yet" : "No matching patients"} description={patients.length === 0 ? "Register your first patient to start building records." : "Try a different name or phone number."} /> : <div className="space-y-2">{filtered.map(p => { const isHmo = p.payment_type === "hmo"; return <div key={p.id} className="patient-card-surface medical-card p-4 flex items-center gap-3 rounded-3xl border shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"><Link to={`/patient/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0"><div className="relative shrink-0"><div title={isHmo ? "HMO Patient" : "Private Patient"} className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full z-20 ${isHmo ? "bg-amber-500" : "bg-green-500"}`} /><div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-md" style={{ background: "linear-gradient(135deg,#2563EB 0%,#22D3EE 100%)" }}><span className="text-lg font-bold text-white">{(p.full_name || "?")[0]}</span></div></div><div className="flex-1 min-w-0 flex flex-col justify-center"><div className="flex items-center gap-2 flex-wrap"><p className="text-base font-bold truncate">{p.full_name}</p>{p.patient_number && <span className="text-xs font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-lg">{p.patient_number}</span>}</div><div className="flex items-center gap-2 mt-1 flex-wrap"><span className="text-xs text-muted-foreground">{p.gender}</span><span className="text-xs text-muted-foreground">•</span><span className="text-xs text-muted-foreground">{getCurrentPatientAge(p.date_of_birth, p.age)}</span></div><div className="flex items-center gap-2 mt-2"><span className={`text-[11px] px-2 py-1 rounded-full font-medium ${isHmo ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"}`}>{isHmo ? (p.hmo_name || "HMO") : "PRIVATE"}</span></div><div className="mt-2"><span className="text-sm text-muted-foreground">{p.phone}</span></div>
+<div className="mt-2 space-y-1">
+  {isHmo ? (
+    <>
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[11px] font-semibold text-foreground">HMO Request:</span>
+        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${!p.hmoClaimStatus ? "bg-muted text-muted-foreground" : ["approved"].includes(String(p.hmoClaimStatus).toLowerCase()) ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+          {p.hmoClaimStatus ? (String(p.hmoClaimStatus).toLowerCase() === "approved" ? "Approved" : String(p.hmoClaimStatus).toLowerCase() === "pending" ? "Pending" : String(p.hmoClaimStatus)) : "Not recorded"}
+        </span>
+      </div>
+      {Number(p.hmoClaimAmount || 0) > 0 && <div className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">Amount to Claim:</span> ₦{Number(p.hmoClaimAmount || 0).toLocaleString()}</div>}
+      {Number(p.patientPayable || 0) > 0 && <div className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">Patient Co-pay:</span> ₦{Number(p.patientPayable || 0).toLocaleString()}</div>}
+      {p.hmoClaimStatus && <div className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">PA / Claim:</span> {["submitted","sent","processing","claimed"].includes(String(p.hmoClaimStatus).toLowerCase()) ? "Sent" : String(p.hmoClaimStatus).toLowerCase() === "approved" ? "Not recorded as sent" : "Not sent"}</div>}
+    </>
+  ) : (
+    <div className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">Payment:</span> {Number(p.balance || 0) <= 0 && Number(p.billingSummary?.totalAmount || 0) > 0 ? "Paid" : Number(p.balance || 0) > 0 ? `Due ₦${Number(p.balance || 0).toLocaleString()}` : "No billing"}</div>
+  )}
+</div>
+<div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap"><span>Visits: {p.visitSummary.visitCount}</span><span>•</span><span>Last: {p.visitSummary.lastVisit ? new Date(p.visitSummary.lastVisit).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</span></div><div className="mt-2">{p.feedbackStatus === "completed" ? <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-[11px] font-medium text-green-700">✓ Feedback Completed</span> : p.feedbackStatus === "pending" ? <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-700">● Feedback Pending</span> : p.visitSummary.visitCount > 0 ? <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">○ No Feedback</span> : null}</div></div></Link><div className="flex items-center gap-1 shrink-0">{p.phone && <><a href={`tel:${p.phone}`} className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center hover:bg-green-100 transition-colors" title="Call"><Phone size={14} className="text-success" /></a><a href={`https://wa.me/${normalizeWhatsAppNumber(p.phone)}`} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center hover:bg-green-100 transition-colors" title="WhatsApp"><MessageCircle size={14} className="text-success" /></a></>}<Link to={`/patient/${p.id}`} className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"><ChevronRight size={16} className="text-primary" /></Link></div></div>; })}</div>}
       <Dialog open={followupDialogOpen} onOpenChange={(open) => { if (!updatingFollowup) { setFollowupDialogOpen(open); if (!open) { setSelectedFollowup(null); setFollowupAction(null); setFollowupNotes(""); } } }}><DialogContent className="rounded-3xl"><DialogHeader><DialogTitle>{followupAction === "complete" ? "Complete Follow-up" : "Cancel Follow-up"}</DialogTitle><DialogDescription>{followupAction === "complete" ? "Confirm that this patient follow-up has been resolved." : "Are you sure you want to cancel this patient follow-up?"}</DialogDescription></DialogHeader><div className="space-y-3"><div><p className="text-sm font-semibold">Patient</p><p className="text-sm text-muted-foreground">{selectedFollowup?.patient_name || "—"}</p></div><div><label className="text-sm font-semibold">{followupAction === "complete" ? "Resolution notes" : "Cancellation reason"}</label><Textarea value={followupNotes} onChange={(e) => setFollowupNotes(e.target.value)} placeholder={followupAction === "complete" ? "Describe what was done to resolve the patient's issue..." : "Enter the reason for cancelling this follow-up..."} className="mt-2 min-h-[120px] rounded-xl" /></div></div><DialogFooter className="gap-2"><Button type="button" variant="outline" className="rounded-xl" onClick={() => { if (updatingFollowup) return; setFollowupDialogOpen(false); setSelectedFollowup(null); setFollowupAction(null); setFollowupNotes(""); }} disabled={updatingFollowup}>Cancel</Button><Button type="button" className="rounded-xl" onClick={handleUpdateFollowup} disabled={updatingFollowup || followupNotes.trim().length === 0}>{updatingFollowup ? "Saving..." : followupAction === "complete" ? "Complete Follow-up" : "Cancel Follow-up"}</Button></DialogFooter></DialogContent></Dialog>
     </>
   );
