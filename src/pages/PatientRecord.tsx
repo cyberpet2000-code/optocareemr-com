@@ -221,9 +221,12 @@ function parseMedicationItems(medication: string | null | undefined) {
 export default function PatientRecord() {
   const { id } = useParams<{ id: string }>();
   const patientId = id || "";
-  const { effectiveClinicId: cid, role, user } = useAccess();
+  const { effectiveClinicId: cid, role, roles, user } = useAccess();
 
-const isReceptionist = role === "receptionist";
+// Treat the receptionist role as present if it appears in either the primary
+// role or hydrated role list. This prevents a brief role-hydration mismatch
+// from rendering the clinical-only view and hiding the receptionist history.
+const isReceptionist = role === "receptionist" || roles?.includes("receptionist");
 const isClinicalUser =
   role === "doctor" ||
   role === "admin" ||
