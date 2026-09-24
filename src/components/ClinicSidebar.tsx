@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, ShoppingBag, ShieldCheck, Calendar, AlertOctagon,
   UserPlus, Building2, Sparkles, LifeBuoy, CheckCircle2, CircleDashed, Clock, Activity, Archive,
-  Wallet, ClipboardList, FileBarChart, UserCog,
+  Wallet, ClipboardList, FileBarChart, UserCog, Megaphone,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -58,7 +58,8 @@ export default function ClinicSidebar() {
           { to: "/super-admin/emergency-response", label: "Emergency Response", icon: AlertOctagon },
         ],
         secondary: [
-          { to: "/settings/account", label: "Account", icon: UserCog },
+          { to: "/outreach", label: "Campaigns & Leads", icon: Megaphone },
+        { to: "/settings/account", label: "Account", icon: UserCog },
           { to: "/super-admin/create-clinic", label: "Create Clinic", icon: Sparkles },
           { to: "/super-admin/archives", label: "Data Archives", icon: Archive },
           { to: "/super-admin/users", label: "Users", icon: ShieldCheck },
