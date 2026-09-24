@@ -12,17 +12,31 @@ const sharedGlobal = globalThis as GlobalWithSupabaseAuth;
 export const safeSupabaseStorage = {
   getItem(key: string) {
     if (typeof window === "undefined") return null;
-    return window.localStorage.getItem(key);
+    try {
+      return window.localStorage.getItem(key);
+    } catch {
+      // Storage can be temporarily unavailable in restricted/private browser
+      // contexts. Never turn a storage read failure into an authentication loss.
+      return null;
+    }
   },
 
   setItem(key: string, value: string) {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(key, value);
+    try {
+      window.localStorage.setItem(key, value);
+    } catch {
+      // Do not sign the user out if the browser temporarily rejects storage.
+    }
   },
 
   removeItem(key: string) {
     if (typeof window === "undefined") return;
-    window.localStorage.removeItem(key);
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // Best-effort cleanup only.
+    }
   },
 };
 
