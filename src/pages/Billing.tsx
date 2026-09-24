@@ -376,6 +376,15 @@ export default function Billing() {
                   )
                   .in("visit_id", visitIds)
               : Promise.resolve({ data: [], error: null }),
+            apiClient
+              .from("hmo_claims")
+              .select(
+                "id, patient_id, billing_id, hmo_id, service_cost, approved_amount, status, " +
+                "hmo_request_sent, hmo_request_sent_at, hmo_request_status, hmo_request_response_at, hmo_request_remarks, " +
+                "claim_sent, claim_sent_at, claim_response_status, claim_response_at, claim_response_remarks, created_at, updated_at"
+              )
+              .eq("clinic_id", cid)
+              .in("billing_id", billingIds),
           ])
         : [
             { data: [], error: null },
@@ -1327,6 +1336,7 @@ if (error) {
                 const paymentsForBill = lookupPayments.filter(
                   (payment: any) => payment.billing_id === b.id
                 );
+                const hmoClaim = detail?.hmoClaim || null;
 
                 return (
                   <div
