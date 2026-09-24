@@ -184,7 +184,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
       { to: "/dashboard", label: "Home", icon: LayoutDashboard },
       { to: "/patients", label: "Patients", icon: Users },
       { to: "/appointments", label: "Visits", icon: Calendar },
-      { to: "/billing", label: "Billing", icon: DollarSign },
+      { to: "/billing", label: "Billing", icon: NairaIcon },
       { to: "/inventory", label: "Optical", icon: ShoppingBag },
     ];
   }, [isAdmin, isDoctor, isReceptionist, isSuperAdmin, isSuperAdminWs]);
