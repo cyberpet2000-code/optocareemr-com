@@ -248,8 +248,9 @@ export default function PatientList() {
             ? Number(latestClaim.approved_amount || 0) > 0
               ? Number(latestClaim.approved_amount)
               : Number(latestClaim.service_cost || 0)
-            : 0;
+            : Number(latestBill?.hmo_covered_amount || 0);
           const patientPayable = patientBills.reduce((sum: number, bill: any) => sum + Number(bill.patient_payable || 0), 0);
+          const patientBillsForDisplayHasCharge = patientBills.some((bill: any) => Number(bill.total_amount || 0) > 0 || Number(bill.amount_paid || 0) > 0);
           return {
             ...p,
             hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined,
@@ -344,7 +345,7 @@ export default function PatientList() {
 
     const explicitCategory = wantsHmo || wantsFamily || wantsPrivate;
     const isHmoAttention = isHmo && (!p.hmoClaimStatus || ["pending", "requested", "submitted", "sent", "processing", "approved"].includes(String(p.hmoClaimStatus).toLowerCase()));
-    const isPaid = !isHmo ? Number(p.balance || 0) <= 0 && Number(p.billingSummary?.totalAmount || 0) > 0 : false;
+    const isPaid = !isHmo ? Number(p.balance || 0) <= 0 && Number(p.billingSummary?.outstandingBalance || 0) === 0 && patientBillsForDisplayHasCharge : false;
     const isDue = !isHmo ? Number(p.balance || 0) > 0 : Number(p.patientPayable || 0) > 0;
     const categoryMatches =
       (!wantsHmo || isHmo) &&
