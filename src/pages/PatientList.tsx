@@ -370,10 +370,10 @@ export default function PatientList() {
 
           setPatients(enrichedRows);
           offlineStore.save(cacheKey, enrichedRows);
-          cachePatientsOffline(cid, enrichedRows.map((patient: any) => ({
-            ...patient,
-            hmo_name: patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : undefined,
-          })));
+          // Keep the existing HMO enrichment from the row itself. The HMO
+          // map belongs to the optional enrichment task above and must never
+          // leak into this core enrichment scope.
+          cachePatientsOffline(cid, enrichedRows);
 
           if (!isReceptionist && visitRows.length > 0) {
             const staffIds = Array.from(new Set(
