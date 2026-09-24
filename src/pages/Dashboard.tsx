@@ -170,6 +170,116 @@ export default function Dashboard() {
     month: "long",
   });
 
+  // Load a staff member's own patient rating independently from the main
+  // dashboard query. This avoids role/user hydration races and keeps the
+  // rating tied to the authenticated identity.
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadOwnStaffRating = async () => {
+      if (!effectiveClinicId || !user?.id || roleLoading) {
+        if (!effectiveClinicId || !user?.id) {
+          setStaffRating(null);
+          setStaffRatingCount(0);
+        }
+        return;
+      }
+
+      if (isAdmin || isSuperAdmin) {
+        setStaffRating(null);
+        setStaffRatingCount(0);
+        return;
+      }
+
+      if (isDoctor) {
+        const { data, error } = await apiClient
+          .from("feedback_responses")
+          .select("doctor_professionalism_rating")
+          .eq("clinic_id", effectiveClinicId)
+          .eq("doctor_id", user.id)
+          .not("doctor_professionalism_rating", "is", null);
+
+        if (cancelled) return;
+
+        if (error) {
+          console.error("Failed to load doctor rating:", error);
+          setStaffRating(null);
+          setStaffRatingCount(0);
+          return;
+        }
+
+        const ratings = (data || [])
+          .map((row: any) => Number(row.doctor_professionalism_rating))
+          .filter((rating: number) => Number.isFinite(rating));
+
+        setStaffRatingCount(ratings.length);
+        setStaffRating(
+          ratings.length
+            ? Number((ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length).toFixed(1))
+            : null
+        );
+        return;
+      }
+
+      if (isReceptionist) {
+        const { data: visitRows, error: visitError } = await apiClient
+          .from("visits")
+          .select("id")
+          .eq("clinic_id", effectiveClinicId)
+          .eq("registered_by", user.id);
+
+        if (cancelled) return;
+
+        if (visitError) {
+          console.error("Failed to load receptionist visits for rating:", visitError);
+          setStaffRating(null);
+          setStaffRatingCount(0);
+          return;
+        }
+
+        const visitIds = (visitRows || []).map((row: any) => row.id);
+        if (!visitIds.length) {
+          setStaffRating(null);
+          setStaffRatingCount(0);
+          return;
+        }
+
+        const { data: ratingsData, error: ratingError } = await apiClient
+          .from("feedback_responses")
+          .select("front_desk_rating")
+          .eq("clinic_id", effectiveClinicId)
+          .in("visit_id", visitIds)
+          .not("front_desk_rating", "is", null);
+
+        if (cancelled) return;
+
+        if (ratingError) {
+          console.error("Failed to load receptionist rating:", ratingError);
+          setStaffRating(null);
+          setStaffRatingCount(0);
+          return;
+        }
+
+        const ratings = (ratingsData || [])
+          .map((row: any) => Number(row.front_desk_rating))
+          .filter((rating: number) => Number.isFinite(rating));
+
+        setStaffRatingCount(ratings.length);
+        setStaffRating(
+          ratings.length
+            ? Number((ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length).toFixed(1))
+            : null
+        );
+      }
+    };
+
+    void loadOwnStaffRating();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveClinicId, user?.id, roleLoading, isAdmin, isSuperAdmin, isDoctor, isReceptionist]);
+
   const loadDashboard = useCallback(async () => {
     if (!effectiveClinicId) {
       console.debug("[dashboard] no active clinic, skipping fetch");
@@ -286,87 +396,7 @@ setFeedbackFollowups(feedbackFollowupData ?? []);
       setStaffFeedback([]);
       setStaffFeedbackError(null);
     }
-    // Load the logged-in staff member's own patient rating
-if (user?.id) {
-  if (isDoctor && !isAdmin) {
-    const { data: ratingRows, error: ratingError } = await apiClient
-      .from("feedback_responses")
-      .select("doctor_professionalism_rating")
-      .eq("clinic_id", cid)
-      .eq("doctor_id", user.id)
-      .not("doctor_professionalism_rating", "is", null);
-
-    if (ratingError) {
-      console.error("Failed to load doctor rating:", ratingError);
-    } else {
-      const ratings = (ratingRows || [])
-        .map((row: any) => Number(row.doctor_professionalism_rating))
-        .filter((rating: number) => Number.isFinite(rating));
-
-      setStaffRatingCount(ratings.length);
-
-      setStaffRating(
-        ratings.length > 0
-          ? Number(
-              (
-                ratings.reduce((sum, rating) => sum + rating, 0) /
-                ratings.length
-              ).toFixed(1)
-            )
-          : null
-      );
-    }
-  } else if (isReceptionist && !isAdmin) {
-    const { data: visitRows, error: visitError } = await apiClient
-      .from("visits")
-      .select("id")
-      .eq("clinic_id", cid)
-      .eq("registered_by", user.id);
-
-    if (visitError) {
-      console.error("Failed to load receptionist visits:", visitError);
-    } else {
-      const visitIds = (visitRows || []).map((row: any) => row.id);
-
-      if (visitIds.length === 0) {
-        setStaffRating(null);
-        setStaffRatingCount(0);
-      } else {
-        const { data: ratingRows, error: ratingError } = await apiClient
-          .from("feedback_responses")
-          .select("front_desk_rating")
-          .eq("clinic_id", cid)
-          .in("visit_id", visitIds)
-          .not("front_desk_rating", "is", null);
-
-        if (ratingError) {
-          console.error(
-            "Failed to load receptionist rating:",
-            ratingError
-          );
-        } else {
-          const ratings = (ratingRows || [])
-            .map((row: any) => Number(row.front_desk_rating))
-            .filter((rating: number) => Number.isFinite(rating));
-
-          setStaffRatingCount(ratings.length);
-
-          setStaffRating(
-            ratings.length > 0
-              ? Number(
-                  (
-                    ratings.reduce((sum, rating) => sum + rating, 0) /
-                    ratings.length
-                  ).toFixed(1)
-                )
-              : null
-          );
-        }
-      }
-    }
-  }
-}
-    setLoading(true);
+  setLoading(true);
     startLoadingWatch("dashboard");
     const localToday = new Date();
     const today = [
