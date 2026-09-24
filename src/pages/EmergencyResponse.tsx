@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertOctagon, Activity, CheckCircle2, Database, Globe, KeyRound, RefreshCw, ServerCrash, Wifi, Wrench, ArrowLeft } from "lucide-react";
+import { AlertOctagon, Activity, CheckCircle2, Database, Globe, KeyRound, RefreshCw, ServerCrash, Wifi, Wrench, ArrowLeft, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -106,7 +106,11 @@ export default function EmergencyResponse() {
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" asChild><Link to="/super-admin"><ArrowLeft className="h-4 w-4 mr-2" /> Super Admin</Link></Button>
           <Button variant="outline" onClick={() => void runDiagnosis()} disabled={checking}><RefreshCw className={`h-4 w-4 mr-2 ${checking ? "animate-spin" : ""}`} /> Re-check</Button>
-          <Button onClick={() => void runRecovery()} disabled={recovering}><Wrench className={`h-4 w-4 mr-2 ${recovering ? "animate-spin" : ""}`} /> {recovering ? "Recovering…" : "Run Safe Recovery"}</Button>
+          <div className="rounded-lg border border-warning/40 bg-warning/5 p-1">
+            <Button variant="outline" onClick={() => void runRecovery()} disabled={recovering} className="border-warning/50">
+              <Wrench className={`h-4 w-4 mr-2 ${recovering ? "animate-spin" : ""}`} /> {recovering ? "Recovering…" : "Safe Recovery"}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -135,6 +139,13 @@ export default function EmergencyResponse() {
         <StatusCard label="Edge Functions" status={diagnosis?.edgeFunctions ?? "unknown"} icon={<ServerCrash className="h-5 w-5" />} />
         <StatusCard label="Application" status={diagnosis?.application ?? "unknown"} icon={<Activity className="h-5 w-5" />} />
       </div>
+
+      <Card className="rounded-2xl border-primary/20">
+        <CardHeader><CardTitle className="flex items-center gap-2"><ShieldAlert className="h-5 w-5" /> Diagnostics first</CardTitle></CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          <p>Use <strong className="text-foreground">Re-check</strong> first. Safe Recovery only resets local application state; it does not change clinic data, database records, permissions, or production source code.</p>
+        </CardContent>
+      </Card>
 
       <Card className="rounded-2xl">
         <CardHeader><CardTitle>Emergency Response Workflow</CardTitle></CardHeader>
