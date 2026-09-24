@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
             Lens: ${safe(p.lens_order_status || (p.lens_order_required ? "pending" : "not required"))}
           </td>
           <td style="padding:8px;border-bottom:1px solid #e2e8f0;vertical-align:top;font-size:12px">
-            ${p.patient_type === "hmo" ? `Claim: ${safe(p.hmo_claim_status)}<br/>${safe(p.hmo_claim_remarks)}` : "Private"}
+            ${p.patient_type === "hmo" ? `Claim: ${safe(p.hmo_claim_status)}<br/>Amount to claim: ${money(p.hmo_amount_to_claim)}<br/>Claim sent: ${p.hmo_claim_sent ? "Yes" : "No"}<br/>Response: ${safe(p.hmo_claim_response_status || "Pending")}<br/>${safe(p.hmo_claim_response_remarks || p.hmo_claim_remarks)}` : "Private"}
           </td>
           <td style="padding:8px;border-bottom:1px solid #e2e8f0;vertical-align:top;font-size:12px">
             ${p.eye_drop_quantity || 0} dispensed
