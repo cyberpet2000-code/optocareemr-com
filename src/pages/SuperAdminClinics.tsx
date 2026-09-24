@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAccess } from "@/hooks/useAccess";
 import { toast } from "sonner";
 import PendingInvitesPanel from "@/components/PendingInvitesPanel";
@@ -169,38 +170,54 @@ export default function SuperAdminClinics() {
                   <td className="py-2.5 pr-3 text-xs">{c.setup_completed ? "✓ Done" : "Pending"}</td>
                   <td className="py-2.5 pr-3 text-xs">{c.is_active ? "Yes" : "No"}</td>
                   <td className="py-2.5 pr-3 text-right">
-                    <div className="inline-flex flex-wrap gap-2 justify-end">
-                      <Button size="sm" variant="outline" onClick={() => openInvite(c)}>
-                        <UserPlus size={14} className="mr-1" /> Invite
+                    <div className="inline-flex items-center gap-2 justify-end">
+                      <Button size="sm" onClick={() => enter(c)} disabled={enteringId === c.id || !!enteringId}>
+                        <LogIn size={14} className="mr-1" /> {enteringId === c.id ? "Entering…" : "Enter Clinic"}
                       </Button>
-                      {(() => {
-                        const cur = normalizeLifecycle(c?.lifecycle_status);
-                        if (cur && !ALLOWED_TRANSITIONS[cur]) {
-                          // eslint-disable-next-line no-console
-                          console.warn("[clinic:lifecycle:unknown]", { clinicId: c?.id ?? null, lifecycle_status: cur });
-                        }
-                        const allowed = ALLOWED_TRANSITIONS[cur] ?? [];
-                        const btn = (next: Lifecycle, label: string, Icon: any, variant: any = "outline") => (
-                          <Button key={next} size="sm" variant={variant}
-                            onClick={() => transitionLifecycle(c, next)}
-                            disabled={busyId === c.id || !allowed.includes(next)}>
-                            <Icon size={14} className="mr-1" /> {busyId === c.id ? "…" : label}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="outline" aria-label={`Manage ${c.name}`}>
+                            <MoreVertical size={16} />
+                            <span className="hidden sm:inline ml-1">Manage</span>
                           </Button>
-                        );
-                        return (
-                          <>
-                            {allowed.includes("active") && btn("active", cur === "suspended" ? "Reactivate" : "Activate", cur === "suspended" ? PlayCircle : CheckCircle2, "default")}
-                            {allowed.includes("suspended") && btn("suspended", "Suspend", PauseCircle, "outline")}
-                            {allowed.includes("deactivated") && btn("deactivated", "Deactivate", XCircle, "destructive")}
-                          </>
-                        );
-                      })()}
-                      <Button size="sm" variant="outline" onClick={() => navigate(`/super-admin/archives?clinic_id=${c.id}`)}>
-                        <Archive size={14} className="mr-1" /> Archive
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => enter(c)} disabled={enteringId === c.id || !!enteringId}>
-                        <LogIn size={14} className="mr-1" /> {enteringId === c.id ? "Entering…" : "Enter"}
-                      </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-52">
+                          <DropdownMenuItem onClick={() => openInvite(c)}>
+                            <UserPlus size={14} className="mr-2" /> Invite Admin
+                          </DropdownMenuItem>
+                          {(() => {
+                            const cur = normalizeLifecycle(c?.lifecycle_status);
+                            const allowed = ALLOWED_TRANSITIONS[cur] ?? [];
+                            return (
+                              <>
+                                {allowed.includes("active") && (
+                                  <DropdownMenuItem onClick={() => transitionLifecycle(c, "active")} disabled={busyId === c.id}>
+                                    {cur === "suspended" ? <PlayCircle size={14} className="mr-2" /> : <CheckCircle2 size={14} className="mr-2" />}
+                                    {cur === "suspended" ? "Reactivate clinic" : "Activate clinic"}
+                                  </DropdownMenuItem>
+                                )}
+                                {allowed.includes("suspended") && (
+                                  <DropdownMenuItem onClick={() => transitionLifecycle(c, "suspended")} disabled={busyId === c.id}>
+                                    <PauseCircle size={14} className="mr-2" /> Suspend clinic
+                                  </DropdownMenuItem>
+                                )}
+                                {allowed.includes("deactivated") && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => transitionLifecycle(c, "deactivated")} disabled={busyId === c.id} className="text-destructive focus:text-destructive">
+                                      <ShieldAlert size={14} className="mr-2" /> Deactivate clinic
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </>
+                            );
+                          })()}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => navigate(`/super-admin/archives?clinic_id=${c.id}`)}>
+                            <Archive size={14} className="mr-2" /> Data Archives
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </td>
                 </tr>
