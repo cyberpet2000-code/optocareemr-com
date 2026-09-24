@@ -834,7 +834,6 @@ if (user?.id) {
             <>
               <Metric icon={Users} label="Patients today" value={todayVisits} gradient={tealGrad} iconColor="hsl(184 78% 40%)" to="/visits?filter=today" />
               <Metric icon={CalendarDays} label="Appointments" value={todayAppointments} gradient={blueGrad} iconColor="hsl(217 91% 55%)" to="/appointments" />
-              <Metric icon={TrendingUp} label="Follow-ups" value={feedbackFollowups.length} gradient={navyGrad} iconColor="hsl(217 91% 55%)" to="/patients?filter=followup" />
               <Metric icon={AlertTriangle} label="Stock alerts" value={lowStockCount + drugAlerts} gradient={amberGrad} iconColor="hsl(38 92% 50%)" to="/inventory" hint={lowStockCount + drugAlerts ? "Needs attention" : "All clear"} />
             </>
           )}
@@ -857,6 +856,30 @@ if (user?.id) {
             </>
           )}
         </div>
+      </section>
+
+      <section className="mb-6">
+        <Link
+          to="/patients?filter=followup"
+          className="medical-card group flex items-center gap-3 rounded-2xl border p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+          aria-label="Open patient feedback follow-ups"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <TrendingUp size={18} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">Patient feedback follow-ups</p>
+            <p className="text-xs text-muted-foreground">
+              {feedbackFollowups.length > 0
+                ? `${feedbackFollowups.length} patient follow-up${feedbackFollowups.length === 1 ? "" : "s"} need attention`
+                : "No patient feedback follow-ups pending"}
+            </p>
+          </div>
+          <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
+            {feedbackFollowups.length}
+          </span>
+          <ChevronRight size={16} className="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+        </Link>
       </section>
 
       {(isReceptionist || isAdmin || isSuperAdmin) && (birthdayLoading || birthdayPatients.length > 0) && (
