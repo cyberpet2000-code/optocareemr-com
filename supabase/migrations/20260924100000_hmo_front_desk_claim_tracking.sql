@@ -30,8 +30,8 @@ SET
       THEN true ELSE claim_sent END,
   claim_response_status = CASE
     WHEN lower(coalesce(status, '')) IN ('approved') THEN 'Approved'
-    WHEN lower(coalesce(status, 'rejected')) THEN 'Rejected'
-    WHEN lower(coalesce(status, 'query','queried')) THEN 'Query'
+    WHEN lower(coalesce(status, '')) = 'rejected' THEN 'Rejected'
+    WHEN lower(coalesce(status, '')) IN ('query','queried') THEN 'Query'
     WHEN lower(coalesce(status, 'response received')) THEN 'Received'
     ELSE claim_response_status
   END;
