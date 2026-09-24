@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, FileText, Plus, X, Printer, Trash2, ShoppingBag, Check, ChevronsUpDown, Search } from "lucide-react";
+import { FileText, Plus, X, Printer, Trash2, ShoppingBag, Check, ChevronsUpDown, Search } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useAccess } from "@/hooks/useAccess";
@@ -148,6 +148,8 @@ function StockItemPicker({
     </Popover>
   );
 }
+
+const NairaIcon = ({ size = 18 }: { size?: number }) => <span style={{ fontSize: size, lineHeight: 1, fontWeight: 700 }}>₦</span>;
 
 export default function Billing() {
   const { effectiveClinicId: cid, user, role } = useAccess();
@@ -1819,7 +1821,7 @@ if (error) {
         className="space-y-4"
       >
         <TabsList className="bg-muted/50 rounded-2xl p-1">
-          <TabsTrigger value="pending" className="rounded-xl text-xs gap-1"><DollarSign size={12} /> Pending ({pendingBills.length})</TabsTrigger>
+          <TabsTrigger value="pending" className="rounded-xl text-xs gap-1"><NairaIcon size={12} /> Pending ({pendingBills.length})</TabsTrigger>
           <TabsTrigger value="all" className="rounded-xl text-xs gap-1"><FileText size={12} /> All ({actualBills.length})</TabsTrigger>
           <TabsTrigger value="walk-in" className="rounded-xl text-xs gap-1"><ShoppingBag size={12} /> Walk-In Sale</TabsTrigger>
         </TabsList>
