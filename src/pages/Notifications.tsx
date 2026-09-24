@@ -218,7 +218,10 @@ export default function Notifications() {
                     <p className="font-semibold">{item.title}</p>
                     {!item.read_at && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />}
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{item.body}</p>\n                  {getPatientContext(item) && (\n                    <p className="mt-1 text-xs font-semibold text-primary">Patient: {getPatientContext(item)?.name}</p>\n                  )}
+                  <p className="mt-1 text-sm text-muted-foreground">{item.body}</p>
+                  {getPatientContext(item) && (
+                    <p className="mt-1 text-xs font-semibold text-primary">Patient: {getPatientContext(item)?.name}</p>
+                  )}
                   <div className="mt-2 flex items-center justify-between gap-3">
                     <p className="text-[11px] text-muted-foreground">{new Date(item.created_at).toLocaleString("en-GB")}</p>
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
