@@ -36,12 +36,12 @@ export default function Notifications() {
       .from("staff_notifications")
       .select("id,title,body,link,notification_type,category,priority,entity_type,entity_id,read_at,created_at,expires_at")
       .eq("clinic_id", effectiveClinicId)
-      .eq("recipient_user_id", user?.id || "")
+      .eq("recipient_user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(50);
     if (!error) setItems((data || []) as StaffNotification[]);
     setLoading(false);
-  }, [effectiveClinicId]);
+  }, [effectiveClinicId, user?.id]);
 
   useEffect(() => {
     void load();
@@ -81,16 +81,29 @@ export default function Notifications() {
   };
 
   const markRead = async (id: string) => {
-    await apiClient.from("staff_notifications").update({ read_at: new Date().toISOString() }).eq("id", id);
-    setItems(current => current.map(item => item.id === id ? { ...item, read_at: new Date().toISOString() } : item));
+    if (!effectiveClinicId || !user?.id) return;
+    const readAt = new Date().toISOString();
+    const { error } = await apiClient
+      .from("staff_notifications")
+      .update({ read_at: readAt })
+      .eq("id", id)
+      .eq("clinic_id", effectiveClinicId)
+      .eq("recipient_user_id", user.id);
+    if (error) return;
+    setItems(current => current.filter(item => item.id !== id));
   };
 
   const markAllRead = async () => {
-    const unread = items.filter(item => !item.read_at).map(item => item.id);
-    if (unread.length) {
-      await apiClient.from("staff_notifications").update({ read_at: new Date().toISOString() }).in("id", unread);
-      setItems(current => current.map(item => ({ ...item, read_at: item.read_at || new Date().toISOString() })));
-    }
+    if (!effectiveClinicId || !user?.id) return;
+    const readAt = new Date().toISOString();
+    const { error } = await apiClient
+      .from("staff_notifications")
+      .update({ read_at: readAt })
+      .eq("clinic_id", effectiveClinicId)
+      .eq("recipient_user_id", user.id)
+      .is("read_at", null);
+    if (error) return;
+    setItems(current => current.filter(item => !!item.read_at));
   };
 
   const openNotification = async (item: StaffNotification) => {
