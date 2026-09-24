@@ -18,7 +18,9 @@ export type WhatsAppTemplateKey =
   | "waiting_for_frame"
   | "frame_received"
   | "contact_lens_ready"
-  | "birthday";
+  | "birthday"
+  | "recall_first"
+  | "recall_reminder";
 
 type Template = {
   key: WhatsAppTemplateKey;
@@ -142,6 +144,36 @@ Kindly contact us or visit the clinic to schedule your follow-up appointment.
 We look forward to seeing you.
 
 *Powered by OptoCare-EMR*`,
+  },
+  {
+    key: "recall_first",
+    label: "👁️ Recall — First Message",
+    group: "Recalls",
+    build: ({ clinicName, patientName }) => `${clinicName}
+
+Hello ${patientName},
+
+Your routine eye check-up is due. 👁️
+
+Reply YES and we’ll help you book a convenient appointment.
+
+Thank you,
+${clinicName}`,
+  },
+  {
+    key: "recall_reminder",
+    label: "🔔 Recall — Reminder",
+    group: "Recalls",
+    build: ({ clinicName, patientName }) => `${clinicName}
+
+Hello ${patientName},
+
+Just a reminder that your routine eye check-up is due. 👁️
+
+Reply YES if you’d like us to book your appointment.
+
+Thank you,
+${clinicName}`,
   },
   {
     key: "bring_frame",
