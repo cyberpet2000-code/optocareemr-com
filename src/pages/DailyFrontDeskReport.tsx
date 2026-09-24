@@ -45,6 +45,13 @@ type PatientRow = {
   lens_order_remarks: string | null;
   hmo_request_status: string | null;
   hmo_request_remarks: string | null;
+  hmo_claim_id: string | null;
+  hmo_amount_to_claim: number;
+  hmo_claim_sent: boolean;
+  hmo_claim_sent_at: string | null;
+  hmo_claim_response_status: string;
+  hmo_claim_response_at: string | null;
+  hmo_claim_response_remarks: string | null;
   medication_name: string | null;
   medication_dispensed: boolean;
   feedback_form_sent: boolean;
@@ -69,6 +76,7 @@ type Financials = {
 type Expense = { id: string; description: string; amount: number; payment_method: string; paid_to: string | null; remarks: string | null };
 
 const HMO_REQUEST_STATUSES = ["Not sent", "Sent", "Pending Response", "Response Received", "Approved", "Rejected", "Resubmission Required"];
+const HMO_RESPONSE_STATUSES = ["Pending", "Received", "Approved", "Rejected", "Query", "Other"];
 const LENS_ORDER_STATUSES = ["not_required", "pending", "sent", "ordered", "received", "collected"];
 const LENS_LABELS: Record<string, string> = {
   not_required: "Not required",
@@ -132,8 +140,9 @@ export default function DailyFrontDeskReport() {
       const next = new Date(`${reportDate}T00:00:00+01:00`); next.setDate(next.getDate() + 1);
       const nextStart = next.toISOString();
 
-      const [patientsRes, itemsRes, visitsRes, followupsRes, financeRes, expensesRes, clinicRes] = await Promise.all([
+      const [patientsRes, claimsRes, itemsRes, visitsRes, followupsRes, financeRes, expensesRes, clinicRes] = await Promise.all([
         db.rpc("get_daily_front_desk_report_data", { p_clinic_id: effectiveClinicId, p_report_date: reportDate }),
+        db.from("hmo_claims").select("id,patient_id,billing_id,service_cost,approved_amount,status,notes,claim_sent,claim_sent_at,claim_response_status,claim_response_at,claim_response_remarks").eq("clinic_id", effectiveClinicId).order("created_at", { ascending: false }),
         db.from("daily_front_desk_report_items").select("*").eq("report_id", reportId).order("created_at", { ascending: true }),
         db.from("visits").select("id,patient_id,medication,medication_dispensed,sub_od_sphere,sub_od_cyl,sub_od_axis,sub_os_sphere,sub_os_cyl,sub_os_axis,sub_reading_add,lens_type").eq("clinic_id", effectiveClinicId).gte("created_at", dayStart).lt("created_at", nextStart),
         db.from("feedback_followups").select("id,patient_id,visit_id,status,reason,notes,created_at,completed_at").eq("clinic_id", effectiveClinicId).order("created_at", { ascending: false }).limit(500),
@@ -141,7 +150,11 @@ export default function DailyFrontDeskReport() {
         db.from("daily_front_desk_expenses").select("id,description,amount,payment_method,paid_to,remarks").eq("report_id", reportId).order("created_at", { ascending: true }),
         db.from("clinics").select("daily_report_email").eq("id", effectiveClinicId).maybeSingle(),
       ]);
-      for (const r of [patientsRes, itemsRes, visitsRes, followupsRes, financeRes, expensesRes, clinicRes]) if (r.error) throw r.error;
+      for (const r of [patientsRes, claimsRes, itemsRes, visitsRes, followupsRes, financeRes, expensesRes, clinicRes]) if (r.error) throw r.error;
+      const claimsByPatient = new Map<string, any>();
+      for (const claim of claimsRes.data || []) {
+        if (claim.patient_id && !claimsByPatient.has(claim.patient_id)) claimsByPatient.set(claim.patient_id, claim);
+      }
 
       const items = itemsRes.data || [];
       const itemMap = new Map(items.map((x: any) => [`${x.patient_id}:${x.visit_id || ""}`, x]));
@@ -167,7 +180,15 @@ export default function DailyFrontDeskReport() {
           os_sphere: p.os_sphere ?? null, os_cylinder: p.os_cylinder ?? null, os_axis: p.os_axis ?? null, reading_add: p.reading_add ?? null,
           lens_type: p.lens_type || visit?.lens_type || null, glasses_prescription_sent: saved?.glasses_prescription_sent ?? !!p.glasses_prescription_sent,
           lens_order_required: !!p.lens_order_required, lens_order_status: saved?.lens_order_status ?? (p.lens_order_required ? "pending" : "not_required"), lens_order_remarks: saved?.lens_order_remarks ?? null,
-          hmo_request_status: saved?.hmo_claim_status ?? (p.patient_type === "hmo" ? "Not sent" : null), hmo_request_remarks: saved?.hmo_claim_remarks ?? null,
+          hmo_request_status: saved?.hmo_claim_status ?? (claimsByPatient.get(p.patient_id)?.status || (p.patient_type === "hmo" ? "Not sent" : null)),
+          hmo_request_remarks: saved?.hmo_claim_remarks ?? claimsByPatient.get(p.patient_id)?.notes ?? null,
+          hmo_claim_id: claimsByPatient.get(p.patient_id)?.id ?? null,
+          hmo_amount_to_claim: Number(claimsByPatient.get(p.patient_id)?.service_cost || 0),
+          hmo_claim_sent: !!claimsByPatient.get(p.patient_id)?.claim_sent || ["Sent","Pending Response","Response Received","Approved","Rejected","Resubmission Required"].includes(claimsByPatient.get(p.patient_id)?.status || ""),
+          hmo_claim_sent_at: claimsByPatient.get(p.patient_id)?.claim_sent_at ?? null,
+          hmo_claim_response_status: claimsByPatient.get(p.patient_id)?.claim_response_status || "Pending",
+          hmo_claim_response_at: claimsByPatient.get(p.patient_id)?.claim_response_at ?? null,
+          hmo_claim_response_remarks: claimsByPatient.get(p.patient_id)?.claim_response_remarks ?? null,
           medication_name: visit?.medication || null, medication_dispensed: !!visit?.medication_dispensed,
           feedback_form_sent: saved?.feedback_form_sent ?? !!p.feedback_form_sent,
           feedback_note: saved?.feedback_note ?? null,
@@ -197,9 +218,23 @@ export default function DailyFrontDeskReport() {
   const feedbackSent = patients.filter((p) => p.feedback_form_sent).length;
   const feedbackFollowups = patients.filter((p) => p.feedback_follow_up !== "Not required");
   const feedbackFollowupsPending = feedbackFollowups.filter((p) => p.feedback_follow_up !== "Completed").length;
-  const outstanding = patients.filter((p) => (p.patient_type === "hmo" && !["Approved", "Response Received"].includes(p.hmo_request_status || "")) || (p.prescription_available && !p.glasses_prescription_sent) || (p.lens_order_required && ["pending", "sent"].includes(p.lens_order_status || "")) || (p.medication_name && !p.medication_dispensed) || (p.feedback_follow_up === "Required" || p.feedback_follow_up === "Pending")).length;
+  const outstanding = patients.filter((p) => (p.patient_type === "hmo" && (!p.hmo_claim_sent || ["Pending","Query","Other"].includes(p.hmo_claim_response_status || "Pending"))) || (p.prescription_available && !p.glasses_prescription_sent) || (p.lens_order_required && ["pending", "sent"].includes(p.lens_order_status || "")) || (p.medication_name && !p.medication_dispensed) || (p.feedback_follow_up === "Required" || p.feedback_follow_up === "Pending")).length;
 
   function patch(key: string, values: Partial<PatientRow>) { setPatients((rows) => rows.map((r) => r.key === key ? { ...r, ...values } : r)); }
+
+  async function saveHmoClaim(row: PatientRow) {
+    if (!row.hmo_claim_id || !effectiveClinicId) return;
+    const { error } = await db.from("hmo_claims").update({
+      claim_sent: row.hmo_claim_sent,
+      claim_sent_at: row.hmo_claim_sent ? (row.hmo_claim_sent_at || new Date().toISOString()) : null,
+      status: row.hmo_request_status || "Pending",
+      claim_response_status: row.hmo_claim_response_status || "Pending",
+      claim_response_at: row.hmo_claim_response_status && row.hmo_claim_response_status !== "Pending" ? (row.hmo_claim_response_at || new Date().toISOString()) : null,
+      claim_response_remarks: row.hmo_claim_response_remarks || null,
+      notes: row.hmo_request_remarks || null,
+    }).eq("id", row.hmo_claim_id).eq("clinic_id", effectiveClinicId);
+    if (error) throw error;
+  }
 
   async function savePatient(row: PatientRow) {
     if (!report || report.status === "submitted") return;
@@ -213,6 +248,7 @@ export default function DailyFrontDeskReport() {
         p_feedback_form_sent: row.feedback_form_sent, p_eye_drop_dispensed: row.medication_dispensed, p_remarks: row.remarks,
       });
       if (error) throw error;
+      if (row.patient_type === "hmo" && row.hmo_claim_id) await saveHmoClaim(row);
       const followup = await db.rpc("save_daily_front_desk_report_followup", {
         p_report_id: report.id, p_patient_id: row.patient_id, p_visit_id: row.visit_id,
         p_status: row.feedback_follow_up, p_note: row.feedback_follow_up_note,
@@ -285,9 +321,9 @@ export default function DailyFrontDeskReport() {
         <Input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search patient or number…" className="sm:w-[260px]" />
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1450px] border-collapse text-xs">
-          <thead className="bg-primary/10"><tr><Th># / Patient</Th><Th>Type</Th><Th>HMO</Th><Th>HMO Request</Th><Th>Subjective Refraction</Th><Th>Rx Sent</Th><Th>Lens Type</Th><Th>Lens Order</Th><Th>Medication</Th><Th>Dispensed</Th><Th>Feedback</Th><Th>Follow-up</Th><Th>Remarks</Th><Th>Action</Th></tr></thead>
-          <tbody>{loading ? <tr><td colSpan={14} className="p-12 text-center"><Loader2 className="animate-spin inline" /></td></tr> : filtered.map((row, index) => <DesktopRow key={row.key} row={row} index={index + 1} editable={canOperate && report?.status !== "submitted"} saving={saving === row.key} patch={patch} save={savePatient} />)}</tbody>
+        <table className="w-full min-w-[1750px] border-collapse text-xs">
+          <thead className="bg-primary/10"><tr><Th># / Patient</Th><Th>Type</Th><Th>HMO</Th><Th>HMO Request</Th><Th>Amount to Claim</Th><Th>Claim Response</Th><Th>Subjective Refraction</Th><Th>Rx Sent</Th><Th>Lens Type</Th><Th>Lens Order</Th><Th>Medication</Th><Th>Dispensed</Th><Th>Feedback</Th><Th>Follow-up</Th><Th>Remarks</Th><Th>Action</Th></tr></thead>
+          <tbody>{loading ? <tr><td colSpan={16} className="p-12 text-center"><Loader2 className="animate-spin inline" /></td></tr> : filtered.map((row, index) => <DesktopRow key={row.key} row={row} index={index + 1} editable={canOperate && report?.status !== "submitted"} saving={saving === row.key} patch={patch} save={savePatient} />)}</tbody>
         </table>
       </div>
       {!loading && !filtered.length && <div className="py-10 text-center text-sm text-muted-foreground">No patients match this report.</div>}
@@ -318,7 +354,9 @@ function DesktopRow({ row, index, editable, saving, patch, save }: any) {
     <td className="p-2 md:p-3 font-medium whitespace-nowrap"><span className="text-muted-foreground mr-2">{index}</span>{row.patient_name}<span className="block text-[10px] text-muted-foreground ml-5">{row.patient_number || "No patient number"}</span></td>
     <td className="p-2 md:p-3"><Status value={row.patient_type === "hmo" ? "HMO" : "Private"} /></td>
     <td className="p-2 md:p-3 whitespace-nowrap">{row.hmo_name || "—"}</td>
-    <td className="p-2 md:p-3">{row.patient_type === "hmo" ? <SelectStatus value={row.hmo_request_status || "Not sent"} options={HMO_REQUEST_STATUSES} disabled={!editable} onChange={(v) => patch(row.key,{hmo_request_status:v})} /> : "—"}</td>
+    <td className="p-2 md:p-3">{row.patient_type === "hmo" ? <div className="space-y-1.5"><label className="flex items-center gap-2 text-[11px]"><input type="checkbox" checked={row.hmo_claim_sent} disabled={!editable} onChange={(e) => patch(row.key,{hmo_claim_sent:e.target.checked, hmo_request_status:e.target.checked ? "Sent" : "Not sent"})} /> Claim sent</label><SelectStatus value={row.hmo_request_status || "Not sent"} options={HMO_REQUEST_STATUSES} disabled={!editable} onChange={(v) => patch(row.key,{hmo_request_status:v})} /></div> : "—"}</td>
+<td className="p-2 md:p-3 whitespace-nowrap">{row.patient_type === "hmo" ? <strong>{money(row.hmo_amount_to_claim)}</strong> : "—"}</td>
+<td className="p-2 md:p-3 min-w-[210px]">{row.patient_type === "hmo" ? <div className="space-y-1.5"><SelectStatus value={row.hmo_claim_response_status || "Pending"} options={HMO_RESPONSE_STATUSES} disabled={!editable} onChange={(v) => patch(row.key,{hmo_claim_response_status:v})} /><Input value={row.hmo_claim_response_remarks || ""} onChange={(e) => patch(row.key,{hmo_claim_response_remarks:e.target.value})} disabled={!editable} placeholder="Response / query / remarks" className="h-8 text-xs" /></div> : "—"}</td>
     <td className="p-2 md:p-3 min-w-[220px]"><RxCell row={row} /></td>
     <td className="p-2 md:p-3"><Status value={row.glasses_prescription_sent ? "Sent" : row.prescription_available ? "Not sent" : "Not required"} /></td>
     <td className="p-2 md:p-3 whitespace-nowrap">{row.lens_type || "—"}</td>
@@ -333,6 +371,6 @@ function DesktopRow({ row, index, editable, saving, patch, save }: any) {
 }
 
 function MobileRow({ row, open, setOpen, editable, saving, patch, save }: any) {
-  return <div className="p-3"><button type="button" onClick={setOpen} className="w-full text-left"><div className="flex items-center justify-between gap-3"><div><div className="font-semibold text-sm">{row.patient_name}</div><div className="text-[11px] text-muted-foreground">{row.patient_number || "No patient number"} · {row.patient_type === "hmo" ? row.hmo_name || "HMO" : "Private"}</div></div><div className="flex flex-wrap justify-end gap-1"><Status value={row.patient_type === "hmo" ? "HMO" : "Private"} />{row.feedback_follow_up !== "Not required" && <Status value={row.feedback_follow_up} />}</div></div></button>{open && <div className="mt-3 rounded-xl border bg-muted/20 p-3 space-y-3"><div className="grid grid-cols-2 gap-3 text-xs"><Info label="HMO Request" value={row.patient_type === "hmo" ? row.hmo_request_status || "Not sent" : "—"} /><Info label="Lens Type" value={row.lens_type || "—"} /><Info label="Glasses Prescription" value={row.glasses_prescription_sent ? "Sent" : row.prescription_available ? "Not sent" : "Not required"} /><Info label="Feedback" value={row.feedback_form_sent ? "Sent" : "Not sent"} /><Info label="Feedback Follow-up" value={row.feedback_follow_up} /><Info label="Medication" value={row.medication_name ? `${row.medication_name} · ${row.medication_dispensed ? "Dispensed" : "Not dispensed"}` : "—"} /></div>{editable && row.patient_type === "hmo" && <SelectStatus value={row.hmo_request_status || "Not sent"} options={HMO_REQUEST_STATUSES} onChange={(v) => patch(row.key,{hmo_request_status:v})} />}{row.lens_order_required && editable && <SelectStatus value={row.lens_order_status || "pending"} options={LENS_ORDER_STATUSES} onChange={(v) => patch(row.key,{lens_order_status:v})} />}<Textarea value={row.remarks || ""} onChange={(e) => patch(row.key,{remarks:e.target.value})} disabled={!editable} placeholder="Remarks" className="min-h-[70px]" /><Button className="w-full" onClick={() => void save(row)} disabled={!editable || saving}>{saving ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CheckCircle2 size={14} className="mr-1" />}Save Patient Row</Button></div>}</div>;
+  return <div className="p-3"><button type="button" onClick={setOpen} className="w-full text-left"><div className="flex items-center justify-between gap-3"><div><div className="font-semibold text-sm">{row.patient_name}</div><div className="text-[11px] text-muted-foreground">{row.patient_number || "No patient number"} · {row.patient_type === "hmo" ? row.hmo_name || "HMO" : "Private"}</div></div><div className="flex flex-wrap justify-end gap-1"><Status value={row.patient_type === "hmo" ? "HMO" : "Private"} />{row.feedback_follow_up !== "Not required" && <Status value={row.feedback_follow_up} />}</div></div></button>{open && <div className="mt-3 rounded-xl border bg-muted/20 p-3 space-y-3"><div className="grid grid-cols-2 gap-3 text-xs"><Info label="HMO Request" value={row.patient_type === "hmo" ? row.hmo_request_status || "Not sent" : "—"} /><Info label="Lens Type" value={row.lens_type || "—"} /><Info label="Glasses Prescription" value={row.glasses_prescription_sent ? "Sent" : row.prescription_available ? "Not sent" : "Not required"} /><Info label="Feedback" value={row.feedback_form_sent ? "Sent" : "Not sent"} /><Info label="Feedback Follow-up" value={row.feedback_follow_up} /><Info label="Medication" value={row.medication_name ? `${row.medication_name} · ${row.medication_dispensed ? "Dispensed" : "Not dispensed"}` : "—"} /></div>{editable && row.patient_type === "hmo" && <div className="space-y-2"><label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={row.hmo_claim_sent} onChange={(e) => patch(row.key,{hmo_claim_sent:e.target.checked, hmo_request_status:e.target.checked ? "Sent" : "Not sent"})} /> Claim sent</label><SelectStatus value={row.hmo_request_status || "Not sent"} options={HMO_REQUEST_STATUSES} onChange={(v) => patch(row.key,{hmo_request_status:v})} /><Info label="Amount to claim" value={money(row.hmo_amount_to_claim)} /><SelectStatus value={row.hmo_claim_response_status || "Pending"} options={HMO_RESPONSE_STATUSES} onChange={(v) => patch(row.key,{hmo_claim_response_status:v})} /><Input value={row.hmo_claim_response_remarks || ""} onChange={(e) => patch(row.key,{hmo_claim_response_remarks:e.target.value})} placeholder="Response / query / remarks" /></div>}{row.lens_order_required && editable && <SelectStatus value={row.lens_order_status || "pending"} options={LENS_ORDER_STATUSES} onChange={(v) => patch(row.key,{lens_order_status:v})} />}<Textarea value={row.remarks || ""} onChange={(e) => patch(row.key,{remarks:e.target.value})} disabled={!editable} placeholder="Remarks" className="min-h-[70px]" /><Button className="w-full" onClick={() => void save(row)} disabled={!editable || saving}>{saving ? <Loader2 size={14} className="mr-1 animate-spin" /> : <CheckCircle2 size={14} className="mr-1" />}Save Patient Row</Button></div>}</div>;
 }
 function Info({ label, value }: { label: string; value: string }) { return <div><div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div><div className="mt-1 font-medium">{value}</div></div>; }
