@@ -98,7 +98,7 @@ export default function ClinicSidebar() {
       primary: [
         { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
         { to: "/patients", label: "Patients", icon: Users },
-        { to: "/billing", label: "Billing", icon: DollarSign },
+        { to: "/billing", label: "Billing", icon: NairaIcon },
         { to: "/inventory", label: "Optical", icon: ShoppingBag },
       ],
       secondary: [
