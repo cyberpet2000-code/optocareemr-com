@@ -8,7 +8,6 @@ import {
   Users,
   Activity,
   AlertOctagon,
-  Sparkles,
   ShieldCheck,
   Plus,
   Star,
@@ -195,14 +194,11 @@ if (!cancelled) {
   ];
 
     const links = [
-    { to: "/super-admin/create-clinic", label: "Create Clinic", icon: Plus, desc: "Provision new clinic + admin" },
-    { to: "/super-admin/clinics", label: "All Clinics", icon: Building2, desc: "Manage clinic accounts" },
-    { to: "/super-admin/users", label: "Platform Users", icon: Users, desc: "Manage all users" },
-    { to: "/super-admin/system-health", label: "Performance", icon: Activity, desc: "System health & metrics" },
-    { to: "/super-admin/emergency-response", label: "Emergency Response", icon: AlertOctagon, desc: "Diagnose outages and run safe recovery" },
-    { to: "/super-admin/clinics", label: "Clinic Control", icon: Sparkles, desc: "Lifecycle and access oversight" },
-    { to: "/super-admin/users", label: "Safety & Roles", icon: ShieldCheck, desc: "User access and safeguards" },
-    { to: "/super-admin/users", label: "Staff Ratings", icon: Star, desc: "View staff ratings for the active clinic" },
+    { to: "/super-admin/clinics", label: "Clinics", icon: Building2, desc: "Manage clinic accounts and access" },
+    { to: "/super-admin/users", label: "Users & Roles", icon: Users, desc: "Manage platform users and permissions" },
+    { to: "/super-admin/system-health", label: "System Health", icon: Activity, desc: "Diagnostics, performance and service health" },
+    { to: "/super-admin/emergency-response", label: "Emergency Response", icon: AlertOctagon, desc: "Diagnose incidents and run controlled recovery" },
+    { to: "/super-admin/create-clinic", label: "Create Clinic", icon: Plus, desc: "Provision a new clinic and administrator" },
   ];
 
   const showSkeletons = !isAuthReady || loading || !stats;
@@ -235,6 +231,12 @@ if (!cancelled) {
             </div>
           );
         })}
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold">Platform Operations</h2>
+          <p className="text-xs text-muted-foreground">Routine administration and monitoring</p>
+        </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {links.map(l => {
