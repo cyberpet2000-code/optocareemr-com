@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bell, CheckCheck, MessageSquare, CalendarDays, CreditCard, Package, FileText, ShieldAlert, Users, ClipboardCheck } from "lucide-react";
+import { Bell, CheckCheck, MessageSquare, CalendarDays, CreditCard, Package, FileText, ShieldAlert, Users, ClipboardCheck, ChevronRight } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
@@ -108,9 +108,21 @@ export default function Notifications() {
     window.dispatchEvent(new CustomEvent("optocare:notifications:read-all"));
   };
 
-  const openNotification = async (item: StaffNotification) => {
-    if (!item.read_at) await markRead(item.id);
-    navigate(item.link || "/dashboard");
+  const openNotification = (item: StaffNotification) => {
+    // Navigate immediately; marking read must never block opening the notification.
+    const fallbackByCategory: Record<string, string> = {
+      appointments: "/appointments",
+      billing: "/billing",
+      inventory: "/inventory",
+      hmo: "/hmos",
+      feedback: "/feedback",
+      staff: "/admin/roles",
+      patient: item.entity_id ? "/patient/" + item.entity_id : "/patients",
+      system: "/super-admin/system-health",
+    };
+    const target = item.link || fallbackByCategory[item.category] || "/dashboard";
+    if (!item.read_at) void markRead(item.id);
+    navigate(target);
   };
 
   return (
@@ -147,8 +159,9 @@ export default function Notifications() {
             <button
               key={item.id}
               type="button"
-              onClick={() => void openNotification(item)}
-              className={`w-full rounded-2xl border p-4 text-left transition hover:bg-muted/40 ${item.read_at ? "bg-card" : item.priority === "urgent" ? "bg-destructive/5 border-destructive/30" : "bg-primary/5 border-primary/20"}`}
+              onClick={() => openNotification(item)}
+              aria-label={`Open notification: ${item.title}`}
+              className={`w-full rounded-2xl border p-4 text-left transition hover:bg-muted/40 active:scale-[0.995] cursor-pointer ${item.read_at ? "bg-card" : item.priority === "urgent" ? "bg-destructive/5 border-destructive/30" : "bg-primary/5 border-primary/20"}`}
             >
               <div className="flex gap-3">
                 <div className="mt-0.5 rounded-xl bg-primary/10 p-2 text-primary">
@@ -160,7 +173,12 @@ export default function Notifications() {
                     {!item.read_at && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />}
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{item.body}</p>
-                  <p className="mt-2 text-[11px] text-muted-foreground">{new Date(item.created_at).toLocaleString("en-GB")}</p>
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <p className="text-[11px] text-muted-foreground">{new Date(item.created_at).toLocaleString("en-GB")}</p>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
+                      Open <ChevronRight size={13} />
+                    </span>
+                  </div>
                 </div>
               </div>
             </button>
