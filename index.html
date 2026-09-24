@@ -12,7 +12,9 @@
     <!-- Register the offline app shell before the React bundle starts. -->
     <script>
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }).catch(function () {});
+        navigator.serviceWorker.register("/sw.js?v=8", { scope: "/", updateViaCache: "none" }).then(function (registration) {
+          registration.update().catch(function () {});
+        }).catch(function () {});
       }
     </script>
     <meta name="description" content="A modern cloud-based EMR platform for eye clinics and optometry practices with multi-clinic support, patient management, refraction workflows, billing, appointm">
