@@ -32,6 +32,8 @@ interface BillingRow {
   balance: number;
   status: string;
   hmo_id: string | null;
+  hmo_covered_amount?: number | null;
+  patient_payable?: number | null;
   created_at: string;
   patient_name?: string;
   hmo_name?: string;
@@ -63,6 +65,7 @@ interface LookupBillDetail {
   items: any[];
   visit: any | null;
   medicationDispensing: any[];
+  hmoClaim: any | null;
 }
 
 function parsePrescribedMedicationNames(medication: string | null | undefined): string[] {
@@ -380,12 +383,15 @@ export default function Billing() {
             { data: [], error: null },
             { data: [], error: null },
             { data: [], error: null },
+            { data: [], error: null },
           ];
 
       const paymentsRes = paymentsResult.data || [];
       const visitRows = visitsResult.data || [];
       const billingItemRows = billingItemsResult.data || [];
       const medicationDispensingRows = medicationDispensingResult.data || [];
+      const hmoClaimRows = hmoClaimsResult.data || [];
+      const hmoClaimMap = new Map((hmoClaimRows as any[]).map((claim) => [claim.billing_id, claim]));
       const visitMap = new Map(
         (visitRows as any[]).map((visit) => [visit.id, visit])
       );
@@ -406,6 +412,7 @@ export default function Billing() {
                 (item: any) => item.visit_id === billVisit.id
               )
             : [],
+          hmoClaim: hmoClaimMap.get(bill.id) || null,
         };
       });
 
@@ -1344,6 +1351,43 @@ if (error) {
                         {b.status}
                       </span>
                     </div>
+
+                    {b.payer_type === "hmo" && (
+                      <div className="rounded-xl border border-primary/15 bg-primary/5 p-3 space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold">HMO Payment & Processing</p>
+                          <span className="text-[10px] font-medium text-muted-foreground">{b.hmo_name || "HMO"}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                          <div className="rounded-lg bg-card/70 p-2">
+                            <span className="text-muted-foreground">HMO covered</span>
+                            <p className="font-semibold">₦{Number(b.hmo_covered_amount || 0).toLocaleString()}</p>
+                          </div>
+                          <div className="rounded-lg bg-card/70 p-2">
+                            <span className="text-muted-foreground">Patient payable</span>
+                            <p className="font-semibold">₦{Number(b.patient_payable || 0).toLocaleString()}</p>
+                          </div>
+                          <div className="rounded-lg bg-card/70 p-2">
+                            <span className="text-muted-foreground">HMO paid</span>
+                            <p className="font-semibold">₦{paymentsForBill.filter((p:any) => p.paid_by === "hmo" || String(p.method).toLowerCase() === "hmo").reduce((s:number,p:any)=>s+Number(p.amount||0),0).toLocaleString()}</p>
+                          </div>
+                          <div className="rounded-lg bg-card/70 p-2">
+                            <span className="text-muted-foreground">Patient paid</span>
+                            <p className="font-semibold">₦{paymentsForBill.filter((p:any) => p.paid_by !== "hmo" && String(p.method).toLowerCase() !== "hmo").reduce((s:number,p:any)=>s+Number(p.amount||0),0).toLocaleString()}</p>
+                          </div>
+                        </div>
+                        {hmoClaim && (
+                          <div className="border-t border-primary/10 pt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                            <div><span className="text-muted-foreground">Request</span><p className="font-medium">{hmoClaim.hmo_request_status || "Not sent"}</p></div>
+                            <div><span className="text-muted-foreground">Request remarks</span><p className="font-medium">{hmoClaim.hmo_request_remarks || "—"}</p></div>
+                            <div><span className="text-muted-foreground">Amount to claim</span><p className="font-semibold">₦{Number(hmoClaim.approved_amount || 0) > 0 ? Number(hmoClaim.approved_amount).toLocaleString() : Number(hmoClaim.service_cost || 0).toLocaleString()}</p></div>
+                            <div><span className="text-muted-foreground">Claim</span><p className="font-medium">{hmoClaim.claim_sent ? "Sent" : "Not sent"}</p></div>
+                            <div><span className="text-muted-foreground">Claim response</span><p className="font-medium">{hmoClaim.claim_response_status || "Pending"}</p></div>
+                            <div><span className="text-muted-foreground">Claim remarks</span><p className="font-medium">{hmoClaim.claim_response_remarks || "—"}</p></div>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div className="mt-3 space-y-2">
                       {Number(b.consultation_fee || 0) > 0 && (
