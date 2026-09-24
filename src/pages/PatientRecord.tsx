@@ -306,6 +306,12 @@ const canViewFinancials =
 
   useEffect(() => {
     if (!patientId || !cid) { setLoading(false); return; }
+
+    // Role hydration can finish after the patient record starts loading.
+    // Keep this request tied to the resolved receptionist state so the
+    // receptionist-safe visit RPC is used as soon as that role is known.
+    let cancelled = false;
+
     (async () => {
       try {
       if (typeof navigator !== "undefined" && !navigator.onLine) {
@@ -435,6 +441,8 @@ const canViewFinancials =
         console.warn("[patient-record:clinic-load-failed]", clinicSettled.reason);
       }
         
+      if (cancelled) return;
+
       console.debug("[patient-record]", { clinic_id: cid, patient_id: patientId, visits: visRes.data?.length ?? 0 });
   if (!patRes.data) {
     toast.error("Unable to load this patient record. Please try again.");
@@ -766,7 +774,12 @@ if (!isReceptionist) {
       setLoading(false);
       }
     })();
-  }, [patientId, cid, canViewFinancials]);
+
+    // Ignore results from an older role/clinic request if the effect reruns.
+    return () => {
+      cancelled = true;
+    };
+  }, [patientId, cid, canViewFinancials, isReceptionist]);
 
 
   // Resolve the operational doctor for the active clinic automatically.
