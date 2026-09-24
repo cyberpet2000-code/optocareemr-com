@@ -10,10 +10,11 @@ import { Progress } from "@/components/ui/progress";
 import { PasswordInput } from "@/components/ui/password-input";
 import {
   Archive, Download, Lock, Trash2, Plus, ShieldCheck, FileArchive,
-  CheckCircle2, AlertCircle, Loader2, Calendar, User, Building2, Clock,
+  CheckCircle2, AlertCircle, Loader2, Calendar, User, Building2, Clock, MoreVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { confirmDestructiveAction } from "@/lib/safeDelete";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 type ArchiveRow = {
   id: string;
@@ -279,9 +280,25 @@ export default function SuperAdminArchives() {
                       </Button>
                     )}
                     {a.status !== "deleted" && (
-                      <Button size="sm" variant="outline" className="text-destructive" onClick={() => setDeleteTarget(a)}>
-                        <Trash2 size={14} />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="outline" aria-label="Archive actions">
+                            <MoreVertical size={16} />
+                            <span className="hidden sm:inline ml-1">More</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          {a.status === "ready" && (
+                            <DropdownMenuItem onClick={() => download(a)}>
+                              <Download size={14} className="mr-2" /> Download archive
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setDeleteTarget(a)} className="text-destructive focus:text-destructive">
+                            <Trash2 size={14} className="mr-2" /> Delete archive
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </div>
                 </div>
