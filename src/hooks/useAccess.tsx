@@ -310,13 +310,23 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      const cached = offlineStore.get<{ userId: string; state: AccessState }>(
+    // Always keep a last-known-good access snapshot available, even when the
+    // browser reports that it is online. A transient Supabase/RLS/network
+    // failure must not turn a previously working session into "clinic loading".
+    const cachedAccess =
+      offlineStore.get<{ userId: string; state: AccessState }>(
         "access:" + nextUser.id + ":" + (overrideClinicId || "default")
-      );
-      if (cached?.userId === nextUser.id && cached.state?.profile) {
+      ) ||
+      (!overrideClinicId
+        ? offlineStore.get<{ userId: string; state: AccessState }>(
+            "access:" + nextUser.id + ":default"
+          )
+        : null);
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      if (cachedAccess?.userId === nextUser.id && cachedAccess.state?.profile) {
         commitAccessState({
-          ...cached.state,
+          ...cachedAccess.state,
           accessReady: true,
           profileError: null,
           clinicResolutionFailed: false,
@@ -324,7 +334,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         completedLoadKeyRef.current = loadKey;
         console.debug("[access:offline-cache]", {
           user_id: nextUser.id,
-          clinic_id: cached.state.resolvedClinicId,
+          clinic_id: cachedAccess.state.resolvedClinicId,
           override_clinic_id: overrideClinicId,
         });
         return;
@@ -441,8 +451,30 @@ console.debug("[access:stage1_complete]", {
           ...userRolesRows.map((row) => normalizeRole(row.role)),
           ...clinicUsersRows.map((row) => normalizeRole(row.role)),
         ].filter(Boolean))) as string[];
-        const primaryRole = resolvePrimaryRole(nextProfile, fallbackRoles);
-        const nextRoles = sortRoles(Array.from(new Set([primaryRole, ...fallbackRoles].filter(Boolean))) as string[]);
+        let primaryRole = resolvePrimaryRole(nextProfile, fallbackRoles);
+        let nextRoles = sortRoles(Array.from(new Set([primaryRole, ...fallbackRoles].filter(Boolean))) as string[]);
+
+        // If online access queries temporarily return no role/memberships,
+        // recover from the last successful snapshot before the route guard
+        // reports a false "clinic is loading" error.
+        if (!primaryRole && cachedAccess?.userId === nextUser.id && cachedAccess.state?.profile) {
+          const cachedState = cachedAccess.state;
+          primaryRole =
+            cachedState.role ||
+            cachedState.profile?.role ||
+            cachedState.roles?.[0] ||
+            cachedState.memberships?.[0]?.role ||
+            null;
+          nextRoles = sortRoles(Array.from(new Set([
+            ...cachedState.roles,
+            ...(primaryRole ? [primaryRole] : []),
+          ].filter(Boolean))) as string[]);
+          console.warn("[access:last-known-good-role]", {
+            reason,
+            user_id: nextUser.id,
+            clinic_id: cachedState.resolvedClinicId,
+          });
+        }
 
         const membershipClinicIds = Array.from(new Set([
           ...userRolesRows.map((row) => row.clinic_id),
