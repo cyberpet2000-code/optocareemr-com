@@ -112,6 +112,18 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   }, []);
 
   useEffect(() => {
+    if (!effectiveClinicId || isSuperAdminWs || !user?.id || isOffline) return;
+    let cancelled = false;
+    const refreshRecallNotifications = async () => {
+      const { error } = await apiClient.rpc("refresh_patient_recall_notifications", { p_clinic_id: effectiveClinicId });
+      if (error && !cancelled) console.warn("Recall notification refresh failed:", error.message);
+    };
+    void refreshRecallNotifications();
+    const timer = window.setInterval(() => { void refreshRecallNotifications(); }, 15 * 60_000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [effectiveClinicId, isSuperAdminWs, user?.id, isOffline]);
+
+  useEffect(() => {
     if (!effectiveClinicId || isSuperAdminWs || !user?.id) {
       setNotificationUnread(0);
       return;
