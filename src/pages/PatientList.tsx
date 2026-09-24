@@ -221,6 +221,13 @@ export default function PatientList() {
         // patient rows are rendered.
         const patientIds = data.map(p => p.id);
         const paymentTypes = new Map(data.map((p: any) => [p.id, p.payment_type]));
+        // Keep the UI responsive for large clinics: related records are queried
+        // in bounded batches instead of constructing oversized IN clauses.
+        const chunk = <T,>(items: T[], size = 200) => {
+          const out: T[][] = [];
+          for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+          return out;
+        };
         const baseRows = data.map((p: any) => ({
           ...p,
           hmo_name: undefined,
@@ -275,30 +282,32 @@ export default function PatientList() {
         if (patientIds.length === 0) return;
 
         try {
-          const [visitResponse, billingResponse, hmoClaimsResponse] = await Promise.allSettled([
-            apiClient.from("visits")
-              .select(isReceptionist ? "id, patient_id, created_at, status" : "*")
-              .eq("clinic_id", cid)
-              .in("patient_id", patientIds)
-              .order("created_at", { ascending: false }),
-            canViewPayments
-              ? apiClient.from("billing")
-                  .select("id, patient_id, total_amount, balance, amount_paid, status, payer_type, hmo_id, hmo_covered_amount, patient_payable, created_at")
-                  .eq("clinic_id", cid)
-                  .in("patient_id", patientIds)
-              : Promise.resolve({ data: [] }),
-            canViewPayments
-              ? apiClient.from("hmo_claims")
-                  .select("id, patient_id, billing_id, hmo_id, service_cost, approved_amount, status, hmo_request_sent, hmo_request_sent_at, hmo_request_status, hmo_request_response_at, hmo_request_remarks, claim_sent, claim_sent_at, claim_response_status, claim_response_at, claim_response_remarks, created_at, updated_at")
-                  .eq("clinic_id", cid)
-                  .in("patient_id", patientIds)
-                  .order("created_at", { ascending: false })
-              : Promise.resolve({ data: [] }),
-          ]);
+          const visitRows: any[] = [];
+          const bills: any[] = [];
+          const hmoClaims: any[] = [];
 
-          const visitRows = visitResponse.status === "fulfilled" ? (visitResponse.value.data || []) : [];
-          const bills = billingResponse.status === "fulfilled" ? (billingResponse.value.data || []) : [];
-          const hmoClaims = hmoClaimsResponse.status === "fulfilled" ? (hmoClaimsResponse.value.data || []) : [];
+          for (const ids of chunk(patientIds)) {
+            const [visitResponse, billingResponse, hmoClaimsResponse] = await Promise.all([
+              apiClient.from("visits")
+                .select(isReceptionist ? "id, patient_id, created_at, status" : "*")
+                .eq("clinic_id", cid).in("patient_id", ids)
+                .order("created_at", { ascending: false }),
+              canViewPayments
+                ? apiClient.from("billing")
+                    .select("id, patient_id, total_amount, balance, amount_paid, status, payer_type, hmo_id, hmo_covered_amount, patient_payable, created_at")
+                    .eq("clinic_id", cid).in("patient_id", ids)
+                : Promise.resolve({ data: [] as any[] }),
+              canViewPayments
+                ? apiClient.from("hmo_claims")
+                    .select("id, patient_id, billing_id, hmo_id, service_cost, approved_amount, status, hmo_request_sent, hmo_request_sent_at, hmo_request_status, hmo_request_response_at, hmo_request_remarks, claim_sent, claim_sent_at, claim_response_status, claim_response_at, claim_response_remarks, created_at, updated_at")
+                    .eq("clinic_id", cid).in("patient_id", ids)
+                    .order("created_at", { ascending: false })
+                : Promise.resolve({ data: [] as any[] }),
+            ]);
+            if (!visitResponse.error) visitRows.push(...(visitResponse.data || []));
+            if (!billingResponse.error) bills.push(...(billingResponse.data || []));
+            if (!hmoClaimsResponse.error) hmoClaims.push(...(hmoClaimsResponse.data || []));
+          }
 
           const latestVisitByPatient = new Map<string, any>();
           visitRows.forEach((visit: any) => {
