@@ -91,6 +91,7 @@ export default function Notifications() {
       .eq("recipient_user_id", user.id);
     if (error) return;
     setItems(current => current.filter(item => item.id !== id));
+    window.dispatchEvent(new CustomEvent("optocare:notifications:read", { detail: { count: 1 } }));
   };
 
   const markAllRead = async () => {
@@ -103,7 +104,8 @@ export default function Notifications() {
       .eq("recipient_user_id", user.id)
       .is("read_at", null);
     if (error) return;
-    setItems(current => current.filter(item => !!item.read_at));
+    setItems([]);
+    window.dispatchEvent(new CustomEvent("optocare:notifications:read-all"));
   };
 
   const openNotification = async (item: StaffNotification) => {
