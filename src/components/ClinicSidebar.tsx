@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Users, ShoppingBag, DollarSign, ShieldCheck, Calendar, AlertOctagon,
+  LayoutDashboard, Users, ShoppingBag, ShieldCheck, Calendar, AlertOctagon,
   UserPlus, Building2, Sparkles, LifeBuoy, CheckCircle2, CircleDashed, Clock, Activity, Archive,
   Wallet, ClipboardList, FileBarChart, UserCog,
 } from "lucide-react";
@@ -27,6 +27,8 @@ const ROLE_LABEL: Record<string, string> = {
   receptionist: "Receptionist",
   super_admin: "Super Admin",
 };
+
+const NairaIcon = ({ size = 18 }: { size?: number }) => <span style={{ fontSize: size, lineHeight: 1, fontWeight: 700 }}>₦</span>;
 
 export default function ClinicSidebar() {
   const location = useLocation();
@@ -83,7 +85,7 @@ export default function ClinicSidebar() {
           { to: "/patients", label: "Patients", icon: Users },
           { to: "/register", label: "Register", icon: UserPlus },
           { to: "/appointments", label: "Appointments", icon: Calendar },
-          { to: "/billing", label: "Billing", icon: DollarSign },
+          { to: "/billing", label: "Billing", icon: NairaIcon },
           { to: "/settings/account", label: "Account", icon: UserCog },
         ],
         secondary: [
