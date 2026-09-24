@@ -63,6 +63,7 @@ interface LookupBillDetail {
   items: any[];
   visit: any | null;
   medicationDispensing: any[];
+  hmoClaim: any | null;
 }
 
 function parsePrescribedMedicationNames(medication: string | null | undefined): string[] {
@@ -342,6 +343,7 @@ export default function Billing() {
         visitsResult,
         billingItemsResult,
         medicationDispensingResult,
+        hmoClaimsResult,
       ] = billingIds.length
         ? await Promise.all([
             apiClient
@@ -372,8 +374,14 @@ export default function Billing() {
                   )
                   .in("visit_id", visitIds)
               : Promise.resolve({ data: [], error: null }),
+            apiClient
+              .from("hmo_claims")
+              .select("id,billing_id,patient_id,service_cost,approved_amount,status,notes,claim_sent,claim_sent_at,claim_response_status,claim_response_at,claim_response_remarks,hmo_request_sent,hmo_request_sent_at,hmo_request_status,hmo_request_response_at,hmo_request_remarks")
+              .eq("clinic_id", cid)
+              .in("billing_id", billingIds),
           ])
         : [
+            { data: [], error: null },
             { data: [], error: null },
             { data: [], error: null },
             { data: [], error: null },
@@ -384,6 +392,8 @@ export default function Billing() {
       const visitRows = visitsResult.data || [];
       const billingItemRows = billingItemsResult.data || [];
       const medicationDispensingRows = medicationDispensingResult.data || [];
+      const hmoClaimRows = hmoClaimsResult.data || [];
+      const hmoClaimMap = new Map((hmoClaimRows as any[]).map((claim) => [claim.billing_id, claim]));
 
       const visitMap = new Map(
         (visitRows as any[]).map((visit) => [visit.id, visit])
@@ -405,6 +415,7 @@ export default function Billing() {
                 (item: any) => item.visit_id === billVisit.id
               )
             : [],
+          hmoClaim: hmoClaimMap.get(bill.id) || null,
         };
       });
 
@@ -1221,6 +1232,7 @@ if (error) {
                   visit?.medication
                 );
                 const medicationDispensing = detail?.medicationDispensing || [];
+                const hmoClaim = detail?.hmoClaim || null;
 
                 const findInventoryItem = (item: any) => {
                   if (item.inventory_id) {
@@ -1344,6 +1356,27 @@ if (error) {
                         {b.status}
                       </span>
                     </div>
+
+                    {b.payer_type === "hmo" && (
+                      <div className="rounded-xl border border-primary/15 bg-primary/5 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold">HMO Processing</p>
+                          <span className="text-[10px] font-medium text-muted-foreground">
+                            {hmoClaim ? "Tracked" : "Not yet tracked"}
+                          </span>
+                        </div>
+                        {hmoClaim ? (
+                          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                            <div><span className="text-muted-foreground">Request</span><p className="font-medium">{hmoClaim.hmo_request_status || "Not sent"}{hmoClaim.hmo_request_sent_at ? ` · ${new Date(hmoClaim.hmo_request_sent_at).toLocaleDateString("en-GB")}` : ""}</p></div>
+                            <div><span className="text-muted-foreground">Request remarks</span><p className="font-medium">{hmoClaim.hmo_request_remarks || "—"}</p></div>
+                            <div><span className="text-muted-foreground">Amount to claim</span><p className="font-semibold">₦{Number(hmoClaim.service_cost || 0).toLocaleString()}</p></div>
+                            <div><span className="text-muted-foreground">Claim</span><p className="font-medium">{hmoClaim.claim_sent ? "Sent" : "Not sent"}</p></div>
+                            <div><span className="text-muted-foreground">Claim response</span><p className="font-medium">{hmoClaim.claim_response_status || "Pending"}</p></div>
+                            <div><span className="text-muted-foreground">Response remarks</span><p className="font-medium">{hmoClaim.claim_response_remarks || "—"}</p></div>
+                          </div>
+                        ) : <p className="mt-1 text-[11px] text-muted-foreground">The HMO claim record will be created when the HMO bill is saved.</p>}
+                      </div>
+                    )}
 
                     <div className="mt-3 space-y-2">
                       {Number(b.consultation_fee || 0) > 0 && (
