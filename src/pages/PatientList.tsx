@@ -189,41 +189,15 @@ export default function PatientList() {
         const data = filter === "thismonth"
           ? allPatientData.filter((patient: any) => new Date(patient.created_at) >= monthStart)
           : allPatientData;
-        const hmoIds = [...new Set(data.map((p: any) => p.active_hmo_id).filter(Boolean))];
-        let hmoMap = new Map<string, string>();
-        const { data: allHmos } = await apiClient.from("hmos").select("id, name").eq("clinic_id", cid).eq("status", "active").order("name");
-        if (allHmos) {
-          setHmoOptions(allHmos as { id: string; name: string }[]);
-          hmoMap = new Map((allHmos || []).map((h: any) => [h.id, h.name]));
-        }
-
-        const familyIds = [...new Set(data.map((p: any) => p.family_id).filter(Boolean))];
-        let familyMap = new Map<string, string>();
-        if (familyIds.length > 0) {
-          const { data: familyRows } = await apiClient
-            .from("families")
-            .select("id, family_name, family_number")
-            .eq("clinic_id", cid)
-            .in("id", familyIds as string[]);
-          familyMap = new Map((familyRows || []).map((f: any) => [f.id, f.family_name]));
-        }
-        const { data: allFamilyRows } = await apiClient
-          .from("families")
-          .select("id, family_name, family_number")
-          .eq("clinic_id", cid)
-          .order("family_name");
-        if (allFamilyRows) setFamilyOptions(allFamilyRows as any);
-
+        // IMPORTANT: the core patient list must not wait for HMO/family lookups.
+        // Those are optional enrichment and are deliberately loaded after the
+        // patient rows are rendered.
         const patientIds = data.map(p => p.id);
         const paymentTypes = new Map(data.map((p: any) => [p.id, p.payment_type]));
-
-        // Render the patient list as soon as the patient records themselves
-        // are available. Billing, HMO claims and visit summaries are secondary
-        // enrichment and must never block the main list.
         const baseRows = data.map((p: any) => ({
           ...p,
-          hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined,
-          family_name: p.family_id ? familyMap.get(p.family_id) : undefined,
+          hmo_name: undefined,
+          family_name: undefined,
           balance: 0,
           patientPayable: 0,
           hmoClaimStatus: null,
@@ -238,10 +212,38 @@ export default function PatientList() {
         setLoading(false);
         offlineStore.save(cacheKey, baseRows);
         offlineStore.save(`patients:${cid}:all`, data);
-        cachePatientsOffline(cid, baseRows.map((patient: any) => ({
-          ...patient,
-          hmo_name: patient.active_hmo_id ? hmoMap.get(patient.active_hmo_id) : undefined,
-        })));
+        cachePatientsOffline(cid, baseRows);
+
+        // Optional HMO/family enrichment. Failure here must never affect the
+        // already-visible patient list.
+        void (async () => {
+          try {
+            const hmoResult = await apiClient.from("hmos").select("id, name").eq("clinic_id", cid).eq("status", "active").order("name");
+            const hmoMap = new Map<string, string>();
+            if (hmoResult.data) {
+              setHmoOptions(hmoResult.data as { id: string; name: string }[]);
+              hmoResult.data.forEach((h: any) => hmoMap.set(h.id, h.name));
+            }
+            const familyIds = [...new Set(data.map((p: any) => p.family_id).filter(Boolean))];
+            const familyMap = new Map<string, string>();
+            if (familyIds.length > 0) {
+              const familyResult = await apiClient.from("families").select("id, family_name, family_number").eq("clinic_id", cid).in("id", familyIds as string[]);
+              (familyResult.data || []).forEach((family: any) => familyMap.set(family.id, family.family_name));
+            }
+            const allFamilyResult = await apiClient.from("families").select("id, family_name, family_number").eq("clinic_id", cid).order("family_name");
+            if (allFamilyResult.data) setFamilyOptions(allFamilyResult.data as any);
+            setPatients(prev => prev.map((p: any) => ({
+              ...p,
+              hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined,
+              family_name: p.family_id ? familyMap.get(p.family_id) : undefined,
+            })));
+          } catch (enrichmentError) {
+            console.warn("PatientList HMO/family enrichment unavailable:", enrichmentError);
+          }
+        })();
+        setLoadError(null);
+        setLoading(false);
+        // Core patient cache was saved immediately above.
 
         if (patientIds.length === 0) return;
 
