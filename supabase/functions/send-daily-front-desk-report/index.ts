@@ -128,6 +128,26 @@ Deno.serve(async (req) => {
     const expenses = expensesRes.data || [];
     const finance = Array.isArray(financeRes.data) ? financeRes.data[0] : financeRes.data;
 
+    // Keep the emailed HMO workflow aligned with the front-desk UI:
+    // HMO request -> request response -> amount to claim -> claim sent -> claim response.
+    const hmoClaimIds = [...new Set(
+      itemsRes.data
+        .map((item: any) => item.hmo_claim_id)
+        .filter((id: unknown): id is string => typeof id === "string" && id.length > 0),
+    )];
+
+    const { data: hmoClaims, error: hmoClaimsError } = hmoClaimIds.length
+      ? await admin
+          .from("hmo_claims")
+          .select("id,hmo_request_sent,hmo_request_status,hmo_request_response_at,hmo_request_remarks,service_cost,approved_amount,claim_sent,claim_response_status,claim_response_at,claim_response_remarks")
+          .in("id", hmoClaimIds)
+      : { data: [], error: null };
+
+    if (hmoClaimsError) throw hmoClaimsError;
+    const hmoClaimMap = new Map<string, any>(
+      (hmoClaims || []).map((claim: any) => [claim.id, claim]),
+    );
+
     // The report items intentionally do not duplicate clinical data.
     // Read the final prescription directly from the completed visit for the email.
     const visitIds = [...new Set(
@@ -174,7 +194,12 @@ Deno.serve(async (req) => {
             Lens: ${safe(p.lens_order_status || (p.lens_order_required ? "pending" : "not required"))}
           </td>
           <td style="padding:8px;border-bottom:1px solid #e2e8f0;vertical-align:top;font-size:12px">
-            ${p.patient_type === "hmo" ? `Claim: ${safe(p.hmo_claim_status)}<br/>Amount to claim: ${money(p.hmo_amount_to_claim)}<br/>Claim sent: ${p.hmo_claim_sent ? "Yes" : "No"}<br/>Response: ${safe(p.hmo_claim_response_status || "Pending")}<br/>${safe(p.hmo_claim_response_remarks || p.hmo_claim_remarks)}` : "Private"}
+            ${p.patient_type === "hmo" ? (() => {
+              const claim = p.hmo_claim_id ? hmoClaimMap.get(p.hmo_claim_id) : null;
+              if (!claim) return `HMO record not linked<br/>Amount to claim: ${money(p.hmo_amount_to_claim)}`;
+              const amountToClaim = Number(claim.approved_amount) > 0 ? claim.approved_amount : claim.service_cost;
+              return `Request sent: ${claim.hmo_request_sent ? "Yes" : "No"}<br/>Request status: ${safe(claim.hmo_request_status || "Not sent")}<br/>Request remarks: ${safe(claim.hmo_request_remarks)}<br/>Amount to claim: ${money(amountToClaim)}<br/>Claim sent: ${claim.claim_sent ? "Yes" : "No"}<br/>Claim response: ${safe(claim.claim_response_status || "Pending")}<br/>Claim remarks: ${safe(claim.claim_response_remarks)}`;
+            })() : "Private"}
           </td>
           <td style="padding:8px;border-bottom:1px solid #e2e8f0;vertical-align:top;font-size:12px">
             ${p.eye_drop_quantity || 0} dispensed
