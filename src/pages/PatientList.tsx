@@ -245,7 +245,9 @@ export default function PatientList() {
         setLoadError(null);
         setLoading(false);
         offlineStore.save(cacheKey, baseRows);
-        // Store the enriched row shape even for the offline "all" cache.\n        // Never overwrite it with raw patient records that lack visit/billing summaries.\n        offlineStore.save(`patients:${cid}:all`, baseRows);
+        // Store the enriched row shape even for the offline "all" cache.
+        // Never overwrite it with raw patient records that lack visit/billing summaries.
+        offlineStore.save(`patients:${cid}:all`, baseRows);
         cachePatientsOffline(cid, baseRows);
 
         // Optional HMO/family enrichment. Failure here must never affect the
@@ -296,7 +298,7 @@ export default function PatientList() {
                 ? apiClient.from("billing")
                     .select("id, patient_id, total_amount, balance, amount_paid, status, payer_type, hmo_id, hmo_covered_amount, patient_payable, created_at")
                     .eq("clinic_id", cid).in("patient_id", ids)
-                : Promise.resolve({ data: [] as any[] }),
+                : Promise.resolve({ data: [] as any[], error: null }),
               canViewPayments
                 ? apiClient.from("hmo_claims")
                     .select("id, patient_id, billing_id, hmo_id, service_cost, approved_amount, status, hmo_request_sent, hmo_request_sent_at, hmo_request_status, hmo_request_response_at, hmo_request_remarks, claim_sent, claim_sent_at, claim_response_status, claim_response_at, claim_response_remarks, created_at, updated_at")
