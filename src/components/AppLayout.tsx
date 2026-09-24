@@ -2,7 +2,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  LayoutDashboard, Users, ShoppingBag, DollarSign, LogOut, Calendar, UserPlus,
+  LayoutDashboard, Users, ShoppingBag, LogOut, Calendar, UserPlus,
   Bell, Search, Building2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,6 +35,8 @@ const ROLE_TONE: Record<string, string> = {
   receptionist: "bg-warning/10 text-warning",
   super_admin: "bg-destructive/10 text-destructive",
 };
+
+const NairaIcon = ({ size = 18 }: { size?: number }) => <span style={{ fontSize: size, lineHeight: 1, fontWeight: 700 }}>₦</span>;
 
 export default function AppLayout({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
@@ -175,7 +177,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
         { to: "/patients", label: "Patients", icon: Users },
         { to: "/register", label: "Register", icon: UserPlus },
         { to: "/appointments", label: "Appts", icon: Calendar },
-        { to: "/billing", label: "Billing", icon: DollarSign },
+        { to: "/billing", label: "Billing", icon: NairaIcon },
       ];
     }
     return [
