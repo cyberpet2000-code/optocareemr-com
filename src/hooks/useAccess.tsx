@@ -902,7 +902,10 @@ completedLoadKeyRef.current = loadKey;
       return true;
     }
 
-    if (clinicId && userRef.current) {
+    // Super admins are platform-level users and may enter any clinic.
+    // Do not require a clinic membership row for them; that defeats the
+    // purpose of the Super Admin Clinics "Enter Clinic" action.
+    if (clinicId && userRef.current && !isSuperAdminUser) {
       const grantedRole = await assertClinicAccess(apiClient as any, userRef.current.id, clinicId);
       if (!grantedRole) {
         throw new Error("You do not have access to this clinic.");
