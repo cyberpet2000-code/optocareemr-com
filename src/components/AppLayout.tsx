@@ -95,6 +95,21 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
   }, [effectiveClinicId, isSuperAdminWs]);
 
   useEffect(() => {
+    const onNotificationRead = (event: Event) => {
+      const count = Number((event as CustomEvent<{ count?: number }>).detail?.count || 0);
+      if (count > 0) setNotificationUnread(value => Math.max(0, value - count));
+    };
+    const onNotificationReadAll = () => setNotificationUnread(0);
+    window.addEventListener("optocare:notifications:read", onNotificationRead);
+    window.addEventListener("optocare:notifications:read-all", onNotificationReadAll);
+
+    return () => {
+      window.removeEventListener("optocare:notifications:read", onNotificationRead);
+      window.removeEventListener("optocare:notifications:read-all", onNotificationReadAll);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!effectiveClinicId || isSuperAdminWs || !user?.id) {
       setNotificationUnread(0);
       return;
