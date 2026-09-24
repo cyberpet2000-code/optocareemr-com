@@ -130,12 +130,25 @@ export default function PatientList() {
       const allCached = offlineStore.get<PatientRow[]>(`patients:${cid}:all`);
       const cached = allCached || offlineStore.get<PatientRow[]>(cacheKey);
       if (cached) {
+        // Older cache entries may contain raw patient rows. Normalize them so
+        // a stale/offline cache can never crash the patient cards.
+        const normalized = cached.map((patient: any) => ({
+          ...patient,
+          visitSummary: patient.visitSummary || { visitCount: 0, lastVisit: null },
+          billingSummary: patient.billingSummary || getPaymentStatus([], patient.payment_type),
+          balance: Number(patient.balance || 0),
+          patientPayable: Number(patient.patientPayable || 0),
+          hmoClaimAmount: Number(patient.hmoClaimAmount || 0),
+          hmoClaimStatus: patient.hmoClaimStatus || null,
+          hmoClaimId: patient.hmoClaimId || null,
+        })) as PatientRow[];
         const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
         const visible = filter === "thismonth"
-          ? cached.filter((patient: any) => new Date(patient.created_at) >= monthStart)
-          : cached;
+          ? normalized.filter((patient: any) => new Date(patient.created_at) >= monthStart)
+          : normalized;
         setPatients(visible);
       }
+      setLoadError(failureCode);
       setLoading(false);
     };
     if (isOffline) { loadFromCache("NO_NETWORK"); return; }
@@ -175,15 +188,29 @@ export default function PatientList() {
         // Always cache the complete patient list. Filtering is applied after
         // retrieval so a prior "this month" view can never overwrite the
         // offline cache with only a subset of patients.
-        const { data: allPatientData, error } = await apiClient
-          .from("patients")
-          .select("*")
-          .eq("clinic_id", cid)
-          .order("created_at", { ascending: false });
-        if (error || !allPatientData) {
-          const diagnosis = await diagnoseRequestFailure(error || new Error("Patient data unavailable"));
-          loadFromCache(diagnosis.code);
-          return;
+        // Supabase/PostgREST can cap a response at 1,000 rows. Patient List
+        // must never silently truncate a clinic, so fetch in deterministic pages.
+        const allPatientData: any[] = [];
+        const pageSize = 500;
+        for (let page = 0; ; page++) {
+          const { data: pageData, error: pageError } = await apiClient
+            .from("patients")
+            .select("*")
+            .eq("clinic_id", cid)
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .range(page * pageSize, page * pageSize + pageSize - 1);
+          if (pageError) {
+            const diagnosis = await diagnoseRequestFailure(pageError);
+            loadFromCache(diagnosis.code);
+            return;
+          }
+          if (!pageData || pageData.length === 0) break;
+          allPatientData.push(...pageData);
+          if (pageData.length < pageSize) break;
+        }
+        if (allPatientData.length === 0) {
+          // An empty result is valid; do not treat it as a transport failure.
         }
         const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
         const data = filter === "thismonth"
@@ -211,7 +238,7 @@ export default function PatientList() {
         setLoadError(null);
         setLoading(false);
         offlineStore.save(cacheKey, baseRows);
-        offlineStore.save(`patients:${cid}:all`, data);
+        // Store the enriched row shape even for the offline "all" cache.\n        // Never overwrite it with raw patient records that lack visit/billing summaries.\n        offlineStore.save(`patients:${cid}:all`, baseRows);
         cachePatientsOffline(cid, baseRows);
 
         // Optional HMO/family enrichment. Failure here must never affect the
