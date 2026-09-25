@@ -503,8 +503,9 @@ export default function Outreach() {
       )}
 
 
-      {showReview && <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-        <div className="w-full max-w-2xl max-h-[90vh] overflow-auto rounded-2xl bg-card border shadow-2xl p-5">
+      {showReview && <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="w-full max-w-2xl max-h-[calc(100dvh-5rem)] sm:max-h-[90vh] rounded-t-2xl sm:rounded-2xl bg-card border shadow-2xl flex flex-col overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto p-5 pb-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 text-primary"><Megaphone size={19}/><span className="text-sm font-semibold">Campaign review</span></div>
@@ -543,7 +544,8 @@ export default function Outreach() {
             <strong>WhatsApp-assisted sending:</strong> OptoCare will prepare and open each WhatsApp message. A staff member must still press Send. No automatic WhatsApp API sending occurs.
           </div>
 
-          <div className="flex flex-col sm:flex-row justify-end gap-2 mt-5">
+          </div>
+          <div className="shrink-0 border-t bg-card/95 backdrop-blur p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
             <Button variant="outline" onClick={() => { setShowReview(false); setShowCreate(true); }}>Back to edit</Button>
             <Button onClick={() => void createCampaign()} disabled={creating || review.total === 0}><Send className="w-4 h-4 mr-2"/>{creating ? "Creating campaign…" : "Create & Prepare Sending"}</Button>
           </div>
@@ -577,9 +579,11 @@ export default function Outreach() {
         </div>
       </div>}
 
-      {showCreate && <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"><div className="w-full max-w-2xl max-h-[90vh] overflow-auto rounded-2xl bg-card border shadow-2xl p-5">
-        <div className="flex items-center justify-between"><div><h2 className="text-xl font-bold">Create outreach campaign</h2><p className="text-sm text-muted-foreground mt-1">Existing patients and external contacts can be combined without creating premature patient records.</p></div><button onClick={() => setShowCreate(false)} className="text-muted-foreground">✕</button></div>
-        <div className="grid gap-4 mt-5">
+      {showCreate && <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="w-full max-w-2xl max-h-[calc(100dvh-5rem)] sm:max-h-[90vh] rounded-t-2xl sm:rounded-2xl bg-card border shadow-2xl flex flex-col overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto p-5 pb-6">
+            <div className="flex items-center justify-between gap-3"><div><h2 className="text-xl font-bold">Create outreach campaign</h2><p className="text-sm text-muted-foreground mt-1">Existing patients and external contacts can be combined without creating premature patient records.</p></div><button onClick={() => setShowCreate(false)} className="text-muted-foreground shrink-0">✕</button></div>
+            <div className="grid gap-4 mt-5">
           <div><label className="text-sm font-medium">Campaign name</label><Input value={name} onChange={e => setName(e.target.value)} /></div>
           <div className="grid sm:grid-cols-2 gap-3"><div><label className="text-sm font-medium">Campaign/event date</label><Input type="date" value={campaignDate} onChange={e => setCampaignDate(e.target.value)} /></div><div><label className="text-sm font-medium">Audience</label><select value={audience} onChange={e => setAudience(e.target.value as any)} className="w-full h-10 rounded-md border bg-background px-3 text-sm"><option value="patients">OptoCare patients</option><option value="external">External contacts</option><option value="both">Patients + external</option></select></div></div>
           {(audience === "external" || audience === "both") && <div><label className="text-sm font-medium">External contacts</label><Textarea rows={6} value={externalText} onChange={e => setExternalText(e.target.value)} placeholder={"John Doe\t0803...\nMary Smith\t+234...\n0805..."} /><p className="text-xs text-muted-foreground mt-1">One per line. You can use Name + phone separated by a tab or semicolon, or phone only. Duplicates are removed.</p></div>}
@@ -595,9 +599,14 @@ export default function Outreach() {
           </div>
           <div><label className="text-sm font-medium">WhatsApp message</label><Textarea rows={10} value={message} onChange={e => setMessage(e.target.value)} /><p className="text-xs text-muted-foreground mt-1">Available: {"{{patient_name}}"}, {"{{clinic_name}}"}, {"{{campaign_date}}"}, {"{{clinic_address}}"}, {"{{clinic_whatsapp}}"}, {"{{clinic_email}}"}, {"{{clinic_hours}}"}</p></div>
           <div className="rounded-xl bg-warning/10 border border-warning/20 p-3 text-xs text-warning">This version does not use WhatsApp API. It prepares each message and opens WhatsApp; staff must press Send.</div>
-          <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button><Button onClick={() => void prepareReview()} disabled={reviewLoading || !name.trim() || !message.trim()}>{reviewLoading ? "Preparing review…" : "Review campaign"}</Button></div>
+            </div>
+          </div>
+          <div className="shrink-0 border-t bg-card/95 backdrop-blur p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+            <Button onClick={() => void prepareReview()} disabled={reviewLoading || !name.trim() || !message.trim()}>{reviewLoading ? "Preparing review…" : "Review campaign"}</Button>
+          </div>
         </div>
-      </div></div>}
+      </div>}
     </div>
   );
 }
