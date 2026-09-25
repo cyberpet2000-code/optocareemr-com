@@ -112,6 +112,12 @@ export default function Outreach() {
   const [showReview, setShowReview] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [duplicateCampaign, setDuplicateCampaign] = useState<Campaign | null>(null);
+  const [campaignMetrics, setCampaignMetrics] = useState({
+    leads: 0,
+    appointments: 0,
+    attended: 0,
+    converted: 0,
+  });
   const [review, setReview] = useState({
     patientCount: 0,
     externalCount: 0,
@@ -167,7 +173,41 @@ export default function Outreach() {
     sent: recipients.filter(r => r.status === "sent").length,
     ready: recipients.filter(r => r.status === "ready" || r.status === "opened").length,
     skipped: recipients.filter(r => r.status === "skipped").length,
+    invalid: recipients.filter(r => r.status === "invalid" || r.status === "opted_out").length,
   }), [recipients]);
+
+  useEffect(() => {
+    if (!effectiveClinicId || !selected?.id) {
+      setCampaignMetrics({ leads: 0, appointments: 0, attended: 0, converted: 0 });
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data: touchRows } = await apiClient
+        .from("outreach_recipients")
+        .select("lead_id")
+        .eq("campaign_id", selected.id)
+        .not("lead_id", "is", null);
+      const leadIds = [...new Set((touchRows || []).map((r: { lead_id: string }) => r.lead_id))];
+      if (!leadIds.length) {
+        if (!cancelled) setCampaignMetrics({ leads: 0, appointments: 0, attended: 0, converted: 0 });
+        return;
+      }
+      const [{ data: leadRows }, { data: appointmentRows }] = await Promise.all([
+        apiClient.from("outreach_leads").select("id,status").in("id", leadIds),
+        apiClient.from("appointments").select("id,status,outreach_lead_id").eq("outreach_campaign_id", selected.id),
+      ]);
+      if (cancelled) return;
+      const rows = leadRows || [];
+      setCampaignMetrics({
+        leads: rows.length,
+        appointments: (appointmentRows || []).length,
+        attended: rows.filter((l: { status: string }) => l.status === "attended" || l.status === "converted").length,
+        converted: rows.filter((l: { status: string }) => l.status === "converted").length,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [effectiveClinicId, selected?.id, recipients]);
 
   const current = (currentRecipientId ? recipients.find(r => r.id === currentRecipientId) : null)
     || recipients.find(r => r.status === "opened")
@@ -343,12 +383,14 @@ export default function Outreach() {
         }
       }
 
+      const { data: currentUser } = await apiClient.auth.getUser();
       const { data: campaign, error } = await apiClient.from("outreach_campaigns").insert({
         clinic_id: effectiveClinicId,
         name: name.trim(),
         campaign_date: campaignDate || null,
         message_template: message.trim(),
         status: "ready",
+        created_by: currentUser.user?.id ?? null,
       }).select("*").single();
       if (error || !campaign) throw error || new Error("Campaign could not be created");
 
@@ -403,6 +445,16 @@ export default function Outreach() {
     if (!selected || !current || sending || selected.status === "paused") return;
     setSending(true);
     try {
+      if (selected.status === "ready") {
+        const { error: activateError } = await apiClient
+          .from("outreach_campaigns")
+          .update({ status: "active" })
+          .eq("id", selected.id)
+          .eq("clinic_id", effectiveClinicId);
+        if (activateError) throw activateError;
+        setSelected(prev => prev ? { ...prev, status: "active" } : prev);
+        setCampaigns(prev => prev.map(c => c.id === selected.id ? { ...c, status: "active" } : c));
+      }
       const url = whatsappLink(current.phone, interpolate(selected.message_template, current, clinicName, selected.campaign_date, clinicAddress, clinicWhatsApp, clinicEmail, clinicOpeningHours));
       if (!url) return;
       await apiClient.from("outreach_recipients").update({ status: "opened" }).eq("id", current.id);
@@ -414,29 +466,54 @@ export default function Outreach() {
     }
   };
 
+  const maybeCompleteCampaign = async (campaignId: string) => {
+    const { data } = await apiClient
+      .from("outreach_recipients")
+      .select("id,status")
+      .eq("campaign_id", campaignId)
+      .in("status", ["ready", "opened"])
+      .limit(1);
+    if ((data || []).length === 0) {
+      await apiClient.from("outreach_campaigns").update({ status: "completed" }).eq("id", campaignId).eq("clinic_id", effectiveClinicId);
+      setSelected(prev => prev?.id === campaignId ? { ...prev, status: "completed" } : prev);
+      setCampaigns(prev => prev.map(c => c.id === campaignId ? { ...c, status: "completed" } : c));
+      setSendMode(false);
+      setCurrentRecipientId(null);
+    }
+  };
+
   const markSent = async () => {
     if (!current || current.status !== "opened") return;
     const sentAt = new Date().toISOString();
-    await apiClient.from("outreach_recipients").update({ status: "sent", sent_at: sentAt }).eq("id", current.id);
+    const { error } = await apiClient.from("outreach_recipients").update({ status: "sent", sent_at: sentAt }).eq("id", current.id);
+    if (error) return;
     setRecipients(prev => prev.map(r => r.id === current.id ? { ...r, status: "sent", sent_at: sentAt } : r));
     const next = recipients.find(r => r.id !== current.id && r.status === "ready");
     setCurrentRecipientId(next?.id || null);
-    if (!next) setSendMode(false);
+    if (!next) {
+      setSendMode(false);
+      await maybeCompleteCampaign(selected?.id || "");
+    }
   };
 
   const skip = async () => {
     if (!current) return;
-    await apiClient.from("outreach_recipients").update({ status: "skipped" }).eq("id", current.id);
+    const { error } = await apiClient.from("outreach_recipients").update({ status: "skipped" }).eq("id", current.id);
+    if (error) return;
     setRecipients(prev => prev.map(r => r.id === current.id ? { ...r, status: "skipped" } : r));
     const next = recipients.find(r => r.id !== current.id && r.status === "ready");
     setCurrentRecipientId(next?.id || null);
-    if (!next) setSendMode(false);
+    if (!next) {
+      setSendMode(false);
+      await maybeCompleteCampaign(selected?.id || "");
+    }
   };
 
   const pauseCampaign = async () => {
-    if (!selected) return;
-    const nextStatus = selected.status === "paused" ? "ready" : "paused";
-    await apiClient.from("outreach_campaigns").update({ status: nextStatus }).eq("id", selected.id);
+    if (!selected || selected.status === "completed" || selected.status === "archived") return;
+    const nextStatus = selected.status === "paused" ? "active" : "paused";
+    const { error } = await apiClient.from("outreach_campaigns").update({ status: nextStatus }).eq("id", selected.id).eq("clinic_id", effectiveClinicId);
+    if (error) return;
     setSelected({ ...selected, status: nextStatus });
     setCampaigns(prev => prev.map(c => c.id === selected.id ? { ...c, status: nextStatus } : c));
   };
@@ -466,6 +543,7 @@ export default function Outreach() {
       phone: r.phone,
       normalized_phone: r.normalized_phone,
       campaign_id: selected.id,
+      created_by: (await apiClient.auth.getUser()).data.user?.id ?? null,
       status: "new",
     }).select("*").single();
     if (data) {
@@ -513,10 +591,12 @@ export default function Outreach() {
         patientId = createdPatient.id;
       }
       const convertedAt = new Date().toISOString();
+      const { data: currentUser } = await apiClient.auth.getUser();
       const { error: leadError } = await apiClient.from("outreach_leads").update({
         patient_id: patientId,
         status: "converted",
         converted_at: convertedAt,
+        converted_by: currentUser.user?.id ?? null,
         next_follow_up_at: null,
       }).eq("id", convertingLead.id).eq("clinic_id", effectiveClinicId);
       if (leadError) throw leadError;
@@ -556,6 +636,7 @@ export default function Outreach() {
         clinic_id: effectiveClinicId,
         patient_id: bookingLead.patient_id || null,
         outreach_lead_id: bookingLead.id,
+        outreach_campaign_id: bookingLead.campaign_id || null,
         appointment_date: bookingDate,
         appointment_time: bookingTime,
         reason: bookingReason || null,
@@ -768,7 +849,13 @@ export default function Outreach() {
                   <div className="p-3 rounded-xl bg-muted/50"><div className="text-xs text-muted-foreground">Recipients</div><div className="text-lg font-bold">{counts.total}</div></div>
                   <div className="p-3 rounded-xl bg-muted/50"><div className="text-xs text-muted-foreground">Sent</div><div className="text-lg font-bold">{counts.sent}</div></div>
                   <div className="p-3 rounded-xl bg-muted/50"><div className="text-xs text-muted-foreground">Remaining</div><div className="text-lg font-bold">{counts.ready}</div></div>
-                  <div className="p-3 rounded-xl bg-muted/50"><div className="text-xs text-muted-foreground">Skipped</div><div className="text-lg font-bold">{counts.skipped}</div></div>
+                  <div className="p-3 rounded-xl bg-muted/50"><div className="text-xs text-muted-foreground">Skipped / invalid</div><div className="text-lg font-bold">{counts.skipped + counts.invalid}</div></div>
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+                  <div className="p-3 rounded-xl bg-muted/50"><div className="text-xs text-muted-foreground">Leads</div><div className="text-lg font-bold">{campaignMetrics.leads}</div></div>
+                  <div className="p-3 rounded-xl bg-muted/50"><div className="text-xs text-muted-foreground">Appointments</div><div className="text-lg font-bold">{campaignMetrics.appointments}</div></div>
+                  <div className="p-3 rounded-xl bg-muted/50"><div className="text-xs text-muted-foreground">Attended</div><div className="text-lg font-bold">{campaignMetrics.attended}</div></div>
+                  <div className="p-3 rounded-xl bg-muted/50"><div className="text-xs text-muted-foreground">Converted to patients</div><div className="text-lg font-bold">{campaignMetrics.converted}</div></div>
                 </div>
               </div>
 
