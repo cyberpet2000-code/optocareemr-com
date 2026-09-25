@@ -68,7 +68,7 @@ export async function enqueueOfflineOperation(
   }
 
   // Never report an offline write as successful if IndexedDB rejected it.
-  // Fall back to localStorage so the operation remains recoverable.
+  // Fall back to the encrypted browser cache so the operation remains recoverable.
   if (!storedInIndexedDb) {
     const key = `operations:${operation.clinicId}`;
     const queue = await secureOfflineGet<OfflineOperation[]>(key) ?? [];
@@ -105,8 +105,8 @@ export async function getOfflineOperations(clinicId: string): Promise<OfflineOpe
 
 export async function getOfflineSyncStatus(clinicId: string): Promise<{ pending: number; failed: number }> {
   const operations = await getOfflineOperations(clinicId);
-  const legacyAppointments = offlineStore.get<any[]>(`appointments-queue:${clinicId}`) ?? [];
-  const legacyBills = offlineStore.get<any[]>(`bills-queue:${clinicId}`) ?? [];
+  const legacyAppointments = await secureOfflineGet<any[]>(`appointments-queue:${clinicId}`) ?? [];
+  const legacyBills = await secureOfflineGet<any[]>(`bills-queue:${clinicId}`) ?? [];
   const legacy = [...legacyAppointments, ...legacyBills];
 
   return {
