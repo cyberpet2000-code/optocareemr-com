@@ -1,6 +1,6 @@
 // Authenticated user accepts a clinic invite by token.
-// Reads from clinic_invites (preferred), falls back to legacy `invites` table.
-// Validates email match, links membership, assigns clinic-scoped role.
+// Validates the authenticated identity, invitation, email, expiry and
+// permitted role before creating clinic-scoped membership/role.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
@@ -40,36 +40,29 @@ Deno.serve(async (req) => {
 
     const userId = userData.user.id;
     const userEmail = (userData.user.email || "").toLowerCase().trim();
-
     const body = await req.json().catch(() => ({}));
     const token: string | undefined = body?.token;
     if (!token) return fail("token_missing", "Token required", 400);
 
-    console.log("[accept-clinic-invite:start]", {
-      token_prefix: token.slice(0, 8),
-      user_id: userId,
-      user_email: userEmail,
-    });
-
     const admin = createClient(url, serviceKey);
 
-    // ---- Invite lookup --------------------------------------------------
     let inviteSource: "clinic_invites" | "invites" | null = null;
     let inviteId: string | null = null;
     let inviteEmail = "";
     let inviteRole = "admin";
     let clinicId: string | null = null;
+    let invitedBy: string | null = null;
     let alreadyAccepted = false;
     let inviteExpiresAt: string | null = null;
 
     const { data: ci, error: ciErr } = await admin
       .from("clinic_invites")
-      .select("id, clinic_id, email, role, status, expires_at")
+      .select("id, clinic_id, email, role, status, expires_at, invited_by")
       .eq("token", token)
       .maybeSingle();
 
     if (ciErr) {
-      return fail("invite_lookup", `clinic_invites lookup failed: ${ciErr.message}`, 500, ciErr);
+      return fail("invite_lookup", `clinic_invites lookup failed: ${ciErr.message}`, 500);
     }
 
     if (ci) {
@@ -78,8 +71,9 @@ Deno.serve(async (req) => {
       inviteEmail = (ci.email || "").toLowerCase().trim();
       inviteRole = ci.role || "admin";
       clinicId = ci.clinic_id;
+      invitedBy = ci.invited_by || null;
       alreadyAccepted = ci.status === "accepted";
-      inviteExpiresAt = (ci as any).expires_at || null;
+      inviteExpiresAt = ci.expires_at || null;
     } else {
       const { data: legacy, error: legacyErr } = await admin
         .from("invites")
@@ -87,7 +81,7 @@ Deno.serve(async (req) => {
         .eq("token", token)
         .maybeSingle();
       if (legacyErr) {
-        return fail("invite_lookup", `legacy invites lookup failed: ${legacyErr.message}`, 500, legacyErr);
+        return fail("invite_lookup", `legacy invites lookup failed: ${legacyErr.message}`, 500);
       }
       if (legacy) {
         inviteSource = "invites";
@@ -99,16 +93,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log("[accept-clinic-invite:invite]", {
-      inviteSource,
-      inviteId,
-      inviteEmail,
-      inviteRole,
-      clinicId,
-      alreadyAccepted,
-      inviteExpiresAt,
-    });
-
     if (!inviteSource || !inviteId) {
       return fail("invite_lookup", "Invite not found for the provided token", 404);
     }
@@ -117,57 +101,76 @@ Deno.serve(async (req) => {
     }
     if (inviteExpiresAt && new Date(inviteExpiresAt).getTime() < Date.now()) {
       if (inviteSource === "clinic_invites") {
-        await admin.from("clinic_invites").update({ status: "expired" } as any).eq("id", inviteId);
+        await admin.from("clinic_invites").update({ status: "expired" }).eq("id", inviteId);
       }
       return fail("invite_expired", "This invite has expired. Please ask your super admin for a new one.", 410);
     }
     if (inviteEmail && inviteEmail !== userEmail) {
-      return fail(
-        "email_check",
-        `Signed-in email (${userEmail}) does not match invited email (${inviteEmail}). Sign in with the invited email.`,
-      );
+      return fail("email_check", "Signed-in email does not match the invited email.");
     }
-    if (!clinicId) {
-      return fail("invite_clinic", "Invite has no associated clinic", 400);
+    if (!clinicId) return fail("invite_clinic", "Invite has no associated clinic", 400);
+
+    const normalizedRole = inviteRole === "clinic_admin" ? "admin" : inviteRole;
+    const standardRoles = new Set(["admin", "doctor", "nurse", "receptionist"]);
+    if (!standardRoles.has(normalizedRole) && normalizedRole !== "super_admin") {
+      return fail("invite_role", "This invitation contains an invalid role", 400);
     }
 
-    // ---- Normalize roles ------------------------------------------------
-    const membershipRole = inviteRole === "clinic_admin" ? "admin" : inviteRole;
-    const scopedRole = inviteRole === "clinic_admin" ? "admin" : inviteRole;
+    // Super Admin can only be granted from the current invitation system
+    // and only when the invitation was issued by a verified Super Admin.
+    if (normalizedRole === "super_admin") {
+      if (inviteSource !== "clinic_invites" || !invitedBy) {
+        return fail("invite_role", "Super Admin invitations must use the current invitation system.");
+      }
+
+      const { data: inviterRole } = await admin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", invitedBy)
+        .eq("role", "super_admin")
+        .maybeSingle();
+
+      const { data: inviterProfile } = await admin
+        .from("profiles")
+        .select("is_super_admin, role")
+        .eq("id", invitedBy)
+        .maybeSingle();
+
+      if (
+        !inviterRole &&
+        inviterProfile?.is_super_admin !== true &&
+        inviterProfile?.role !== "super_admin"
+      ) {
+        return fail("invite_role", "Super Admin invitation was not issued by a verified Super Admin.");
+      }
+    }
 
     const { data: clinicRow, error: clinicErr } = await admin
       .from("clinics")
       .select("id, name, setup_completed")
       .eq("id", clinicId)
       .maybeSingle();
-    if (clinicErr) return fail("clinic_lookup", clinicErr.message, 500, clinicErr);
+    if (clinicErr) return fail("clinic_lookup", clinicErr.message, 500);
     if (!clinicRow) return fail("clinic_lookup", "Clinic no longer exists", 404);
 
-    // ---- Ensure profile FIRST (clinic_users.user_id FK -> profiles.id) --
     const { data: existingProfile, error: profileSelErr } = await admin
       .from("profiles")
       .select("id")
       .eq("id", userId)
       .maybeSingle();
-    if (profileSelErr) {
-      return fail("profile_lookup", profileSelErr.message, 500, profileSelErr);
-    }
+    if (profileSelErr) return fail("profile_lookup", profileSelErr.message, 500);
+
     if (!existingProfile) {
       const profilePayload: Record<string, unknown> = {
         id: userId,
         full_name: userData.user.user_metadata?.full_name || userEmail,
         clinic_id: clinicId,
-        role: scopedRole,
+        role: normalizedRole,
       };
-      const { error: profileInsErr } = await admin
-        .from("profiles")
-        .insert(profilePayload as any);
-      if (profileInsErr) {
-        return fail("profile_create", profileInsErr.message, 500, profileInsErr);
-      }
+      const { error: profileInsErr } = await admin.from("profiles").insert(profilePayload as any);
+      if (profileInsErr) return fail("profile_create", profileInsErr.message, 500);
     }
 
-    // ---- Membership -----------------------------------------------------
     const { data: existingMembership } = await admin
       .from("clinic_users")
       .select("id")
@@ -178,26 +181,22 @@ Deno.serve(async (req) => {
     const { error: linkErr } = await admin
       .from("clinic_users")
       .upsert(
-        { user_id: userId, clinic_id: clinicId, role: membershipRole } as any,
+        { user_id: userId, clinic_id: clinicId, role: normalizedRole } as any,
         { onConflict: "user_id,clinic_id" },
       );
-    if (linkErr) {
-      return fail("membership_insert", `clinic_users upsert failed: ${linkErr.message}`, 500, linkErr);
-    }
+    if (linkErr) return fail("membership_insert", `clinic_users upsert failed: ${linkErr.message}`, 500);
 
-    // ---- Scoped role ----------------------------------------------------
     const { error: roleErr } = await admin
       .from("user_roles")
-      .insert({ user_id: userId, role: scopedRole, clinic_id: clinicId } as any);
+      .insert({ user_id: userId, role: normalizedRole, clinic_id: clinicId } as any);
     if (roleErr && !String(roleErr.message || "").toLowerCase().includes("duplicate")) {
-      return fail("role_insert", `user_roles insert failed: ${roleErr.message}`, 500, roleErr);
+      return fail("role_insert", `user_roles insert failed: ${roleErr.message}`, 500);
     }
 
-    // ---- Mark invite accepted -------------------------------------------
     if (inviteSource === "clinic_invites") {
-      await admin.from("clinic_invites").update({ status: "accepted" } as any).eq("id", inviteId);
+      await admin.from("clinic_invites").update({ status: "accepted" }).eq("id", inviteId);
     } else {
-      await admin.from("invites").update({ accepted: true } as any).eq("id", inviteId);
+      await admin.from("invites").update({ accepted: true }).eq("id", inviteId);
     }
 
     await admin.from("activity_logs").insert({
@@ -208,27 +207,16 @@ Deno.serve(async (req) => {
       record_id: inviteId,
     } as any);
 
-    console.log("[accept-clinic-invite:ok]", {
-      user_id: userId,
-      clinic_id: clinicId,
-      role: scopedRole,
-      source: inviteSource,
-      membership_existed: !!existingMembership,
-    });
-
     return json({
       ok: true,
       success: true,
       clinic_id: clinicId,
       clinic_name: clinicRow.name,
       setup_completed: !!clinicRow.setup_completed,
-      role: scopedRole,
+      role: normalizedRole,
     });
   } catch (e) {
     console.error("[accept-clinic-invite:fatal]", e);
-    return json(
-      { success: false, step: "unhandled", error: (e as Error).message },
-      500,
-    );
+    return json({ success: false, step: "unhandled", error: (e as Error).message }, 500);
   }
 });
