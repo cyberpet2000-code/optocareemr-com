@@ -83,7 +83,7 @@ export default function Inventory() {
       if (cached) setPatients(cached);
     };
     if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
-      await loadCachedPats();
+      void loadCachedPats();
       return;
     }
     apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data, error }) => {
