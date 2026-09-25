@@ -163,8 +163,8 @@ export async function markOfflineOperationFailed(
   await secureOfflineSave(key, queue.map((item) => item.id === operation.id ? next : item));
 }
 
-export function cacheAppointmentsOffline(clinicId: string, appointments: any[]) {
-  offlineStore.save("appointments:" + clinicId, appointments);
+export async function cacheAppointmentsOffline(clinicId: string, appointments: any[]) {
+  await secureOfflineSave("appointments:" + clinicId, appointments);
 }
 
 export function cachePatientsOffline(clinicId: string, patients: any[]) {
