@@ -2,8 +2,9 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { installRuntimeErrorDetector } from "./lib/diag";
+import { initPostHog } from "./lib/posthog";
 
-if (typeof window !== "undefined") installRuntimeErrorDetector();
+if (typeof window !== "undefined") { initPostHog(); installRuntimeErrorDetector(); }
 
 // ---------------------------------------------------------------------------
 // Global fetch guard — strips the legacy `x-optocare-shared-client` header
@@ -35,17 +36,6 @@ if (typeof window !== "undefined" && !(window as any).__optocareFetchPatched) {
           : input instanceof URL
             ? input.toString()
             : input.url;
-
-      if (url.includes(SUPABASE_HOST)) {
-        // Temporary dev logging — remove after verification.
-        // eslint-disable-next-line no-console
-        console.debug("[fetch:supabase]", {
-          url,
-          method: init?.method ?? (input instanceof Request ? input.method : "GET"),
-          headers: Object.fromEntries(headers.entries()),
-          stripped,
-        });
-      }
 
       if (input instanceof Request) {
         const cloned = new Request(input, { ...init, headers });
