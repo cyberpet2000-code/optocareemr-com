@@ -15,7 +15,6 @@ import { CalendarIcon, Plus, X, Clock, CalendarClock, CheckCircle2, XCircle, Ale
 import { format } from "date-fns";
 import { useAccessClinic } from "@/hooks/useAccess";
 import { diag } from "@/lib/diag";
-import { offlineStore } from "@/lib/offlineStore";
 import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 import { useOffline } from "@/hooks/useOffline";
 import { enqueueOfflineOperation, cacheAppointmentsOffline } from "@/lib/offlineEngine";
@@ -136,7 +135,7 @@ export default function Appointments() {
         };
       });
       setAppointments(enriched);
-      offlineStore.save(cacheKey, enriched);
+      await secureOfflineSave(cacheKey, enriched);
       setLoading(false);
     } catch (e: any) {
       diag.error("query", "appointments.list threw", e, { clinic_id: cid });
@@ -503,7 +502,7 @@ export default function Appointments() {
     const offline = isOffline || (typeof navigator !== "undefined" && !navigator.onLine);
     if (offline) {
       await enqueueOfflineOperation({ clinicId: cid, userId: null, kind: "appointment.status", entityId: id, payload: { status } });
-      const current = offlineStore.get<any[]>(`appointments:${cid}`) ?? appointments;
+      const current = await secureOfflineGet<any[]>(`appointments:${cid}`) ?? appointments;
       const next = current.map(a => a.id === id ? { ...a, status, offline_pending_sync: true } : a);
       cacheAppointmentsOffline(cid, next);
       setAppointments(next.filter(a => a.appointment_date >= filterDateStr));
