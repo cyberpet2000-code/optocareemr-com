@@ -42,7 +42,6 @@ interface Appointment {
 type PatientLite = { id: string; full_name: string };
 
 export default function Appointments() {
-  // Gate on auth/clinic hydration so we don't fire queries without context.
   const { effectiveClinicId, profileLoading, clinicLoading } = useAccessClinic();
   const cid = effectiveClinicId;
   const hydrating = profileLoading || clinicLoading;
@@ -65,9 +64,6 @@ export default function Appointments() {
 
   const filterDateStr = useMemo(() => format(filterDate, "yyyy-MM-dd"), [filterDate]);
 
-  // ── Appointments fetch ─────────────────────────────────────────────────
-  // Explicit clinic_id filter + date filter. Isolated from patient lookup
-  // so a patient-lookup failure never blanks the appointments list.
   const loadAppointments = useCallback(async (signal?: AbortSignal) => {
     if (!cid) {
       setAppointments([]);
@@ -110,35 +106,22 @@ export default function Appointments() {
       }
 
       const rows = (data ?? []) as Appointment[];
-
       let nameMap = new Map<string, string>();
       const patientIds = Array.from(new Set(rows.map(r => r.patient_id).filter((x): x is string => !!x)));
       if (patientIds.length > 0) {
         const { data: pats, error: pErr } = await apiClient
-          .from("patients")
-          .select("id, full_name")
-          .eq("clinic_id", cid)
-          .in("id", patientIds);
-        if (pErr) {
-          diag.warn("query", "patient name lookup failed", { message: pErr.message, code: pErr.code });
-        } else if (pats) {
-          nameMap = new Map((pats as PatientLite[]).map(p => [p.id, p.full_name]));
-        }
+          .from("patients").select("id, full_name").eq("clinic_id", cid).in("id", patientIds);
+        if (pErr) diag.warn("query", "patient name lookup failed", { message: pErr.message, code: pErr.code });
+        else if (pats) nameMap = new Map((pats as PatientLite[]).map(p => [p.id, p.full_name]));
       }
 
       const leadIds = Array.from(new Set(rows.map(r => r.outreach_lead_id).filter((x): x is string => !!x)));
       const leadMap = new Map<string, { full_name: string | null; phone: string | null }>();
       if (leadIds.length > 0) {
         const { data: leadRows, error: leadErr } = await apiClient
-          .from("outreach_leads")
-          .select("id, full_name, phone")
-          .eq("clinic_id", cid)
-          .in("id", leadIds);
-        if (leadErr) {
-          diag.warn("query", "outreach lead lookup failed", { message: leadErr.message, code: leadErr.code });
-        } else {
-          for (const lead of leadRows || []) leadMap.set(lead.id, { full_name: lead.full_name, phone: lead.phone });
-        }
+          .from("outreach_leads").select("id, full_name, phone").eq("clinic_id", cid).in("id", leadIds);
+        if (leadErr) diag.warn("query", "outreach lead lookup failed", { message: leadErr.message, code: leadErr.code });
+        else for (const lead of leadRows || []) leadMap.set(lead.id, { full_name: lead.full_name, phone: lead.phone });
       }
 
       if (signal?.aborted) return;
@@ -146,9 +129,7 @@ export default function Appointments() {
         const lead = r.outreach_lead_id ? leadMap.get(r.outreach_lead_id) : null;
         return {
           ...r,
-          patient_name: r.patient_id
-            ? (nameMap.get(r.patient_id) ?? "Unknown patient")
-            : (lead?.full_name || "Outreach lead"),
+          patient_name: r.patient_id ? (nameMap.get(r.patient_id) ?? "Unknown patient") : (lead?.full_name || "Outreach lead"),
           lead_phone: lead?.phone || null,
           is_outreach: !!r.outreach_lead_id || r.source === "outreach",
         };
@@ -169,18 +150,13 @@ export default function Appointments() {
     return () => ctrl.abort();
   }, [hydrating, loadAppointments]);
 
-  // Refresh immediately when connectivity returns while this page is open.
-  // The user should not have to navigate away and back.
   useEffect(() => {
     if (!cid) return;
-    const handleOnline = () => {
-      loadAppointments();
-    };
+    const handleOnline = () => loadAppointments();
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
   }, [cid, loadAppointments]);
 
-  // Refresh appointments after offline sync completes for this clinic
   useEffect(() => {
     function onSync(e: Event) {
       const ev = e as CustomEvent<{ clinicId: string }>;
@@ -192,12 +168,10 @@ export default function Appointments() {
     return () => window.removeEventListener("optocare:sync:done", onSync as EventListener);
   }, [cid, loadAppointments]);
 
-  // ── Staff reminder alerts ─────────────────────────────────────────────
   const refreshReminderAlerts = useCallback(async () => {
     if (!cid || isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) return;
 
     await apiClient.rpc("refresh_due_appointment_reminders");
-
     const { data, error: reminderError } = await apiClient
       .from("appointment_reminders")
       .select("id, appointment_id, reminder_type, due_at, scheduled_for, status, sent_at, channel")
@@ -213,7 +187,6 @@ export default function Appointments() {
 
     const rows = data || [];
     setReminders(rows);
-
     const dueRows = rows.filter((r: any) => r.status === "due" && !r.sent_at);
     const alertKey = "optocare:appointment-reminder-alerts:" + cid;
     let alerted: Record<string, boolean> = {};
@@ -242,7 +215,6 @@ export default function Appointments() {
     return () => window.clearInterval(timer);
   }, [hydrating, cid, refreshReminderAlerts]);
 
-  // ── Patient dropdown ───────────────────────────────────────────────────
   useEffect(() => {
     if (hydrating || !cid) { setPatients([]); return; }
     const cacheKey = `patients-lite:${cid}`;
@@ -255,11 +227,7 @@ export default function Appointments() {
     (async () => {
       try {
         const { data, error: pErr } = await apiClient
-          .from("patients")
-          .select("id, full_name")
-          .eq("clinic_id", cid)
-          .order("full_name")
-          .limit(500);
+          .from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").limit(500);
         if (cancelled) return;
         if (pErr || !data) {
           const cached = offlineStore.get<PatientLite[]>(cacheKey);
@@ -320,17 +288,9 @@ export default function Appointments() {
         clinic_id: cid,
         appointment_date: newDate,
         appointment_time: rescheduleForm.time,
-        ...(dateChanged || timeChanged
-          ? { reminder_sent_at: null, reminder_channel: null }
-          : {}),
+        ...(dateChanged || timeChanged ? { reminder_sent_at: null, reminder_channel: null } : {}),
       };
-      await enqueueOfflineOperation({
-        clinicId: cid,
-        userId: null,
-        kind: "appointment.save",
-        entityId: appointment.id,
-        payload,
-      });
+      await enqueueOfflineOperation({ clinicId: cid, userId: null, kind: "appointment.save", entityId: appointment.id, payload });
       const next = appointments.map(a => a.id === appointment.id
         ? { ...a, appointment_date: newDate, appointment_time: rescheduleForm.time, reminder_sent_at: null, reminder_channel: null, offline_pending_sync: true }
         : a);
@@ -342,18 +302,11 @@ export default function Appointments() {
     }
 
     setRescheduling(true);
-    const { error: uErr } = await apiClient
-      .from("appointments")
-      .update({
-        appointment_date: newDate,
-        appointment_time: rescheduleForm.time,
-        ...(dateChanged || timeChanged
-          ? { reminder_sent_at: null, reminder_channel: null }
-          : {}),
-      } as any)
-      .eq("clinic_id", cid)
-      .eq("id", reschedulingId);
-
+    const { error: uErr } = await apiClient.from("appointments").update({
+      appointment_date: newDate,
+      appointment_time: rescheduleForm.time,
+      ...(dateChanged || timeChanged ? { reminder_sent_at: null, reminder_channel: null } : {}),
+    } as any).eq("clinic_id", cid).eq("id", reschedulingId);
     setRescheduling(false);
 
     if (uErr) {
@@ -362,11 +315,7 @@ export default function Appointments() {
       return;
     }
 
-    toast.success(
-      dateChanged || timeChanged
-        ? "Appointment rescheduled. A new reminder is now due."
-        : "Appointment schedule confirmed."
-    );
+    toast.success(dateChanged || timeChanged ? "Appointment rescheduled. A new reminder is now due." : "Appointment schedule confirmed.");
     setReschedulingId(null);
     loadAppointments();
   };
@@ -381,7 +330,6 @@ export default function Appointments() {
     };
   }, [appointments, reminders]);
 
-  // ── Mutations ─────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!cid) { toast.error("No active clinic selected"); return; }
     if (!form.time?.trim()) { toast.error("Set a time"); return; }
@@ -429,44 +377,94 @@ export default function Appointments() {
   };
 
   const sendReminder = async (appointment: Appointment) => {
-    if (!cid || !appointment.patient_id) {
-      toast.error("A patient-linked appointment is required for reminders.");
-      return;
-    }
+    if (!cid) return;
+
     setRemindingId(appointment.id);
     try {
-      const { data: patient, error } = await apiClient
-        .from("patients")
-        .select("id, full_name, phone")
-        .eq("clinic_id", cid)
-        .eq("id", appointment.patient_id)
-        .maybeSingle();
-      if (error || !patient) {
-        toast.error(error?.message || "Patient not found.");
+      let recipientName = appointment.patient_name || "there";
+      let recipientPhone: string | null = null;
+
+      if (appointment.patient_id) {
+        const { data: patient, error } = await apiClient
+          .from("patients").select("id, full_name, phone")
+          .eq("clinic_id", cid).eq("id", appointment.patient_id).maybeSingle();
+
+        if (error || !patient) {
+          toast.error(error?.message || "Patient not found.");
+          return;
+        }
+        recipientName = patient.full_name || recipientName;
+        recipientPhone = patient.phone || null;
+      } else if (appointment.outreach_lead_id || appointment.is_outreach) {
+        let leadPhone = appointment.lead_phone || null;
+        let leadName = appointment.patient_name || "Outreach lead";
+
+        if (appointment.outreach_lead_id) {
+          const { data: lead, error } = await apiClient
+            .from("outreach_leads").select("id, full_name, phone")
+            .eq("clinic_id", cid).eq("id", appointment.outreach_lead_id).maybeSingle();
+
+          if (error || !lead) {
+            toast.error(error?.message || "Outreach lead not found.");
+            return;
+          }
+          leadName = lead.full_name || leadName;
+          leadPhone = lead.phone || leadPhone;
+        }
+
+        recipientName = leadName;
+        recipientPhone = leadPhone;
+      } else {
+        toast.error("This appointment has no patient or Outreach lead contact.");
         return;
       }
-      const phone = normalizeWhatsAppNumber(patient.phone);
-      if (!phone) { toast.error("This patient has no phone number saved."); return; }
-      const dateLabel = new Date(appointment.appointment_date + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-      const message = "Hello " + patient.full_name + ", this is a reminder from the clinic about your appointment on " + dateLabel + (appointment.appointment_time ? " at " + appointment.appointment_time : "") + ". Please arrive 10 minutes early. If you need to reschedule, please contact the clinic.";
+
+      const phone = normalizeWhatsAppNumber(recipientPhone);
+      if (!phone) {
+        toast.error("No valid WhatsApp/phone number is saved for this appointment.");
+        return;
+      }
+
+      const dateLabel = new Date(appointment.appointment_date + "T00:00:00")
+        .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+      const message = "Hello " + recipientName + ", this is a reminder from the clinic about your appointment on " +
+        dateLabel + (appointment.appointment_time ? " at " + appointment.appointment_time : "") +
+        ". Please arrive 10 minutes early. If you need to reschedule, please contact the clinic.";
+
       window.open(whatsappLink(phone, message), "_blank", "noopener,noreferrer");
+
       const sentAt = new Date().toISOString();
       const candidate = reminders
         .filter((r: any) => r.appointment_id === appointment.id && !r.sent_at && (r.status === "due" || r.status === "pending"))
         .sort((a: any, b: any) => new Date(a.due_at).getTime() - new Date(b.due_at).getTime())[0];
+
       if (candidate) {
         const { error: reminderTrackError } = await apiClient
           .from("appointment_reminders")
-          .update({ status: "sent", sent_at: sentAt, sent_by: (await apiClient.auth.getUser()).data.user?.id || null, channel: "whatsapp_link", updated_at: sentAt } as any)
+          .update({
+            status: "sent",
+            sent_at: sentAt,
+            sent_by: (await apiClient.auth.getUser()).data.user?.id || null,
+            channel: "whatsapp_link",
+            updated_at: sentAt,
+          } as any)
           .eq("clinic_id", cid)
           .eq("id", candidate.id);
         if (reminderTrackError) console.warn("Failed to track reminder:", reminderTrackError);
       }
-      const { error: trackError } = await apiClient.from("appointments").update({ reminder_sent_at: sentAt, reminder_channel: "whatsapp" } as any).eq("clinic_id", cid).eq("id", appointment.id);
+
+      const { error: trackError } = await apiClient
+        .from("appointments")
+        .update({ reminder_sent_at: sentAt, reminder_channel: "whatsapp" } as any)
+        .eq("clinic_id", cid)
+        .eq("id", appointment.id);
       if (trackError) console.warn("Failed to track appointment reminder:", trackError);
+
       toast.success("WhatsApp reminder opened. Press Send in WhatsApp to deliver it.");
       loadAppointments();
-    } finally { setRemindingId(null); }
+    } finally {
+      setRemindingId(null);
+    }
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -497,7 +495,6 @@ export default function Appointments() {
     return "bg-primary/10 text-primary";
   };
 
-  // ── Render ──────────────────────────────────────────────────────────
   const showHydrating = hydrating;
   const showNoClinic = !hydrating && !cid;
 
@@ -579,13 +576,7 @@ export default function Appointments() {
                   );
                 })()}
               </div>
-              <button
-                type="button"
-                onClick={() => setReschedulingId(null)}
-                className="p-2 rounded-xl hover:bg-muted"
-                title="Close reschedule dialog"
-                aria-label="Close reschedule dialog"
-              >
+              <button type="button" onClick={() => setReschedulingId(null)} className="p-2 rounded-xl hover:bg-muted" title="Close reschedule dialog" aria-label="Close reschedule dialog">
                 <X size={16} />
               </button>
             </div>
@@ -601,26 +592,14 @@ export default function Appointments() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={rescheduleForm.date}
-                      onSelect={d => d && setRescheduleForm(f => ({ ...f, date: d }))}
-                      className="p-3 pointer-events-auto"
-                    />
+                    <Calendar mode="single" selected={rescheduleForm.date} onSelect={d => d && setRescheduleForm(f => ({ ...f, date: d }))} className="p-3 pointer-events-auto" />
                   </PopoverContent>
                 </Popover>
               </div>
-
               <div className="space-y-1">
                 <Label className="text-xs">New time</Label>
-                <Input
-                  type="time"
-                  className="rounded-xl"
-                  value={rescheduleForm.time}
-                  onChange={e => setRescheduleForm(f => ({ ...f, time: e.target.value }))}
-                />
+                <Input type="time" className="rounded-xl" value={rescheduleForm.time} onChange={e => setRescheduleForm(f => ({ ...f, time: e.target.value }))} />
               </div>
-
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
                 <p className="font-medium text-foreground mb-1">What happens when you reschedule?</p>
                 <ul className="space-y-1 list-disc pl-4">
@@ -629,25 +608,10 @@ export default function Appointments() {
                   <li>If the date or time changes, the previous reminder is cleared and a new reminder becomes due.</li>
                 </ul>
               </div>
-
               <div className="flex justify-end gap-2 pt-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-xl"
-                  onClick={() => setReschedulingId(null)}
-                  disabled={rescheduling}
-                >
-                  Keep current
-                </Button>
-                <Button
-                  type="button"
-                  className="rounded-xl gap-1.5"
-                  onClick={handleReschedule}
-                  disabled={rescheduling}
-                >
-                  <CalendarClock size={15} />
-                  {rescheduling ? "Rescheduling..." : "Confirm reschedule"}
+                <Button type="button" variant="outline" className="rounded-xl" onClick={() => setReschedulingId(null)} disabled={rescheduling}>Keep current</Button>
+                <Button type="button" className="rounded-xl gap-1.5" onClick={handleReschedule} disabled={rescheduling}>
+                  <CalendarClock size={15} />{rescheduling ? "Rescheduling..." : "Confirm reschedule"}
                 </Button>
               </div>
             </div>
@@ -667,8 +631,7 @@ export default function Appointments() {
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="rounded-xl">
-              <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-              {format(filterDate, "PPP")}
+              <CalendarIcon className="mr-2 h-3.5 w-3.5" />{format(filterDate, "PPP")}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -678,16 +641,11 @@ export default function Appointments() {
       </div>
 
       {showHydrating ? (
-        <div className="flex items-center justify-center py-12">
-          <OptoLoader size={40} />
-        </div>
+        <div className="flex items-center justify-center py-12"><OptoLoader size={40} /></div>
       ) : showNoClinic ? (
         <div className="form-section flex items-start gap-3 text-sm">
           <AlertCircle size={18} className="text-warning shrink-0 mt-0.5" />
-          <div>
-            <div className="font-medium">No active clinic</div>
-            <div className="text-muted-foreground">Select a clinic to view appointments.</div>
-          </div>
+          <div><div className="font-medium">No active clinic</div><div className="text-muted-foreground">Select a clinic to view appointments.</div></div>
         </div>
       ) : error ? (
         <div className="form-section flex items-start gap-3 text-sm border-destructive/40">
@@ -699,9 +657,7 @@ export default function Appointments() {
           </div>
         </div>
       ) : loading ? (
-        <div className="flex items-center justify-center py-12">
-          <OptoLoader size={40} />
-        </div>
+        <div className="flex items-center justify-center py-12"><OptoLoader size={40} /></div>
       ) : appointments.length === 0 ? (
         <div className="text-center py-12 text-sm text-muted-foreground">No upcoming appointments.</div>
       ) : (
@@ -735,23 +691,14 @@ export default function Appointments() {
                     <button onClick={() => updateStatus(a.id, "completed")} className="p-2 rounded-xl hover:bg-muted" title="Mark appointment as completed"><CheckCircle2 size={16} className="text-success" /></button>
                     <button onClick={() => updateStatus(a.id, "cancelled")} className="p-2 rounded-xl hover:bg-muted" title="Cancel appointment"><XCircle size={16} className="text-destructive" /></button>
                   </>}
-                  <button
-                    onClick={() => startReschedule(a)}
-                    className="p-2 rounded-xl hover:bg-muted"
-                    title="Reschedule appointment"
-                    aria-label={"Reschedule appointment for " + (a.patient_name || "patient")}
-                  >
-                    <CalendarClock size={16} className="text-primary" />
-                  </button>
-                  <button onClick={() => startEdit(a)} className="p-2 rounded-xl hover:bg-muted" title="Edit appointment" aria-label={"Edit appointment for " + (a.patient_name || "patient")}>
-                    <Pencil size={16} />
-                  </button>
+                  <button onClick={() => startReschedule(a)} className="p-2 rounded-xl hover:bg-muted" title="Reschedule appointment" aria-label={"Reschedule appointment for " + (a.patient_name || "patient")}><CalendarClock size={16} className="text-primary" /></button>
+                  <button onClick={() => startEdit(a)} className="p-2 rounded-xl hover:bg-muted" title="Edit appointment" aria-label={"Edit appointment for " + (a.patient_name || "patient")}><Pencil size={16} /></button>
                   <button
                     onClick={() => sendReminder(a)}
                     disabled={remindingId === a.id || a.status === "cancelled" || a.status === "completed"}
                     className="p-2 rounded-xl hover:bg-muted disabled:opacity-50"
-                    title={a.reminder_sent_at ? "Resend reminder on WhatsApp" : "Send reminder on WhatsApp"}
-                    aria-label={a.reminder_sent_at ? "Resend appointment reminder on WhatsApp" : "Send appointment reminder on WhatsApp"}
+                    title={a.reminder_sent_at ? "Resend WhatsApp reminder" : "Send WhatsApp reminder"}
+                    aria-label={a.reminder_sent_at ? "Resend WhatsApp appointment reminder" : "Send WhatsApp appointment reminder"}
                   >
                     {remindingId === a.id ? <Clock size={16} className="text-primary animate-spin" /> : <Bell size={16} className="text-primary" />}
                   </button>
@@ -759,16 +706,8 @@ export default function Appointments() {
               </div>
               {a.patient_id && (
                 <div className="mt-2 pt-2 border-t border-border/50">
-                  <a
-                    href={"/patient/" + a.patient_id}
-                    onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-1.5 text-[11px] font-medium text-primary hover:underline"
-                    title="Open patient record"
-                    aria-label={"Open patient record for " + (a.patient_name || "patient")}
-                  >
-                    <UserRound size={12} />
-                    Open record
-                    <ChevronRight size={12} />
+                  <a href={"/patient/" + a.patient_id} onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1.5 text-[11px] font-medium text-primary hover:underline" title="Open patient record" aria-label={"Open patient record for " + (a.patient_name || "patient")}>
+                    <UserRound size={12} />Open record<ChevronRight size={12} />
                   </a>
                 </div>
               )}
