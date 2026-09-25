@@ -520,6 +520,24 @@ export default function Outreach() {
         next_follow_up_at: null,
       }).eq("id", convertingLead.id).eq("clinic_id", effectiveClinicId);
       if (leadError) throw leadError;
+
+      // Preserve the Outreach history while linking the now-confirmed patient
+      // to every historical campaign touch and appointment for this lead.
+      const { error: recipientLinkError } = await apiClient
+        .from("outreach_recipients")
+        .update({ patient_id: patientId })
+        .eq("clinic_id", effectiveClinicId)
+        .eq("lead_id", convertingLead.id);
+      if (recipientLinkError) throw recipientLinkError;
+
+      const { error: appointmentLinkError } = await apiClient
+        .from("appointments")
+        .update({ patient_id: patientId })
+        .eq("clinic_id", effectiveClinicId)
+        .eq("outreach_lead_id", convertingLead.id)
+        .is("patient_id", null);
+      if (appointmentLinkError) throw appointmentLinkError;
+
       setLeads(prev => prev.map(l => l.id === convertingLead.id ? { ...l, patient_id: patientId, status: "converted", converted_at: convertedAt, next_follow_up_at: null } : l));
       setConvertingLead(null);
     } catch (e) {
