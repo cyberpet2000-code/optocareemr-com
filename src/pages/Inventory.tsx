@@ -67,7 +67,7 @@ export default function Inventory() {
       const { data, error } = await apiClient.from("inventory").select("*").eq("clinic_id", cid).order("name");
       if (error || !data) { loadFromCache(); return; }
       setItems(data as unknown as InventoryItem[]);
-      await secureOfflineSave(cacheKey, data);
+      void secureOfflineSave(cacheKey, data);
       setLoading(false);
     } catch {
       loadFromCache();
