@@ -426,10 +426,24 @@ export default function Appointments() {
       }
 
       const dateLabel = new Date(appointment.appointment_date + "T00:00:00")
-        .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-      const message = "Hello " + recipientName + ", this is a reminder from the clinic about your appointment on " +
-        dateLabel + (appointment.appointment_time ? " at " + appointment.appointment_time : "") +
-        ". Please arrive 10 minutes early. If you need to reschedule, please contact the clinic.";
+        .toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+      const timeLabel = appointment.appointment_time
+        ? (() => {
+            const [hours, minutes] = appointment.appointment_time.split(":").map(Number);
+            if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return appointment.appointment_time;
+            const date = new Date();
+            date.setHours(hours, minutes, 0, 0);
+            return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+          })()
+        : null;
+      const greetingName = recipientName && recipientName !== "Outreach lead" ? recipientName : null;
+      const message = greetingName
+        ? "Cedar Eye Clinic\\n\\nHello " + greetingName + ",\\n\\nThis is a friendly reminder about your appointment at Cedar Eye Clinic on " +
+          dateLabel + (timeLabel ? " at " + timeLabel : "") +
+          ".\\n\\nWe look forward to seeing you. Please arrive 10 minutes early.\\n\\nIf you need to reschedule or have any questions, simply reply to this message or contact us on WhatsApp.\\n\\nThank you,\\nCedar Eye Clinic"
+        : "Cedar Eye Clinic\\n\\nHello,\\n\\nThis is a friendly reminder about your appointment at Cedar Eye Clinic on " +
+          dateLabel + (timeLabel ? " at " + timeLabel : "") +
+          ".\\n\\nWe look forward to seeing you. Please arrive 10 minutes early.\\n\\nIf you need to reschedule or have any questions, simply reply to this message or contact us on WhatsApp.\\n\\nThank you,\\nCedar Eye Clinic";
 
       window.open(whatsappLink(phone, message), "_blank", "noopener,noreferrer");
 
