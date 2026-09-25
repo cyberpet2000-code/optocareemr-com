@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useAccess } from "@/hooks/useAccess";
 import { offlineStore } from "@/lib/offlineStore";
+import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 import { useOffline } from "@/hooks/useOffline";
 import { enqueueOfflineOperation } from "@/lib/offlineEngine";
 import { confirmDestructiveAction } from "@/lib/safeDelete";
@@ -208,10 +209,10 @@ export default function Billing() {
     const patientsKey = `billing-patients:${cid}`;
     const hmosKey = `billing-hmos:${cid}`;
 
-    const hydrateFromCache = () => {
-      const cBills = offlineStore.get<BillingRow[]>(billsKey);
-      const cPats = offlineStore.get<Patient[]>(patientsKey);
-      const cHmos = offlineStore.get<Array<{ id: string; name: string }>>(hmosKey);
+    const hydrateFromCache = async () => {
+      const cBills = await secureOfflineGet<BillingRow[]>(billsKey);
+      const cPats = await secureOfflineGet<Patient[]>(patientsKey);
+      const cHmos = await secureOfflineGet<Array<{ id: string; name: string }>>(hmosKey);
       if (cBills) setBills(cBills);
       if (cPats) setPatients(cPats);
       if (cHmos) setHmoMap(new Map(cHmos.map(h => [h.id, h.name])));
@@ -219,7 +220,7 @@ export default function Billing() {
     };
 
     if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
-      hydrateFromCache();
+      await hydrateFromCache();
       return;
     }
 
@@ -254,7 +255,7 @@ export default function Billing() {
           .eq("clinic_id", cid)
           .order("family_name")
       ]);
-      if (billRes.error && patRes.error) { hydrateFromCache(); return; }
+      if (billRes.error && patRes.error) { await hydrateFromCache(); return; }
       console.debug("[billing]", { clinic_id: cid, bills: billRes.data?.length ?? 0 });
       const hmosList = (hmoRes.data || []) as Array<{ id: string; name: string }>;
       const familiesList = (familyRes.data || []) as any[];
@@ -266,8 +267,8 @@ export default function Billing() {
       setInventoryItems(
         inventoryRes.data || []
       );
-      offlineStore.save(patientsKey, pats);
-      offlineStore.save(hmosKey, hmosList);
+      await secureOfflineSave(patientsKey, pats);
+      await secureOfflineSave(hmosKey, hmosList);
       if (billRes.data) {
         const pIds = [...new Set(billRes.data.map((b: any) => b.patient_id).filter(Boolean))] as string[];
         let pMap = new Map<string, string>();
@@ -281,7 +282,7 @@ export default function Billing() {
           hmo_name: b.hmo_id ? hmap.get(b.hmo_id) : undefined,
         })) as BillingRow[];
         setBills(enriched);
-        offlineStore.save(billsKey, enriched);
+        await secureOfflineSave(billsKey, enriched);
       }
       setLoading(false);
     } catch (e) {
