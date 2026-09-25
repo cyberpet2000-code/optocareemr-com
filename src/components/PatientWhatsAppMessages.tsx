@@ -12,7 +12,10 @@ export type WhatsAppTemplateKey =
   | "order_ready"
   | "payment_reminder"
   | "appointment_reminder"
+  | "appointment_reschedule"
   | "feedback"
+  | "visit_thank_you"
+  | "inquiry_thank_you"
   | "follow_up"
   | "bring_frame"
   | "waiting_for_frame"
@@ -111,6 +114,55 @@ If you are unable to make it, please contact us so we can assist you with resche
 Thank you.
 
 *Powered by OptoCare-EMR*`,
+  },
+  {
+    key: "appointment_reschedule",
+    label: "🔄 Appointment Rescheduling",
+    group: "Appointments",
+    build: ({ clinicName, patientName, appointmentDate, appointmentTime }) => `${clinicName}
+
+Hello ${patientName},
+
+We understand that plans can change. If you are unable to attend your appointment scheduled for ${appointmentDate || "[Appointment Date]"} at ${appointmentTime || "[Appointment Time]"}, please let us know and we will be happy to help you reschedule.
+
+📅 To reschedule your appointment or make an enquiry, simply reply to this message or contact us.
+
+Thank you,
+${clinicName}`,
+  },
+  {
+    key: "visit_thank_you",
+    label: "🙏 Thank You for Visiting",
+    group: "Patient Engagement",
+    build: ({ clinicName, patientName }) => `${clinicName}
+
+Hello ${patientName},
+
+Thank you for visiting ${clinicName} for your eye care.
+
+We truly appreciate your trust in us and hope you were satisfied with your experience.
+
+If you have any questions or need further assistance, please feel free to contact us.
+
+We look forward to caring for you again.
+
+${clinicName}`,
+  },
+  {
+    key: "inquiry_thank_you",
+    label: "💬 Thank You for Your Enquiry",
+    group: "Patient Engagement",
+    build: ({ clinicName, patientName }) => `${clinicName}
+
+Hello ${patientName},
+
+Thank you for contacting ${clinicName}. We appreciate your enquiry and are happy to assist you.
+
+If you would like to book an appointment or have any further questions, simply reply to this message or contact us.
+
+We look forward to assisting you.
+
+${clinicName}`,
   },
   {
     key: "feedback",
