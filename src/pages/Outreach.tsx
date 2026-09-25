@@ -492,23 +492,6 @@ export default function Outreach() {
                 </div>
               )}
 
-              {false && current && (
-                  <div className="mt-4 p-4 rounded-xl bg-muted/50">
-                    <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center"><UserRound size={18}/></div><div><div className="font-semibold">{current.full_name || "Unnamed contact"}</div><div className="text-xs text-muted-foreground">{current.phone}</div></div></div>
-                    <div className="mt-4 text-sm whitespace-pre-wrap bg-background rounded-xl border p-4">{interpolate(selected.message_template, current, clinicName, selected.campaign_date, clinicAddress, clinicWhatsApp, clinicEmail, clinicOpeningHours)}</div>
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      <Button onClick={() => void openNext()} disabled={sending || selected.status === "paused"}><MessageCircle className="w-4 h-4 mr-2"/> Open WhatsApp</Button>
-                      <Button variant="outline" onClick={() => void markSent()} disabled={current.status !== "opened"}><CheckCircle2 className="w-4 h-4 mr-2"/> Mark sent & next</Button>
-                      <Button variant="ghost" onClick={() => void skip()} disabled={selected.status === "paused"}><Pause className="w-4 h-4 mr-2"/> Skip</Button>
-                      {current.contact_id && <Button variant="outline" onClick={() => void createLead(current)}><UserPlus className="w-4 h-4 mr-2"/> Create lead</Button>}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-3">OptoCare opens WhatsApp with the message prepared. A staff member still presses Send. After sending, return here and tap “Mark sent & next”.</div>
-                    <div className="mt-4 h-2 rounded-full bg-muted overflow-hidden"><div className="h-full bg-primary transition-all" style={{ width: counts.total ? ((counts.sent / counts.total) * 100) + "%" : "0%" }} /></div>
-                    <div className="text-xs text-muted-foreground mt-1">{counts.total ? Math.round((counts.sent / counts.total) * 100) : 0}% complete</div>
-                  </div>
-                </div>
-              )}
-
               <div className="rounded-2xl border bg-card overflow-hidden">
                 <div className="p-4 border-b flex items-center gap-2"><Clock3 size={17}/><div><div className="font-semibold">Recipient queue</div><div className="text-xs text-muted-foreground">Progress is saved, so you can stop and continue later.</div></div></div>
                 <div className="max-h-[420px] overflow-auto divide-y" data-oc-scroll>{recipients.slice(0, 300).map(r => <div key={r.id} className={"p-3 flex items-center gap-3 " + (current?.id === r.id ? "bg-primary/5" : "")}><div className="flex-1 min-w-0"><div className="text-sm font-medium truncate">{r.full_name || "Unnamed contact"}</div><div className="text-xs text-muted-foreground">{r.phone}</div></div><span className="text-xs capitalize">{r.status}</span>{r.status === "sent" && <CheckCircle2 size={16} className="text-success"/>}{(r.status === "ready" || r.status === "opened") && <button className="text-xs text-primary" onClick={() => setCurrentRecipientId(r.id)}>Select</button>}</div>)}</div>
