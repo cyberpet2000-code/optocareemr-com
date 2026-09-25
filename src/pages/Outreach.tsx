@@ -51,7 +51,7 @@ const statuses = [
   ["lost", "Lost"],
 ];
 
-function interpolate(template: string, recipient: Recipient, clinicName: string, campaignDate?: string | null, clinicAddress = "", clinicWhatsApp = "", clinicEmail = "") {
+function interpolate(template: string, recipient: Recipient, clinicName: string, campaignDate?: string | null, clinicAddress = "", clinicWhatsApp = "", clinicEmail = "", clinicOpeningHours = "") {
   const formattedDate = campaignDate
     ? new Date(campaignDate + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })
     : "";
@@ -61,7 +61,8 @@ function interpolate(template: string, recipient: Recipient, clinicName: string,
     .replaceAll("{{campaign_date}}", formattedDate)
     .replaceAll("{{clinic_address}}", clinicAddress)
     .replaceAll("{{clinic_whatsapp}}", clinicWhatsApp)
-    .replaceAll("{{clinic_email}}", clinicEmail);
+    .replaceAll("{{clinic_email}}", clinicEmail)
+    .replaceAll("{{clinic_hours}}", clinicOpeningHours);
 }
 
 export default function Outreach() {
@@ -85,6 +86,7 @@ export default function Outreach() {
   const [clinicAddress, setClinicAddress] = useState("");
   const [clinicWhatsApp, setClinicWhatsApp] = useState("+2348067092463");
   const [clinicEmail, setClinicEmail] = useState("cedaeyeclinic@gmail.com");
+  const [clinicOpeningHours, setClinicOpeningHours] = useState("Monday–Friday, 9:00 AM–5:00 PM; Saturday, 10:00 AM–3:00 PM");
   const [bookingLead, setBookingLead] = useState<Lead | null>(null);
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
@@ -132,12 +134,13 @@ export default function Outreach() {
 
   useEffect(() => {
     if (!effectiveClinicId) return;
-    apiClient.from("clinics").select("name,email,address,whatsapp_phone,phone").eq("id", effectiveClinicId).maybeSingle().then(({ data }) => {
+    apiClient.from("clinics").select("name,email,address,whatsapp_phone,phone,outreach_opening_hours").eq("id", effectiveClinicId).maybeSingle().then(({ data }) => {
       if (data?.name) setClinicName(data.name);
       if (data?.address) setClinicAddress(data.address);
       if (data?.whatsapp_phone) setClinicWhatsApp(data.whatsapp_phone);
       else if (data?.phone) setClinicWhatsApp(data.phone);
       if (data?.email) setClinicEmail(data.email);
+      if (data?.outreach_opening_hours) setClinicOpeningHours(data.outreach_opening_hours);
     });
   }, [effectiveClinicId]);
 
@@ -284,7 +287,7 @@ export default function Outreach() {
     if (!selected || !current || sending) return;
     setSending(true);
     try {
-      const url = whatsappLink(current.phone, interpolate(selected.message_template, current, clinicName, selected.campaign_date, clinicAddress, clinicWhatsApp, clinicEmail));
+      const url = whatsappLink(current.phone, interpolate(selected.message_template, current, clinicName, selected.campaign_date, clinicAddress, clinicWhatsApp, clinicEmail, clinicOpeningHours));
       if (!url) return;
       await apiClient.from("outreach_recipients").update({ status: "opened" }).eq("id", current.id);
       window.open(url, "_blank", "noopener,noreferrer");
@@ -471,7 +474,7 @@ export default function Outreach() {
 
           <div className="mt-4 rounded-xl border bg-muted/30 p-4">
             <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Message preview</div>
-            <div className="whitespace-pre-wrap text-sm bg-background rounded-xl border p-4">{interpolate(message, { id:"preview", full_name: review.sample[0]?.full_name || "there", phone: review.sample[0]?.phone || "", normalized_phone:"", status:"ready", patient_id:null, contact_id:null, sent_at:null }, clinicName, campaignDate, clinicAddress, clinicWhatsApp, clinicEmail)}</div>
+            <div className="whitespace-pre-wrap text-sm bg-background rounded-xl border p-4">{interpolate(message, { id:"preview", full_name: review.sample[0]?.full_name || "there", phone: review.sample[0]?.phone || "", normalized_phone:"", status:"ready", patient_id:null, contact_id:null, sent_at:null }, clinicName, campaignDate, clinicAddress, clinicWhatsApp, clinicEmail, clinicOpeningHours)}</div>
             <div className="text-xs text-muted-foreground mt-2">Personalization will use each recipient's name automatically.</div>
           </div>
 
@@ -533,9 +536,10 @@ export default function Outreach() {
               <div>📍 {clinicAddress || "Address not configured"}</div>
               <div>📞 {clinicWhatsApp || "Phone not configured"}</div>
               <div>✉️ {clinicEmail || "Email not configured"}</div>
+              <div>🕘 {clinicOpeningHours || "Opening hours not configured"}</div>
             </div>
           </div>
-          <div><label className="text-sm font-medium">WhatsApp message</label><Textarea rows={10} value={message} onChange={e => setMessage(e.target.value)} /><p className="text-xs text-muted-foreground mt-1">Available: {"{{patient_name}}"}, {"{{clinic_name}}"}, {"{{campaign_date}}"}, {"{{clinic_address}}"}, {"{{clinic_whatsapp}}"}, {"{{clinic_email}}"}</p></div>
+          <div><label className="text-sm font-medium">WhatsApp message</label><Textarea rows={10} value={message} onChange={e => setMessage(e.target.value)} /><p className="text-xs text-muted-foreground mt-1">Available: {"{{patient_name}}"}, {"{{clinic_name}}"}, {"{{campaign_date}}"}, {"{{clinic_address}}"}, {"{{clinic_whatsapp}}"}, {"{{clinic_email}}"}, {"{{clinic_hours}}"}</p></div>
           <div className="rounded-xl bg-warning/10 border border-warning/20 p-3 text-xs text-warning">This version does not use WhatsApp API. It prepares each message and opens WhatsApp; staff must press Send.</div>
           <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button><Button onClick={() => void prepareReview()} disabled={reviewLoading || !name.trim() || !message.trim()}>{reviewLoading ? "Preparing review…" : "Review campaign"}</Button></div>
         </div>
