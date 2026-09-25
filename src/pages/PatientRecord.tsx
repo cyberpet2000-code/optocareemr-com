@@ -52,6 +52,7 @@ import { ClinicalAiAssistant } from "@/components/ClinicalAiAssistant";
 import { ClinicalVisitInsights } from "@/components/ClinicalVisitInsights";
 import { enqueueOfflineOperation, cachePatientOffline, cacheVisitsOffline, cacheVisitOffline, cacheStaffProfilesOffline, getStaffProfilesOffline } from "@/lib/offlineEngine";
 import { offlineStore } from "@/lib/offlineStore";
+import { secureOfflineGet } from "@/lib/secureOfflineStore";
 import {
   MoreVertical,
   Trash2,
@@ -319,15 +320,15 @@ const canViewFinancials =
     (async () => {
       try {
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        const cachedPatient = offlineStore.get<any>("patient-record:" + cid + ":" + patientId);
-        const cachedVisits = offlineStore.get<any[]>("patient-visits:" + cid + ":" + patientId) ?? [];
+        const cachedPatient = await secureOfflineGet<any>("patient-record:" + cid + ":" + patientId);
+        const cachedVisits = await secureOfflineGet<any[]>("patient-visits:" + cid + ":" + patientId) ?? [];
         if (cachedPatient) {
           setPatient(cachedPatient);
           setVisits(cachedVisits);
 
           // Staff identities are cached with the clinical records so offline
           // history can still identify the doctor and registrar.
-          const cachedStaff = getStaffProfilesOffline(cid);
+          const cachedStaff = await getStaffProfilesOffline(cid);
           const cachedStaffMap = new Map(cachedStaff.map((staff: any) => [staff.id, staff]));
           const cachedDoctorMap = new Map<string, string>();
           const cachedRegistrarMap = new Map<string, string>();
@@ -1205,7 +1206,7 @@ if (typeof navigator !== "undefined" && !navigator.onLine) {
     payload: visitPayload,
   });
   cacheVisitOffline(cid, patient.id, localVisit);
-  const currentVisits = offlineStore.get<any[]>("patient-visits:" + cid + ":" + patient.id) ?? visits;
+  const currentVisits = await secureOfflineGet<any[]>("patient-visits:" + cid + ":" + patient.id) ?? visits;
   setVisits([localVisit, ...currentVisits.filter(v => v.id !== localVisit.id)]);
   setSaving(false);
   savingVisitRef.current = false;
