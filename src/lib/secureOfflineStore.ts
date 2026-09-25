@@ -94,6 +94,8 @@ export async function secureOfflineSave<T>(key: string, data: T): Promise<boolea
         data: bytesToBase64(new Uint8Array(ciphertext)),
       }),
     );
+    // Remove any pre-encryption plaintext copy with the same logical key.
+    try { localStorage.removeItem("optocare:offline:" + key); } catch { /* noop */ }
     return true;
   } catch {
     return false;
@@ -101,11 +103,31 @@ export async function secureOfflineSave<T>(key: string, data: T): Promise<boolea
 }
 
 export async function secureOfflineGet<T>(key: string): Promise<T | null> {
+  const encryptedRaw = localStorage.getItem(DATA_PREFIX + key);
+  const legacyRaw = encryptedRaw ? null : (() => {
+    try { return localStorage.getItem("optocare:offline:" + key); } catch { return null; }
+  })();
+
+  if (!encryptedRaw && !legacyRaw) return null;
+
   const cryptoKey = await getKey();
   if (!cryptoKey) return null;
 
+  // One-time migration from the old plaintext cache to encrypted storage.
+  if (legacyRaw && !encryptedRaw) {
+    try {
+      const parsed = JSON.parse(legacyRaw);
+      const migrated = await secureOfflineSave(key, parsed?.data ?? null);
+      if (!migrated) return null;
+      try { localStorage.removeItem("optocare:offline:" + key); } catch { /* noop */ }
+      return (parsed?.data ?? null) as T | null;
+    } catch {
+      return null;
+    }
+  }
+
   try {
-    const raw = localStorage.getItem(DATA_PREFIX + key);
+    const raw = encryptedRaw;
     if (!raw) return null;
     const envelope = JSON.parse(raw);
     const plaintext = await crypto.subtle.decrypt(
