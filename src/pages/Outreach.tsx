@@ -77,6 +77,7 @@ export default function Outreach() {
   const [creating, setCreating] = useState(false);
   const [sending, setSending] = useState(false);
   const [currentRecipientId, setCurrentRecipientId] = useState<string | null>(null);
+  const [sendMode, setSendMode] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("World Sight Day 2026");
   const [campaignDate, setCampaignDate] = useState("2026-10-08");
@@ -281,6 +282,8 @@ export default function Outreach() {
       setShowReview(false);
       setExternalText("");
       setSelected(campaign as Campaign);
+      setCurrentRecipientId(null);
+      setSendMode(true);
       await load();
     } finally {
       setCreating(false);
@@ -309,6 +312,7 @@ export default function Outreach() {
     setRecipients(prev => prev.map(r => r.id === current.id ? { ...r, status: "sent", sent_at: sentAt } : r));
     const next = recipients.find(r => r.id !== current.id && r.status === "ready");
     setCurrentRecipientId(next?.id || null);
+    if (!next) setSendMode(false);
   };
 
   const skip = async () => {
@@ -317,6 +321,7 @@ export default function Outreach() {
     setRecipients(prev => prev.map(r => r.id === current.id ? { ...r, status: "skipped" } : r));
     const next = recipients.find(r => r.id !== current.id && r.status === "ready");
     setCurrentRecipientId(next?.id || null);
+    if (!next) setSendMode(false);
   };
 
   const pauseCampaign = async () => {
@@ -433,6 +438,11 @@ export default function Outreach() {
     <span className="px-2 py-1 rounded-full bg-primary/10 text-primary">{counts.sent} sent</span>
     <span className="px-2 py-1 rounded-full bg-muted">{counts.ready} remaining</span>
     <span className="px-2 py-1 rounded-full border">{selected.status === "paused" ? "Paused" : "Ready"}</span>
+    {counts.ready > 0 && (
+      <Button size="sm" onClick={() => setSendMode(true)} disabled={selected.status === "paused"}>
+        <Send className="w-3.5 h-3.5 mr-1.5"/> Begin Sending
+      </Button>
+    )}
     <Button size="sm" variant="outline" onClick={() => void pauseCampaign()} disabled={!counts.ready && selected.status !== "paused"}>
       {selected.status === "paused" ? <Play className="w-3.5 h-3.5 mr-1.5"/> : <Pause className="w-3.5 h-3.5 mr-1.5"/>}
       {selected.status === "paused" ? "Resume" : "Pause"}
@@ -447,9 +457,42 @@ export default function Outreach() {
                 </div>
               </div>
 
-              {current && (
-                <div className="rounded-2xl border bg-card p-5">
-                  <div className="flex items-center gap-2 text-primary font-semibold"><Send size={17}/> Sending queue</div>
+              {sendMode && (
+                <div className="rounded-2xl border-2 border-primary/20 bg-card p-5 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 text-primary font-semibold"><Send size={17}/> Ready to send</div>
+                      <div className="text-sm text-muted-foreground mt-1">Work through the queue one recipient at a time. WhatsApp opens with the message prepared.</div>
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => setSendMode(false)}>Close sending</Button>
+                  </div>
+                  {current ? (
+                    <div className="mt-4 p-4 rounded-xl bg-muted/50">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Current recipient</div>
+                      <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center"><UserRound size={18}/></div><div><div className="font-semibold">{current.full_name || "Unnamed contact"}</div><div className="text-xs text-muted-foreground">{current.phone}</div></div></div>
+                      <div className="mt-4 text-sm whitespace-pre-wrap bg-background rounded-xl border p-4">{interpolate(selected.message_template, current, clinicName, selected.campaign_date, clinicAddress, clinicWhatsApp, clinicEmail, clinicOpeningHours)}</div>
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        <Button onClick={() => void openNext()} disabled={sending || selected.status === "paused"}><MessageCircle className="w-4 h-4 mr-2"/> Open WhatsApp</Button>
+                        <Button variant="outline" onClick={() => void markSent()} disabled={current.status !== "opened"}><CheckCircle2 className="w-4 h-4 mr-2"/> Mark sent & next</Button>
+                        <Button variant="ghost" onClick={() => void skip()} disabled={selected.status === "paused"}><Pause className="w-4 h-4 mr-2"/> Skip</Button>
+                        {current.contact_id && <Button variant="outline" onClick={() => void createLead(current)}><UserPlus className="w-4 h-4 mr-2"/> Create lead</Button>}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-3">OptoCare prepares the message and opens WhatsApp. A staff member still presses Send. After sending, return here and tap “Mark sent & next”.</div>
+                      <div className="mt-4 h-2 rounded-full bg-muted overflow-hidden"><div className="h-full bg-primary transition-all" style={{ width: counts.total ? ((counts.sent / counts.total) * 100) + "%" : "0%" }} /></div>
+                      <div className="text-xs text-muted-foreground mt-1">{counts.total ? Math.round((counts.sent / counts.total) * 100) : 0}% complete</div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 rounded-xl border bg-muted/30 p-6 text-center">
+                      <CheckCircle2 className="mx-auto mb-2 text-primary" size={24}/>
+                      <div className="font-semibold">Campaign sending complete</div>
+                      <div className="text-sm text-muted-foreground mt-1">There are no remaining recipients in this loaded queue.</div>
+                      <Button className="mt-3" variant="outline" onClick={() => setSendMode(false)}>Close</Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {false && current && (
                   <div className="mt-4 p-4 rounded-xl bg-muted/50">
                     <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center"><UserRound size={18}/></div><div><div className="font-semibold">{current.full_name || "Unnamed contact"}</div><div className="text-xs text-muted-foreground">{current.phone}</div></div></div>
                     <div className="mt-4 text-sm whitespace-pre-wrap bg-background rounded-xl border p-4">{interpolate(selected.message_template, current, clinicName, selected.campaign_date, clinicAddress, clinicWhatsApp, clinicEmail, clinicOpeningHours)}</div>
@@ -519,7 +562,7 @@ export default function Outreach() {
 
           <div className="flex flex-col sm:flex-row justify-end gap-2 mt-5">
             <Button variant="outline" onClick={() => { setShowReview(false); setShowCreate(true); }}>Back to edit</Button>
-            <Button onClick={() => void createCampaign()} disabled={creating || review.total === 0}><Send className="w-4 h-4 mr-2"/>{creating ? "Creating campaign…" : "Start WhatsApp Campaign"}</Button>
+            <Button onClick={() => void createCampaign()} disabled={creating || review.total === 0}><Send className="w-4 h-4 mr-2"/>{creating ? "Creating campaign…" : "Create & Prepare Sending"}</Button>
           </div>
         </div>
       </div>}
