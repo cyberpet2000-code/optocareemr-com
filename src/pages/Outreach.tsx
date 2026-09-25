@@ -34,6 +34,7 @@ type Lead = {
   id: string;
   full_name: string | null;
   phone: string;
+  normalized_phone: string;
   status: string;
   campaign_id: string | null;
   next_follow_up_at: string | null;
@@ -74,6 +75,7 @@ export default function Outreach() {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [tab, setTab] = useState<"campaign" | "leads">("campaign");
+  const [leadFilter, setLeadFilter] = useState<"all" | "appointments" | "converted">("all");
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [sending, setSending] = useState(false);
@@ -162,6 +164,16 @@ export default function Outreach() {
     || recipients.find(r => r.status === "opened")
     || recipients.find(r => r.status === "ready")
     || null;
+
+  const filteredLeads = useMemo(() => {
+    if (leadFilter === "appointments") {
+      return leads.filter(l => l.status === "appointment_requested" || l.status === "appointment_booked");
+    }
+    if (leadFilter === "converted") {
+      return leads.filter(l => l.status === "converted");
+    }
+    return leads;
+  }, [leads, leadFilter]);
 
   const parseExternalContacts = () => {
     const parsed: { full_name: string | null; phone: string; normalized_phone: string }[] = [];
@@ -369,8 +381,13 @@ export default function Outreach() {
 
   const createLead = async (r: Recipient) => {
     if (!effectiveClinicId || !selected) return;
-    const { data: existing } = await apiClient.from("outreach_leads").select("id").eq("clinic_id", effectiveClinicId).eq("normalized_phone", r.normalized_phone).limit(1).maybeSingle();
-    if (existing?.id) return;
+    const { data: existing } = await apiClient.from("outreach_leads").select("*").eq("clinic_id", effectiveClinicId).eq("normalized_phone", r.normalized_phone).limit(1).maybeSingle();
+    if (existing?.id) {
+      setLeads(prev => prev.some(l => l.id === existing.id) ? prev : [existing as Lead, ...prev]);
+      setLeadFilter("all");
+      setTab("leads");
+      return;
+    }
     const { data } = await apiClient.from("outreach_leads").insert({
       clinic_id: effectiveClinicId,
       contact_id: r.contact_id,
@@ -431,10 +448,18 @@ export default function Outreach() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="rounded-2xl border bg-card p-4"><div className="text-xs text-muted-foreground">Campaigns</div><div className="text-2xl font-bold mt-1">{campaigns.length}</div></div>
-        <div className="rounded-2xl border bg-card p-4"><div className="text-xs text-muted-foreground">Leads</div><div className="text-2xl font-bold mt-1">{leads.length}</div></div>
-        <div className="rounded-2xl border bg-card p-4"><div className="text-xs text-muted-foreground">Appointments requested</div><div className="text-2xl font-bold mt-1">{leads.filter(l => l.status === "appointment_requested" || l.status === "appointment_booked").length}</div></div>
-        <div className="rounded-2xl border bg-card p-4"><div className="text-xs text-muted-foreground">Converted</div><div className="text-2xl font-bold mt-1">{leads.filter(l => l.status === "converted").length}</div></div>
+        <button type="button" onClick={() => { setTab("campaign"); setLeadFilter("all"); }} className="text-left rounded-2xl border bg-card p-4 hover:bg-muted/60 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30">
+          <div className="text-xs text-muted-foreground">Campaigns</div><div className="text-2xl font-bold mt-1">{campaigns.length}</div><div className="text-xs text-primary mt-1">View campaigns →</div>
+        </button>
+        <button type="button" onClick={() => { setTab("leads"); setLeadFilter("all"); }} className="text-left rounded-2xl border bg-card p-4 hover:bg-muted/60 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30">
+          <div className="text-xs text-muted-foreground">Leads</div><div className="text-2xl font-bold mt-1">{leads.length}</div><div className="text-xs text-primary mt-1">Open lead pipeline →</div>
+        </button>
+        <button type="button" onClick={() => { setTab("leads"); setLeadFilter("appointments"); }} className="text-left rounded-2xl border bg-card p-4 hover:bg-muted/60 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30">
+          <div className="text-xs text-muted-foreground">Appointments requested</div><div className="text-2xl font-bold mt-1">{leads.filter(l => l.status === "appointment_requested" || l.status === "appointment_booked").length}</div><div className="text-xs text-primary mt-1">View appointment leads →</div>
+        </button>
+        <button type="button" onClick={() => { setTab("leads"); setLeadFilter("converted"); }} className="text-left rounded-2xl border bg-card p-4 hover:bg-muted/60 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30">
+          <div className="text-xs text-muted-foreground">Converted</div><div className="text-2xl font-bold mt-1">{leads.filter(l => l.status === "converted").length}</div><div className="text-xs text-primary mt-1">View converted leads →</div>
+        </button>
       </div>
 
       <div className="flex gap-2 border-b">
@@ -444,9 +469,16 @@ export default function Outreach() {
 
       {tab === "leads" ? (
         <div className="rounded-2xl border bg-card overflow-hidden">
-          <div className="p-4 border-b flex items-center gap-2"><Users size={18}/><div><div className="font-semibold">Lead pipeline</div><div className="text-xs text-muted-foreground">Prospects stay here until they actually become patients.</div></div></div>
-          {leads.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">No leads yet. Create a lead from a campaign recipient when someone expresses interest.</div> :
-          <div className="divide-y">{leads.map(lead => <div key={lead.id} className="p-4 flex flex-col lg:flex-row lg:items-center gap-3">
+          <div className="p-4 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2"><Users size={18}/><div><div className="font-semibold">Lead pipeline</div><div className="text-xs text-muted-foreground">Prospects stay here until they actually become patients.</div></div></div>
+            <div className="flex flex-wrap gap-2">
+              {([["all","All"],["appointments","Appointments"],["converted","Converted"]] as const).map(([value,label]) => (
+                <button key={value} type="button" onClick={() => setLeadFilter(value)} className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${leadFilter === value ? "bg-primary/10 border-primary/30 text-primary" : "bg-background hover:bg-muted"}`}>{label}</button>
+              ))}
+            </div>
+          </div>
+          {filteredLeads.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">{leads.length === 0 ? "No leads yet. Create a lead from a campaign recipient when someone expresses interest." : "No leads match this dashboard filter."}</div> :
+          <div className="divide-y">{filteredLeads.map(lead => <div key={lead.id} className="p-4 flex flex-col lg:flex-row lg:items-center gap-3">
             <div className="min-w-0 flex-1"><div className="font-medium">{lead.full_name || "Unnamed lead"}</div><div className="text-xs text-muted-foreground">{lead.phone}</div>{lead.notes && <div className="text-xs mt-1">{lead.notes}</div>}</div>
             <select value={lead.status} onChange={e => void updateLead(lead, e.target.value)} className="h-9 rounded-md border bg-background px-2 text-sm">{statuses.map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
             <a href={whatsappLink(lead.phone)} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center h-9 px-3 rounded-md border text-sm"><MessageCircle size={15} className="mr-2"/> WhatsApp</a>
@@ -512,7 +544,7 @@ export default function Outreach() {
                         <Button onClick={() => void openNext()} disabled={sending || selected.status === "paused"}><MessageCircle className="w-4 h-4 mr-2"/> Open WhatsApp</Button>
                         <Button variant="outline" onClick={() => void markSent()} disabled={current.status !== "opened"}><CheckCircle2 className="w-4 h-4 mr-2"/> Mark sent & next</Button>
                         <Button variant="ghost" onClick={() => void skip()} disabled={selected.status === "paused"}><Pause className="w-4 h-4 mr-2"/> Skip</Button>
-                        <Button variant="outline" onClick={() => void createLead(current)} disabled={!current.contact_id || leads.some(l => l.phone === current.phone || l.normalized_phone === current.normalized_phone)}><UserPlus className="w-4 h-4 mr-2"/> {leads.some(l => l.phone === current.phone || l.normalized_phone === current.normalized_phone) ? "Already a lead" : "Create lead"}</Button>
+                        <Button variant="outline" onClick={() => void createLead(current)} disabled={!current.contact_id}><UserPlus className="w-4 h-4 mr-2"/> {leads.some(l => l.phone === current.phone || l.normalized_phone === current.normalized_phone) ? "Open existing lead" : "Create lead"}</Button>
                       </div>
                       <div className="text-xs text-muted-foreground mt-3">OptoCare prepares the message and opens WhatsApp. A staff member still presses Send. After sending, return here and tap “Mark sent & next”.</div>
                       <div className="mt-4 h-2 rounded-full bg-muted overflow-hidden"><div className="h-full bg-primary transition-all" style={{ width: counts.total ? ((counts.sent / counts.total) * 100) + "%" : "0%" }} /></div>
@@ -531,7 +563,7 @@ export default function Outreach() {
 
               <div className="rounded-2xl border bg-card overflow-hidden">
                 <div className="p-4 border-b flex items-center gap-2"><Clock3 size={17}/><div><div className="font-semibold">Recipient queue</div><div className="text-xs text-muted-foreground">Progress is saved, so you can stop and continue later.</div></div></div>
-                <div className="max-h-[420px] overflow-auto divide-y" data-oc-scroll>{recipients.slice(0, 300).map(r => <div key={r.id} className={"p-3 flex items-center gap-3 " + (current?.id === r.id ? "bg-primary/5" : "")}><div className="flex-1 min-w-0"><div className="text-sm font-medium truncate">{r.full_name || "Unnamed contact"}</div><div className="text-xs text-muted-foreground">{r.phone}</div></div><span className="text-xs capitalize">{r.status}</span>{r.status === "sent" && <CheckCircle2 size={16} className="text-success"/>}{(r.status === "ready" || r.status === "opened" || r.status === "sent" || r.status === "skipped") && <button className="text-xs text-primary" onClick={() => setCurrentRecipientId(r.id)}>Select</button>}{r.contact_id && !leads.some(l => l.phone === r.phone || l.normalized_phone === r.normalized_phone) && <button className="text-xs text-primary" onClick={() => void createLead(r)}>Create lead</button>}</div>)}</div>
+                <div className="max-h-[420px] overflow-auto divide-y" data-oc-scroll>{recipients.slice(0, 300).map(r => <div key={r.id} className={"p-3 flex items-center gap-3 " + (current?.id === r.id ? "bg-primary/5" : "")}><div className="flex-1 min-w-0"><div className="text-sm font-medium truncate">{r.full_name || "Unnamed contact"}</div><div className="text-xs text-muted-foreground">{r.phone}</div></div><span className="text-xs capitalize">{r.status}</span>{r.status === "sent" && <CheckCircle2 size={16} className="text-success"/>}{(r.status === "ready" || r.status === "opened" || r.status === "sent" || r.status === "skipped") && <button className="text-xs text-primary" onClick={() => setCurrentRecipientId(r.id)}>Select</button>}{r.contact_id && <button className="text-xs text-primary" onClick={() => void createLead(r)}>{leads.some(l => l.phone === r.phone || l.normalized_phone === r.normalized_phone) ? "Open lead" : "Create lead"}</button>}</div>)}</div>
               </div>
             </>
             }
