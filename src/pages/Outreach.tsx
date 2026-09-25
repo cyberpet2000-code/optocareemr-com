@@ -141,7 +141,7 @@ export default function Outreach() {
     if (!effectiveClinicId || !selected) return;
     let cancelled = false;
     (async () => {
-      const { data } = await apiClient.from("outreach_recipients").select("id,full_name,phone,normalized_phone,status,patient_id,contact_id,sent_at").eq("campaign_id", selected.id).order("created_at", { ascending: true }).limit(5000);
+      const { data } = await apiClient.from("outreach_recipients").select("id,full_name,phone,normalized_phone,status,patient_id,contact_id,lead_id,sent_at").eq("campaign_id", selected.id).order("created_at", { ascending: true }).limit(5000);
       if (!cancelled) setRecipients((data || []) as Recipient[]);
     })();
     return () => { cancelled = true; };
