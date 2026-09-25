@@ -4,7 +4,6 @@ import { apiClient } from "@/lib/apiClient";
 import { assertClinicAccess } from "@/lib/route-access";
 import { checkClinicSubscription } from "@/lib/diag/healthChecks";
 import { safeSupabaseStorage, setKnownSupabaseSession } from "@/lib/supabase-auth";
-import { offlineStore } from "@/lib/offlineStore";
 import { secureOfflineGet, secureOfflineSave, secureOfflineClearKey } from "@/lib/secureOfflineStore";
 import { clearOfflineSession, getOfflineSession, getTrustedOfflineProfile, refreshOfflineAccessSnapshot } from "@/lib/offlineAuth";
 
@@ -315,11 +314,11 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     // browser reports that it is online. A transient Supabase/RLS/network
     // failure must not turn a previously working session into "clinic loading".
     const cachedAccess =
-      offlineStore.get<{ userId: string; state: AccessState }>(
+      (await secureOfflineGet<{ userId: string; state: AccessState }>(
         "access:" + nextUser.id + ":" + (overrideClinicId || "default")
-      ) ||
+      )) ||
       (!overrideClinicId
-        ? offlineStore.get<{ userId: string; state: AccessState }>(
+        ? await secureOfflineGet<{ userId: string; state: AccessState }>(
             "access:" + nextUser.id + ":default"
           )
         : null);
