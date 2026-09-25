@@ -3,8 +3,14 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { safeSupabaseStorage } from '@/lib/supabase-auth';
 
-export const SUPABASE_URL = "https://avogfzqizuusqzjivhqj.supabase.co";
-export const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2b2dmenFpenV1c3F6aml2aHFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5OTQ0MTgsImV4cCI6MjA5MDU3MDQxOH0._mQQxxm-raT1p_fqowfQu65Tww_8nLduDuYJBKyzo2U";
+const env = import.meta.env as Record<string, string | undefined>;
+export const SUPABASE_URL = env.VITE_SUPABASE_URL;
+export const SUPABASE_PUBLISHABLE_KEY = env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  throw new Error('OptoCare configuration is missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY.');
+}
+
 export const SUPABASE_AUTH_STORAGE_KEY = `sb-${new URL(SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
 
 type GlobalWithSupabaseSingleton = typeof globalThis & {
