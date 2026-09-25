@@ -22,6 +22,7 @@ import { enqueueOfflineOperation, cacheAppointmentsOffline } from "@/lib/offline
 interface Appointment {
   id: string;
   patient_id: string | null;
+  outreach_lead_id?: string | null;
   appointment_date: string;
   appointment_time: string | null;
   reason: string | null;
@@ -34,6 +35,8 @@ interface Appointment {
   reminder_sent_at?: string | null;
   reminder_channel?: string | null;
   patient_name?: string;
+  lead_phone?: string | null;
+  is_outreach?: boolean;
 }
 
 type PatientLite = { id: string; full_name: string };
@@ -90,7 +93,7 @@ export default function Appointments() {
       const end = diag.time("query", "appointments.list", { clinic_id: cid, from: filterDateStr });
       const { data, error: qErr } = await apiClient
         .from("appointments")
-        .select("id, patient_id, appointment_date, appointment_time, reason, status, source, clinic_id, doctor_id, visit_id, priority, reminder_sent_at, reminder_channel")
+        .select("id, patient_id, outreach_lead_id, appointment_date, appointment_time, reason, status, source, clinic_id, doctor_id, visit_id, priority, reminder_sent_at, reminder_channel")
         .eq("clinic_id", cid)
         .gte("appointment_date", filterDateStr)
         .order("appointment_date", { ascending: true })
@@ -123,11 +126,33 @@ export default function Appointments() {
         }
       }
 
+      const leadIds = Array.from(new Set(rows.map(r => r.outreach_lead_id).filter((x): x is string => !!x)));
+      const leadMap = new Map<string, { full_name: string | null; phone: string | null }>();
+      if (leadIds.length > 0) {
+        const { data: leadRows, error: leadErr } = await apiClient
+          .from("outreach_leads")
+          .select("id, full_name, phone")
+          .eq("clinic_id", cid)
+          .in("id", leadIds);
+        if (leadErr) {
+          diag.warn("query", "outreach lead lookup failed", { message: leadErr.message, code: leadErr.code });
+        } else {
+          for (const lead of leadRows || []) leadMap.set(lead.id, { full_name: lead.full_name, phone: lead.phone });
+        }
+      }
+
       if (signal?.aborted) return;
-      const enriched = rows.map(r => ({
-        ...r,
-        patient_name: r.patient_id ? (nameMap.get(r.patient_id) ?? "Unknown patient") : "Walk-in",
-      }));
+      const enriched = rows.map(r => {
+        const lead = r.outreach_lead_id ? leadMap.get(r.outreach_lead_id) : null;
+        return {
+          ...r,
+          patient_name: r.patient_id
+            ? (nameMap.get(r.patient_id) ?? "Unknown patient")
+            : (lead?.full_name || "Outreach lead"),
+          lead_phone: lead?.phone || null,
+          is_outreach: !!r.outreach_lead_id || r.source === "outreach",
+        };
+      });
       setAppointments(enriched);
       offlineStore.save(cacheKey, enriched);
       setLoading(false);
@@ -682,16 +707,17 @@ export default function Appointments() {
       ) : (
         <div className="space-y-2">
           {appointments.map(a => (
-            <div key={a.id} className="medical-card appointment-item p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => a.patient_id && (window.location.href = "/patient/" + a.patient_id)}>
+            <div key={a.id} className="medical-card appointment-item p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => a.patient_id ? (window.location.href = "/patient/" + a.patient_id) : undefined}>
               <div className="flex items-start gap-3">
                 <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0"><Clock size={17} className="text-primary" /></div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-bold">{a.appointment_time ?? "—"}</span>
                     <span className="text-sm font-semibold truncate">{a.patient_name}</span>
+                    {a.is_outreach && <span className="text-[10px] px-2 py-1 rounded-full bg-primary/10 text-primary">Outreach lead</span>}
                     <span className={`text-[10px] px-2 py-1 rounded-full capitalize ${statusStyle(a.status)}`}>{a.status}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{a.appointment_date}{a.reason ? " • " + a.reason : ""}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{a.appointment_date}{a.reason ? " • " + a.reason : ""}{a.is_outreach && a.lead_phone ? " • " + a.lead_phone : ""}</p>
                   <div className="mt-2 flex items-center gap-1.5 flex-wrap">
                     {(["24h", "2h"] as const).map((type) => {
                       const reminder = reminders.find((r: any) => r.appointment_id === a.id && r.reminder_type === type && r.scheduled_for?.startsWith(a.appointment_date));
