@@ -152,7 +152,7 @@ export default function PatientList() {
       setLoadError(failureCode);
       setLoading(false);
     };
-    if (isOffline) { await loadFromCache("NO_NETWORK"); return; }
+    if (isOffline) { loadFromCache("NO_NETWORK"); return; }
 
     (async () => {
       try {
