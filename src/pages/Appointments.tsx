@@ -220,18 +220,20 @@ export default function Appointments() {
     if (hydrating || !cid) { setPatients([]); return; }
     const cacheKey = `patients-lite:${cid}`;
     let cancelled = false;
-    if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
-      const cached = await secureOfflineGet<PatientLite[]>(cacheKey);
-      if (cached) setPatients(cached);
-      return;
-    }
-    (async () => {
+
+    const loadPatients = async () => {
+      if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
+        const cached = await secureOfflineGet<PatientLite[]>(cacheKey);
+        if (!cancelled && cached) setPatients(cached);
+        return;
+      }
+
       try {
         const { data, error: pErr } = await apiClient
           .from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").limit(500);
         if (cancelled) return;
         if (pErr || !data) {
-          const cached = offlineStore.get<PatientLite[]>(cacheKey);
+          const cached = await secureOfflineGet<PatientLite[]>(cacheKey);
           if (cached) setPatients(cached);
           return;
         }
@@ -239,10 +241,12 @@ export default function Appointments() {
         setPatients(rows);
         await secureOfflineSave(cacheKey, rows);
       } catch {
-        const cached = offlineStore.get<PatientLite[]>(cacheKey);
+        const cached = await secureOfflineGet<PatientLite[]>(cacheKey);
         if (cached) setPatients(cached);
       }
-    })();
+    };
+
+    void loadPatients();
     return () => { cancelled = true; };
   }, [hydrating, cid, isOffline]);
 
