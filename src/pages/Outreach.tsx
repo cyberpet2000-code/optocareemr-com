@@ -632,11 +632,20 @@ export default function Outreach() {
     if (!effectiveClinicId || !bookingLead || !bookingDate || !bookingTime) return;
     setBookingSaving(true);
     try {
+      const { data: latestTouch } = await apiClient
+        .from("outreach_recipients")
+        .select("campaign_id,created_at")
+        .eq("clinic_id", effectiveClinicId)
+        .eq("lead_id", bookingLead.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const outreachCampaignId = latestTouch?.campaign_id || bookingLead.campaign_id || null;
       const { error } = await apiClient.from("appointments").insert({
         clinic_id: effectiveClinicId,
         patient_id: bookingLead.patient_id || null,
         outreach_lead_id: bookingLead.id,
-        outreach_campaign_id: bookingLead.campaign_id || null,
+        outreach_campaign_id: outreachCampaignId,
         appointment_date: bookingDate,
         appointment_time: bookingTime,
         reason: bookingReason || null,
