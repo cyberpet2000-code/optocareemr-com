@@ -84,7 +84,7 @@ export default function Outreach() {
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("World Sight Day 2026");
   const [campaignDate, setCampaignDate] = useState("2026-10-08");
-  const [message, setMessage] = useState("Hello {{patient_name}} 👋\n\nWorld Sight Day is October 8, 2026! 👁️\n\n{{clinic_name}} is offering a FREE eye examination/consultation during this special campaign.\n\nThere will also be special discounts on selected eyewear and optical products.\n\nTo book your appointment:\n📞 WhatsApp/Call: {{clinic_whatsapp}}\n📍 {{clinic_address}}\n✉️ {{clinic_email}}\n\nWe look forward to seeing you.\n\n{{clinic_name}}");
+  const [message, setMessage] = useState("Hello {{patient_name}} 👋\n\nWorld Sight Day is October 8, 2026! 👁️\n\n{{clinic_name}} is offering a FREE eye examination/consultation during this special campaign.\n\nThere will also be special discounts on selected eyewear and optical products.\n\n📅 Ready to book an appointment or have a question?\nWe’re happy to help.\n📞 WhatsApp/Call: {{clinic_whatsapp}}\n📍 {{clinic_address}}\n✉️ {{clinic_email}}\n\nWe look forward to seeing you.\n\n{{clinic_name}}");
   const [externalText, setExternalText] = useState("");
   const [importedContacts, setImportedContacts] = useState<ImportedContact[]>([]);
   const [importName, setImportName] = useState("");
