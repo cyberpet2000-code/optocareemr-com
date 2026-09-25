@@ -4,10 +4,11 @@ import { apiClient } from "@/lib/apiClient";
 import { useAccess } from "@/hooks/useAccess";
 import { useRole } from "@/hooks/useRole";
 import { normalizeWhatsAppNumber, whatsappLink } from "@/lib/whatsapp";
+import { parseContactFile, type ImportedContact } from "@/lib/outreachContactImport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Users, Megaphone, MessageCircle, UserPlus, CheckCircle2, Clock3, Pause, Play, Send, UserRound, CalendarDays, AlertCircle } from "lucide-react";
+import { Users, Megaphone, MessageCircle, UserPlus, CheckCircle2, Clock3, Pause, Play, Send, UserRound, CalendarDays, AlertCircle, Upload, FileSpreadsheet, X } from "lucide-react";
 
 type Campaign = {
   id: string;
@@ -83,6 +84,10 @@ export default function Outreach() {
   const [campaignDate, setCampaignDate] = useState("2026-10-08");
   const [message, setMessage] = useState("Hello {{patient_name}} 👋\n\nWorld Sight Day is October 8, 2026. {{clinic_name}} invites you to prioritize your eye health with an eye examination.\n\nTo book your appointment:\n📞 WhatsApp/Call: {{clinic_whatsapp}}\n📍 {{clinic_address}}\n✉️ {{clinic_email}}\n\nWe look forward to seeing you.\n\n{{clinic_name}}");
   const [externalText, setExternalText] = useState("");
+  const [importedContacts, setImportedContacts] = useState<ImportedContact[]>([]);
+  const [importName, setImportName] = useState("");
+  const [importError, setImportError] = useState("");
+  const [importing, setImporting] = useState(false);
   const [audience, setAudience] = useState<"patients" | "external" | "both">("both");
   const [clinicName, setClinicName] = useState("Cedar Eye Clinic");
   const [clinicAddress, setClinicAddress] = useState("");
@@ -162,19 +167,46 @@ export default function Outreach() {
     const parsed: { full_name: string | null; phone: string; normalized_phone: string }[] = [];
     const seen = new Set<string>();
     let invalid = 0;
-    for (const raw of externalText.split(/\n|,/)) {
+    const rawContacts: ImportedContact[] = [...importedContacts];
+    for (const raw of externalText.split(/\n/)) {
       const value = raw.trim();
       if (!value) continue;
       const parts = value.split(/\t|;/).map(v => v.trim()).filter(Boolean);
       const phone = parts.length > 1 ? parts[parts.length - 1] : value;
       const fullName = parts.length > 1 ? parts.slice(0, -1).join(" ") : null;
-      const normalized = normalizeWhatsAppNumber(phone);
+      rawContacts.push({ full_name: fullName, phone });
+    }
+    for (const item of rawContacts) {
+      const normalized = normalizeWhatsAppNumber(item.phone);
       if (!normalized) { invalid++; continue; }
       if (seen.has(normalized)) continue;
       seen.add(normalized);
-      parsed.push({ full_name: fullName, phone, normalized_phone: normalized });
+      parsed.push({ full_name: item.full_name, phone: item.phone, normalized_phone: normalized });
     }
     return { parsed, invalid };
+  };
+
+  const handleContactImport = async (file: File) => {
+    setImporting(true);
+    setImportError("");
+    try {
+      const contacts = await parseContactFile(file);
+      if (!contacts.length) throw new Error("No contacts with a usable phone number were found.");
+      setImportedContacts(contacts);
+      setImportName(file.name);
+    } catch (e) {
+      setImportedContacts([]);
+      setImportName("");
+      setImportError(e instanceof Error ? e.message : "The contact file could not be read.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const clearImportedContacts = () => {
+    setImportedContacts([]);
+    setImportName("");
+    setImportError("");
   };
 
   const prepareReview = async () => {
@@ -281,6 +313,9 @@ export default function Outreach() {
       setShowCreate(false);
       setShowReview(false);
       setExternalText("");
+      setImportedContacts([]);
+      setImportName("");
+      setImportError("");
       setSelected(campaign as Campaign);
       setCurrentRecipientId(null);
       setSendMode(true);
@@ -586,7 +621,36 @@ export default function Outreach() {
             <div className="grid gap-4 mt-5">
           <div><label className="text-sm font-medium">Campaign name</label><Input value={name} onChange={e => setName(e.target.value)} /></div>
           <div className="grid sm:grid-cols-2 gap-3"><div><label className="text-sm font-medium">Campaign/event date</label><Input type="date" value={campaignDate} onChange={e => setCampaignDate(e.target.value)} /></div><div><label className="text-sm font-medium">Audience</label><select value={audience} onChange={e => setAudience(e.target.value as any)} className="w-full h-10 rounded-md border bg-background px-3 text-sm"><option value="patients">OptoCare patients</option><option value="external">External contacts</option><option value="both">Patients + external</option></select></div></div>
-          {(audience === "external" || audience === "both") && <div><label className="text-sm font-medium">External contacts</label><Textarea rows={6} value={externalText} onChange={e => setExternalText(e.target.value)} placeholder={"John Doe\t0803...\nMary Smith\t+234...\n0805..."} /><p className="text-xs text-muted-foreground mt-1">One per line. You can use Name + phone separated by a tab or semicolon, or phone only. Duplicates are removed.</p></div>}
+          {(audience === "external" || audience === "both") && <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium">External contacts</label>
+              <Textarea rows={6} value={externalText} onChange={e => setExternalText(e.target.value)} placeholder={"John Doe\t0803...\nMary Smith\t+234...\n0805..."} />
+              <p className="text-xs text-muted-foreground mt-1">One per line. Use Name + phone separated by a tab or semicolon, or phone only. Duplicates are removed.</p>
+            </div>
+            <div className="rounded-xl border bg-muted/20 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold flex items-center gap-2"><FileSpreadsheet className="w-4 h-4" /> Import contacts</div>
+                  <p className="text-xs text-muted-foreground mt-1">CSV, TSV, TXT or Excel (.xlsx). The file is previewed here before contacts are used in the campaign.</p>
+                </div>
+                <label className="shrink-0 inline-flex items-center justify-center h-9 px-3 rounded-md border bg-background text-sm cursor-pointer">
+                  <Upload className="w-4 h-4 mr-2" /> {importing ? "Reading…" : "Choose file"}
+                  <input type="file" accept=".csv,.tsv,.txt,.xlsx" className="hidden" disabled={importing} onChange={e => { const file = e.target.files?.[0]; if (file) void handleContactImport(file); e.currentTarget.value = ""; }} />
+                </label>
+              </div>
+              {importError && <div className="mt-3 text-xs text-destructive">{importError}</div>}
+              {importName && <div className="mt-3 rounded-lg bg-background border p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-medium truncate">{importName} · {importedContacts.length} contacts found</div>
+                  <button type="button" onClick={clearImportedContacts} className="shrink-0 text-muted-foreground" aria-label="Clear imported contacts"><X className="w-4 h-4" /></button>
+                </div>
+                <div className="mt-2 max-h-40 overflow-y-auto divide-y">
+                  {importedContacts.slice(0, 20).map((contact, index) => <div key={index} className="py-2 flex justify-between gap-3 text-xs"><span className="truncate">{contact.full_name || "Unnamed contact"}</span><span className="text-muted-foreground shrink-0">{contact.phone}</span></div>)}
+                </div>
+                {importedContacts.length > 20 && <div className="text-xs text-muted-foreground mt-2">Showing first 20 contacts.</div>}
+              </div>}
+            </div>
+          </div>}
           <div className="rounded-xl border bg-muted/30 p-4">
             <div className="text-sm font-semibold">Clinic contact details</div>
             <div className="text-xs text-muted-foreground mt-1">These are pulled from the clinic profile and will be available in the campaign message.</div>
