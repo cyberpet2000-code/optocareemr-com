@@ -167,25 +167,25 @@ export async function cacheAppointmentsOffline(clinicId: string, appointments: a
   await secureOfflineSave("appointments:" + clinicId, appointments);
 }
 
-export function cachePatientsOffline(clinicId: string, patients: any[]) {
+export async function cachePatientsOffline(clinicId: string, patients: any[]) {
   // Bulk-write the patient list once. Calling cachePatientOffline for every
   // row repeatedly serializes the growing list and can exhaust localStorage
   // on larger clinics.
-  offlineStore.save(`patients:${clinicId}:all`, patients);
-  offlineStore.save(`patients:${clinicId}`, patients);
+  await secureOfflineSave(`patients:${clinicId}:all`, patients);
+  await secureOfflineSave(`patients:${clinicId}`, patients);
 }
 
-export function cachePatientOffline(clinicId: string, patient: any) {
-  offlineStore.save(`patient-record:${clinicId}:${patient.id}`, patient);
+export async function cachePatientOffline(clinicId: string, patient: any) {
+  await secureOfflineSave(`patient-record:${clinicId}:${patient.id}`, patient);
   const key = `patients:${clinicId}:all`;
-  const rows = offlineStore.get<any[]>(key) ?? [];
+  const rows = await secureOfflineGet<any[]>(key) ?? [];
   const next = [patient, ...rows.filter((row) => row.id !== patient.id)];
-  offlineStore.save(key, next);
-  offlineStore.save(`patients:${clinicId}`, next);
+  await secureOfflineSave(key, next);
+  await secureOfflineSave(`patients:${clinicId}`, next);
 }
 
-export function cacheVisitsOffline(clinicId: string, patientId: string, visits: any[]) {
-  offlineStore.save(`patient-visits:${clinicId}:${patientId}`, visits);
+export async function cacheVisitsOffline(clinicId: string, patientId: string, visits: any[]) {
+  await secureOfflineSave(`patient-visits:${clinicId}:${patientId}`, visits);
 }
 
 export function cacheVisitOffline(clinicId: string, patientId: string, visit: any) {
@@ -194,7 +194,7 @@ export function cacheVisitOffline(clinicId: string, patientId: string, visit: an
   offlineStore.save(key, [visit, ...rows.filter((row) => row.id !== visit.id)]);
 }
 
-export function cacheStaffProfilesOffline(clinicId: string, profiles: any[]) {
+export async function cacheStaffProfilesOffline(clinicId: string, profiles: any[]) {
   const normalized = profiles.map((profile: any) => ({
     id: profile.id,
     full_name: profile.full_name ?? null,
@@ -202,9 +202,9 @@ export function cacheStaffProfilesOffline(clinicId: string, profiles: any[]) {
     title: profile.title ?? null,
     is_active: profile.is_active ?? true,
   }));
-  offlineStore.save(`staff-profiles:${clinicId}`, normalized);
+  await secureOfflineSave(`staff-profiles:${clinicId}`, normalized);
 }
 
-export function getStaffProfilesOffline(clinicId: string): any[] {
-  return offlineStore.get<any[]>(`staff-profiles:${clinicId}`) ?? [];
+export async function getStaffProfilesOffline(clinicId: string): Promise<any[]> {
+  return await secureOfflineGet<any[]>(`staff-profiles:${clinicId}`) ?? [];
 }
