@@ -103,6 +103,7 @@ export default function Outreach() {
   const [bookingSaving, setBookingSaving] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
+  const [duplicateCampaign, setDuplicateCampaign] = useState<Campaign | null>(null);
   const [review, setReview] = useState({
     patientCount: 0,
     externalCount: 0,
@@ -277,10 +278,63 @@ export default function Outreach() {
     }
   };
 
-  const createCampaign = async () => {
+  const openExistingCampaign = async () => {
+    if (!duplicateCampaign) return;
+    setSelected(duplicateCampaign);
+    setDuplicateCampaign(null);
+    setShowReview(false);
+    setShowCreate(false);
+    setSendMode(false);
+    setCurrentRecipientId(null);
+    await load();
+  };
+
+  const archiveCampaign = async (campaign: Campaign) => {
+    if (!effectiveClinicId) return;
+    const confirmed = window.confirm(
+      `Archive "${campaign.name}"? This keeps its recipient/sending history but removes it from the active campaign list.`
+    );
+    if (!confirmed) return;
+    const { error } = await apiClient
+      .from("outreach_campaigns")
+      .update({ status: "archived" })
+      .eq("id", campaign.id)
+      .eq("clinic_id", effectiveClinicId);
+    if (error) {
+      console.error("Failed to archive campaign", error);
+      return;
+    }
+    const remaining = campaigns.filter(c => c.id !== campaign.id && c.status !== "archived");
+    setCampaigns(prev => prev.map(c => c.id === campaign.id ? { ...c, status: "archived" } : c));
+    if (selected?.id === campaign.id) {
+      setSelected(remaining[0] || null);
+      setSendMode(false);
+      setCurrentRecipientId(null);
+    }
+  };
+
+  const createCampaign = async (allowDuplicate = false) => {
     if (!effectiveClinicId || !name.trim() || !message.trim()) return;
     setCreating(true);
     try {
+      if (!allowDuplicate) {
+        const { data: existing } = await apiClient
+          .from("outreach_campaigns")
+          .select("*")
+          .eq("clinic_id", effectiveClinicId)
+          .eq("name", name.trim())
+          .eq("campaign_date", campaignDate || null)
+          .neq("status", "archived")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existing) {
+          setDuplicateCampaign(existing as Campaign);
+          return;
+        }
+      }
+
       const { data: campaign, error } = await apiClient.from("outreach_campaigns").insert({
         clinic_id: effectiveClinicId,
         name: name.trim(),
@@ -434,6 +488,11 @@ export default function Outreach() {
     setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status } : l));
   };
 
+  const activeCampaigns = useMemo(
+    () => campaigns.filter(c => c.status !== "archived"),
+    [campaigns]
+  );
+
   if (!canUse) return <div className="p-6">Outreach access is not available for this role.</div>;
 
   return (
@@ -449,7 +508,7 @@ export default function Outreach() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <button type="button" onClick={() => { setTab("campaign"); setLeadFilter("all"); }} className="text-left rounded-2xl border bg-card p-4 hover:bg-muted/60 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30">
-          <div className="text-xs text-muted-foreground">Campaigns</div><div className="text-2xl font-bold mt-1">{campaigns.length}</div><div className="text-xs text-primary mt-1">View campaigns →</div>
+          <div className="text-xs text-muted-foreground">Campaigns</div><div className="text-2xl font-bold mt-1">{activeCampaigns.length}</div><div className="text-xs text-primary mt-1">View campaigns →</div>
         </button>
         <button type="button" onClick={() => { setTab("leads"); setLeadFilter("all"); }} className="text-left rounded-2xl border bg-card p-4 hover:bg-muted/60 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30">
           <div className="text-xs text-muted-foreground">Leads</div><div className="text-2xl font-bold mt-1">{leads.length}</div><div className="text-xs text-primary mt-1">Open lead pipeline →</div>
@@ -494,7 +553,16 @@ export default function Outreach() {
           <div className="rounded-2xl border bg-card p-3 space-y-2">
             <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-2 pb-1">Campaigns</div>
             {loading ? <div className="p-3 text-sm text-muted-foreground">Loading…</div> : campaigns.length === 0 ? <div className="p-3 text-sm text-muted-foreground">No campaigns yet.</div> :
-            campaigns.map(c => <button key={c.id} onClick={() => setSelected(c)} className={`w-full text-left rounded-xl p-3 transition-colors ${selected?.id === c.id ? "bg-primary/10 border border-primary/20" : "hover:bg-muted"}`}><div className="font-medium truncate">{c.name}</div><div className="text-xs text-muted-foreground mt-1">{c.campaign_date || "No date"} · {c.status}</div></button>)}
+            activeCampaigns.map(c => <div key={c.id} className={`w-full rounded-xl p-3 transition-colors ${selected?.id === c.id ? "bg-primary/10 border border-primary/20" : "hover:bg-muted"}`}>
+              <button onClick={() => setSelected(c)} className="w-full text-left">
+                <div className="font-medium truncate">{c.name}</div>
+                <div className="text-xs text-muted-foreground mt-1">{c.campaign_date || "No date"} · {c.status}</div>
+              </button>
+              <div className="mt-2 flex justify-end">
+                <button type="button" onClick={() => void archiveCampaign(c)} className="text-xs text-muted-foreground hover:text-destructive">Archive</button>
+              </div>
+            </div>)}
+            {activeCampaigns.length === 0 && <div className="p-3 text-sm text-muted-foreground">No active campaigns yet.</div>}
           </div>
 
           <div className="space-y-4">
@@ -621,6 +689,36 @@ export default function Outreach() {
         </div>
       </div>}
 
+
+      {duplicateCampaign && <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-2xl bg-card border shadow-2xl p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shrink-0"><AlertCircle className="text-warning" size={20}/></div>
+            <div>
+              <h2 className="text-lg font-bold">Campaign already exists</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                A campaign with this name and event date already exists for this clinic.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 rounded-xl bg-muted/40 p-3 text-sm">
+            <div className="font-semibold">{duplicateCampaign.name}</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {duplicateCampaign.campaign_date || "No event date"} · {duplicateCampaign.status}
+            </div>
+          </div>
+          <div className="mt-5 grid gap-2">
+            <Button onClick={() => void openExistingCampaign()} className="w-full">Open existing campaign</Button>
+            <Button variant="outline" onClick={() => { setDuplicateCampaign(null); void createCampaign(true); }} disabled={creating} className="w-full">
+              Create another campaign anyway
+            </Button>
+            <Button variant="ghost" onClick={() => setDuplicateCampaign(null)} className="w-full">Cancel</Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Reusing the same phone number across campaigns is still allowed. This warning only prevents accidental duplicate campaign records.
+          </p>
+        </div>
+      </div>}
 
       {bookingLead && <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
         <div className="w-full max-w-md rounded-2xl bg-card border shadow-2xl p-5">
