@@ -89,7 +89,7 @@ export default function Inventory() {
     apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data, error }) => {
       if (error || !data) { void loadCachedPats(); return; }
       setPatients(data as any);
-      await secureOfflineSave(cacheKey, data);
+      void secureOfflineSave(cacheKey, data);
     }, loadCachedPats);
 
   }, [cid, isOffline]);
