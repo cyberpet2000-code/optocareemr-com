@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, Plus, X, Search, AlertTriangle, ShoppingCart, Trash2, Edit2, BarChart3, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccess } from "@/hooks/useAccess";
-import { offlineStore } from "@/lib/offlineStore";
+import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 import { useOffline } from "@/hooks/useOffline";
 import { useRole } from "@/hooks/useRole";
 import { enqueueOfflineOperation } from "@/lib/offlineEngine";
@@ -57,8 +57,8 @@ export default function Inventory() {
   const loadItems = async () => {
     if (!cid) { setItems([]); setLoading(false); return; }
     const cacheKey = `inventory:${cid}`;
-    const loadFromCache = () => {
-      const cached = offlineStore.get<InventoryItem[]>(cacheKey);
+    const loadFromCache = async () => {
+      const cached = await secureOfflineGet<InventoryItem[]>(cacheKey);
       if (cached) setItems(cached);
       setLoading(false);
     };
@@ -67,7 +67,7 @@ export default function Inventory() {
       const { data, error } = await apiClient.from("inventory").select("*").eq("clinic_id", cid).order("name");
       if (error || !data) { loadFromCache(); return; }
       setItems(data as unknown as InventoryItem[]);
-      offlineStore.save(cacheKey, data);
+      await secureOfflineSave(cacheKey, data);
       setLoading(false);
     } catch {
       loadFromCache();
@@ -78,16 +78,16 @@ export default function Inventory() {
   useEffect(() => {
     if (!cid) { setPatients([]); return; }
     const cacheKey = `inventory-patients:${cid}`;
-    const loadCachedPats = () => {
-      const cached = offlineStore.get<{ id: string; full_name: string }[]>(cacheKey);
+    const loadCachedPats = async () => {
+      const cached = await secureOfflineGet<{ id: string; full_name: string }[]>(cacheKey);
       if (cached) setPatients(cached);
     };
     if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
-      loadCachedPats();
+      await loadCachedPats();
       return;
     }
     apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data, error }) => {
-      if (error || !data) { loadCachedPats(); return; }
+      if (error || !data) { void loadCachedPats(); return; }
       setPatients(data as any);
       offlineStore.save(cacheKey, data);
     }, loadCachedPats);
@@ -134,10 +134,10 @@ export default function Inventory() {
       const id = editId || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "inventory-" + Date.now());
       const offlinePayload = { ...payload, id, clinic_id: cid, created_by: user?.id ?? null };
       await enqueueOfflineOperation({ clinicId: cid, userId: user?.id ?? null, kind: "inventory.save", entityId: id, payload: offlinePayload });
-      const current = offlineStore.get<InventoryItem[]>(`inventory:${cid}`) ?? items;
+      const current = await secureOfflineGet<InventoryItem[]>(`inventory:${cid}`) ?? items;
       const local = { ...offlinePayload, offline_pending_sync: true } as InventoryItem;
       const next = editId ? current.map(item => item.id === editId ? local : item) : [local, ...current];
-      offlineStore.save(`inventory:${cid}`, next);
+      await secureOfflineSave(`inventory:${cid}`, next);
       setItems(next);
       setSaving(false);
       toast.success("Inventory change saved offline — it will sync automatically.");
@@ -245,7 +245,7 @@ export default function Inventory() {
           ? { ...inventoryItem, stock_quantity: Math.max(0, inventoryItem.stock_quantity - sold.quantity), offline_pending_sync: true }
           : inventoryItem;
       });
-      offlineStore.save("inventory:" + cid, nextItems);
+      await secureOfflineSave("inventory:" + cid, nextItems);
       setItems(nextItems);
       setSaving(false);
       setCart([]);
@@ -320,7 +320,7 @@ export default function Inventory() {
     }
     const delta = quantity - item.stock_quantity;
     setItems(current => current.map(row => row.id === item.id ? { ...row, stock_quantity: quantity } : row));
-    offlineStore.save("inventory:" + cid, items.map(row => row.id === item.id ? { ...row, stock_quantity: quantity } : row));
+    await secureOfflineSave("inventory:" + cid, items.map(row => row.id === item.id ? { ...row, stock_quantity: quantity } : row));
     setPhysicalCounts(current => ({ ...current, [item.id]: "" }));
     setCountNotes(current => ({ ...current, [item.id]: "" }));
     toast.success(delta === 0 ? "Stock count recorded" : "Stock count completed and inventory adjusted");
