@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bell, CheckCheck, MessageSquare, CalendarDays, CreditCard, Package, FileText, ShieldAlert, Users, ClipboardCheck, ChevronRight } from "lucide-react";
+import { Bell, CheckCheck, MessageSquare, CalendarDays, CreditCard, Package, FileText, ShieldAlert, Users, ClipboardCheck, ChevronRight, Megaphone } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { useClinic } from "@/hooks/useClinic";
 import { Button } from "@/components/ui/button";
@@ -113,6 +113,7 @@ export default function Notifications() {
     if (item.category === "hmo") return <ClipboardCheck size={18} />;
     if (item.category === "feedback") return <MessageSquare size={18} />;
     if (item.category === "staff") return <Users size={18} />;
+    if (item.category === "outreach") return <Megaphone size={18} />;
     if (item.category === "system") return <ShieldAlert size={18} />;
     if (item.category === "patient") return <FileText size={18} />;
     return <Bell size={18} />;
@@ -162,6 +163,7 @@ export default function Notifications() {
       hmo: "/hmos",
       feedback: "/feedback",
       staff: "/admin/roles",
+      outreach: "/outreach",
       patient: item.entity_id ? "/patient/" + item.entity_id : "/patients",
       system: "/super-admin/system-health",
     };
@@ -184,7 +186,7 @@ export default function Notifications() {
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {["all","patient","appointments","billing","hmo","inventory","feedback","staff","system"].map(category => (
+        {["all","patient","appointments","billing","hmo","inventory","feedback","staff","outreach","system"].map(category => (
           <button key={category} type="button" onClick={() => setFilter(category)} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium border transition ${filter === category ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:bg-muted"}`}>
             {category === "all" ? "All" : category.replace(/_/g, " ").replace(/^./, c => c.toUpperCase())}
           </button>
