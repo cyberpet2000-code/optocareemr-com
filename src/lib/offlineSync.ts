@@ -339,21 +339,11 @@ export async function processBillsQueue(clinicId: string, directItem?: BillQueue
           }
         }
 
-        // inventory deductions (best-effort)
-        for (const it of itemsList) {
-          const name = (it.item_name || it.item_type || '').trim();
-          if (!name) continue;
-          try {
-            const { data: stock, error: findErr } = await apiClient.from('inventory').select('id, stock_quantity').eq('clinic_id', clinicId).ilike('name', name).maybeSingle();
-            if (findErr) { toast.error(`Inventory lookup failed for "${name}": ${findErr.message}`); continue; }
-            if (!stock) { toast.error(`Inventory item not found: ${name}`); continue; }
-            const currentQty = Number(stock.stock_quantity) || 0;
-            const billedQty = Number(it.quantity || 0);
-            const nextQty = Math.max(currentQty - billedQty, 0);
-            const { error: stockErr } = await apiClient.from('inventory').update({ stock_quantity: nextQty }).eq('id', stock.id);
-            if (stockErr) { toast.error(`Inventory update failed for "${name}": ${stockErr.message}`); continue; }
-          } catch (invErr) { toast.error(`Inventory deduction error for "${it.item_name ?? it.item_type}": ${String(invErr)}`); }
-        }
+        // Inventory stock is intentionally NOT changed while syncing a billing record.
+        // Online Billing follows the same rule: billing records the charge, while actual
+        // stock movement is handled by the dedicated inventory sale/dispensing workflows.
+        // This prevents offline sync from overwriting stock directly, bypassing the
+        // inventory movement audit trail, and double-deducting stock on retries/edits.
 
         // Remove legacy localStorage items only. Direct IndexedDB operations are
         // removed by processCoreOfflineOperations after this function succeeds.
