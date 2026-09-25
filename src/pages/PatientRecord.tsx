@@ -51,7 +51,6 @@ import { PatientWhatsAppMessages } from "@/components/PatientWhatsAppMessages";
 import { ClinicalAiAssistant } from "@/components/ClinicalAiAssistant";
 import { ClinicalVisitInsights } from "@/components/ClinicalVisitInsights";
 import { enqueueOfflineOperation, cachePatientOffline, cacheVisitsOffline, cacheVisitOffline, cacheStaffProfilesOffline, getStaffProfilesOffline } from "@/lib/offlineEngine";
-import { offlineStore } from "@/lib/offlineStore";
 import { secureOfflineGet } from "@/lib/secureOfflineStore";
 import {
   MoreVertical,
