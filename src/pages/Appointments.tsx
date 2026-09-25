@@ -437,13 +437,25 @@ export default function Appointments() {
           })()
         : null;
       const greetingName = recipientName && recipientName !== "Outreach lead" ? recipientName : null;
-      const message = greetingName
-        ? "Cedar Eye Clinic\\n\\nHello " + greetingName + ",\\n\\nThis is a friendly reminder about your appointment at Cedar Eye Clinic on " +
-          dateLabel + (timeLabel ? " at " + timeLabel : "") +
-          ".\\n\\nWe look forward to seeing you. Please arrive 10 minutes early.\\n\\nIf you need to reschedule or have any questions, simply reply to this message or contact us on WhatsApp.\\n\\nThank you,\\nCedar Eye Clinic"
-        : "Cedar Eye Clinic\\n\\nHello,\\n\\nThis is a friendly reminder about your appointment at Cedar Eye Clinic on " +
-          dateLabel + (timeLabel ? " at " + timeLabel : "") +
-          ".\\n\\nWe look forward to seeing you. Please arrive 10 minutes early.\\n\\nIf you need to reschedule or have any questions, simply reply to this message or contact us on WhatsApp.\\n\\nThank you,\\nCedar Eye Clinic";
+      const message = [
+        "Cedar Eye Clinic",
+        "",
+        greetingName ? "Hello " + greetingName + "," : "Hello,",
+        "",
+        "This is a friendly reminder about your appointment at Cedar Eye Clinic on " +
+          dateLabel + (timeLabel ? " at " + timeLabel : "") + ".",
+        "",
+        "We look forward to seeing you. Please arrive 10 minutes early.",
+        "",
+        "Clinic opening hours:",
+        "Monday–Friday: 9:00 AM–5:00 PM",
+        "Saturday: 10:00 AM–3:00 PM",
+        "",
+        "If you need to reschedule or have any questions, simply reply to this message or contact us on WhatsApp.",
+        "",
+        "Thank you,",
+        "Cedar Eye Clinic",
+      ].join("\n");
 
       window.open(whatsappLink(phone, message), "_blank", "noopener,noreferrer");
 
