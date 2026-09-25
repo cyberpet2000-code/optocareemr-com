@@ -135,17 +135,42 @@ export default function PatientRegister() {
 
   useEffect(() => {
     if (!cid) return;
-    const familiesKey = "patient-register-families:" + cid;
-    const hmosKey = "patient-register-hmos:" + cid;
-    const cachedFamilies = await secureOfflineGet<any[]>(familiesKey);
-    const cachedHmos = await secureOfflineGet<HmoRow[]>(hmosKey);
-    if (cachedFamilies) setFamilies(cachedFamilies);
-    if (cachedHmos) setHmos(cachedHmos);
-    if (typeof navigator !== "undefined" && !navigator.onLine) return;
-    apiClient.from("families").select("id, family_number, family_name").eq("clinic_id", cid).order("family_name")
-      .then(({ data }) => { if (data) { setFamilies(data as any); await secureOfflineSave(familiesKey, data); } });
-    apiClient.from("hmos").select("id, name, website, claims_portal_url, phone, email").eq("clinic_id", cid).eq("status", "active").order("name")
-      .then(({ data }) => { if (data) { setHmos(data as any); await secureOfflineSave(hmosKey, data); } });
+
+    let cancelled = false;
+    const loadRegisterData = async () => {
+      const familiesKey = "patient-register-families:" + cid;
+      const hmosKey = "patient-register-hmos:" + cid;
+
+      const [cachedFamilies, cachedHmos] = await Promise.all([
+        secureOfflineGet<any[]>(familiesKey),
+        secureOfflineGet<HmoRow[]>(hmosKey),
+      ]);
+
+      if (cancelled) return;
+      if (cachedFamilies) setFamilies(cachedFamilies);
+      if (cachedHmos) setHmos(cachedHmos);
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+
+      const [familiesResult, hmosResult] = await Promise.all([
+        apiClient.from("families").select("id, family_number, family_name").eq("clinic_id", cid).order("family_name"),
+        apiClient.from("hmos").select("id, name, website, claims_portal_url, phone, email").eq("clinic_id", cid).eq("status", "active").order("name"),
+      ]);
+
+      if (cancelled) return;
+      if (familiesResult.data) {
+        setFamilies(familiesResult.data as any);
+        await secureOfflineSave(familiesKey, familiesResult.data);
+      }
+      if (hmosResult.data) {
+        setHmos(hmosResult.data as any);
+        await secureOfflineSave(hmosKey, hmosResult.data);
+      }
+    };
+
+    void loadRegisterData();
+    return () => {
+      cancelled = true;
+    };
   }, [cid]);
 
   useEffect(() => {
