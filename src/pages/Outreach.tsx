@@ -545,9 +545,9 @@ export default function Outreach() {
           </div>
 
           </div>
-          <div className="shrink-0 border-t bg-card/95 backdrop-blur p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-            <Button variant="outline" onClick={() => { setShowReview(false); setShowCreate(true); }}>Back to edit</Button>
-            <Button onClick={() => void createCampaign()} disabled={creating || review.total === 0}><Send className="w-4 h-4 mr-2"/>{creating ? "Creating campaign…" : "Create & Prepare Sending"}</Button>
+          <div className="shrink-0 border-t bg-card/95 backdrop-blur p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-4">
+            <Button className="w-full h-11" onClick={() => void createCampaign()} disabled={creating || review.total === 0}><Send className="w-4 h-4 mr-2"/>{creating ? "Creating campaign…" : "Create & Prepare Sending"}</Button>
+            <Button className="w-full mt-2" variant="outline" onClick={() => { setShowReview(false); setShowCreate(true); }}>Back to edit</Button>
           </div>
         </div>
       </div>}
@@ -601,9 +601,9 @@ export default function Outreach() {
           <div className="rounded-xl bg-warning/10 border border-warning/20 p-3 text-xs text-warning">This version does not use WhatsApp API. It prepares each message and opens WhatsApp; staff must press Send.</div>
             </div>
           </div>
-          <div className="shrink-0 border-t bg-card/95 backdrop-blur p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
-            <Button onClick={() => void prepareReview()} disabled={reviewLoading || !name.trim() || !message.trim()}>{reviewLoading ? "Preparing review…" : "Review campaign"}</Button>
+          <div className="shrink-0 border-t bg-card/95 backdrop-blur p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-4">
+            <Button className="w-full h-11" onClick={() => void prepareReview()} disabled={reviewLoading || !name.trim() || !message.trim()}>{reviewLoading ? "Preparing review…" : "Review campaign"}</Button>
+            <Button className="w-full mt-2" variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
           </div>
         </div>
       </div>}
