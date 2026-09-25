@@ -1,4 +1,5 @@
 import { offlineStore } from "@/lib/offlineStore";
+import { secureOfflineGet, secureOfflineSave, secureOfflineRemove } from "@/lib/secureOfflineStore";
 
 export type OfflineOperationKind = "family.create" | "patient.create" | "visit.save" | "appointment.save" | "appointment.status" | "inventory.save" | "inventory.delete" | "inventory.sale" | "payment.create" | "billing.save";
 
@@ -71,8 +72,8 @@ export async function enqueueOfflineOperation(
   // Fall back to localStorage so the operation remains recoverable.
   if (!storedInIndexedDb) {
     const key = `operations:${operation.clinicId}`;
-    const queue = offlineStore.get<OfflineOperation[]>(key) ?? [];
-    offlineStore.save(key, [...queue, item]);
+    const queue = await secureOfflineGet<OfflineOperation[]>(key) ?? [];
+    await secureOfflineSave(key, [...queue, item]);
   }
 
   return item;
@@ -99,7 +100,7 @@ export async function getOfflineOperations(clinicId: string): Promise<OfflineOpe
     }
   }
 
-  return (offlineStore.get<OfflineOperation[]>(`operations:${clinicId}`) ?? [])
+  return (await secureOfflineGet<OfflineOperation[]>(`operations:${clinicId}`) ?? [])
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
@@ -130,8 +131,8 @@ export async function removeOfflineOperation(clinicId: string, id: string) {
   }
 
   const key = `operations:${clinicId}`;
-  const queue = offlineStore.get<OfflineOperation[]>(key) ?? [];
-  offlineStore.save(key, queue.filter((item) => item.id !== id));
+  const queue = await secureOfflineGet<OfflineOperation[]>(key) ?? [];
+  await secureOfflineSave(key, queue.filter((item) => item.id !== id));
 }
 
 export async function markOfflineOperationFailed(
@@ -158,8 +159,8 @@ export async function markOfflineOperationFailed(
   }
 
   const key = `operations:${clinicId}`;
-  const queue = offlineStore.get<OfflineOperation[]>(key) ?? [];
-  offlineStore.save(key, queue.map((item) => item.id === operation.id ? next : item));
+  const queue = await secureOfflineGet<OfflineOperation[]>(key) ?? [];
+  await secureOfflineSave(key, queue.map((item) => item.id === operation.id ? next : item));
 }
 
 export function cacheAppointmentsOffline(clinicId: string, appointments: any[]) {
