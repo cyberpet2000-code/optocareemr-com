@@ -89,7 +89,7 @@ export default function Inventory() {
     apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data, error }) => {
       if (error || !data) { void loadCachedPats(); return; }
       setPatients(data as any);
-      offlineStore.save(cacheKey, data);
+      await secureOfflineSave(cacheKey, data);
     }, loadCachedPats);
 
   }, [cid, isOffline]);
@@ -165,9 +165,9 @@ export default function Inventory() {
     if (!(await confirmDestructiveAction({ item: `inventory item "${item?.name || id}"`, details: "This removes the item from the clinic inventory.", highRisk: true }))) return;
     if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
       await enqueueOfflineOperation({ clinicId: cid, userId: user?.id ?? null, kind: "inventory.delete", entityId: id, payload: { id } });
-      const current = offlineStore.get<InventoryItem[]>(`inventory:${cid}`) ?? items;
+      const current = await secureOfflineGet<InventoryItem[]>(`inventory:${cid}`) ?? items;
       const next = current.filter(item => item.id !== id);
-      offlineStore.save(`inventory:${cid}`, next);
+      await secureOfflineSave(`inventory:${cid}`, next);
       setItems(next);
       toast.success("Inventory deletion saved offline — it will sync automatically.");
       return;
