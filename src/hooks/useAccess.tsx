@@ -215,12 +215,12 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     const session = await getOfflineSession();
     if (!session) return false;
     const cached =
-      offlineStore.get<{ userId: string; state: AccessState }>(
+      (await secureOfflineGet<{ userId: string; state: AccessState }>(
         "access:" + session.userId + ":" + (session.clinicId || "default"),
-      ) ||
-      offlineStore.get<{ userId: string; state: AccessState }>(
+      )) ||
+      (await secureOfflineGet<{ userId: string; state: AccessState }>(
         "access:" + session.userId + ":default",
-      );
+      ));
     // The trusted-device record contains its own access snapshot. Use it as
     // the authoritative fallback so offline login does not depend on a
     // separate localStorage cache having been populated.
@@ -685,7 +685,7 @@ console.debug("[access:stage1_complete]", {
 }
 
 commitAccessState(nextAccessState);
-offlineStore.save(
+await secureOfflineSave(
   "access:" + nextUser.id + ":" + (overrideClinicId || "default"),
   { userId: nextUser.id, state: nextAccessState }
 );
