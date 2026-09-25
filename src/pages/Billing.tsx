@@ -12,7 +12,7 @@ import { FileText, Plus, X, Printer, Trash2, ShoppingBag, Check, ChevronsUpDown,
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useAccess } from "@/hooks/useAccess";
-import { offlineStore } from "@/lib/offlineStore";
+import { secureOfflineSave } from "@/lib/secureOfflineStore";
 import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 import { useOffline } from "@/hooks/useOffline";
 import { enqueueOfflineOperation } from "@/lib/offlineEngine";
@@ -914,7 +914,7 @@ if (error) {
     const nextStatus = nextBalance <= 0 ? "paid" : "partial";
     const nextBills = bills.map((row) => row.id === bill.id ? { ...row, amount_paid: nextPaid, balance: nextBalance, status: nextStatus } : row);
     setBills(nextBills);
-    offlineStore.save("bills:" + cid, nextBills);
+    await secureOfflineSave("bills:" + cid, nextBills);
     toast.success("Payment saved offline — it will sync automatically.");
     setPaymentBillingId(null);
     setPaymentAmount("");
