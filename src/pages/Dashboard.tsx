@@ -14,7 +14,7 @@ import { startLoadingWatch,
   stopLoadingWatch, checkQueryFailure,} from "@/lib/diag";
 import { useClinic } from "@/hooks/useClinic";
 import { useRole } from "@/hooks/useRole";
-import { offlineStore } from "@/lib/offlineStore";
+import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 import { useOffline } from "@/hooks/useOffline";
 import FinanceOverview from "@/components/dashboard/FinanceOverview";
 import PatientHistoryMeta from "@/components/patients/PatientHistoryMeta";
@@ -73,15 +73,25 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!effectiveClinicId) return;
-    const cached = offlineStore.get<string>("last-sync:" + effectiveClinicId);
-    if (cached) setOfflineLastSync(cached);
+    let cancelled = false;
+
+    const hydrateLastSync = async () => {
+      const cached = await secureOfflineGet<string>("last-sync:" + effectiveClinicId);
+      if (!cancelled && cached) setOfflineLastSync(cached);
+    };
+    void hydrateLastSync();
+
     const handler = () => {
       const now = new Date().toISOString();
-      offlineStore.save("last-sync:" + effectiveClinicId, now);
-      setOfflineLastSync(now);
+      void secureOfflineSave("last-sync:" + effectiveClinicId, now);
+      if (!cancelled) setOfflineLastSync(now);
     };
+
     window.addEventListener("optocare:sync:done", handler);
-    return () => window.removeEventListener("optocare:sync:done", handler);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("optocare:sync:done", handler);
+    };
   }, [effectiveClinicId]);
   const [monthPatients, setMonthPatients] = useState(0);
   const [monthRegisteredPatients, setMonthRegisteredPatients] = useState(0);
@@ -308,8 +318,8 @@ export default function Dashboard() {
     // browsers keep network requests pending for a long time even when
     // airplane mode is active, which previously prevented the cached
     // dashboard from ever rendering.
-    const hydrateFromCache = () => {
-      const snap = offlineStore.get<DashboardSnapshot>(cacheKey);
+    const hydrateFromCache = async () => {
+      const snap = await secureOfflineGet<DashboardSnapshot>(cacheKey);
       if (snap) {
         setMonthPatients(snap.monthPatients ?? 0);
         setMonthRegisteredPatients(snap.monthRegisteredPatients ?? 0);
@@ -331,7 +341,7 @@ export default function Dashboard() {
     };
 
     if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
-      hydrateFromCache();
+      await hydrateFromCache();
       return;
     }
 
@@ -694,7 +704,7 @@ setFeedbackFollowups(feedbackFollowupData ?? []);
       setDrugAlerts(snap.drugAlerts);
       setRecentPatients(snap.recentPatients);
       setUpcomingAppts(snap.upcomingAppts);
-      offlineStore.save(cacheKey, snap);
+      await secureOfflineSave(cacheKey, snap);
 
       stopLoadingWatch("dashboard");
       setLoading(false);
@@ -702,7 +712,7 @@ setFeedbackFollowups(feedbackFollowupData ?? []);
       console.warn("[dashboard] load failed, using cache", e);
       const cidFallback = effectiveClinicId;
       const cacheKeyFallback = `dashboard:${cidFallback}`;
-      const snap = offlineStore.get<DashboardSnapshot>(cacheKeyFallback);
+      const snap = await secureOfflineGet<DashboardSnapshot>(cacheKeyFallback);
       if (snap) {
         setMonthPatients(snap.monthPatients ?? 0);
         setPatientsSeen(snap.patientsSeen ?? 0);
