@@ -73,6 +73,7 @@ export default function ClinicSidebar() {
           { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
           { to: "/patients", label: "Patients", icon: Users },
           { to: "/appointments", label: "Visits", icon: Calendar },
+          { to: "/outreach", label: "Campaigns & Leads", icon: Megaphone },
           { to: "/settings/account", label: "Account", icon: UserCog },
         ],
         secondary: [],
@@ -87,6 +88,7 @@ export default function ClinicSidebar() {
           { to: "/register", label: "Register", icon: UserPlus },
           { to: "/appointments", label: "Appointments", icon: Calendar },
           { to: "/billing", label: "Billing", icon: NairaIcon },
+          { to: "/outreach", label: "Campaigns & Leads", icon: Megaphone },
           { to: "/settings/account", label: "Account", icon: UserCog },
         ],
         secondary: [
@@ -108,6 +110,7 @@ export default function ClinicSidebar() {
         { to: "/hmos", label: "HMOs", icon: Building2 },
         { to: "/finance/expenses", label: "Expenses", icon: Wallet },
         { to: "/reports/daily-front-desk", label: "Daily Front Desk Report", icon: ClipboardList },
+        { to: "/outreach", label: "Campaigns & Leads", icon: Megaphone },
         { to: "/reports/monthly", label: "Monthly Reports", icon: FileBarChart },
         { to: "/inventory/audit", label: "Inventory Audit", icon: ClipboardList },
         { to: "/settings/account", label: "Account", icon: UserCog },
