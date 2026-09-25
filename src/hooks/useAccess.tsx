@@ -5,7 +5,7 @@ import { assertClinicAccess } from "@/lib/route-access";
 import { checkClinicSubscription } from "@/lib/diag/healthChecks";
 import { safeSupabaseStorage, setKnownSupabaseSession } from "@/lib/supabase-auth";
 import { offlineStore } from "@/lib/offlineStore";
-import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
+import { secureOfflineGet, secureOfflineSave, secureOfflineClearKey } from "@/lib/secureOfflineStore";
 import { clearOfflineSession, getOfflineSession, getTrustedOfflineProfile, refreshOfflineAccessSnapshot } from "@/lib/offlineAuth";
 
 const VALID_ROLES = ["super_admin", "admin", "doctor", "nurse", "receptionist"];
@@ -949,6 +949,7 @@ completedLoadKeyRef.current = loadKey;
     persistActive(null);
     setActiveClinicIdState((prev) => (prev === null ? prev : null));
     clearOfflineUserCache(currentUserId);
+    await secureOfflineClearKey();
     try { sessionStorage.removeItem("optocare:clinic-identity"); } catch { /* ignore */ }
     if (isOfflineSession) {
       clearOfflineSession();
