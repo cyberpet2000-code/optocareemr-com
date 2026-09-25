@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { useAccessClinic } from "@/hooks/useAccess";
 import { diag } from "@/lib/diag";
 import { offlineStore } from "@/lib/offlineStore";
+import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 import { useOffline } from "@/hooks/useOffline";
 import { enqueueOfflineOperation, cacheAppointmentsOffline } from "@/lib/offlineEngine";
 
@@ -74,14 +75,14 @@ export default function Appointments() {
     setError(null);
 
     const cacheKey = `appointments:${cid}`;
-    const loadFromCache = () => {
-      const cached = offlineStore.get<Appointment[]>(cacheKey);
+    const loadFromCache = async () => {
+      const cached = await secureOfflineGet<Appointment[]>(cacheKey);
       if (cached) setAppointments(cached.filter(a => a.appointment_date >= filterDateStr));
       setLoading(false);
     };
 
     if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
-      loadFromCache();
+      await loadFromCache();
       return;
     }
 
@@ -220,7 +221,7 @@ export default function Appointments() {
     const cacheKey = `patients-lite:${cid}`;
     let cancelled = false;
     if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
-      const cached = offlineStore.get<PatientLite[]>(cacheKey);
+      const cached = await secureOfflineGet<PatientLite[]>(cacheKey);
       if (cached) setPatients(cached);
       return;
     }
@@ -236,7 +237,7 @@ export default function Appointments() {
         }
         const rows = data as PatientLite[];
         setPatients(rows);
-        offlineStore.save(cacheKey, rows);
+        await secureOfflineSave(cacheKey, rows);
       } catch {
         const cached = offlineStore.get<PatientLite[]>(cacheKey);
         if (cached) setPatients(cached);
@@ -347,7 +348,7 @@ export default function Appointments() {
       const appointmentId = editingId || (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "appointment-" + Date.now());
       const offlinePayload = { ...payload, id: appointmentId };
       await enqueueOfflineOperation({ clinicId: cid, userId: null, kind: "appointment.save", entityId: appointmentId, payload: offlinePayload });
-      const current = offlineStore.get<any[]>(`appointments:${cid}`) ?? [];
+      const current = await secureOfflineGet<any[]>(`appointments:${cid}`) ?? [];
       const local = { ...offlinePayload, patient_name: patients.find(p => p.id === payload.patient_id)?.full_name || "Unknown patient", offline_pending_sync: true };
       cacheAppointmentsOffline(cid, [local, ...current.filter(a => a.id !== appointmentId)]);
       toast.success("Saved offline — will sync automatically");
