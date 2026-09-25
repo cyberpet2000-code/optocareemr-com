@@ -833,16 +833,18 @@ export default function Outreach() {
                   <div className="flex flex-wrap gap-2 text-xs items-center">
     <span className="px-2 py-1 rounded-full bg-primary/10 text-primary">{counts.sent} sent</span>
     <span className="px-2 py-1 rounded-full bg-muted">{counts.ready} remaining</span>
-    <span className="px-2 py-1 rounded-full border">{selected.status === "paused" ? "Paused" : "Ready"}</span>
-    {counts.ready > 0 && (
+    <span className="px-2 py-1 rounded-full border">{selected.status === "paused" ? "Paused" : selected.status === "active" ? "Active" : selected.status === "completed" ? "Completed" : "Ready"}</span>
+    {counts.ready > 0 && selected.status !== "completed" && selected.status !== "archived" && (
       <Button size="sm" onClick={() => setSendMode(true)} disabled={selected.status === "paused"}>
-        <Send className="w-3.5 h-3.5 mr-1.5"/> Begin Sending
+        <Send className="w-3.5 h-3.5 mr-1.5"/> {selected.status === "active" ? "Continue Sending" : "Begin Sending"}
       </Button>
     )}
-    <Button size="sm" variant="outline" onClick={() => void pauseCampaign()} disabled={!counts.ready && selected.status !== "paused"}>
-      {selected.status === "paused" ? <Play className="w-3.5 h-3.5 mr-1.5"/> : <Pause className="w-3.5 h-3.5 mr-1.5"/>}
-      {selected.status === "paused" ? "Resume" : "Pause"}
-    </Button>
+    {selected.status !== "completed" && selected.status !== "archived" && (
+      <Button size="sm" variant="outline" onClick={() => void pauseCampaign()} disabled={!counts.ready && selected.status !== "paused"}>
+        {selected.status === "paused" ? <Play className="w-3.5 h-3.5 mr-1.5"/> : <Pause className="w-3.5 h-3.5 mr-1.5"/>}
+        {selected.status === "paused" ? "Resume" : "Pause"}
+      </Button>
+    )}
   </div>
                 </div>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
