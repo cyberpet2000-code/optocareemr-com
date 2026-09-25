@@ -28,6 +28,7 @@ type Recipient = {
   patient_id: string | null;
   contact_id: string | null;
   sent_at: string | null;
+  lead_id?: string | null;
 };
 
 type Lead = {
@@ -39,6 +40,8 @@ type Lead = {
   campaign_id: string | null;
   next_follow_up_at: string | null;
   notes: string | null;
+  patient_id?: string | null;
+  converted_at?: string | null;
 };
 
 const statuses = [
@@ -101,6 +104,8 @@ export default function Outreach() {
   const [bookingTime, setBookingTime] = useState("");
   const [bookingReason, setBookingReason] = useState("Eye examination");
   const [bookingSaving, setBookingSaving] = useState(false);
+  const [convertingLead, setConvertingLead] = useState<Lead | null>(null);
+  const [conversionSaving, setConversionSaving] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [duplicateCampaign, setDuplicateCampaign] = useState<Campaign | null>(null);
@@ -434,9 +439,17 @@ export default function Outreach() {
   };
 
   const createLead = async (r: Recipient) => {
-    if (!effectiveClinicId || !selected) return;
+    if (!effectiveClinicId || !selected || !r.contact_id || r.patient_id) return;
     const { data: existing } = await apiClient.from("outreach_leads").select("*").eq("clinic_id", effectiveClinicId).eq("normalized_phone", r.normalized_phone).limit(1).maybeSingle();
     if (existing?.id) {
+      const { data: clinicCampaigns } = await apiClient.from("outreach_campaigns").select("id").eq("clinic_id", effectiveClinicId);
+      const campaignIds = (clinicCampaigns || []).map((campaign: { id: string }) => campaign.id);
+      if (campaignIds.length) {
+        await apiClient.from("outreach_recipients").update({ lead_id: existing.id })
+          .in("campaign_id", campaignIds)
+          .eq("normalized_phone", r.normalized_phone);
+      }
+      setRecipients(prev => prev.map(item => item.normalized_phone === r.normalized_phone ? { ...item, lead_id: existing.id } : item));
       setLeads(prev => prev.some(l => l.id === existing.id) ? prev : [existing as Lead, ...prev]);
       setLeadFilter("all");
       setTab("leads");
@@ -445,14 +458,67 @@ export default function Outreach() {
     const { data } = await apiClient.from("outreach_leads").insert({
       clinic_id: effectiveClinicId,
       contact_id: r.contact_id,
-      patient_id: r.patient_id,
+      patient_id: null,
       full_name: r.full_name,
       phone: r.phone,
       normalized_phone: r.normalized_phone,
       campaign_id: selected.id,
       status: "new",
     }).select("*").single();
-    if (data) setLeads(prev => [data as Lead, ...prev]);
+    if (data) {
+      await apiClient.from("outreach_recipients").update({ lead_id: data.id }).eq("id", r.id);
+      setRecipients(prev => prev.map(item => item.id === r.id ? { ...item, lead_id: data.id } : item));
+      setLeads(prev => [data as Lead, ...prev]);
+    }
+  };
+
+  const convertLeadToPatient = async () => {
+    if (!effectiveClinicId || !convertingLead || conversionSaving) return;
+    setConversionSaving(true);
+    try {
+      const normalized = normalizeWhatsAppNumber(convertingLead.phone);
+      if (!normalized) throw new Error("The lead does not have a valid phone number.");
+      const { data: existingPatient, error: patientLookupError } = await apiClient
+        .from("patients")
+        .select("id,full_name,phone")
+        .eq("clinic_id", effectiveClinicId)
+        .eq("phone", `+${normalized}`)
+        .limit(1)
+        .maybeSingle();
+      if (patientLookupError) throw patientLookupError;
+      let patientId = existingPatient?.id || null;
+      if (!patientId) {
+        const { data: createdPatient, error: createPatientError } = await apiClient.from("patients").insert({
+          clinic_id: effectiveClinicId,
+          created_by: (await apiClient.auth.getUser()).data.user?.id ?? null,
+          full_name: convertingLead.full_name?.trim() || "Unnamed patient",
+          phone: `+${normalized}`,
+          payment_type: "private",
+          preferred_contact_method: "whatsapp",
+          status: "new",
+          queue_status: "waiting",
+          priority: "normal",
+          hmo_verification_status: "verified",
+        }).select("id,full_name,phone").single();
+        if (createPatientError || !createdPatient) throw createPatientError || new Error("Patient record could not be created.");
+        patientId = createdPatient.id;
+      }
+      const convertedAt = new Date().toISOString();
+      const { error: leadError } = await apiClient.from("outreach_leads").update({
+        patient_id: patientId,
+        status: "converted",
+        converted_at: convertedAt,
+        next_follow_up_at: null,
+      }).eq("id", convertingLead.id).eq("clinic_id", effectiveClinicId);
+      if (leadError) throw leadError;
+      setLeads(prev => prev.map(l => l.id === convertingLead.id ? { ...l, patient_id: patientId, status: "converted", converted_at: convertedAt, next_follow_up_at: null } : l));
+      setConvertingLead(null);
+    } catch (e) {
+      console.error("Failed to convert outreach lead", e);
+      window.alert(e instanceof Error ? e.message : "The lead could not be converted to a patient.");
+    } finally {
+      setConversionSaving(false);
+    }
   };
 
   const bookLeadAppointment = async () => {
@@ -484,6 +550,10 @@ export default function Outreach() {
   };
 
   const updateLead = async (lead: Lead, status: string) => {
+    if (status === "converted") {
+      setConvertingLead(lead);
+      return;
+    }
     await apiClient.from("outreach_leads").update({ status }).eq("id", lead.id);
     setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status } : l));
   };
@@ -540,6 +610,7 @@ export default function Outreach() {
           <div className="divide-y">{filteredLeads.map(lead => <div key={lead.id} className="p-4 flex flex-col lg:flex-row lg:items-center gap-3">
             <div className="min-w-0 flex-1"><div className="font-medium">{lead.full_name || "Unnamed lead"}</div><div className="text-xs text-muted-foreground">{lead.phone}</div>{lead.notes && <div className="text-xs mt-1">{lead.notes}</div>}</div>
             <select value={lead.status} onChange={e => void updateLead(lead, e.target.value)} className="h-9 rounded-md border bg-background px-2 text-sm">{statuses.map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
+            {lead.status !== "converted" && <Button size="sm" variant="outline" onClick={() => setConvertingLead(lead)}><UserPlus className="w-4 h-4 mr-2"/> Convert to patient</Button>}
             <a href={whatsappLink(lead.phone)} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center h-9 px-3 rounded-md border text-sm"><MessageCircle size={15} className="mr-2"/> WhatsApp</a>
             {(lead.status === "new" || lead.status === "interested" || lead.status === "appointment_requested" || lead.status === "follow_up") && (
               <Button size="sm" variant="outline" onClick={() => setBookingLead(lead)}>
@@ -719,6 +790,27 @@ export default function Outreach() {
           </p>
         </div>
       </div>}
+
+      {convertingLead && <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-2xl bg-card border shadow-2xl p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0"><UserPlus className="text-primary" size={20}/></div>
+            <div>
+              <h2 className="text-lg font-bold">Convert lead to patient?</h2>
+              <p className="text-sm text-muted-foreground mt-1">Only do this when the clinic has confirmed that this prospect is now a patient.</p>
+            </div>
+          </div>
+          <div className="mt-4 rounded-xl bg-muted/40 p-3 text-sm">
+            <div className="font-semibold">{convertingLead.full_name || "Unnamed lead"}</div>
+            <div className="text-xs text-muted-foreground mt-1">{convertingLead.phone}</div>
+          </div>
+          <div className="mt-4 text-xs text-muted-foreground">OptoCare will create or link the clinic patient record, mark this lead as converted, and keep the outreach history. Future campaigns will treat this person as a patient rather than an external lead.</div>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setConvertingLead(null)} disabled={conversionSaving}>Cancel</Button>
+            <Button onClick={() => void convertLeadToPatient()} disabled={conversionSaving}>{conversionSaving ? "Converting…" : "Confirm conversion"}</Button>
+          </div>
+        </div>
+      </div>
 
       {bookingLead && <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
         <div className="w-full max-w-md rounded-2xl bg-card border shadow-2xl p-5">
