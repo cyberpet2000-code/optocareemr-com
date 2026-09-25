@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAccess } from "@/hooks/useAccess";
 import { useRole } from "@/hooks/useRole";
 import { offlineStore } from "@/lib/offlineStore";
+import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 import { cachePatientsOffline, cacheVisitsOffline, cacheStaffProfilesOffline } from "@/lib/offlineEngine";
 import { useOffline } from "@/hooks/useOffline";
 import PatientHistoryMeta from "@/components/patients/PatientHistoryMeta";
@@ -126,9 +127,9 @@ export default function PatientList() {
     if (!cid) { setPatients([]); setLoading(false); return; }
     if (roleLoading) return;
     const cacheKey = `patients:${cid}`;
-    const loadFromCache = (failureCode: DiagnosisCode | null = null) => {
-      const allCached = offlineStore.get<PatientRow[]>(`patients:${cid}:all`);
-      const cached = allCached || offlineStore.get<PatientRow[]>(cacheKey);
+    const loadFromCache = async (failureCode: DiagnosisCode | null = null) => {
+      const allCached = await secureOfflineGet<PatientRow[]>(`patients:${cid}:all`);
+      const cached = allCached || await secureOfflineGet<PatientRow[]>(cacheKey);
       if (cached) {
         // Older cache entries may contain raw patient rows. Normalize them so
         // a stale/offline cache can never crash the patient cards.
@@ -151,7 +152,7 @@ export default function PatientList() {
       setLoadError(failureCode);
       setLoading(false);
     };
-    if (isOffline) { loadFromCache("NO_NETWORK"); return; }
+    if (isOffline) { await loadFromCache("NO_NETWORK"); return; }
 
     (async () => {
       try {
@@ -202,7 +203,7 @@ export default function PatientList() {
             .range(page * pageSize, page * pageSize + pageSize - 1);
           if (pageError) {
             const diagnosis = await diagnoseRequestFailure(pageError);
-            loadFromCache(diagnosis.code);
+            await loadFromCache(diagnosis.code);
             return;
           }
           if (!pageData || pageData.length === 0) break;
@@ -244,10 +245,10 @@ export default function PatientList() {
         setPatients(baseRows);
         setLoadError(null);
         setLoading(false);
-        offlineStore.save(cacheKey, baseRows);
+        await secureOfflineSave(cacheKey, baseRows);
         // Store the enriched row shape even for the offline "all" cache.
         // Never overwrite it with raw patient records that lack visit/billing summaries.
-        offlineStore.save(`patients:${cid}:all`, baseRows);
+        await secureOfflineSave(`patients:${cid}:all`, baseRows);
         cachePatientsOffline(cid, baseRows);
 
         // Optional HMO/family enrichment. Failure here must never affect the
@@ -369,7 +370,7 @@ export default function PatientList() {
           });
 
           setPatients(enrichedRows);
-          offlineStore.save(cacheKey, enrichedRows);
+          await secureOfflineSave(cacheKey, enrichedRows);
           // Keep the existing HMO enrichment from the row itself. The HMO
           // map belongs to the optional enrichment task above and must never
           // leak into this core enrichment scope.
