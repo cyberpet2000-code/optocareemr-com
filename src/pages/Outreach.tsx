@@ -76,6 +76,11 @@ export default function Outreach() {
   const [externalText, setExternalText] = useState("");
   const [audience, setAudience] = useState<"patients" | "external" | "both">("both");
   const [clinicName, setClinicName] = useState("Cedar Eye Clinic");
+  const [bookingLead, setBookingLead] = useState<Lead | null>(null);
+  const [bookingDate, setBookingDate] = useState("");
+  const [bookingTime, setBookingTime] = useState("");
+  const [bookingReason, setBookingReason] = useState("Eye examination");
+  const [bookingSaving, setBookingSaving] = useState(false);
 
   const canUse = isAdmin || isReceptionist || isDoctor || isSuperAdmin;
 
@@ -214,6 +219,34 @@ export default function Outreach() {
     if (data) setLeads(prev => [data as Lead, ...prev]);
   };
 
+  const bookLeadAppointment = async () => {
+    if (!effectiveClinicId || !bookingLead || !bookingDate || !bookingTime) return;
+    setBookingSaving(true);
+    try {
+      const { error } = await apiClient.from("appointments").insert({
+        clinic_id: effectiveClinicId,
+        patient_id: bookingLead.patient_id || null,
+        outreach_lead_id: bookingLead.id,
+        appointment_date: bookingDate,
+        appointment_time: bookingTime,
+        reason: bookingReason || null,
+        status: "pending",
+        source: "outreach",
+      });
+      if (error) throw error;
+      await apiClient.from("outreach_leads").update({ status: "appointment_booked", next_follow_up_at: null }).eq("id", bookingLead.id);
+      setLeads(prev => prev.map(l => l.id === bookingLead.id ? { ...l, status: "appointment_booked", next_follow_up_at: null } : l));
+      setBookingLead(null);
+      setBookingDate("");
+      setBookingTime("");
+      setBookingReason("Eye examination");
+    } catch (e) {
+      console.error("Failed to book outreach appointment", e);
+    } finally {
+      setBookingSaving(false);
+    }
+  };
+
   const updateLead = async (lead: Lead, status: string) => {
     await apiClient.from("outreach_leads").update({ status }).eq("id", lead.id);
     setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status } : l));
@@ -252,6 +285,11 @@ export default function Outreach() {
             <div className="min-w-0 flex-1"><div className="font-medium">{lead.full_name || "Unnamed lead"}</div><div className="text-xs text-muted-foreground">{lead.phone}</div>{lead.notes && <div className="text-xs mt-1">{lead.notes}</div>}</div>
             <select value={lead.status} onChange={e => void updateLead(lead, e.target.value)} className="h-9 rounded-md border bg-background px-2 text-sm">{statuses.map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
             <a href={whatsappLink(lead.phone)} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center h-9 px-3 rounded-md border text-sm"><MessageCircle size={15} className="mr-2"/> WhatsApp</a>
+            {(lead.status === "new" || lead.status === "interested" || lead.status === "appointment_requested" || lead.status === "follow_up") && (
+              <Button size="sm" variant="outline" onClick={() => setBookingLead(lead)}>
+                <CalendarDays className="w-4 h-4 mr-2"/> Book appointment
+              </Button>
+            )}
           </div>)}</div>}
         </div>
       ) : (
@@ -304,6 +342,32 @@ export default function Outreach() {
           </div>
         </div>
       )}
+
+      {bookingLead && <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-2xl bg-card border shadow-2xl p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold">Book appointment</h2>
+              <p className="text-sm text-muted-foreground mt-1">{bookingLead.full_name || "Unnamed lead"} · {bookingLead.phone}</p>
+            </div>
+            <button onClick={() => setBookingLead(null)} className="text-muted-foreground">✕</button>
+          </div>
+          <div className="space-y-3 mt-5">
+            <Input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)} />
+            <Input type="time" value={bookingTime} onChange={e => setBookingTime(e.target.value)} />
+            <Input value={bookingReason} onChange={e => setBookingReason(e.target.value)} placeholder="Reason" />
+            <div className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+              This creates an appointment linked to the outreach lead. An external prospect is not turned into a patient just by booking.
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setBookingLead(null)}>Cancel</Button>
+              <Button onClick={() => void bookLeadAppointment()} disabled={bookingSaving || !bookingDate || !bookingTime}>
+                {bookingSaving ? "Booking..." : "Confirm appointment"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>}
 
       {showCreate && <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"><div className="w-full max-w-2xl max-h-[90vh] overflow-auto rounded-2xl bg-card border shadow-2xl p-5">
         <div className="flex items-center justify-between"><div><h2 className="text-xl font-bold">Create outreach campaign</h2><p className="text-sm text-muted-foreground mt-1">Existing patients and external contacts can be combined without creating premature patient records.</p></div><button onClick={() => setShowCreate(false)} className="text-muted-foreground">✕</button></div>
