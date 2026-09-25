@@ -1015,7 +1015,7 @@ export default function Outreach() {
             <Button onClick={() => void convertLeadToPatient()} disabled={conversionSaving}>{conversionSaving ? "Converting…" : "Confirm conversion"}</Button>
           </div>
         </div>
-      </div>
+      </div>}
 
       {followUpLead && <div className="fixed inset-0 z-[65] bg-black/50 flex items-center justify-center p-4">
         <div className="w-full max-w-md rounded-2xl bg-card border shadow-2xl p-5">
