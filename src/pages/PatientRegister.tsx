@@ -18,6 +18,7 @@ import { ShieldCheck, ShieldAlert, ShieldX, Globe, ExternalLink, CheckCircle2, X
 import { normalizeWhatsAppNumber, formatWhatsAppDisplay } from "@/lib/whatsapp";
 import { enqueueOfflineOperation, cachePatientOffline } from "@/lib/offlineEngine";
 import { offlineStore } from "@/lib/offlineStore";
+import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 
 type HmoRow = {
   id: string;
@@ -136,15 +137,15 @@ export default function PatientRegister() {
     if (!cid) return;
     const familiesKey = "patient-register-families:" + cid;
     const hmosKey = "patient-register-hmos:" + cid;
-    const cachedFamilies = offlineStore.get<any[]>(familiesKey);
-    const cachedHmos = offlineStore.get<HmoRow[]>(hmosKey);
+    const cachedFamilies = await secureOfflineGet<any[]>(familiesKey);
+    const cachedHmos = await secureOfflineGet<HmoRow[]>(hmosKey);
     if (cachedFamilies) setFamilies(cachedFamilies);
     if (cachedHmos) setHmos(cachedHmos);
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
     apiClient.from("families").select("id, family_number, family_name").eq("clinic_id", cid).order("family_name")
-      .then(({ data }) => { if (data) { setFamilies(data as any); offlineStore.save(familiesKey, data); } });
+      .then(({ data }) => { if (data) { setFamilies(data as any); await secureOfflineSave(familiesKey, data); } });
     apiClient.from("hmos").select("id, name, website, claims_portal_url, phone, email").eq("clinic_id", cid).eq("status", "active").order("name")
-      .then(({ data }) => { if (data) { setHmos(data as any); offlineStore.save(hmosKey, data); } });
+      .then(({ data }) => { if (data) { setHmos(data as any); await secureOfflineSave(hmosKey, data); } });
   }, [cid]);
 
   useEffect(() => {
