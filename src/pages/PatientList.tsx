@@ -22,7 +22,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAccess } from "@/hooks/useAccess";
 import { useRole } from "@/hooks/useRole";
-import { offlineStore } from "@/lib/offlineStore";
 import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 import { cachePatientsOffline, cacheVisitsOffline, cacheStaffProfilesOffline } from "@/lib/offlineEngine";
 import { useOffline } from "@/hooks/useOffline";
