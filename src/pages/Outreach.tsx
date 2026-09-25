@@ -106,6 +106,9 @@ export default function Outreach() {
   const [bookingSaving, setBookingSaving] = useState(false);
   const [convertingLead, setConvertingLead] = useState<Lead | null>(null);
   const [conversionSaving, setConversionSaving] = useState(false);
+  const [followUpLead, setFollowUpLead] = useState<Lead | null>(null);
+  const [followUpAt, setFollowUpAt] = useState("");
+  const [followUpSaving, setFollowUpSaving] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [duplicateCampaign, setDuplicateCampaign] = useState<Campaign | null>(null);
@@ -555,13 +558,81 @@ export default function Outreach() {
     }
   };
 
+  const setLeadFollowUp = async () => {
+    if (!effectiveClinicId || !followUpLead || !followUpAt || followUpSaving) return;
+    setFollowUpSaving(true);
+    try {
+      const followUpIso = new Date(followUpAt).toISOString();
+      const { error } = await apiClient
+        .from("outreach_leads")
+        .update({ status: "follow_up", next_follow_up_at: followUpIso })
+        .eq("id", followUpLead.id)
+        .eq("clinic_id", effectiveClinicId)
+        .neq("status", "converted");
+      if (error) throw error;
+      setLeads(prev => prev.map(l => l.id === followUpLead.id ? { ...l, status: "follow_up", next_follow_up_at: followUpIso } : l));
+      setFollowUpLead(null);
+      setFollowUpAt("");
+    } catch (e) {
+      console.error("Failed to set lead follow-up", e);
+      window.alert(e instanceof Error ? e.message : "The follow-up could not be scheduled.");
+    } finally {
+      setFollowUpSaving(false);
+    }
+  };
+
+  const completeLeadFollowUp = async (lead: Lead) => {
+    if (!effectiveClinicId || lead.status === "converted") return;
+    const { error } = await apiClient
+      .from("outreach_leads")
+      .update({ status: "interested", next_follow_up_at: null })
+      .eq("id", lead.id)
+      .eq("clinic_id", effectiveClinicId);
+    if (error) {
+      console.error("Failed to complete lead follow-up", error);
+      return;
+    }
+    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status: "interested", next_follow_up_at: null } : l));
+  };
+
+  const openLeadFollowUpWhatsApp = (lead: Lead) => {
+    const greeting = lead.full_name?.trim() ? `Hello ${lead.full_name.trim()},` : "Hello,";
+    const message = [
+      "Cedar Eye Clinic",
+      "",
+      greeting,
+      "",
+      "This is a friendly follow-up from Cedar Eye Clinic regarding your recent enquiry.",
+      "",
+      "We’re happy to answer any questions or help you arrange an appointment.",
+      "",
+      "If you would like to book or need any assistance, simply reply to this message or contact us on WhatsApp.",
+      "",
+      "Thank you,",
+      "Cedar Eye Clinic",
+    ].join("\n");
+    const url = whatsappLink(lead.phone, message);
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   const updateLead = async (lead: Lead, status: string) => {
     if (status === "converted") {
       setConvertingLead(lead);
       return;
     }
-    await apiClient.from("outreach_leads").update({ status }).eq("id", lead.id);
-    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status } : l));
+    if (status === "follow_up") {
+      setFollowUpLead(lead);
+      const defaultDate = lead.next_follow_up_at ? new Date(lead.next_follow_up_at) : new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const local = new Date(defaultDate.getTime() - defaultDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      setFollowUpAt(local);
+      return;
+    }
+    const { error } = await apiClient.from("outreach_leads").update({ status }).eq("id", lead.id);
+    if (error) {
+      console.error("Failed to update lead status", error);
+      return;
+    }
+    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status, next_follow_up_at: status === "converted" ? null : l.next_follow_up_at } : l));
   };
 
   const activeCampaigns = useMemo(
@@ -614,9 +685,21 @@ export default function Outreach() {
           </div>
           {filteredLeads.length === 0 ? <div className="p-8 text-center text-sm text-muted-foreground">{leads.length === 0 ? "No leads yet. Create a lead from a campaign recipient when someone expresses interest." : "No leads match this dashboard filter."}</div> :
           <div className="divide-y">{filteredLeads.map(lead => <div key={lead.id} className="p-4 flex flex-col lg:flex-row lg:items-center gap-3">
-            <div className="min-w-0 flex-1"><div className="font-medium">{lead.full_name || "Unnamed lead"}</div><div className="text-xs text-muted-foreground">{lead.phone}</div>{lead.notes && <div className="text-xs mt-1">{lead.notes}</div>}</div>
+            <div className="min-w-0 flex-1">
+              <div className="font-medium">{lead.full_name || "Unnamed lead"}</div>
+              <div className="text-xs text-muted-foreground">{lead.phone}</div>
+              {lead.notes && <div className="text-xs mt-1">{lead.notes}</div>}
+              {lead.next_follow_up_at && (
+                <div className={`text-xs mt-1 font-medium ${new Date(lead.next_follow_up_at).getTime() <= Date.now() ? "text-destructive" : "text-primary"}`}>
+                  Follow-up: {new Date(lead.next_follow_up_at).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                </div>
+              )}
+            </div>
             <select value={lead.status} onChange={e => void updateLead(lead, e.target.value)} className="h-9 rounded-md border bg-background px-2 text-sm">{statuses.map(([v,l]) => <option key={v} value={v}>{l}</option>)}</select>
             {lead.status !== "converted" && <Button size="sm" variant="outline" onClick={() => setConvertingLead(lead)}><UserPlus className="w-4 h-4 mr-2"/> Convert to patient</Button>}
+            {lead.status !== "converted" && <Button size="sm" variant="outline" onClick={() => { setFollowUpLead(lead); const d = lead.next_follow_up_at ? new Date(lead.next_follow_up_at) : new Date(Date.now() + 24 * 60 * 60 * 1000); setFollowUpAt(new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)); }}><Clock3 className="w-4 h-4 mr-2"/> {lead.next_follow_up_at ? "Reschedule follow-up" : "Set follow-up"}</Button>}
+            {lead.status === "follow_up" && lead.next_follow_up_at && <Button size="sm" variant="outline" onClick={() => void completeLeadFollowUp(lead)}><CheckCircle2 className="w-4 h-4 mr-2"/> Complete follow-up</Button>}
+            {lead.status !== "converted" && <Button size="sm" variant="ghost" onClick={() => openLeadFollowUpWhatsApp(lead)}><MessageCircle size={15} className="mr-2"/> Follow up on WhatsApp</Button>}
             <a href={whatsappLink(lead.phone)} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center h-9 px-3 rounded-md border text-sm"><MessageCircle size={15} className="mr-2"/> WhatsApp</a>
             {(lead.status === "new" || lead.status === "interested" || lead.status === "appointment_requested" || lead.status === "follow_up") && (
               <Button size="sm" variant="outline" onClick={() => setBookingLead(lead)}>
@@ -817,6 +900,31 @@ export default function Outreach() {
           </div>
         </div>
       </div>
+
+      {followUpLead && <div className="fixed inset-0 z-[65] bg-black/50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md rounded-2xl bg-card border shadow-2xl p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold">{followUpLead.next_follow_up_at ? "Reschedule follow-up" : "Set lead follow-up"}</h2>
+              <p className="text-sm text-muted-foreground mt-1">{followUpLead.full_name || "Unnamed lead"} · {followUpLead.phone}</p>
+            </div>
+            <button onClick={() => { setFollowUpLead(null); setFollowUpAt(""); }} className="text-muted-foreground">✕</button>
+          </div>
+          <div className="space-y-3 mt-5">
+            <div>
+              <label className="text-sm font-medium">Follow-up date & time</label>
+              <Input type="datetime-local" value={followUpAt} onChange={e => setFollowUpAt(e.target.value)} className="mt-1" />
+            </div>
+            <div className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+              The lead remains a lead. OptoCare will show a notification when the follow-up becomes due. You can reschedule it or complete the follow-up without converting the person to a patient.
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="outline" onClick={() => { setFollowUpLead(null); setFollowUpAt(""); }} disabled={followUpSaving}>Cancel</Button>
+              <Button onClick={() => void setLeadFollowUp()} disabled={followUpSaving || !followUpAt}>{followUpSaving ? "Saving…" : "Save follow-up"}</Button>
+            </div>
+          </div>
+        </div>
+      </div>}
 
       {bookingLead && <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
         <div className="w-full max-w-md rounded-2xl bg-card border shadow-2xl p-5">
