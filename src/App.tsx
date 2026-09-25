@@ -48,6 +48,7 @@ import InventoryAudit from "./pages/InventoryAudit";
 import AccountSettings from "./pages/AccountSettings";
 import MonthlyReports from "./pages/MonthlyReports";
 import DailyFrontDeskReport from "./pages/DailyFrontDeskReport";
+import Outreach from "./pages/Outreach";
 import {
   diag,
   isDiagEnabled,
