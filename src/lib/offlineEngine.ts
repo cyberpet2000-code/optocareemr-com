@@ -1,4 +1,3 @@
-import { offlineStore } from "@/lib/offlineStore";
 import { secureOfflineGet, secureOfflineSave, secureOfflineRemove } from "@/lib/secureOfflineStore";
 
 export type OfflineOperationKind = "family.create" | "patient.create" | "visit.save" | "appointment.save" | "appointment.status" | "inventory.save" | "inventory.delete" | "inventory.sale" | "payment.create" | "billing.save";
@@ -188,10 +187,10 @@ export async function cacheVisitsOffline(clinicId: string, patientId: string, vi
   await secureOfflineSave(`patient-visits:${clinicId}:${patientId}`, visits);
 }
 
-export function cacheVisitOffline(clinicId: string, patientId: string, visit: any) {
+export async function cacheVisitOffline(clinicId: string, patientId: string, visit: any) {
   const key = `patient-visits:${clinicId}:${patientId}`;
-  const rows = offlineStore.get<any[]>(key) ?? [];
-  offlineStore.save(key, [visit, ...rows.filter((row) => row.id !== visit.id)]);
+  const rows = await secureOfflineGet<any[]>(key) ?? [];
+  await secureOfflineSave(key, [visit, ...rows.filter((row) => row.id !== visit.id)]);
 }
 
 export async function cacheStaffProfilesOffline(clinicId: string, profiles: any[]) {
