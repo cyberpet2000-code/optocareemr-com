@@ -17,7 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ShieldCheck, ShieldAlert, ShieldX, Globe, ExternalLink, CheckCircle2, XCircle, MessageCircle, Users } from "lucide-react";
 import { normalizeWhatsAppNumber, formatWhatsAppDisplay } from "@/lib/whatsapp";
 import { enqueueOfflineOperation, cachePatientOffline } from "@/lib/offlineEngine";
-import { offlineStore } from "@/lib/offlineStore";
+import { secureOfflineGet } from "@/lib/secureOfflineStore";
 import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 
 type HmoRow = {
@@ -187,7 +187,7 @@ export default function PatientRegister() {
     const searchTimer = window.setTimeout(async () => {
       setPatientSearchLoading(true);
       if (typeof navigator !== "undefined" && !navigator.onLine) {
-        const cached = offlineStore.get<any[]>("patients:" + cid) ?? [];
+        const cached = await secureOfflineGet<any[]>("patients:" + cid) ?? [];
         const matches = cached.filter((patient: any) => {
           const normalizedName = normalizeSearchText(patient.full_name || "");
           return normalizedQuery.split(" ").every((term) => normalizedName.includes(term));
@@ -363,7 +363,7 @@ export default function PatientRegister() {
         ...patientPayload,
         patient_number: null,
         offline_pending_sync: true,
-        clinic_name: offlineStore.get<any>(`clinic:${cid}`)?.name || "",
+        clinic_name: (await secureOfflineGet<any>(`clinic:${cid}`))?.name || "",
       };
       cachePatientOffline(cid, cachedPatient);
       setLoading(false);
