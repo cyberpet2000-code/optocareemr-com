@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/apiClient";
+import { captureDiagError } from "@/lib/posthog";
 
 const QUEUE_KEY = "optocare:incident-queue";
 const MAX_QUEUE = 100;
@@ -90,6 +91,7 @@ export async function reportIncident(input: Omit<Incident, "fingerprint"> & { fi
   try {
     if (!navigator.onLine) throw new Error("offline");
     await send(incident);
+    captureDiagError({ source: incident.source, severity: incident.severity, error_name: incident.error_name, error_message: incident.error_message, route: incident.route });
     void flushIncidentQueue();
   } catch {
     const queue = readQueue();
