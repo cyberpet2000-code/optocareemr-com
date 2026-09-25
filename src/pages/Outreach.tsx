@@ -466,8 +466,14 @@ export default function Outreach() {
       status: "new",
     }).select("*").single();
     if (data) {
-      await apiClient.from("outreach_recipients").update({ lead_id: data.id }).eq("id", r.id);
-      setRecipients(prev => prev.map(item => item.id === r.id ? { ...item, lead_id: data.id } : item));
+      const { data: clinicCampaigns } = await apiClient.from("outreach_campaigns").select("id").eq("clinic_id", effectiveClinicId);
+      const campaignIds = (clinicCampaigns || []).map((campaign: { id: string }) => campaign.id);
+      if (campaignIds.length) {
+        await apiClient.from("outreach_recipients").update({ lead_id: data.id })
+          .in("campaign_id", campaignIds)
+          .eq("normalized_phone", r.normalized_phone);
+      }
+      setRecipients(prev => prev.map(item => item.normalized_phone === r.normalized_phone ? { ...item, lead_id: data.id } : item));
       setLeads(prev => [data as Lead, ...prev]);
     }
   };
