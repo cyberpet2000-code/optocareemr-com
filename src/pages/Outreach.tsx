@@ -51,14 +51,17 @@ const statuses = [
   ["lost", "Lost"],
 ];
 
-function interpolate(template: string, recipient: Recipient, clinicName: string, campaignDate?: string | null) {
+function interpolate(template: string, recipient: Recipient, clinicName: string, campaignDate?: string | null, clinicAddress = "", clinicWhatsApp = "", clinicEmail = "") {
   const formattedDate = campaignDate
     ? new Date(campaignDate + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })
     : "";
   return template
     .replaceAll("{{patient_name}}", recipient.full_name || "there")
     .replaceAll("{{clinic_name}}", clinicName)
-    .replaceAll("{{campaign_date}}", formattedDate);
+    .replaceAll("{{campaign_date}}", formattedDate)
+    .replaceAll("{{clinic_address}}", clinicAddress)
+    .replaceAll("{{clinic_whatsapp}}", clinicWhatsApp)
+    .replaceAll("{{clinic_email}}", clinicEmail);
 }
 
 export default function Outreach() {
@@ -75,10 +78,13 @@ export default function Outreach() {
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("World Sight Day 2026");
   const [campaignDate, setCampaignDate] = useState("2026-10-08");
-  const [message, setMessage] = useState("Hello {{patient_name}} 👋\n\nWorld Sight Day is October 8, 2026. Cedar Eye Clinic invites you to prioritize your eye health with an eye examination.\n\nNew and existing patients are welcome. Contact Cedar Eye Clinic to book your appointment.\n\nCedar Eye Clinic");
+  const [message, setMessage] = useState("Hello {{patient_name}} 👋\n\nWorld Sight Day is October 8, 2026. {{clinic_name}} invites you to prioritize your eye health with an eye examination.\n\nTo book your appointment:\n📞 WhatsApp/Call: {{clinic_whatsapp}}\n📍 {{clinic_address}}\n✉️ {{clinic_email}}\n\nWe look forward to seeing you.\n\n{{clinic_name}}");
   const [externalText, setExternalText] = useState("");
   const [audience, setAudience] = useState<"patients" | "external" | "both">("both");
   const [clinicName, setClinicName] = useState("Cedar Eye Clinic");
+  const [clinicAddress, setClinicAddress] = useState("");
+  const [clinicWhatsApp, setClinicWhatsApp] = useState("+2348067092463");
+  const [clinicEmail, setClinicEmail] = useState("cedaeyeclinic@gmail.com");
   const [bookingLead, setBookingLead] = useState<Lead | null>(null);
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
@@ -126,8 +132,12 @@ export default function Outreach() {
 
   useEffect(() => {
     if (!effectiveClinicId) return;
-    apiClient.from("clinics").select("name").eq("id", effectiveClinicId).maybeSingle().then(({ data }) => {
+    apiClient.from("clinics").select("name,email,address,whatsapp_phone,phone").eq("id", effectiveClinicId).maybeSingle().then(({ data }) => {
       if (data?.name) setClinicName(data.name);
+      if (data?.address) setClinicAddress(data.address);
+      if (data?.whatsapp_phone) setClinicWhatsApp(data.whatsapp_phone);
+      else if (data?.phone) setClinicWhatsApp(data.phone);
+      if (data?.email) setClinicEmail(data.email);
     });
   }, [effectiveClinicId]);
 
@@ -274,7 +284,7 @@ export default function Outreach() {
     if (!selected || !current || sending) return;
     setSending(true);
     try {
-      const url = whatsappLink(current.phone, interpolate(selected.message_template, current, clinicName, selected.campaign_date));
+      const url = whatsappLink(current.phone, interpolate(selected.message_template, current, clinicName, selected.campaign_date, clinicAddress, clinicWhatsApp, clinicEmail));
       if (!url) return;
       await apiClient.from("outreach_recipients").update({ status: "opened" }).eq("id", current.id);
       window.open(url, "_blank", "noopener,noreferrer");
@@ -461,7 +471,7 @@ export default function Outreach() {
 
           <div className="mt-4 rounded-xl border bg-muted/30 p-4">
             <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Message preview</div>
-            <div className="whitespace-pre-wrap text-sm bg-background rounded-xl border p-4">{interpolate(message, { id:"preview", full_name: review.sample[0]?.full_name || "there", phone: review.sample[0]?.phone || "", normalized_phone:"", status:"ready", patient_id:null, contact_id:null, sent_at:null }, clinicName, campaignDate)}</div>
+            <div className="whitespace-pre-wrap text-sm bg-background rounded-xl border p-4">{interpolate(message, { id:"preview", full_name: review.sample[0]?.full_name || "there", phone: review.sample[0]?.phone || "", normalized_phone:"", status:"ready", patient_id:null, contact_id:null, sent_at:null }, clinicName, campaignDate, clinicAddress, clinicWhatsApp, clinicEmail)}</div>
             <div className="text-xs text-muted-foreground mt-2">Personalization will use each recipient's name automatically.</div>
           </div>
 
@@ -516,7 +526,16 @@ export default function Outreach() {
           <div><label className="text-sm font-medium">Campaign name</label><Input value={name} onChange={e => setName(e.target.value)} /></div>
           <div className="grid sm:grid-cols-2 gap-3"><div><label className="text-sm font-medium">Campaign/event date</label><Input type="date" value={campaignDate} onChange={e => setCampaignDate(e.target.value)} /></div><div><label className="text-sm font-medium">Audience</label><select value={audience} onChange={e => setAudience(e.target.value as any)} className="w-full h-10 rounded-md border bg-background px-3 text-sm"><option value="patients">OptoCare patients</option><option value="external">External contacts</option><option value="both">Patients + external</option></select></div></div>
           {(audience === "external" || audience === "both") && <div><label className="text-sm font-medium">External contacts</label><Textarea rows={6} value={externalText} onChange={e => setExternalText(e.target.value)} placeholder={"John Doe\t0803...\nMary Smith\t+234...\n0805..."} /><p className="text-xs text-muted-foreground mt-1">One per line. You can use Name + phone separated by a tab or semicolon, or phone only. Duplicates are removed.</p></div>}
-          <div><label className="text-sm font-medium">WhatsApp message</label><Textarea rows={10} value={message} onChange={e => setMessage(e.target.value)} /><p className="text-xs text-muted-foreground mt-1">Available: {"{{patient_name}}"}, {"{{clinic_name}}"}, {"{{campaign_date}}"}</p></div>
+          <div className="rounded-xl border bg-muted/30 p-4">
+            <div className="text-sm font-semibold">Clinic contact details</div>
+            <div className="text-xs text-muted-foreground mt-1">These are pulled from the clinic profile and will be available in the campaign message.</div>
+            <div className="grid gap-1.5 mt-3 text-sm">
+              <div>📍 {clinicAddress || "Address not configured"}</div>
+              <div>📞 {clinicWhatsApp || "Phone not configured"}</div>
+              <div>✉️ {clinicEmail || "Email not configured"}</div>
+            </div>
+          </div>
+          <div><label className="text-sm font-medium">WhatsApp message</label><Textarea rows={10} value={message} onChange={e => setMessage(e.target.value)} /><p className="text-xs text-muted-foreground mt-1">Available: {"{{patient_name}}"}, {"{{clinic_name}}"}, {"{{campaign_date}}"}, {"{{clinic_address}}"}, {"{{clinic_whatsapp}}"}, {"{{clinic_email}}"}</p></div>
           <div className="rounded-xl bg-warning/10 border border-warning/20 p-3 text-xs text-warning">This version does not use WhatsApp API. It prepares each message and opens WhatsApp; staff must press Send.</div>
           <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button><Button onClick={() => void prepareReview()} disabled={reviewLoading || !name.trim() || !message.trim()}>{reviewLoading ? "Preparing review…" : "Review campaign"}</Button></div>
         </div>
