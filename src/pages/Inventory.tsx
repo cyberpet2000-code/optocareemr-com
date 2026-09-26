@@ -14,6 +14,7 @@ import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 import { useOffline } from "@/hooks/useOffline";
 import { useRole } from "@/hooks/useRole";
 import { enqueueOfflineOperation } from "@/lib/offlineEngine";
+import { getUserFacingErrorMessage } from "@/lib/diag/connectionDiagnosis";
 import { confirmDestructiveAction } from "@/lib/safeDelete";
 
 
