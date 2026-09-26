@@ -4,7 +4,41 @@ import "./index.css";
 import { installRuntimeErrorDetector } from "./lib/diag";
 import { initPostHog } from "./lib/posthog";
 
-if (typeof window !== "undefined") { initPostHog(); installRuntimeErrorDetector(); }
+if (typeof window !== "undefined") {
+  initPostHog();
+  installRuntimeErrorDetector();
+
+  // Vite can encounter deployment-version skew when an already-open tab
+  // tries to lazy-load a chunk from a previous build. Recover once by clearing
+  // the app-shell caches and reloading; never loop indefinitely.
+  window.addEventListener("vite:preloadError", (event) => {
+    const key = "optocare:vite-preload-recovery";
+    if (sessionStorage.getItem(key) === "1") return;
+    sessionStorage.setItem(key, "1");
+
+    const recover = async () => {
+      try {
+        if ("serviceWorker" in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((registration) => registration.unregister()));
+        }
+        const cacheKeys = await caches.keys();
+        await Promise.all(
+          cacheKeys
+            .filter((name) => name.startsWith("optocare-shell-"))
+            .map((name) => caches.delete(name)),
+        );
+      } catch {
+        // Recovery is best-effort; the reload below remains safe.
+      } finally {
+        window.location.reload();
+      }
+    };
+
+    event.preventDefault();
+    void recover();
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Global fetch guard — strips the legacy `x-optocare-shared-client` header
