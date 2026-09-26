@@ -70,6 +70,7 @@ export default function SuperAdminArchives() {
   const [clinicPatientCount, setClinicPatientCount] = useState<number>(0);
   const [scope, setScope] = useState<"full" | "patient" | "date_range">("full");
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [patientSearch, setPatientSearch] = useState("");
   const [patientId, setPatientId] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -114,15 +115,29 @@ export default function SuperAdminArchives() {
     return () => { apiClient.removeChannel(channel); };
   }, [activeArchiveId]);
 
-  // Load patients when clinic selected and scope is patient
+  // Patient archive selection is search-driven so large clinics do not preload 500 patients.
   useEffect(() => {
-    if (!clinicId) { setPatients([]); setClinicPatientCount(0); return; }
-    apiClient.from("patients").select("id, full_name", { count: "exact" }).eq("clinic_id", clinicId).order("full_name").limit(500)
-      .then(({ data, count }) => {
+    if (!clinicId || scope !== "patient") {
+      setPatients([]);
+      setClinicPatientCount(0);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      const term = patientSearch.trim();
+      let query = apiClient
+        .from("patients")
+        .select("id, full_name", { count: "exact" })
+        .eq("clinic_id", clinicId)
+        .order("full_name")
+        .limit(50);
+      if (term) query = query.ilike("full_name", `%${term.replace(/[%_]/g, "")}%`);
+      query.then(({ data, count }) => {
         setPatients((data ?? []) as Patient[]);
-        setClinicPatientCount(count ?? (data?.length ?? 0));
+        setClinicPatientCount(count ?? 0);
       });
-  }, [clinicId]);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [clinicId, scope, patientSearch]);
 
   const startGenerate = async () => {
     if (!clinicId) { toast.error("Select a clinic"); return; }
@@ -382,7 +397,7 @@ export default function SuperAdminArchives() {
 
                 {scope === "patient" && (
                   <div className="space-y-1.5">
-                    <Label>Patient</Label>
+                    <Label>Patient</Label>\n                    <Input placeholder="Search patient name" value={patientSearch} onChange={(e) => { setPatientSearch(e.target.value); setPatientId(""); }} className="mb-2" />
                     <Select value={patientId} onValueChange={setPatientId} disabled={!clinicId}>
                       <SelectTrigger><SelectValue placeholder={clinicId ? "Select a patient" : "Pick a clinic first"} /></SelectTrigger>
                       <SelectContent>
