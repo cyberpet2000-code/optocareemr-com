@@ -3,13 +3,14 @@ import { Activity, CheckCircle2, AlertTriangle, XCircle, RefreshCw, Database, Ha
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { diag } from "@/lib/diag";
+import { diagnoseConnection, type ConnectionDiagnosis } from "@/lib/diag/connectionDiagnosis";
 import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 
 export default function SuperAdminSystemHealth() {
   const { isAuthReady } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [health, setHealth] = useState<{ db?: string; storage?: string; auth?: string; lastChecked?: string; dbLatency?: number } | null>(null);
+  const [health, setHealth] = useState<{ db?: string; storage?: string; auth?: string; lastChecked?: string; dbLatency?: number; diagnosis?: ConnectionDiagnosis } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const runHealthCheck = async () => {
@@ -18,17 +19,20 @@ export default function SuperAdminSystemHealth() {
     const end = diag.time("perf", "system-health-fetch");
     const started = performance.now();
     try {
+      const diagnosisPromise = diagnoseConnection();
       const [{ error: dbError }, { data: sessionData, error: authError }] = await Promise.all([
         apiClient.from("clinics").select("id").limit(1),
         apiClient.auth.getSession(),
       ]);
       const dbLatency = Math.round(performance.now() - started);
+      const diagnosis = await diagnosisPromise;
       setHealth({
         db: dbError ? "error" : "ok",
         storage: "not checked",
         auth: authError ? "error" : sessionData?.session ? "ok" : "no session",
         dbLatency,
         lastChecked: new Date().toISOString(),
+        diagnosis,
       });
       if (dbError) setError(dbError.message);
     } catch (err: any) {
@@ -86,6 +90,25 @@ export default function SuperAdminSystemHealth() {
           </div>
         ))}
       </div>
+      {!loading && health?.diagnosis && (
+        <div className="form-section">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <div className="text-sm font-medium">Root-cause diagnosis</div>
+              <div className="text-base font-semibold mt-1">{health.diagnosis.message}</div>
+            </div>
+            <span className="text-xs rounded-full border px-2 py-1 font-medium">{health.diagnosis.code}</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 text-sm">
+            <div><div className="text-muted-foreground">Internet</div><div className="font-medium">{health.diagnosis.internet}</div></div>
+            <div><div className="text-muted-foreground">Authentication</div><div className="font-medium">{health.diagnosis.authentication}</div></div>
+            <div><div className="text-muted-foreground">Database</div><div className="font-medium">{health.diagnosis.database}</div></div>
+            <div><div className="text-muted-foreground">Edge services</div><div className="font-medium">{health.diagnosis.edgeFunctions}</div></div>
+          </div>
+          <div className="mt-3 text-xs text-muted-foreground">Technical diagnosis: {health.diagnosis.technicalMessage}</div>
+        </div>
+      )}
+
       {!loading && health?.dbLatency !== undefined && (
         <div className="text-xs text-muted-foreground">Database probe: {health.dbLatency} ms • Last checked: {health.lastChecked ? new Date(health.lastChecked).toLocaleString() : "—"}</div>
       )}
