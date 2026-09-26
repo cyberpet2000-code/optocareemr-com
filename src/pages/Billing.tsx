@@ -190,6 +190,10 @@ export default function Billing() {
 
   const [lookupBills, setLookupBills] =
     useState<BillingRow[]>([]);
+  const [lookupBillPage, setLookupBillPage] = useState(0);
+  const [hasMoreLookupBills, setHasMoreLookupBills] = useState(false);
+  const [loadingMoreLookupBills, setLoadingMoreLookupBills] = useState(false);
+  const BILL_HISTORY_PAGE_SIZE = 50;
 
   const [lookupPayments, setLookupPayments] =
     useState<any[]>([]);
@@ -322,12 +326,19 @@ export default function Billing() {
 
     try {
       
+      const summaryPromise = apiClient.rpc("get_patient_billing_summary", {
+        p_clinic_id: cid,
+        p_patient_id: patient.id,
+      });
+
       const { data: billsRes, error } = await apiClient
-  .from("billing")
-  .select("*")
-  .eq("clinic_id", cid)
-  .eq("patient_id", patient.id)
-  .order("created_at", { ascending: false });
+        .from("billing")
+        .select("*")
+        .eq("clinic_id", cid)
+        .eq("patient_id", patient.id)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(BILL_HISTORY_PAGE_SIZE + 1);
       
 
       if (error) {
@@ -337,7 +348,23 @@ export default function Billing() {
   return;
       }
 
-      const billingIds = (billsRes || []).map((b) => b.id);
+      const summaryResult = await summaryPromise;
+      const summary = summaryResult.data?.[0];
+      if (!summaryResult.error && summary) {
+        setLookupSummary({
+          total: Number(summary.total_amount || 0),
+          paid: Number(summary.amount_paid || 0),
+          balance: Number(summary.balance || 0),
+        });
+      } else {
+        setLookupSummary(null);
+      }
+
+      const fetchedBills = (billsRes || []) as any[];
+      setHasMoreLookupBills(fetchedBills.length > BILL_HISTORY_PAGE_SIZE);
+      setLookupBillPage(0);
+      const pageBills = fetchedBills.slice(0, BILL_HISTORY_PAGE_SIZE);
+      const billingIds = pageBills.map((b) => b.id);
       const visitIds = (billsRes || [])
         .map((b) => b.visit_id)
         .filter(Boolean) as string[];
@@ -408,7 +435,7 @@ export default function Billing() {
       );
 
       const detailMap: Record<string, LookupBillDetail> = {};
-      (billsRes || []).forEach((bill: any) => {
+      pageBills.forEach((bill: any) => {
         const billVisit = bill.visit_id
           ? visitMap.get(bill.visit_id) || null
           : null;
@@ -430,7 +457,7 @@ export default function Billing() {
       // Keep zero-value billing placeholders available internally so a new bill
       // can still be opened and edited, but do not expose those placeholders as
       // actual billing history.
-      const actualLookupBills = (billsRes || []).filter(
+      const actualLookupBills = pageBills.filter(
         (bill: any) =>
           Number(bill.consultation_fee || 0) > 0 ||
           Number(bill.items_total || 0) > 0 ||
@@ -550,28 +577,48 @@ setEditingBillingId(selectedBill.id);
 
   const filteredPatients = patients;
 
-  const lookupTotal =
-    lookupBills.reduce(
-      (sum, b) =>
-        sum +
-        Number(
-          b.total_amount || 0
-        ),
-      0
-    );
+  const [lookupSummary, setLookupSummary] = useState<{ total: number; paid: number; balance: number } | null>(null);
 
-  const lookupPaid =
-    lookupBills.reduce(
-      (sum, b) =>
-        sum +
-        Number(
-          b.amount_paid || 0
-        ),
-      0
-    );
+  const lookupTotal = lookupSummary?.total ?? lookupBills.reduce((sum, b) => sum + Number(b.total_amount || 0), 0);
+  const lookupPaid = lookupSummary?.paid ?? lookupBills.reduce((sum, b) => sum + Number(b.amount_paid || 0), 0);
+  const lookupBalance = lookupSummary?.balance ?? Math.max(0, lookupTotal - lookupPaid);
 
-  const lookupBalance =
-    lookupTotal - lookupPaid;
+  const loadMoreLookupBills = async () => {
+    if (!cid || !selectedLookupPatient || !hasMoreLookupBills || loadingMoreLookupBills) return;
+    setLoadingMoreLookupBills(true);
+    const nextOffset = (lookupBillPage + 1) * BILL_HISTORY_PAGE_SIZE;
+    try {
+      const { data, error } = await apiClient
+        .from("billing")
+        .select("*")
+        .eq("clinic_id", cid)
+        .eq("patient_id", selectedLookupPatient.id)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(nextOffset, nextOffset + BILL_HISTORY_PAGE_SIZE);
+
+      if (error) {
+        toast.error(error.message || "Could not load older bills");
+        return;
+      }
+
+      const rows = Array.isArray(data) ? data : [];
+      const pageRows = rows.slice(0, BILL_HISTORY_PAGE_SIZE);
+      setLookupBills(prev => [
+        ...prev,
+        ...pageRows.filter((bill: any) =>
+          Number(bill.consultation_fee || 0) > 0 ||
+          Number(bill.items_total || 0) > 0 ||
+          Number(bill.total_amount || 0) > 0 ||
+          Number(bill.amount_paid || 0) > 0
+        ),
+      ]);
+      setHasMoreLookupBills(rows.length > BILL_HISTORY_PAGE_SIZE);
+      setLookupBillPage(lookupBillPage + 1);
+    } finally {
+      setLoadingMoreLookupBills(false);
+    }
+  };
 
   const addItem = () =>
   setItems([
@@ -1630,6 +1677,13 @@ if (error) {
                   </div>
                 );
               })}
+              {hasMoreLookupBills && (
+                <div className="flex justify-center pt-2">
+                  <Button variant="outline" size="sm" className="rounded-xl" onClick={loadMoreLookupBills} disabled={loadingMoreLookupBills}>
+                    {loadingMoreLookupBills ? "Loading older bills…" : "Load older bills"}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
