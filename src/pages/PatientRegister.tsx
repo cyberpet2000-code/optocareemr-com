@@ -15,9 +15,8 @@ import { toast } from "sonner";
 import { useAccess } from "@/hooks/useAccess";
 import { useAuth } from "@/hooks/useAuth";
 import { ShieldCheck, ShieldAlert, ShieldX, Globe, ExternalLink, CheckCircle2, XCircle, MessageCircle, Users } from "lucide-react";
-import { normalizeWhatsAppNumber, formatWhatsAppDisplay } from "@/lib/whatsapp";
+import { normalizeWhatsAppNumber, formatWhatsAppDisplay, isValidWhatsAppNumber } from "@/lib/whatsapp";
 import { enqueueOfflineOperation, cachePatientOffline } from "@/lib/offlineEngine";
-import { secureOfflineGet } from "@/lib/secureOfflineStore";
 import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 
 type HmoRow = {
@@ -489,6 +488,10 @@ export default function PatientRegister() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isValidWhatsAppNumber(form.phone)) {
+      toast.error("Enter one valid phone/WhatsApp number only. Do not combine two numbers.");
+      return;
+    }
     if (!form.fullName.trim() || !form.age || !form.gender) {
       toast.error("Fill required fields (Name, Age, Gender)"); return;
     }
@@ -627,10 +630,22 @@ export default function PatientRegister() {
           <div className="space-y-1">
             <Label className="text-xs">Phone / WhatsApp</Label>
             <div className="relative">
-              <Input className="rounded-xl pr-10" value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="+234 801 234 5678" />
+              <Input
+                className="rounded-xl pr-10"
+                value={form.phone}
+                onChange={e => set("phone", e.target.value)}
+                placeholder="+234 801 234 5678"
+                inputMode="tel"
+                maxLength={20}
+                aria-invalid={Boolean(form.phone.trim() && !isValidWhatsAppNumber(form.phone))}
+              />
               {normalizeWhatsAppNumber(form.phone) && <a href={`https://wa.me/${normalizeWhatsAppNumber(form.phone)}`} target="_blank" rel="noopener noreferrer" className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-green-50 text-green-600" title="Open WhatsApp"><MessageCircle size={14} /></a>}
             </div>
-            {normalizeWhatsAppNumber(form.phone) && <p className="text-[10px] text-muted-foreground">WhatsApp: {formatWhatsAppDisplay(form.phone)}</p>}
+            {form.phone.trim() && !isValidWhatsAppNumber(form.phone) ? (
+              <p className="text-[10px] text-destructive">Enter one phone number only. If there are two numbers, choose the patient’s primary WhatsApp/phone number.</p>
+            ) : normalizeWhatsAppNumber(form.phone) ? (
+              <p className="text-[10px] text-muted-foreground">WhatsApp: {formatWhatsAppDisplay(form.phone)}</p>
+            ) : null}
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Preferred Contact</Label>
