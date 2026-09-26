@@ -87,7 +87,7 @@ export default function SuperAdminArchives() {
   const refresh = async () => {
     const [{ data: cs }, { data: ar }] = await Promise.all([
       apiClient.from("clinics").select("id, name").order("name"),
-      apiClient.from("clinic_archives").select("*").order("created_at", { ascending: false }).limit(100),
+      apiClient.from("clinic_archives").select("id,clinic_id,scope,patient_id,date_from,date_to,status,storage_path,file_size_bytes,file_count,encrypted,expires_at,error_message,progress,created_at").order("created_at", { ascending: false }).limit(100),
     ]);
     setClinics((cs ?? []) as Clinic[]);
     setArchives((ar ?? []) as ArchiveRow[]);
