@@ -990,11 +990,25 @@ completedLoadKeyRef.current = loadKey;
         });
         await applySession(data.session ?? null, "bootstrap");
       } catch (error: any) {
+        // A transient auth-storage/network failure must never turn an already
+        // authenticated user into a signed-out state. Keep the current
+        // session/access snapshot and let Supabase retry/refresh normally.
         console.error("[auth:bootstrap:error]", { message: error?.message });
         if (!mounted) return;
-        setKnownSupabaseSession(null);
-        setUser((prev) => (prev === null ? prev : null));
-        clearAccessState(true);
+
+        const existingUser = userRef.current;
+        if (existingUser) {
+          console.warn("[auth:bootstrap:preserve-session]", {
+            user_id: existingUser.id,
+            reason: "transient_auth_bootstrap_failure",
+          });
+          setAuthLoading(false);
+          return;
+        }
+
+        // No existing authenticated user means this is a genuine bootstrap
+        // failure on the public/login path; leave the app unauthenticated
+        // rather than fabricating a session.
         setAuthLoading(false);
       }
     })();
