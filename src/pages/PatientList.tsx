@@ -23,7 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAccess } from "@/hooks/useAccess";
 import { useRole } from "@/hooks/useRole";
 import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
-import { cachePatientsOffline, cacheVisitsOffline, cacheStaffProfilesOffline } from "@/lib/offlineEngine";
+import { cacheVisitsOffline, cacheStaffProfilesOffline } from "@/lib/offlineEngine";
 import { useOffline } from "@/hooks/useOffline";
 import PatientHistoryMeta from "@/components/patients/PatientHistoryMeta";
 import { buildBillingSummaryMap, buildVisitSummaryMap, getPaymentStatus, type PatientBillingSummary, type PatientVisitSummary } from "@/lib/patientHistory";
@@ -238,8 +238,7 @@ export default function PatientList() {
         setLoading(false);
         if (page === 0) {
           await secureOfflineSave(cacheKey, mapped);
-          await secureOfflineSave(`patients:${cid}:all`, mapped);
-          await cachePatientsOffline(cid, mapped);
+
         }
       } catch (error) {
         console.error("PatientList loading error:", error);
