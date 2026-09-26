@@ -134,7 +134,7 @@ export default function Inventory() {
     const ext = file.name.split(".").pop();
     const path = `${crypto.randomUUID()}.${ext}`;
     const { error } = await apiClient.storage.from("product-images").upload(path, file);
-    if (error) { toast.error("Upload failed"); return null; }
+    if (error) { toast.error(await getUserFacingErrorMessage(error, "Could not upload the product image.")); return null; }
     const { data } = apiClient.storage.from("product-images").getPublicUrl(path);
     return data.publicUrl;
   };
