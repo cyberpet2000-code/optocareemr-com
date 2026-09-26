@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Plus, Building2, Trash2, Pencil, FileText } from "lucide-react";
 import { useAccess } from "@/hooks/useAccess";
 import { confirmDestructiveAction } from "@/lib/safeDelete";
+import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 
 interface Hmo {
   id: string;
@@ -45,13 +46,33 @@ export default function HmoManagement() {
 
   const load = async () => {
     if (!cid) { setHmos([]); setPlans([]); setLoading(false); return; }
+    const hmoCacheKey = `hmo-management:${cid}`;
+    const cached = await secureOfflineGet<{ hmos: Hmo[]; plans: Plan[] }>(hmoCacheKey);
+    if (cached) {
+      setHmos(cached.hmos || []);
+      setPlans(cached.plans || []);
+      setLoading(false);
+    }
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setLoading(false);
+      return;
+    }
+
     const [h, p] = await Promise.all([
-      apiClient.from("hmos").select("*").eq("clinic_id", cid).order("name"),
-      apiClient.from("hmo_plans").select("*").eq("clinic_id", cid).order("created_at", { ascending: false }),
+      apiClient.from("hmos").select("id,name,email,phone,website,status").eq("clinic_id", cid).order("name"),
+      apiClient.from("hmo_plans").select("id,hmo_id,plan_name,coverage_limit,used_amount,status").eq("clinic_id", cid).order("created_at", { ascending: false }),
     ]);
-    console.debug("[hmo]", { clinic_id: cid, hmos: h.data?.length ?? 0, plans: p.data?.length ?? 0 });
-    setHmos((h.data as any) || []);
-    setPlans((p.data as any) || []);
+    if (h.error || p.error) {
+      if (!cached) toast.error(h.error?.message || p.error?.message || "Unable to load HMO data");
+      setLoading(false);
+      return;
+    }
+    const nextHmos = (h.data as Hmo[]) || [];
+    const nextPlans = (p.data as Plan[]) || [];
+    setHmos(nextHmos);
+    setPlans(nextPlans);
+    void secureOfflineSave(hmoCacheKey, { hmos: nextHmos, plans: nextPlans });
     setLoading(false);
   };
 
