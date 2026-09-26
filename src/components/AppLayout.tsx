@@ -19,6 +19,7 @@ import { getOfflineSyncStatus } from "@/lib/offlineEngine";
 import ThemeToggle from "@/components/ThemeToggle";
 import { apiClient } from "@/lib/apiClient";
 import { showNotification } from "@/lib/notifications";
+import ConnectionStatusBanner from "@/components/ConnectionStatusBanner";
 
 const ROLE_LABEL: Record<string, string> = {
   doctor: "Doctor",
@@ -270,6 +271,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
         <ClinicSidebar />
 
         <div className="flex-1 flex flex-col min-w-0">
+          <ConnectionStatusBanner />
           {(isOffline || offlineSyncPending > 0) && !isSuperAdminWs && (
             <div className={isOffline ? "bg-destructive text-destructive-foreground text-xs font-medium px-3 lg:px-6 py-1.5" : "bg-warning/10 text-warning text-xs font-medium px-3 lg:px-6 py-1.5"}>
               <div className="flex items-center justify-center gap-2 flex-wrap">
