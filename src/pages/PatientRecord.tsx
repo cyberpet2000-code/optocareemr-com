@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { getUserFacingErrorMessage } from "@/lib/diag/connectionDiagnosis";
+import { diag } from "@/lib/diag";
 import { confirmDestructiveAction } from "@/lib/safeDelete";
 import {
   ArrowLeft,
@@ -322,6 +323,7 @@ const canViewFinancials =
     let cancelled = false;
 
     (async () => {
+      const endPatientRecordPerf = diag.time("perf", "patient-record-load", { patientId });
       try {
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         const cachedPatient = await secureOfflineGet<any>("patient-record:" + cid + ":" + patientId);
