@@ -38,25 +38,11 @@ begin
     return new;
   end if;
 
-  if public.has_role(auth.uid(), 'receptionist') then
+  if public.has_role(auth.uid(), 'receptionist')
+     or public.has_role(auth.uid(), 'doctor') then
     if new.clinic_id is distinct from old.clinic_id
        or new.created_by is distinct from old.created_by
-       or new.patient_number is distinct from old.patient_number
-       or new.hmo_verification_status is distinct from old.hmo_verification_status
-       or new.hmo_verified_at is distinct from old.hmo_verified_at
-       or new.hmo_verified_by is distinct from old.hmo_verified_by
-       or new.hmo_verification_notes is distinct from old.hmo_verification_notes then
-      raise exception 'This patient field can only be changed by an administrator';
-    end if;
-    return new;
-  end if;
-
-  if public.has_role(auth.uid(), 'doctor') then
-    if new.clinic_id is distinct from old.clinic_id
-       or new.created_by is distinct from old.created_by
-       or new.patient_number is distinct from old.patient_number
-       or new.hmo_verification_status is distinct from old.hmo_verification_status
-       or new.hmo_verified_at is distinct from old.hmo_verified_at then
+       or new.patient_number is distinct from old.patient_number then
       raise exception 'This patient field can only be changed by an administrator';
     end if;
     return new;
