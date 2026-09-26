@@ -3,6 +3,7 @@
 
 import { apiClient } from "@/lib/apiClient";
 import { diagnoseConnection } from "@/lib/diag/connectionDiagnosis";
+import { diag } from "@/lib/diag";
 import { toast } from "sonner";
 import { enqueueOfflineOperation, getOfflineOperations, removeOfflineOperation, markOfflineOperationFailed } from "@/lib/offlineEngine";
 import { secureOfflineGet, secureOfflineSave, secureOfflineRemove } from "@/lib/secureOfflineStore";
@@ -373,6 +374,7 @@ function backoffMs(failures: number) {
 export async function runOfflineSync(clinicId: string): Promise<void> {
   if (_syncRunning || Date.now() < _syncBackoffUntil) return;
   _syncRunning = true;
+  const endSyncPerf = diag.time("perf", "offline-sync", { clinicId });
   try {
     const diagnosis = await diagnoseConnection();
     if (diagnosis.code === "NO_NETWORK" || diagnosis.code === "NO_INTERNET") {
