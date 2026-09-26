@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Search, Pencil, Trash2, Download, Receipt, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import { getUserFacingErrorMessage } from "@/lib/diag/connectionDiagnosis";
 import { confirmDestructiveAction } from "@/lib/safeDelete";
 
 interface ExpenseRow {
