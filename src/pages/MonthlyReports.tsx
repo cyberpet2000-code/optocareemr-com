@@ -29,7 +29,7 @@ export default function MonthlyReports() {
     setLoading(true);
     const { data, error } = await apiClient.from("monthly_reports").select("*")
       .eq("clinic_id", effectiveClinicId).order("year", { ascending: false }).order("month", { ascending: false }).limit(24);
-    if (error) toast.error(error.message);
+    if (error) toast.error(await getUserFacingErrorMessage(error, "OptoCare could not complete this request. Please try again."));
     setRows((data as any) || []);
     setLoading(false);
   }, [effectiveClinicId]);
@@ -49,7 +49,7 @@ export default function MonthlyReports() {
       toast.success("Report generated");
       await load();
     } catch (e: any) {
-      toast.error(e.message || "Failed to generate");
+      toast.error(await getUserFacingErrorMessage(e, "OptoCare could not generate the report."));
     } finally {
       setGen(false);
     }
@@ -72,7 +72,7 @@ export default function MonthlyReports() {
       const sentTo = (data as any)?.results?.find((x: any) => x.ok)?.recipient;
       toast.success(sentTo ? `Report emailed to ${sentTo}` : "Report email queued");
     } catch (e: any) {
-      toast.error(e.message || "Failed to resend email");
+      toast.error(await getUserFacingErrorMessage(e, "OptoCare could not resend the report email."));
     } finally {
       setSending(null);
     }
