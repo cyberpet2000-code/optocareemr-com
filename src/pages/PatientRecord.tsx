@@ -50,7 +50,7 @@ import { HMOVerificationCard, type HmoVerifStatus } from "@/components/HMOVerifi
 import { PatientWhatsAppMessages } from "@/components/PatientWhatsAppMessages";
 import { ClinicalAiAssistant } from "@/components/ClinicalAiAssistant";
 import { ClinicalVisitInsights } from "@/components/ClinicalVisitInsights";
-import { enqueueOfflineOperation, cachePatientOffline, cacheVisitsOffline, cacheVisitOffline, cacheStaffProfilesOffline, getStaffProfilesOffline } from "@/lib/offlineEngine";
+import { enqueueOfflineOperation, cachePatientOffline, cacheVisitsOffline, cacheVisitOffline, cacheStaffProfilesOffline, getStaffProfilesOffline, cacheScopedPatientOffline, cacheScopedVisitsOffline, cacheScopedVisitOffline, getScopedPatientOffline, getScopedVisitsOffline } from "@/lib/offlineEngine";
 import { secureOfflineGet } from "@/lib/secureOfflineStore";
 import {
   MoreVertical,
@@ -318,10 +318,13 @@ const canViewFinancials =
 
     (async () => {
       try {
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
-        const cachedPatient = await secureOfflineGet<any>("patient-record:" + cid + ":" + patientId);
-        const cachedVisits = await secureOfflineGet<any[]>("patient-visits:" + cid + ":" + patientId) ?? [];
-        if (cachedPatient) {
+      const cacheScope = isReceptionist ? "reception" : "clinical";
+      const cachedPatient = await getScopedPatientOffline(cid, patientId, cacheScope);
+      const cachedVisits = await getScopedVisitsOffline(cid, patientId, cacheScope) ?? [];
+
+      // Cached clinical/reception data is rendered first. The scoped keys are
+      // deliberately versioned so an old ambiguous cache entry is never used.
+      if (cachedPatient && (typeof navigator !== "undefined" && !navigator.onLine)) {
           setPatient(cachedPatient);
           setVisits(cachedVisits);
 
@@ -467,8 +470,13 @@ const canViewFinancials =
   }
 
       if (visRes.data) {
+  const cacheScope = isReceptionist ? "reception" : "clinical";
+  const safePatientCache = { ...patRes.data, clinic_name: clinicRes.data?.name || "", hmo_name: hmoRes.data?.find((h: any) => h.id === patRes.data.active_hmo_id)?.name || "" };
+  await cacheScopedVisitsOffline(cid, patientId, visRes.data, cacheScope);
+  await cacheScopedPatientOffline(cid, safePatientCache, cacheScope);
+  // Keep the legacy cache writes for non-clinical list compatibility, but never use them for Patient Record reads.
   cacheVisitsOffline(cid, patientId, visRes.data);
-  cachePatientOffline(cid, { ...patRes.data, clinic_name: clinicRes.data?.name || "", hmo_name: hmoRes.data?.find((h: any) => h.id === patRes.data.active_hmo_id)?.name || "" });
+  cachePatientOffline(cid, safePatientCache);
   console.log("VISITS FROM DB", visRes.data);
   setVisits(visRes.data);
       }
@@ -1204,8 +1212,9 @@ if (typeof navigator !== "undefined" && !navigator.onLine) {
     entityId: visitId,
     payload: visitPayload,
   });
-  cacheVisitOffline(cid, patient.id, localVisit);
-  const currentVisits = await secureOfflineGet<any[]>("patient-visits:" + cid + ":" + patient.id) ?? visits;
+  const cacheScope = isReceptionist ? "reception" : "clinical";
+  await cacheScopedVisitOffline(cid, patient.id, localVisit, cacheScope);
+  const currentVisits = await getScopedVisitsOffline(cid, patient.id, cacheScope) ?? visits;
   setVisits([localVisit, ...currentVisits.filter(v => v.id !== localVisit.id)]);
   setSaving(false);
   savingVisitRef.current = false;
