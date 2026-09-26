@@ -147,7 +147,7 @@ export default function DailyFrontDeskReport() {
       const [patientsRes, claimsRes, itemsRes, visitsRes, followupsRes, financeRes, expensesRes, clinicRes] = await Promise.all([
         db.rpc("get_daily_front_desk_report_data", { p_clinic_id: effectiveClinicId, p_report_date: reportDate }),
         db.from("hmo_claims").select("id,patient_id,billing_id,service_cost,approved_amount,status,notes,hmo_request_sent,hmo_request_sent_at,hmo_request_status,hmo_request_response_at,hmo_request_remarks,claim_sent,claim_sent_at,claim_response_status,claim_response_at,claim_response_remarks").eq("clinic_id", effectiveClinicId).order("created_at", { ascending: false }),
-        db.from("daily_front_desk_report_items").select("*").eq("report_id", reportId).order("created_at", { ascending: true }),
+        db.from("daily_front_desk_report_items").select("id,report_id,patient_id,visit_id,patient_name,patient_type,hmo_name,claim_sent,claim_response,remarks,created_at").eq("report_id", reportId).order("created_at", { ascending: true }),
         db.from("visits").select("id,patient_id,medication,medication_dispensed,sub_od_sphere,sub_od_cyl,sub_od_axis,sub_os_sphere,sub_os_cyl,sub_os_axis,sub_reading_add,lens_type").eq("clinic_id", effectiveClinicId).gte("created_at", dayStart).lt("created_at", nextStart),
         db.from("feedback_followups").select("id,patient_id,visit_id,status,reason,notes,created_at,completed_at").eq("clinic_id", effectiveClinicId).order("created_at", { ascending: false }).limit(500),
         db.rpc("get_daily_front_desk_financials", { p_clinic_id: effectiveClinicId, p_report_date: reportDate }),
