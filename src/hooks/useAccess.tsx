@@ -391,7 +391,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
           withAccessTimeout(
             apiClient
               .from("profiles")
-              .select("*")
+              .select("id,role,is_super_admin")
               .eq("id", nextUser.id)
               .maybeSingle(),
             "profiles",
