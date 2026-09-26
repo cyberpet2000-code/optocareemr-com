@@ -1112,17 +1112,6 @@ completedLoadKeyRef.current = loadKey;
   }), [authLoading, isAuthenticated, isAuthReady, isOfflineSession, user]);
 
 
-    ? (activeClinicId || accessState.resolvedClinicId || null)
-    : accessState.resolvedClinicId;
-
-  const authValue = useMemo(() => ({
-    user,
-    authLoading,
-    isOfflineSession,
-    isAuthenticated,
-    isAuthReady,
-  }), [authLoading, isAuthenticated, isAuthReady, isOfflineSession, user]);
-
   const clinicValue = useMemo(() => ({
     profile: accessState.profile,
     profileError: accessState.profileError,
