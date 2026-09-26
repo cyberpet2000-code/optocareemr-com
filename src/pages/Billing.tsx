@@ -14,6 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useAccess } from "@/hooks/useAccess";
 import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 import { useOffline } from "@/hooks/useOffline";
+import { diag } from "@/lib/diag";
 import { enqueueOfflineOperation } from "@/lib/offlineEngine";
 import { getUserFacingErrorMessage } from "@/lib/diag/connectionDiagnosis";
 import { confirmDestructiveAction } from "@/lib/safeDelete";
@@ -210,6 +211,7 @@ export default function Billing() {
 
   const loadData = useCallback(async () => {
     if (!cid) { setBills([]); setPatients([]); setLoading(false); return; }
+    const endBillingPerf = diag.time("perf", "billing-load", { clinicId: cid });
     const billsKey = `bills:${cid}`;
     const patientsKey = `billing-patients:${cid}`;
     const hmosKey = `billing-hmos:${cid}`;
