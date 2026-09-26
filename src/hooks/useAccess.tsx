@@ -619,16 +619,26 @@ console.debug("[access:stage1_complete]", {
 
         let backendResolvedClinicId = (resolvedRow as any)?.resolved_clinic_id ?? null;
 
-        // If the active-clinic view is unavailable or times out, fall back to
-        // the clinic membership data already loaded above. This prevents the
-        // entire app shell from remaining on "Loading Clinic..." indefinitely.
-        if (!backendResolvedClinicId && membershipRows.length === 1) {
-          backendResolvedClinicId = membershipRows[0].clinic_id;
-          console.warn("[access:resolve_clinic_fallback]", {
-            user_id: nextUser.id,
-            clinic_id: backendResolvedClinicId,
-            reason: resolvedError?.message || "no resolved clinic",
-          });
+        // Membership rows are already read through tenant-scoped RLS policies.
+        // Use them as the authoritative client-side fallback if the
+        // security-invoker active-clinic view is unavailable or returns no row.
+        // Prefer the explicitly selected clinic when it is one of the user's
+        // verified memberships; otherwise use the first verified membership.
+        if (!backendResolvedClinicId && membershipRows.length > 0) {
+          const preferredMembership =
+            (overrideClinicId && membershipRows.find((row) => row.clinic_id === overrideClinicId)) ||
+            membershipRows[0];
+
+          backendResolvedClinicId = preferredMembership?.clinic_id ?? null;
+
+          if (backendResolvedClinicId) {
+            console.warn("[access:resolve_clinic_membership_fallback]", {
+              user_id: nextUser.id,
+              clinic_id: backendResolvedClinicId,
+              membership_count: membershipRows.length,
+              reason: resolvedError?.message || "active clinic view returned no clinic",
+            });
+          }
         }
 
         nextAccessState.resolvedClinicId = backendResolvedClinicId;
