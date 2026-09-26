@@ -134,8 +134,8 @@ export default function Outreach() {
     if (!effectiveClinicId || !canUse) return;
     setLoading(true);
     const [campaignRes, leadRes] = await Promise.all([
-      apiClient.from("outreach_campaigns").select("*").eq("clinic_id", effectiveClinicId).order("created_at", { ascending: false }),
-      apiClient.from("outreach_leads").select("*").eq("clinic_id", effectiveClinicId).order("created_at", { ascending: false }).limit(200),
+      apiClient.from("outreach_campaigns").select("id,name,campaign_date,message_template,status,created_at").eq("clinic_id", effectiveClinicId).order("created_at", { ascending: false }),
+      apiClient.from("outreach_leads").select("id,full_name,phone,normalized_phone,status,campaign_id,next_follow_up_at,notes,patient_id,converted_at").eq("clinic_id", effectiveClinicId).order("created_at", { ascending: false }).limit(200),
     ]);
     const rows = (campaignRes.data || []) as Campaign[];
     setCampaigns(rows);
