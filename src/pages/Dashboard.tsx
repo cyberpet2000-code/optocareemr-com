@@ -448,12 +448,12 @@ setFeedbackFollowups(feedbackFollowupData ?? []);
       queryKeys.push("patients");
 
       queries.push(
-        apiClient.from("visits").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", `${today}T00:00:00`)
+        apiClient.from("visits").select("id", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", `${today}T00:00:00`)
       );
       queryKeys.push("visits");
 
       queries.push(
-        apiClient.from("appointments").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"])
+        apiClient.from("appointments").select("id", { count: "exact", head: true }).eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"])
       );
       queryKeys.push("appointments");
 
