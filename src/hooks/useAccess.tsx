@@ -1110,3 +1110,108 @@ completedLoadKeyRef.current = loadKey;
     isAuthenticated,
     isAuthReady,
   }), [authLoading, isAuthenticated, isAuthReady, isOfflineSession, user]);
+
+
+    ? (activeClinicId || accessState.resolvedClinicId || null)
+    : accessState.resolvedClinicId;
+
+  const authValue = useMemo(() => ({
+    user,
+    authLoading,
+    isOfflineSession,
+    isAuthenticated,
+    isAuthReady,
+  }), [authLoading, isAuthenticated, isAuthReady, isOfflineSession, user]);
+
+  const clinicValue = useMemo(() => ({
+    profile: accessState.profile,
+    profileError: accessState.profileError,
+    clinic: accessState.clinic,
+    memberships: accessState.memberships,
+    profileLoading:
+  isAuthenticated &&
+  (!accessState.accessReady || !accessState.profile),
+
+clinicLoading:
+  isAuthenticated &&
+  (
+    !accessState.accessReady ||
+    (
+      !!effectiveClinicId &&
+      !accessState.clinic &&
+      !accessState.clinicResolutionFailed
+    )
+  ),
+
+membershipLoading:
+  isAuthenticated &&
+  !accessState.accessReady,
+    accessReady: accessState.accessReady,
+    activeClinicId,
+    effectiveClinicId,
+    resolvedClinicId: accessState.resolvedClinicId,
+    clinicResolutionFailed: accessState.clinicResolutionFailed,
+  }), [accessState.accessReady, accessState.clinic, accessState.clinicResolutionFailed, accessState.memberships, accessState.profile, accessState.profileError, accessState.resolvedClinicId, activeClinicId, effectiveClinicId, isAuthenticated]);
+
+  const roleValue = useMemo(() => ({
+    roles: accessState.roles,
+    role: accessState.role,
+    roleLoading: !accessState.accessReady && isAuthenticated,
+    roleMissing,
+  }), [accessState.accessReady, accessState.role, accessState.roles, isAuthenticated, roleMissing]);
+
+  const actionsValue = useMemo(() => ({
+    switchClinic,
+    reload,
+    signOut,
+  }), [reload, signOut, switchClinic]);
+
+  const value = useMemo(() => ({
+    ...authValue,
+    ...clinicValue,
+    ...roleValue,
+    ...actionsValue,
+  }), [actionsValue, authValue, clinicValue, roleValue]);
+
+  return (
+    <AccessAuthContext.Provider value={authValue}>
+      <AccessClinicContext.Provider value={clinicValue}>
+        <AccessRoleContext.Provider value={roleValue}>
+          <AccessActionsContext.Provider value={actionsValue}>
+            <AccessContext.Provider value={value}>{children}</AccessContext.Provider>
+          </AccessActionsContext.Provider>
+        </AccessRoleContext.Provider>
+      </AccessClinicContext.Provider>
+    </AccessAuthContext.Provider>
+  );
+}
+
+export function useAccess() {
+  const ctx = useContext(AccessContext);
+  if (!ctx) throw new Error("useAccess must be used within AccessProvider");
+  return ctx;
+}
+
+export function useAccessAuth() {
+  const ctx = useContext(AccessAuthContext);
+  if (!ctx) throw new Error("useAccessAuth must be used within AccessProvider");
+  return ctx;
+}
+
+export function useAccessClinic() {
+  const ctx = useContext(AccessClinicContext);
+  if (!ctx) throw new Error("useAccessClinic must be used within AccessProvider");
+  return ctx;
+}
+
+export function useAccessRole() {
+  const ctx = useContext(AccessRoleContext);
+  if (!ctx) throw new Error("useAccessRole must be used within AccessProvider");
+  return ctx;
+}
+
+export function useAccessActions() {
+  const ctx = useContext(AccessActionsContext);
+  if (!ctx) throw new Error("useAccessActions must be used within AccessProvider");
+  return ctx;
+}
