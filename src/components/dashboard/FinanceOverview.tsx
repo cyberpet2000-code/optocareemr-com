@@ -83,7 +83,7 @@ export default function FinanceOverview() {
         ? apiClient.from("payments").select("amount,created_at").eq("clinic_id", effectiveClinicId).gte("created_at", previousMonthStart).lt("created_at", som)
         : apiClient.from("billing").select("amount_paid,visit:visits!inner(created_at)").eq("clinic_id", effectiveClinicId).gte("visit.created_at", previousMonthStart).lt("visit.created_at", som);
 
-      const [billingMonth, billingToday, billingPreviousMonth, salesMonth, salesToday, salesPreviousMonth, expMonth, expToday, patientsMonth, inv, visitsMonth] = await Promise.all([
+      const [billingMonth, billingToday, billingPreviousMonth, salesMonth, salesToday, salesPreviousMonth, expMonth, expToday, patientsMonth, patientsMonthHmo, patientsMonthPrivate, inv, visitsMonth] = await Promise.all([
         billingMonthQuery,
         billingTodayQuery,
         billingPreviousMonthQuery,
