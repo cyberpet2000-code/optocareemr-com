@@ -41,7 +41,7 @@ export default function SuperAdminSystemHealth() {
       setError(err?.message || "Failed to load health");
       setHealth({ db: "error", storage: "not checked", auth: "error", lastChecked: new Date().toISOString() });
     } finally {
-      end();
+      end({ dbLatency: health?.dbLatency });
       setLoading(false);
     }
   };
