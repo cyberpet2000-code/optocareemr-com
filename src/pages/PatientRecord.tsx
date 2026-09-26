@@ -1577,7 +1577,7 @@ hmo_relationship:
     ? editForm.hmo_relationship
     : null,
     } as any).eq("clinic_id", cid).eq("id", patient.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(await getUserFacingErrorMessage(error, "Unable to update patient information.")); return; }
     toast.success("Patient info updated");
     setPatient({ ...patient, ...editForm } as PatientData);
     setEditing(false);
