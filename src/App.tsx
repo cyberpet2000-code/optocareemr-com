@@ -247,7 +247,10 @@ export function AppRoutes() {
   location.pathname.startsWith("/feedback/") ||
   ["/login", "/reset-password", "/accept-invite", "/signup", "/no-access"].includes(location.pathname);
 
-  if (!isAuthReady) return <FullScreenLoader />;
+  // Public routes must never be blocked by auth/access hydration.
+  // Auth can finish in the background; otherwise a transient Supabase auth delay
+  // can make the Login page unreachable and present as a blank screen.
+  if (!isPublicRoute && !isAuthReady) return <FullScreenLoader />;
 
   if (user && (location.pathname === "/login" || location.pathname === "/signup")) {
     return <LandingRedirect />;
