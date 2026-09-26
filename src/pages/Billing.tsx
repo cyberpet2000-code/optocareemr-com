@@ -15,6 +15,7 @@ import { useAccess } from "@/hooks/useAccess";
 import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 import { useOffline } from "@/hooks/useOffline";
 import { enqueueOfflineOperation } from "@/lib/offlineEngine";
+import { getUserFacingErrorMessage } from "@/lib/diag/connectionDiagnosis";
 import { confirmDestructiveAction } from "@/lib/safeDelete";
 import WalkInSale from "@/components/billing/WalkInSale";
 const PAYMENT_METHODS = ["Cash", "Card", "Transfer", "HMO"];
