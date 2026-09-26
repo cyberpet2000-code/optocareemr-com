@@ -70,18 +70,22 @@ export default function Appointments() {
       setLoading(false);
       return;
     }
-    setLoading(true);
     setError(null);
 
     const cacheKey = `appointments:${cid}`;
-    const loadFromCache = async () => {
-      const cached = await secureOfflineGet<Appointment[]>(cacheKey);
-      if (cached) setAppointments(cached.filter(a => a.appointment_date >= filterDateStr));
+    // Stale-while-revalidate: show the encrypted local schedule immediately,
+    // then refresh it in the background. This applies equally to phones,
+    // tablets, laptops and desktop browsers.
+    const cached = await secureOfflineGet<Appointment[]>(cacheKey);
+    if (cached?.length) {
+      setAppointments(cached.filter(a => a.appointment_date >= filterDateStr));
       setLoading(false);
-    };
+    } else {
+      setLoading(true);
+    }
 
     if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
-      await loadFromCache();
+      setLoading(false);
       return;
     }
 
