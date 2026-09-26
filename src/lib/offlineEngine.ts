@@ -174,6 +174,60 @@ export async function cachePatientsOffline(clinicId: string, patients: any[]) {
   await secureOfflineSave(`patients:${clinicId}`, patients);
 }
 
+export type PatientCacheScope = "clinical" | "reception";
+
+export function scopedPatientCacheKey(clinicId: string, patientId: string, scope: PatientCacheScope) {
+  return `patient-record:v2:${scope}:${clinicId}:${patientId}`;
+}
+
+export function scopedVisitsCacheKey(clinicId: string, patientId: string, scope: PatientCacheScope) {
+  return `patient-visits:v2:${scope}:${clinicId}:${patientId}`;
+}
+
+export async function cacheScopedPatientOffline(
+  clinicId: string,
+  patient: any,
+  scope: PatientCacheScope,
+) {
+  await secureOfflineSave(scopedPatientCacheKey(clinicId, patient.id, scope), patient);
+}
+
+export async function getScopedPatientOffline(
+  clinicId: string,
+  patientId: string,
+  scope: PatientCacheScope,
+) {
+  return secureOfflineGet<any>(scopedPatientCacheKey(clinicId, patientId, scope));
+}
+
+export async function cacheScopedVisitsOffline(
+  clinicId: string,
+  patientId: string,
+  visits: any[],
+  scope: PatientCacheScope,
+) {
+  await secureOfflineSave(scopedVisitsCacheKey(clinicId, patientId, scope), visits);
+}
+
+export async function getScopedVisitsOffline(
+  clinicId: string,
+  patientId: string,
+  scope: PatientCacheScope,
+) {
+  return secureOfflineGet<any[]>(scopedVisitsCacheKey(clinicId, patientId, scope));
+}
+
+export async function cacheScopedVisitOffline(
+  clinicId: string,
+  patientId: string,
+  visit: any,
+  scope: PatientCacheScope,
+) {
+  const key = scopedVisitsCacheKey(clinicId, patientId, scope);
+  const rows = await secureOfflineGet<any[]>(key) ?? [];
+  await secureOfflineSave(key, [visit, ...rows.filter((row) => row.id !== visit.id)]);
+}
+
 export async function cachePatientOffline(clinicId: string, patient: any) {
   await secureOfflineSave(`patient-record:${clinicId}:${patient.id}`, patient);
   const key = `patients:${clinicId}:all`;
