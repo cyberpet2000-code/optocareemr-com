@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { getUserFacingErrorMessage } from "@/lib/diag/connectionDiagnosis";
 
 interface Movement {
   id: string; clinic_id: string; inventory_id: string | null;
