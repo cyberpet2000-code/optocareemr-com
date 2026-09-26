@@ -12,7 +12,6 @@ import { FileText, Plus, X, Printer, Trash2, ShoppingBag, Check, ChevronsUpDown,
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useAccess } from "@/hooks/useAccess";
-import { secureOfflineSave } from "@/lib/secureOfflineStore";
 import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 import { useOffline } from "@/hooks/useOffline";
 import { enqueueOfflineOperation } from "@/lib/offlineEngine";
@@ -185,6 +184,7 @@ export default function Billing() {
   });
   const [items, setItems] = useState<BillItem[]>([]);
   const [patientSearch, setPatientSearch] = useState("");
+  const [patientSearchLoading, setPatientSearchLoading] = useState(false);
   const [selectedLookupPatient, setSelectedLookupPatient] =
     useState<Patient | null>(null);
 
@@ -238,10 +238,9 @@ export default function Billing() {
           .order("created_at", { ascending: false })
           .limit(100),
 
-        apiClient.from("patients")
-          .select("id, full_name, payment_type, active_hmo_id, family_id")
-          .eq("clinic_id", cid)
-          .order("full_name"),
+        // Patient selection is searched on demand below. Never preload the
+        // entire clinic population into Billing.
+        Promise.resolve({ data: [] as Patient[], error: null }),
 
         apiClient.from("hmos")
           .select("id, name")
@@ -509,16 +508,47 @@ setEditingBillingId(selectedBill.id);
     loadPatientBilling(patient, visitId);
   }, [cid, patients, searchParams]);
 
-  const filteredPatients =
-    patientSearch.trim() === ""
-      ? []
-      : patients.filter((p) =>
-          p.full_name
-            .toLowerCase()
-            .includes(
-              patientSearch.toLowerCase()
-            )
-        );
+  useEffect(() => {
+    if (!cid || patientContext) return;
+    let cancelled = false;
+    const query = patientSearch.trim();
+    if (!query) {
+      setPatients([]);
+      setPatientSearchLoading(false);
+      return;
+    }
+
+    const timer = window.setTimeout(async () => {
+      setPatientSearchLoading(true);
+      try {
+        const { data, error } = await apiClient
+          .from("patients")
+          .select("id, full_name, payment_type, active_hmo_id, family_id")
+          .eq("clinic_id", cid)
+          .ilike("full_name", `%${query.replace(/[%_]/g, "")}%`)
+          .order("full_name")
+          .limit(25);
+
+        if (!cancelled) {
+          if (error) {
+            toast.error("Unable to search patients right now.");
+            setPatients([]);
+          } else {
+            setPatients((data || []) as Patient[]);
+          }
+        }
+      } finally {
+        if (!cancelled) setPatientSearchLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [cid, patientContext, patientSearch]);
+
+  const filteredPatients = patients;
 
   const lookupTotal =
     lookupBills.reduce(
@@ -1142,11 +1172,13 @@ if (error) {
           }
         />
 
-        {filteredPatients.length > 0 && (
+        {patientSearchLoading && (
+          <div className="mt-2 text-xs text-muted-foreground">Searching patients…</div>
+        )}
+
+        {!patientSearchLoading && filteredPatients.length > 0 && (
           <div className="mt-2 border rounded-xl divide-y">
-            {filteredPatients
-              .slice(0, 8)
-              .map((p) => (
+            {filteredPatients.map((p) => (
                 <button
                   key={p.id}
                   type="button"
