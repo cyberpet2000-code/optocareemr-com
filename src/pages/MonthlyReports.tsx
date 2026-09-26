@@ -27,7 +27,7 @@ export default function MonthlyReports() {
   const load = useCallback(async () => {
     if (!effectiveClinicId) return;
     setLoading(true);
-    const { data, error } = await apiClient.from("monthly_reports").select("*")
+    const { data, error } = await apiClient.from("monthly_reports").select("id,clinic_id,year,month,status,storage_path,file_size_bytes,error_message,created_at,payload")
       .eq("clinic_id", effectiveClinicId).order("year", { ascending: false }).order("month", { ascending: false }).limit(24);
     if (error) toast.error(await getUserFacingErrorMessage(error, "OptoCare could not complete this request. Please try again."));
     setRows((data as any) || []);
