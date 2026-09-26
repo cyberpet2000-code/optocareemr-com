@@ -71,7 +71,7 @@ export default function Expenses() {
     if (from) q = q.gte("expense_date", from);
     if (to) q = q.lte("expense_date", to);
     const { data, error } = await q;
-    if (error) toast.error(error.message);
+    if (error) toast.error(await getUserFacingErrorMessage(error, "OptoCare could not complete this request. Please try again."));
     setRows((data as any) || []);
     setLoading(false);
   }, [effectiveClinicId, category, from, to]);
@@ -148,7 +148,7 @@ export default function Expenses() {
       setDialogOpen(false);
       await load();
     } catch (e: any) {
-      toast.error(e.message || "Failed to save");
+      toast.error(await getUserFacingErrorMessage(e, "OptoCare could not save the expense."));
     } finally {
       setSaving(false);
     }
