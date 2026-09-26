@@ -56,6 +56,31 @@ const statuses = [
   ["lost", "Lost"],
 ];
 
+
+const OUTREACH_PATIENT_PAGE_SIZE = 500;
+
+type OutreachPatient = { id: string; full_name: string | null; phone: string | null };
+
+async function forEachClinicPatientPage(clinicId: string, handler: (rows: OutreachPatient[]) => Promise<void> | void) {
+  let offset = 0;
+  for (;;) {
+    const { data, error } = await apiClient
+      .from("patients")
+      .select("id,full_name,phone")
+      .eq("clinic_id", clinicId)
+      .not("phone", "is", null)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(offset, offset + OUTREACH_PATIENT_PAGE_SIZE - 1);
+    if (error) throw error;
+    const rows = (data || []) as OutreachPatient[];
+    if (!rows.length) break;
+    await handler(rows);
+    if (rows.length < OUTREACH_PATIENT_PAGE_SIZE) break;
+    offset += OUTREACH_PATIENT_PAGE_SIZE;
+  }
+}
+
 function interpolate(template: string, recipient: Recipient, clinicName: string, campaignDate?: string | null, clinicAddress = "", clinicWhatsApp = "", clinicEmail = "", clinicOpeningHours = "") {
   const formattedDate = campaignDate
     ? new Date(campaignDate + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })
@@ -276,16 +301,24 @@ export default function Outreach() {
     try {
       let patientCount = 0;
       const patientPhones = new Set<string>();
+      const external = parseExternalContacts();
+      const externalNumbers = new Set(external.parsed.map((x) => x.normalized_phone));
+
       if (audience === "patients" || audience === "both") {
-        const { data } = await apiClient.from("patients").select("id,full_name,phone").eq("clinic_id", effectiveClinicId).not("phone", "is", null).limit(5000);
-        for (const p of data || []) {
-          const normalized = normalizeWhatsAppNumber(p.phone);
-          if (normalized) patientPhones.add(normalized);
-        }
+        await forEachClinicPatientPage(effectiveClinicId, async (rows) => {
+          for (const p of rows) {
+            const normalized = normalizeWhatsAppNumber(p.phone);
+            if (normalized) {
+              patientPhones.add(normalized);
+              if (externalNumbers.has(normalized)) {
+                // Count is finalized below against unique external numbers.
+              }
+            }
+          }
+        });
         patientCount = patientPhones.size;
       }
 
-      const external = parseExternalContacts();
       let duplicateCount = 0;
       let optedOutCount = 0;
       let existingContacts: any[] = [];
@@ -299,9 +332,14 @@ export default function Outreach() {
             .in("normalized_phone", numbers);
           existingContacts = existing || [];
           const existingMap = new Map(existingContacts.map((x: any) => [x.normalized_phone, x]));
+          const countedDuplicates = new Set<string>();
           for (const x of external.parsed) {
-            if (patientPhones.has(x.normalized_phone)) duplicateCount++;
-            else if (existingMap.get(x.normalized_phone)?.opted_out) optedOutCount++;
+            if (patientPhones.has(x.normalized_phone) && !countedDuplicates.has(x.normalized_phone)) {
+              duplicateCount++;
+              countedDuplicates.add(x.normalized_phone);
+            } else if (existingMap.get(x.normalized_phone)?.opted_out) {
+              optedOutCount++;
+            }
           }
         }
       }
@@ -395,16 +433,25 @@ export default function Outreach() {
       if (error || !campaign) throw error || new Error("Campaign could not be created");
 
       const rows: any[] = [];
+      const patientPhones = new Set<string>();
       if (audience === "patients" || audience === "both") {
-        const { data: patients } = await apiClient.from("patients").select("id,full_name,phone").eq("clinic_id", effectiveClinicId).not("phone", "is", null).order("created_at", { ascending: false }).limit(5000);
-        for (const p of patients || []) {
-          const normalized = normalizeWhatsAppNumber(p.phone);
-          if (normalized) rows.push({ campaign_id: campaign.id, patient_id: p.id, full_name: p.full_name, phone: p.phone, normalized_phone: normalized, status: "ready" });
-        }
+        await forEachClinicPatientPage(effectiveClinicId, async (patients) => {
+          const pageRows: any[] = [];
+          for (const p of patients) {
+            const normalized = normalizeWhatsAppNumber(p.phone);
+            if (!normalized) continue;
+            patientPhones.add(normalized);
+            pageRows.push({ campaign_id: campaign.id, patient_id: p.id, full_name: p.full_name, phone: p.phone, normalized_phone: normalized, status: "ready" });
+          }
+          if (pageRows.length) {
+            await apiClient.from("outreach_recipients").insert(pageRows);
+          }
+        });
       }
       if (audience === "external" || audience === "both") {
-        const seen = new Set(rows.map(r => r.normalized_phone));
+        const seen = new Set(patientPhones);
         const { parsed } = parseExternalContacts();
+        const externalRows: any[] = [];
         for (const item of parsed) {
           if (seen.has(item.normalized_phone)) continue;
           const { data: existingContact } = await apiClient
@@ -418,12 +465,10 @@ export default function Outreach() {
           const { data: contact } = await apiClient.from("outreach_contacts").upsert({
             clinic_id: effectiveClinicId, full_name: item.full_name, phone: item.phone, normalized_phone: item.normalized_phone, source: "campaign",
           }, { onConflict: "clinic_id,normalized_phone" }).select("id").single();
-          rows.push({ campaign_id: campaign.id, contact_id: contact?.id || null, full_name: item.full_name, phone: item.phone, normalized_phone: item.normalized_phone, status: "ready" });
+          externalRows.push({ campaign_id: campaign.id, contact_id: contact?.id || null, full_name: item.full_name, phone: item.phone, normalized_phone: item.normalized_phone, status: "ready" });
         }
-      }
-      if (rows.length) {
-        for (let i = 0; i < rows.length; i += 500) {
-          await apiClient.from("outreach_recipients").insert(rows.slice(i, i + 500));
+        for (let i = 0; i < externalRows.length; i += 500) {
+          await apiClient.from("outreach_recipients").insert(externalRows.slice(i, i + 500));
         }
       }
       setShowCreate(false);
