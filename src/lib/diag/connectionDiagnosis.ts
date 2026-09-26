@@ -301,3 +301,15 @@ export async function diagnoseConnection(): Promise<ConnectionDiagnosis> {
   };
 }
 
+
+export async function getUserFacingErrorMessage(error: unknown, fallback: string): Promise<string> {
+  try {
+    const diagnosis = await diagnoseRequestFailure(error);
+    if (diagnosis.code !== "UNKNOWN" || diagnosis.message !== (error instanceof Error ? error.message : String(error ?? ""))) {
+      return diagnosis.message;
+    }
+  } catch {
+    // Preserve the feature-specific fallback if diagnosis itself cannot run.
+  }
+  return fallback;
+}
