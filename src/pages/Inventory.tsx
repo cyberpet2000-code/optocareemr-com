@@ -50,6 +50,8 @@ export default function Inventory() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [patients, setPatients] = useState<{ id: string; full_name: string }[]>([]);
   const [salePatientId, setSalePatientId] = useState("");
+  const [patientSearch, setPatientSearch] = useState("");
+  const [patientSearchLoading, setPatientSearchLoading] = useState(false);
   const [physicalCounts, setPhysicalCounts] = useState<Record<string, string>>({});
   const [countNotes, setCountNotes] = useState<Record<string, string>>({});
   const [countingId, setCountingId] = useState<string | null>(null);
@@ -62,7 +64,9 @@ export default function Inventory() {
       if (cached) setItems(cached);
       setLoading(false);
     };
-    if (typeof navigator !== "undefined" && !navigator.onLine) { loadFromCache(); return; }
+    const cached = await secureOfflineGet<InventoryItem[]>(cacheKey);
+    if (cached) { setItems(cached); setLoading(false); }
+    if (typeof navigator !== "undefined" && !navigator.onLine) { if (!cached) await loadFromCache(); return; }
     try {
       const { data, error } = await apiClient.from("inventory").select("*").eq("clinic_id", cid).order("name");
       if (error || !data) { loadFromCache(); return; }
@@ -82,17 +86,45 @@ export default function Inventory() {
       const cached = await secureOfflineGet<{ id: string; full_name: string }[]>(cacheKey);
       if (cached) setPatients(cached);
     };
+    const query = patientSearch.trim();
+    if (!query) {
+      void loadCachedPats();
+      return;
+    }
     if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
       void loadCachedPats();
       return;
     }
-    apiClient.from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").then(({ data, error }) => {
-      if (error || !data) { void loadCachedPats(); return; }
-      setPatients(data as any);
-      void secureOfflineSave(cacheKey, data);
-    }, loadCachedPats);
 
-  }, [cid, isOffline]);
+    let cancelled = false;
+    setPatientSearchLoading(true);
+    const timer = window.setTimeout(async () => {
+      try {
+        const { data, error } = await apiClient
+          .from("patients")
+          .select("id, full_name")
+          .eq("clinic_id", cid)
+          .ilike("full_name", `%${query.replace(/[%_]/g, "")}%`)
+          .order("full_name")
+          .limit(25);
+        if (!cancelled) {
+          if (error) {
+            await loadCachedPats();
+          } else {
+            setPatients((data || []) as any);
+          }
+        }
+      } finally {
+        if (!cancelled) setPatientSearchLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+
+  }, [cid, isOffline, patientSearch]);
 
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
@@ -455,7 +487,16 @@ export default function Inventory() {
                   <Label className="text-xs">Patient (optional)</Label>
                   <Select value={salePatientId} onValueChange={setSalePatientId}>
                     <SelectTrigger className="rounded-xl"><SelectValue placeholder="Walk-in" /></SelectTrigger>
-                    <SelectContent>{patients.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}</SelectContent>
+                    <SelectContent>
+                      <div className="p-2 sticky top-0 bg-popover z-10">
+                        <Input value={patientSearch} onChange={e => setPatientSearch(e.target.value)} placeholder="Search patient..." className="rounded-lg h-9" onKeyDown={e => e.stopPropagation()} />
+                      </div>
+                      {patientSearchLoading ? (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">Searching patients…</div>
+                      ) : patients.length === 0 ? (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">Type a patient name to search.</div>
+                      ) : patients.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}
+                    </SelectContent>
                   </Select>
                 </div>
                 {cart.length === 0 ? (
