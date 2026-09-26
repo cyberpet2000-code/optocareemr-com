@@ -101,6 +101,8 @@ export default function Outreach() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selected, setSelected] = useState<Campaign | null>(null);
   const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [recipientPage, setRecipientPage] = useState(0);
+  const OUTREACH_RECIPIENT_PAGE_SIZE = 500;
   const [leads, setLeads] = useState<Lead[]>([]);
   const [tab, setTab] = useState<"campaign" | "leads">("campaign");
   const [leadFilter, setLeadFilter] = useState<"all" | "appointments" | "converted">("all");
@@ -174,12 +176,32 @@ export default function Outreach() {
   useEffect(() => {
     if (!effectiveClinicId || !selected) return;
     let cancelled = false;
+    setRecipientPage(0);
     (async () => {
-      const { data } = await apiClient.from("outreach_recipients").select("id,full_name,phone,normalized_phone,status,patient_id,contact_id,lead_id,sent_at").eq("campaign_id", selected.id).order("created_at", { ascending: true }).limit(5000);
+      const { data } = await apiClient.from("outreach_recipients")
+        .select("id,full_name,phone,normalized_phone,status,patient_id,contact_id,lead_id,sent_at")
+        .eq("campaign_id", selected.id)
+        .order("created_at", { ascending: true })
+        .range(0, OUTREACH_RECIPIENT_PAGE_SIZE - 1);
       if (!cancelled) setRecipients((data || []) as Recipient[]);
     })();
     return () => { cancelled = true; };
   }, [effectiveClinicId, selected?.id]);
+
+  const loadNextRecipientPage = async () => {
+    if (!selected) return false;
+    const nextPage = recipientPage + 1;
+    const { data } = await apiClient.from("outreach_recipients")
+      .select("id,full_name,phone,normalized_phone,status,patient_id,contact_id,lead_id,sent_at")
+      .eq("campaign_id", selected.id)
+      .order("created_at", { ascending: true })
+      .range(nextPage * OUTREACH_RECIPIENT_PAGE_SIZE, (nextPage + 1) * OUTREACH_RECIPIENT_PAGE_SIZE - 1);
+    const rows = (data || []) as Recipient[];
+    if (!rows.length) return false;
+    setRecipients(prev => [...prev, ...rows]);
+    setRecipientPage(nextPage);
+    return true;
+  };
 
   useEffect(() => {
     if (!effectiveClinicId) return;
