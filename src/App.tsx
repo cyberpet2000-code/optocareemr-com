@@ -145,8 +145,16 @@ function ProtectedRouteGate({ children }: { children: React.ReactNode }) {
 }
 
 const LandingRedirect = memo(function LandingRedirect() {
-  const { clinic, effectiveClinicId, memberships } = useAccessClinic();
+  const { user, isAuthReady } = useAccessAuth();
+  const { clinic, effectiveClinicId, memberships, accessReady } = useAccessClinic();
   const { role } = useAccessRole();
+
+  // Never resolve the post-login destination from the initial empty access
+  // state. Membership/role hydration is asynchronous and an early redirect
+  // would incorrectly send valid clinic users to /no-access.
+  if (!isAuthReady || (user && !accessReady)) {
+    return <FullScreenLoader label="Loading your clinic access..." />;
+  }
 
   const target = useMemo(() => resolveDefaultRoute({
     role,
