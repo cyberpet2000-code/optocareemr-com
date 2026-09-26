@@ -792,7 +792,7 @@ setEditingBillingId(selectedBill.id);
           .eq("id", billingId);
 
         if (updateErr) {
-          toast.error("Failed to update bill: " + updateErr.message);
+          toast.error(await getUserFacingErrorMessage(updateErr, "Could not update the bill. Please try again."));
           setSaving(false);
           return;
         }
