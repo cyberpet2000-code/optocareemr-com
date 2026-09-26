@@ -66,7 +66,7 @@ export default function SystemHealth() {
       const [{ data, error }, { data: clinicRows }] = await Promise.all([
         (apiClient as any)
           .from("system_incidents")
-          .select("*")
+          .select("id,fingerprint,clinic_id,page_name,route,error_name,error_message,stack,source,severity,status,occurrence_count,first_seen,last_seen,context")
           .order("last_seen", { ascending: false })
           .limit(100),
         apiClient.from("clinics").select("id,name"),
