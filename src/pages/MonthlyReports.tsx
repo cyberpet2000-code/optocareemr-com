@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, RefreshCw, FileText, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { getUserFacingErrorMessage } from "@/lib/diag/connectionDiagnosis";
 
 interface Report {
   id: string; clinic_id: string; year: number; month: number;
