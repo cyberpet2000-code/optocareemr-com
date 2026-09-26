@@ -28,7 +28,7 @@ import { useOffline } from "@/hooks/useOffline";
 import PatientHistoryMeta from "@/components/patients/PatientHistoryMeta";
 import { buildBillingSummaryMap, buildVisitSummaryMap, getPaymentStatus, type PatientBillingSummary, type PatientVisitSummary } from "@/lib/patientHistory";
 import { normalizeWhatsAppNumber } from "@/lib/whatsapp";
-import { diagnoseRequestFailure, type DiagnosisCode } from "@/lib/diag/connectionDiagnosis";
+import { diagnoseRequestFailure, getUserFacingErrorMessage, type DiagnosisCode } from "@/lib/diag/connectionDiagnosis";
 
 interface PatientRow {
   id: string;
