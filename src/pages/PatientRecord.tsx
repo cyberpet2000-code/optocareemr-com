@@ -318,7 +318,7 @@ const canViewFinancials =
 
     (async () => {
       try {
-      const cacheScope = isReceptionist ? "reception" : "clinical";
+      const cacheScope: "reception" | "clinical" = isReceptionist ? "reception" : "clinical";
       const cachedPatient = await getScopedPatientOffline(cid, patientId, cacheScope);
       const cachedVisits = await getScopedVisitsOffline(cid, patientId, cacheScope) ?? [];
 
@@ -470,7 +470,7 @@ const canViewFinancials =
   }
 
       if (visRes.data) {
-  const recordCacheScope = isReceptionist ? "reception" : "clinical";
+  const recordCacheScope: "reception" | "clinical" = isReceptionist ? "reception" : "clinical";
   const safePatientCache = { ...patRes.data, clinic_name: clinicRes.data?.name || "", hmo_name: hmoRes.data?.find((h: any) => h.id === patRes.data.active_hmo_id)?.name || "" };
   await cacheScopedVisitsOffline(cid, patientId, visRes.data, recordCacheScope);
   await cacheScopedPatientOffline(cid, safePatientCache, recordCacheScope);
