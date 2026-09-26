@@ -415,7 +415,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
             )}
           </header>
 
-          <main className="flex-1 px-3 lg:px-6 py-4 lg:py-6 pb-24 lg:pb-6 animate-page">
+          <main className="flex-1 px-3 lg:px-6 py-4 lg:py-6 pb-24 md:pb-6 animate-page">
             <div className="max-w-7xl mx-auto">
               {children ?? <Outlet />}
             </div>
@@ -425,7 +425,7 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
             <span className="text-[8px]">Powered by OptoCare EMR</span>
           </footer>
 
-          <nav className="bottom-nav lg:hidden">
+          <nav className="bottom-nav md:hidden">
             <div className="flex items-center justify-around px-2 pb-safe pt-1">
               {mobilePrimary.slice(0, 5).map(item => {
                 const Icon = item.icon;
