@@ -68,7 +68,7 @@ export default function Dashboard() {
   const showInventoryAlerts = isAdmin || isDoctor || isSuperAdmin;
   
 
-  const { isOffline } = useOffline();
+  const { isOffline, networkQuality } = useOffline();
   const [offlineLastSync, setOfflineLastSync] = useState<string | null>(null);
 
   useEffect(() => {
@@ -436,6 +436,11 @@ setFeedbackFollowups(feedbackFollowupData ?? []);
       String(localToday.getDate()).padStart(2, "0"),
     ].join("-");
 
+    // Cached dashboard snapshots remain the primary source on slow/unstable
+    // connections. Defer non-essential diagnostic/enrichment traffic until the
+    // connection is healthy, avoiding a burst of parallel requests.
+    const deferNonEssential = networkQuality === "slow" || networkQuality === "unstable";
+
     try {
       // Build role-appropriate queries - only fetch data the user's role needs
        const queries: any[] = [];
@@ -576,42 +581,45 @@ setFeedbackFollowups(feedbackFollowupData ?? []);
         checkQueryFailure("get_dashboard_revenue", "previous month revenue", previousRevenueRes?.error);
       }
 
+      if (!deferNonEssential) {
       // Diagnostic checks for data consistency
-      const { count: patientsMissing } = await apiClient
-        .from("patients")
-        .select("*", { count: "exact", head: true })
-        .is("clinic_id", null);
-
-      const { count: visitsMissing } = await apiClient
-        .from("visits")
-        .select("*", { count: "exact", head: true })
-        .is("clinic_id", null);
-
-      const { count: appointmentsMissing } = await apiClient
-        .from("appointments")
-        .select("*", { count: "exact", head: true })
-        .is("clinic_id", null);
-
-      const { count: billingMissing } = await apiClient
-        .from("billing")
-        .select("*", { count: "exact", head: true })
-        .is("clinic_id", null);
-
-      if ((patientsMissing || 0) > 0) {
-        console.warn(`[DIAG] patients missing clinic_id: ${patientsMissing}`);
-      }
-
-      if ((visitsMissing || 0) > 0) {
-        console.warn(`[DIAG] visits missing clinic_id: ${visitsMissing}`);
-      }
-
-      if ((appointmentsMissing || 0) > 0) {
-        console.warn(`[DIAG] appointments missing clinic_id: ${appointmentsMissing}`);
-      }
-
-      if ((billingMissing || 0) > 0) {
-        console.warn(`[DIAG] billing missing clinic_id: ${billingMissing}`);
-      }
+            const { count: patientsMissing } = await apiClient
+              .from("patients")
+              .select("*", { count: "exact", head: true })
+              .is("clinic_id", null);
+      
+            const { count: visitsMissing } = await apiClient
+              .from("visits")
+              .select("*", { count: "exact", head: true })
+              .is("clinic_id", null);
+      
+            const { count: appointmentsMissing } = await apiClient
+              .from("appointments")
+              .select("*", { count: "exact", head: true })
+              .is("clinic_id", null);
+      
+            const { count: billingMissing } = await apiClient
+              .from("billing")
+              .select("*", { count: "exact", head: true })
+              .is("clinic_id", null);
+      
+            if ((patientsMissing || 0) > 0) {
+              console.warn(`[DIAG] patients missing clinic_id: ${patientsMissing}`);
+            }
+      
+            if ((visitsMissing || 0) > 0) {
+              console.warn(`[DIAG] visits missing clinic_id: ${visitsMissing}`);
+            }
+      
+            if ((appointmentsMissing || 0) > 0) {
+              console.warn(`[DIAG] appointments missing clinic_id: ${appointmentsMissing}`);
+            }
+      
+            if ((billingMissing || 0) > 0) {
+              console.warn(`[DIAG] billing missing clinic_id: ${billingMissing}`);
+            }
+      
+            }
 
       // Parse patient stats
       let patientStats = { patients_seen: 0, new_patients_seen: 0, returning_patients: 0 };
@@ -629,124 +637,128 @@ setFeedbackFollowups(feedbackFollowupData ?? []);
       }
 
        const recentPatientRows = (patientsRes?.data as any[]) ?? [];
-       const recentPatientIds = recentPatientRows.map((p) => p.id).filter(Boolean);
-       const [recentVisitsRes, recentBillsRes] = recentPatientIds.length > 0
-         ? await Promise.all([
-             apiClient.from("visits").select("patient_id, created_at").eq("clinic_id", cid).in("patient_id", recentPatientIds),
-             showBillingMetrics
-               ? apiClient.from("billing").select("patient_id, balance, amount_paid, status, payer_type").eq("clinic_id", cid).in("patient_id", recentPatientIds)
-               : Promise.resolve({ data: [] }),
-           ])
-         : [{ data: [] }, { data: [] }];
-        const recentHmoIds = [...new Set(recentPatientRows.map((p) => p.active_hmo_id).filter(Boolean))];
-        const { data: recentHmos } = recentHmoIds.length > 0
-          ? await apiClient.from("hmos").select("id, name").eq("clinic_id", cid).in("id", recentHmoIds)
-          : { data: [] };
-        const recentHmoMap = new Map((recentHmos || []).map((h: any) => [h.id, h.name]));
-       const paymentTypes = new Map(recentPatientRows.map((p) => [p.id, p.payment_type]));
-       const visitSummaryMap = buildVisitSummaryMap(recentVisitsRes.data || []);
-       const billingSummaryMap = buildBillingSummaryMap(recentBillsRes.data || [], paymentTypes);
-       const recentPatientsWithHistory = recentPatientRows.map((p) => ({
-         ...p,
-          hmo_name: p.active_hmo_id ? recentHmoMap.get(p.active_hmo_id) : undefined,
-         visitSummary: visitSummaryMap.get(p.id) || { visitCount: 0, lastVisit: null },
-          billingSummary: showBillingMetrics
-            ? billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type)
-            : getPaymentStatus([], p.payment_type),
-       }));
-
-       const snap: DashboardSnapshot = {
-        monthPatients: patientStats.patients_seen,
-        monthRegisteredPatients: resultMap.monthRegisteredPatients?.count ?? 0,
-        patientsSeen: patientStats.patients_seen,
-        newPatientsSeen: patientStats.new_patients_seen,
-        returningPatients: patientStats.returning_patients,
-        todayVisits: visitsRes?.count ?? 0,
-        todayAppointments: apptRes?.count ?? 0,
-        pendingBills: pendingBillsRes?.count ?? 0,
-        monthlyRevenue: Number(currentRevenueRes?.data ?? 0),
-        previousMonthRevenue: Number(previousRevenueRes?.data ?? 0),
-        lowStockCount: invRes?.count ?? 0,
-        drugAlerts: drugRes?.count ?? 0,
-         recentPatients: recentPatientsWithHistory,
-        upcomingAppts: (upcomingApptRes?.data as any[]) ?? [],
-      };
-
-      // Enrich today's schedule with patient and doctor names for a useful
-      // front-desk/clinical view instead of showing IDs or sparse rows.
-      const scheduleRows = snap.upcomingAppts;
-      const schedulePatientIds = [...new Set(scheduleRows.map((a: any) => a.patient_id).filter(Boolean))];
-      const scheduleDoctorIds = [...new Set(scheduleRows.map((a: any) => a.doctor_id).filter(Boolean))];
-
-      const [schedulePatientsRes, scheduleDoctorsRes] = await Promise.all([
-        schedulePatientIds.length > 0
-          ? apiClient.from("patients").select("id, full_name, patient_number, phone").eq("clinic_id", cid).in("id", schedulePatientIds)
-          : Promise.resolve({ data: [] }),
-        scheduleDoctorIds.length > 0
-          ? apiClient.from("profiles").select("id, full_name, is_super_admin").in("id", scheduleDoctorIds)
-          : Promise.resolve({ data: [] }),
-      ]);
-
-      const schedulePatientMap = new Map(
-        (schedulePatientsRes.data || []).map((p: any) => [p.id, p])
-      );
-      const scheduleDoctorMap = new Map(
-        (scheduleDoctorsRes.data || [])
-          .filter((d: any) => d.is_super_admin !== true)
-          .map((d: any) => [d.id, d.full_name || "Doctor"])
-      );
-
-      snap.upcomingAppts = scheduleRows.map((a: any) => ({
-        ...a,
-        patient_name: a.patient_id
-          ? (schedulePatientMap.get(a.patient_id)?.full_name || "Unknown patient")
-          : "Walk-in",
-        patient_number: a.patient_id
-          ? (schedulePatientMap.get(a.patient_id)?.patient_number || null)
-          : null,
-        patient_phone: a.patient_id
-          ? (schedulePatientMap.get(a.patient_id)?.phone || null)
-          : null,
-        doctor_name: a.doctor_id
-          ? (scheduleDoctorMap.get(a.doctor_id) || null)
-          : null,
-      }));
-
-      setMonthPatients(snap.monthPatients);
-      setPatientsSeen(snap.patientsSeen ?? 0);
-      setNewPatientsSeen(snap.newPatientsSeen ?? 0);
-      setReturningPatients(snap.returningPatients ?? 0);
-      setTodayVisits(snap.todayVisits);
-      setTodayAppointments(snap.todayAppointments);
-      setPendingBills(snap.pendingBills);
-      setMonthlyRevenue(snap.monthlyRevenue);
-      setPreviousMonthRevenue(snap.previousMonthRevenue);
-      setLowStockCount(snap.lowStockCount);
-      setDrugAlerts(snap.drugAlerts);
-      setRecentPatients(snap.recentPatients);
-      setUpcomingAppts(snap.upcomingAppts);
-      await secureOfflineSave(cacheKey, snap);
-
-      stopLoadingWatch("dashboard");
-      setLoading(false);
-    } catch (e) {
-      console.warn("[dashboard] load failed, using cache", e);
-      const cidFallback = effectiveClinicId;
-      const cacheKeyFallback = `dashboard:${cidFallback}`;
-      const snap = await secureOfflineGet<DashboardSnapshot>(cacheKeyFallback);
-      if (snap) {
-        setMonthPatients(snap.monthPatients ?? 0);
-        setPatientsSeen(snap.patientsSeen ?? 0);
-        setNewPatientsSeen(snap.newPatientsSeen ?? 0);
-        setReturningPatients(snap.returningPatients ?? 0);
-        setTodayVisits(snap.todayVisits ?? 0);
-        setTodayAppointments(snap.todayAppointments ?? 0);
-        setPendingBills(snap.pendingBills ?? 0);
-        setMonthlyRevenue(snap.monthlyRevenue ?? 0);
-        setPreviousMonthRevenue(snap.previousMonthRevenue ?? 0);
-        setLowStockCount(snap.lowStockCount ?? 0);
-        setDrugAlerts(snap.drugAlerts ?? 0);
-        setRecentPatients(snap.recentPatients ?? []);
+       let recentPatientsWithHistory = recentPatientRows.map((p) => ({ ...p, visitSummary: { visitCount: 0, lastVisit: null }, billingSummary: null, hmo_name: p.active_hmo_id ? "HMO" : null }));
+       if (!deferNonEssential) {
+              const recentPatientIds = recentPatientRows.map((p) => p.id).filter(Boolean);
+              const [recentVisitsRes, recentBillsRes] = recentPatientIds.length > 0
+                ? await Promise.all([
+                    apiClient.from("visits").select("patient_id, created_at").eq("clinic_id", cid).in("patient_id", recentPatientIds),
+                    showBillingMetrics
+                      ? apiClient.from("billing").select("patient_id, balance, amount_paid, status, payer_type").eq("clinic_id", cid).in("patient_id", recentPatientIds)
+                      : Promise.resolve({ data: [] }),
+                  ])
+                : [{ data: [] }, { data: [] }];
+               const recentHmoIds = [...new Set(recentPatientRows.map((p) => p.active_hmo_id).filter(Boolean))];
+               const { data: recentHmos } = recentHmoIds.length > 0
+                 ? await apiClient.from("hmos").select("id, name").eq("clinic_id", cid).in("id", recentHmoIds)
+                 : { data: [] };
+               const recentHmoMap = new Map((recentHmos || []).map((h: any) => [h.id, h.name]));
+              const paymentTypes = new Map(recentPatientRows.map((p) => [p.id, p.payment_type]));
+              const visitSummaryMap = buildVisitSummaryMap(recentVisitsRes.data || []);
+              const billingSummaryMap = buildBillingSummaryMap(recentBillsRes.data || [], paymentTypes);
+              const recentPatientsWithHistory = recentPatientRows.map((p) => ({
+                ...p,
+                 hmo_name: p.active_hmo_id ? recentHmoMap.get(p.active_hmo_id) : undefined,
+                visitSummary: visitSummaryMap.get(p.id) || { visitCount: 0, lastVisit: null },
+                 billingSummary: showBillingMetrics
+                   ? billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type)
+                   : getPaymentStatus([], p.payment_type),
+              }));
+       
+              const snap: DashboardSnapshot = {
+               monthPatients: patientStats.patients_seen,
+               monthRegisteredPatients: resultMap.monthRegisteredPatients?.count ?? 0,
+               patientsSeen: patientStats.patients_seen,
+               newPatientsSeen: patientStats.new_patients_seen,
+               returningPatients: patientStats.returning_patients,
+               todayVisits: visitsRes?.count ?? 0,
+               todayAppointments: apptRes?.count ?? 0,
+               pendingBills: pendingBillsRes?.count ?? 0,
+               monthlyRevenue: Number(currentRevenueRes?.data ?? 0),
+               previousMonthRevenue: Number(previousRevenueRes?.data ?? 0),
+               lowStockCount: invRes?.count ?? 0,
+               drugAlerts: drugRes?.count ?? 0,
+                recentPatients: recentPatientsWithHistory,
+               upcomingAppts: (upcomingApptRes?.data as any[]) ?? [],
+             };
+       
+             // Enrich today's schedule with patient and doctor names for a useful
+             // front-desk/clinical view instead of showing IDs or sparse rows.
+             const scheduleRows = snap.upcomingAppts;
+             const schedulePatientIds = [...new Set(scheduleRows.map((a: any) => a.patient_id).filter(Boolean))];
+             const scheduleDoctorIds = [...new Set(scheduleRows.map((a: any) => a.doctor_id).filter(Boolean))];
+       
+             const [schedulePatientsRes, scheduleDoctorsRes] = await Promise.all([
+               schedulePatientIds.length > 0
+                 ? apiClient.from("patients").select("id, full_name, patient_number, phone").eq("clinic_id", cid).in("id", schedulePatientIds)
+                 : Promise.resolve({ data: [] }),
+               scheduleDoctorIds.length > 0
+                 ? apiClient.from("profiles").select("id, full_name, is_super_admin").in("id", scheduleDoctorIds)
+                 : Promise.resolve({ data: [] }),
+             ]);
+       
+             const schedulePatientMap = new Map(
+               (schedulePatientsRes.data || []).map((p: any) => [p.id, p])
+             );
+             const scheduleDoctorMap = new Map(
+               (scheduleDoctorsRes.data || [])
+                 .filter((d: any) => d.is_super_admin !== true)
+                 .map((d: any) => [d.id, d.full_name || "Doctor"])
+             );
+       
+             snap.upcomingAppts = scheduleRows.map((a: any) => ({
+               ...a,
+               patient_name: a.patient_id
+                 ? (schedulePatientMap.get(a.patient_id)?.full_name || "Unknown patient")
+                 : "Walk-in",
+               patient_number: a.patient_id
+                 ? (schedulePatientMap.get(a.patient_id)?.patient_number || null)
+                 : null,
+               patient_phone: a.patient_id
+                 ? (schedulePatientMap.get(a.patient_id)?.phone || null)
+                 : null,
+               doctor_name: a.doctor_id
+                 ? (scheduleDoctorMap.get(a.doctor_id) || null)
+                 : null,
+             }));
+       
+             setMonthPatients(snap.monthPatients);
+             setPatientsSeen(snap.patientsSeen ?? 0);
+             setNewPatientsSeen(snap.newPatientsSeen ?? 0);
+             setReturningPatients(snap.returningPatients ?? 0);
+             setTodayVisits(snap.todayVisits);
+             setTodayAppointments(snap.todayAppointments);
+             setPendingBills(snap.pendingBills);
+             setMonthlyRevenue(snap.monthlyRevenue);
+             setPreviousMonthRevenue(snap.previousMonthRevenue);
+             setLowStockCount(snap.lowStockCount);
+             setDrugAlerts(snap.drugAlerts);
+             setRecentPatients(snap.recentPatients);
+             setUpcomingAppts(snap.upcomingAppts);
+             await secureOfflineSave(cacheKey, snap);
+       
+             stopLoadingWatch("dashboard");
+             setLoading(false);
+           } catch (e) {
+             console.warn("[dashboard] load failed, using cache", e);
+             const cidFallback = effectiveClinicId;
+             const cacheKeyFallback = `dashboard:${cidFallback}`;
+             const snap = await secureOfflineGet<DashboardSnapshot>(cacheKeyFallback);
+             if (snap) {
+               setMonthPatients(snap.monthPatients ?? 0);
+               setPatientsSeen(snap.patientsSeen ?? 0);
+               setNewPatientsSeen(snap.newPatientsSeen ?? 0);
+               setReturningPatients(snap.returningPatients ?? 0);
+               setTodayVisits(snap.todayVisits ?? 0);
+               setTodayAppointments(snap.todayAppointments ?? 0);
+               setPendingBills(snap.pendingBills ?? 0);
+               setMonthlyRevenue(snap.monthlyRevenue ?? 0);
+               setPreviousMonthRevenue(snap.previousMonthRevenue ?? 0);
+               setLowStockCount(snap.lowStockCount ?? 0);
+               setDrugAlerts(snap.drugAlerts ?? 0);
+        
+       }
+       setRecentPatients(snap.recentPatients ?? []);
         setUpcomingAppts(snap.upcomingAppts ?? []);
       }
       stopLoadingWatch("dashboard");
