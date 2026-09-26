@@ -119,8 +119,14 @@ export default function AppLayout({ children }: { children?: React.ReactNode }) 
       if (error && !cancelled) console.warn("Recall notification refresh failed:", error.message);
     };
     void refreshRecallNotifications();
-    const timer = window.setInterval(() => { void refreshRecallNotifications(); }, 15 * 60_000);
-    return () => { cancelled = true; window.clearInterval(timer); };
+    const schedule = () => {
+      if (document.visibilityState !== "visible") return;
+      void refreshRecallNotifications();
+    };
+    const timer = window.setInterval(schedule, 15 * 60_000);
+    const onVisible = () => { if (document.visibilityState === "visible") schedule(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { cancelled = true; window.clearInterval(timer); document.removeEventListener("visibilitychange", onVisible); };
   }, [effectiveClinicId, isSuperAdminWs, user?.id, isOffline]);
 
   useEffect(() => {
