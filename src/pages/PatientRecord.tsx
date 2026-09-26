@@ -470,10 +470,10 @@ const canViewFinancials =
   }
 
       if (visRes.data) {
-  const cacheScope = isReceptionist ? "reception" : "clinical";
+  const recordCacheScope = isReceptionist ? "reception" : "clinical";
   const safePatientCache = { ...patRes.data, clinic_name: clinicRes.data?.name || "", hmo_name: hmoRes.data?.find((h: any) => h.id === patRes.data.active_hmo_id)?.name || "" };
-  await cacheScopedVisitsOffline(cid, patientId, visRes.data, cacheScope);
-  await cacheScopedPatientOffline(cid, safePatientCache, cacheScope);
+  await cacheScopedVisitsOffline(cid, patientId, visRes.data, recordCacheScope);
+  await cacheScopedPatientOffline(cid, safePatientCache, recordCacheScope);
   // Keep the legacy cache writes for non-clinical list compatibility, but never use them for Patient Record reads.
   cacheVisitsOffline(cid, patientId, visRes.data);
   cachePatientOffline(cid, safePatientCache);
