@@ -50,7 +50,7 @@ import { HMOVerificationCard, type HmoVerifStatus } from "@/components/HMOVerifi
 import { PatientWhatsAppMessages } from "@/components/PatientWhatsAppMessages";
 import { ClinicalAiAssistant } from "@/components/ClinicalAiAssistant";
 import { ClinicalVisitInsights } from "@/components/ClinicalVisitInsights";
-import { enqueueOfflineOperation, cachePatientOffline, cacheVisitsOffline, cacheVisitOffline, cacheStaffProfilesOffline, getStaffProfilesOffline, cacheScopedPatientOffline, cacheScopedVisitsOffline, cacheScopedVisitOffline, getScopedPatientOffline, getScopedVisitsOffline } from "@/lib/offlineEngine";
+import { enqueueOfflineOperation, cacheStaffProfilesOffline, getStaffProfilesOffline, cacheScopedPatientOffline, cacheScopedVisitsOffline, cacheScopedVisitOffline, getScopedPatientOffline, getScopedVisitsOffline } from "@/lib/offlineEngine";
 import { secureOfflineGet } from "@/lib/secureOfflineStore";
 import {
   MoreVertical,
@@ -474,9 +474,6 @@ const canViewFinancials =
   const safePatientCache = { ...patRes.data, clinic_name: clinicRes.data?.name || "", hmo_name: hmoRes.data?.find((h: any) => h.id === patRes.data.active_hmo_id)?.name || "" };
   await cacheScopedVisitsOffline(cid, patientId, visRes.data, recordCacheScope);
   await cacheScopedPatientOffline(cid, safePatientCache, recordCacheScope);
-  // Keep the legacy cache writes for non-clinical list compatibility, but never use them for Patient Record reads.
-  cacheVisitsOffline(cid, patientId, visRes.data);
-  cachePatientOffline(cid, safePatientCache);
   console.log("VISITS FROM DB", visRes.data);
   setVisits(visRes.data);
       }
