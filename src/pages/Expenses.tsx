@@ -62,7 +62,7 @@ export default function Expenses() {
     setLoading(true);
     let q = apiClient
       .from("expenses")
-      .select("*")
+      .select("id,clinic_id,category,description,amount,payment_method,vendor,receipt_url,expense_date,created_by,created_at")
       .eq("clinic_id", effectiveClinicId)
       .order("expense_date", { ascending: false })
       .limit(1000);

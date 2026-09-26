@@ -68,7 +68,7 @@ export default function Inventory() {
     if (cached) { setItems(cached); setLoading(false); }
     if (typeof navigator !== "undefined" && !navigator.onLine) { if (!cached) await loadFromCache(); return; }
     try {
-      const { data, error } = await apiClient.from("inventory").select("*").eq("clinic_id", cid).order("name");
+      const { data, error } = await apiClient.from("inventory").select("id,clinic_id,name,category,description,price,cost_price,stock_quantity,reorder_level,expiry_date,unit,barcode,sku,active,created_at,updated_at").eq("clinic_id", cid).order("name");
       if (error || !data) { loadFromCache(); return; }
       setItems(data as unknown as InventoryItem[]);
       void secureOfflineSave(cacheKey, data);
