@@ -340,8 +340,29 @@ export default function Dashboard() {
       setLoading(false);
     };
 
+    // Render the last encrypted snapshot immediately on every device.
+    // Online refresh happens afterwards so poor networks never block the dashboard.
+    const cachedSnapshot = await secureOfflineGet<DashboardSnapshot>(cacheKey);
+    if (cachedSnapshot) {
+      setMonthPatients(cachedSnapshot.monthPatients ?? 0);
+      setMonthRegisteredPatients(cachedSnapshot.monthRegisteredPatients ?? 0);
+      setPatientsSeen(cachedSnapshot.patientsSeen ?? 0);
+      setNewPatientsSeen(cachedSnapshot.newPatientsSeen ?? 0);
+      setReturningPatients(cachedSnapshot.returningPatients ?? 0);
+      setTodayVisits(cachedSnapshot.todayVisits ?? 0);
+      setTodayAppointments(cachedSnapshot.todayAppointments ?? 0);
+      setPendingBills(cachedSnapshot.pendingBills ?? 0);
+      setMonthlyRevenue(cachedSnapshot.monthlyRevenue ?? 0);
+      setPreviousMonthRevenue(cachedSnapshot.previousMonthRevenue ?? 0);
+      setLowStockCount(cachedSnapshot.lowStockCount ?? 0);
+      setDrugAlerts(cachedSnapshot.drugAlerts ?? 0);
+      setRecentPatients(cachedSnapshot.recentPatients ?? []);
+      setUpcomingAppts(cachedSnapshot.upcomingAppts ?? []);
+      setLoading(false);
+    }
+
     if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
-      await hydrateFromCache();
+      if (!cachedSnapshot) await hydrateFromCache();
       return;
     }
 
