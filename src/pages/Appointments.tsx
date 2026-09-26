@@ -45,7 +45,7 @@ export default function Appointments() {
   const { effectiveClinicId, profileLoading, clinicLoading } = useAccessClinic();
   const cid = effectiveClinicId;
   const hydrating = profileLoading || clinicLoading;
-  const { isOffline } = useOffline();
+  const { isOffline, networkQuality } = useOffline();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<PatientLite[]>([]);
@@ -87,6 +87,14 @@ export default function Appointments() {
     }
 
     if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
+      setLoading(false);
+      return;
+    }
+
+    // On slow/unstable networks, prefer the cached schedule when available.
+    // A fresh query is deferred until the connection becomes healthy or the
+    // user explicitly changes the date, avoiding large background transfers.
+    if ((networkQuality === "slow" || networkQuality === "unstable") && cached?.length) {
       setLoading(false);
       return;
     }
@@ -147,7 +155,7 @@ export default function Appointments() {
       diag.error("query", "appointments.list threw", e, { clinic_id: cid });
       loadFromCache();
     }
-  }, [cid, filterDateStr, isOffline]);
+  }, [cid, filterDateStr, isOffline, networkQuality]);
 
   useEffect(() => {
     if (hydrating) return;
