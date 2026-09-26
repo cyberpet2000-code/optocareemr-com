@@ -12,6 +12,18 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "react-core": ["react", "react-dom", "react-router-dom"],
+          "query-core": ["@tanstack/react-query", "@tanstack/query-core"],
+          "supabase-core": ["@supabase/supabase-js"],
+          "ui-core": ["lucide-react", "sonner"],
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
