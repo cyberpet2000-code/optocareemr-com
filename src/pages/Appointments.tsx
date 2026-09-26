@@ -49,6 +49,8 @@ export default function Appointments() {
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<PatientLite[]>([]);
+  const [patientSearch, setPatientSearch] = useState("");
+  const [patientSearchLoading, setPatientSearchLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -223,36 +225,57 @@ export default function Appointments() {
     if (hydrating || !cid) { setPatients([]); return; }
     const cacheKey = `patients-lite:${cid}`;
     let cancelled = false;
+    let timer: number | undefined;
 
-    const loadPatients = async () => {
+    const searchPatients = async () => {
       if (isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) {
         const cached = await secureOfflineGet<PatientLite[]>(cacheKey);
         if (!cancelled && cached) setPatients(cached);
         return;
       }
 
+      setPatientSearchLoading(true);
       try {
-        const { data, error: pErr } = await apiClient
-          .from("patients").select("id, full_name").eq("clinic_id", cid).order("full_name").limit(500);
+        const query = patientSearch.trim();
+        let request = apiClient
+          .from("patients")
+          .select("id, full_name")
+          .eq("clinic_id", cid)
+          .order("full_name", { ascending: true })
+          .limit(25);
+
+        if (query) {
+          request = request.ilike("full_name", `%${query.replace(/[%_]/g, "")}%`);
+        }
+
+        const { data, error: pErr } = await request;
         if (cancelled) return;
+
         if (pErr || !data) {
           const cached = await secureOfflineGet<PatientLite[]>(cacheKey);
           if (cached) setPatients(cached);
           return;
         }
+
         const rows = data as PatientLite[];
         setPatients(rows);
-        await secureOfflineSave(cacheKey, rows);
+
+        // Keep only the small recent/search result set for offline appointment entry.
+        if (!query) await secureOfflineSave(cacheKey, rows);
       } catch {
         const cached = await secureOfflineGet<PatientLite[]>(cacheKey);
         if (cached) setPatients(cached);
+      } finally {
+        if (!cancelled) setPatientSearchLoading(false);
       }
     };
 
-    void loadPatients();
-    return () => { cancelled = true; };
-  }, [hydrating, cid, isOffline]);
-
+    timer = window.setTimeout(() => void searchPatients(), patientSearch.trim() ? 250 : 0);
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [hydrating, cid, isOffline, patientSearch]);
   const startEdit = (a: Appointment) => {
     setEditingId(a.id);
     setForm({
@@ -549,7 +572,22 @@ export default function Appointments() {
               <Select value={form.patientId} onValueChange={v => setForm(f => ({ ...f, patientId: v }))}>
                 <SelectTrigger className="rounded-xl"><SelectValue placeholder="Walk-in" /></SelectTrigger>
                 <SelectContent>
-                  {patients.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}
+                  <div className="p-2 sticky top-0 bg-popover z-10">
+                    <Input
+                      value={patientSearch}
+                      onChange={e => setPatientSearch(e.target.value)}
+                      placeholder="Search patient name..."
+                      className="rounded-lg h-9"
+                      onKeyDown={e => e.stopPropagation()}
+                    />
+                  </div>
+                  {patientSearchLoading ? (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">Searching patients…</div>
+                  ) : patients.length === 0 ? (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">No patients found.</div>
+                  ) : (
+                    patients.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)
+                  )}
                 </SelectContent>
               </Select>
             </div>
