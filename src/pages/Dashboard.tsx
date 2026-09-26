@@ -16,6 +16,7 @@ import { useClinic } from "@/hooks/useClinic";
 import { useRole } from "@/hooks/useRole";
 import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 import { useOffline } from "@/hooks/useOffline";
+import { diag } from "@/lib/diag";
 import FinanceOverview from "@/components/dashboard/FinanceOverview";
 import PatientHistoryMeta from "@/components/patients/PatientHistoryMeta";
 import { buildBillingSummaryMap, buildVisitSummaryMap, getPaymentStatus } from "@/lib/patientHistory";
@@ -312,6 +313,7 @@ export default function Dashboard() {
     }
 
     const cid = effectiveClinicId;
+    const endDashboardPerf = diag.time("perf", "dashboard-load", { clinicId: cid });
     const cacheKey = `dashboard:${cid}`;
 
     // Offline must short-circuit BEFORE any Supabase query. Some mobile
