@@ -84,7 +84,7 @@ export default function HmoManagement() {
     if (!form.name) return toast.error("Name required");
     if (editing) {
       const { error } = await apiClient.from("hmos").update(form).eq("clinic_id", cid).eq("id", editing.id);
-      if (error) return toast.error(error.message);
+      if (error) return toast.error(await getUserFacingErrorMessage(error, "OptoCare could not complete this request. Please try again."));
       toast.success("HMO updated");
     } else {
       const { error } = await apiClient.from("hmos").insert({ ...form, clinic_id: cid } as any);
