@@ -102,6 +102,7 @@ export default function Outreach() {
   const [selected, setSelected] = useState<Campaign | null>(null);
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [recipientPage, setRecipientPage] = useState(0);
+  const [recipientCounts, setRecipientCounts] = useState({ total: 0, sent: 0, ready: 0, skipped: 0, invalid: 0 });
   const OUTREACH_RECIPIENT_PAGE_SIZE = 500;
   const [leads, setLeads] = useState<Lead[]>([]);
   const [tab, setTab] = useState<"campaign" | "leads">("campaign");
@@ -176,6 +177,29 @@ export default function Outreach() {
   useEffect(() => {
     if (!effectiveClinicId || !selected) return;
     let cancelled = false;
+    (async () => {
+      const base = () => apiClient.from("outreach_recipients").select("id", { count: "exact", head: true }).eq("campaign_id", selected.id);
+      const [all, sent, ready, skipped, invalid] = await Promise.all([
+        base(),
+        base().eq("status", "sent"),
+        base().in("status", ["ready", "opened"]),
+        base().eq("status", "skipped"),
+        base().in("status", ["invalid", "opted_out"]),
+      ]);
+      if (!cancelled) setRecipientCounts({
+        total: all.count ?? 0,
+        sent: sent.count ?? 0,
+        ready: ready.count ?? 0,
+        skipped: skipped.count ?? 0,
+        invalid: invalid.count ?? 0,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [effectiveClinicId, selected?.id]);
+
+  useEffect(() => {
+    if (!effectiveClinicId || !selected) return;
+    let cancelled = false;
     setRecipientPage(0);
     (async () => {
       const { data } = await apiClient.from("outreach_recipients")
@@ -215,13 +239,7 @@ export default function Outreach() {
     });
   }, [effectiveClinicId]);
 
-  const counts = useMemo(() => ({
-    total: recipients.length,
-    sent: recipients.filter(r => r.status === "sent").length,
-    ready: recipients.filter(r => r.status === "ready" || r.status === "opened").length,
-    skipped: recipients.filter(r => r.status === "skipped").length,
-    invalid: recipients.filter(r => r.status === "invalid" || r.status === "opted_out").length,
-  }), [recipients]);
+  const counts = recipientCounts;
 
   useEffect(() => {
     if (!effectiveClinicId || !selected?.id) {
