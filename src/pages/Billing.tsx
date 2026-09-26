@@ -240,7 +240,7 @@ export default function Billing() {
         familyRes,
       ] = await Promise.all([
         apiClient.from("billing")
-          .select("*")
+          .select("id,clinic_id,patient_id,visit_id,consultation_fee,items_total,total_amount,amount_paid,status,created_at,payment_type,hmo_id,family_id,notes,discount_amount,discount_reason")
           .eq("clinic_id", cid)
           .order("created_at", { ascending: false })
           .limit(100),
