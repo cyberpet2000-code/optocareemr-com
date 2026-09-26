@@ -96,7 +96,7 @@ export default function FinanceOverview() {
         apiClient.from("patients").select("id", { count: "exact", head: true }).eq("clinic_id", effectiveClinicId).gte("created_at", som).eq("payment_type", "hmo"),
         apiClient.from("patients").select("id", { count: "exact", head: true }).eq("clinic_id", effectiveClinicId).gte("created_at", som).neq("payment_type", "hmo"),
         apiClient.from("inventory").select("stock_quantity,price,low_stock_threshold,min_stock").eq("clinic_id", effectiveClinicId),
-        apiClient.from("visits").select("id,status").eq("clinic_id", effectiveClinicId).gte("created_at", som),
+        apiClient.from("visits").select("id", { count: "exact", head: true }).eq("clinic_id", effectiveClinicId).gte("created_at", som),
       ]);
       if (cancelled) return;
 
@@ -131,7 +131,7 @@ export default function FinanceOverview() {
         inventoryValue: invRows.reduce((a, r) => a + Number(r.stock_quantity || 0) * Number(r.price || 0), 0),
         lowStock: invRows.filter(r => (r.stock_quantity ?? 0) > 0 && (r.stock_quantity ?? 0) <= (r.low_stock_threshold ?? r.min_stock ?? 5)).length,
         outOfStock: invRows.filter(r => (r.stock_quantity ?? 0) <= 0).length,
-        consultations: ((visitsMonth.data as any[]) || []).length,
+        consultations: visitsMonth.count ?? 0,
       };
       setM(metrics);
       setLoading(false);
