@@ -2,6 +2,7 @@ import { apiClient } from "@/lib/apiClient";
 import { supabase } from "@/integrations/supabase/client";
 
 export type ServiceStatus = "online" | "degraded" | "offline" | "unknown";
+export type DeviceClass = "phone" | "tablet" | "desktop" | "unknown";
 export type DiagnosisCode =
   | "NO_NETWORK"
   | "NO_INTERNET"
@@ -24,6 +25,8 @@ export type ConnectionDiagnosis = {
   edgeFunctions: ServiceStatus;
   application: ServiceStatus;
   latencyMs?: number;
+  deviceClass?: DeviceClass;
+  connectionType?: string;
 };
 
 const SUPABASE_URL = (() => {
@@ -57,6 +60,21 @@ function messageFor(code: DiagnosisCode) {
     default:
       return "OptoCare could not complete the request. Please try again shortly.";
   }
+}
+
+export function getDeviceClass(): DeviceClass {
+  if (typeof window === "undefined") return "unknown";
+  const width = window.innerWidth;
+  const ua = navigator.userAgent || "";
+  if (/iPad|Tablet|Android(?!.*Mobile)/i.test(ua) || (width >= 600 && width < 1024)) return "tablet";
+  if (/Mobi|Android/i.test(ua) || width < 600) return "phone";
+  if (width >= 1024) return "desktop";
+  return "unknown";
+}
+
+export function getConnectionType(): string {
+  const connection = (navigator as any)?.connection || (navigator as any)?.mozConnection || (navigator as any)?.webkitConnection;
+  return String(connection?.effectiveType || connection?.type || "unknown");
 }
 
 export function classifyConnectionError(error: unknown): DiagnosisCode {
@@ -203,6 +221,8 @@ export async function diagnoseConnection(): Promise<ConnectionDiagnosis> {
       edgeFunctions: "unknown",
       application: "online",
       latencyMs,
+      deviceClass: getDeviceClass(),
+      connectionType: getConnectionType(),
     };
   }
 
