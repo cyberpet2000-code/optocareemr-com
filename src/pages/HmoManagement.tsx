@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { getUserFacingErrorMessage } from "@/lib/diag/connectionDiagnosis";
 import { Plus, Building2, Trash2, Pencil, FileText } from "lucide-react";
 import { useAccess } from "@/hooks/useAccess";
 import { confirmDestructiveAction } from "@/lib/safeDelete";
