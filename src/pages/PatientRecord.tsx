@@ -1552,6 +1552,7 @@ if (
 
   const handleEditPatient = async () => {
     if (!patient) return;
+    // A patient record must contain one valid primary phone/WhatsApp number.
     if (!isValidWhatsAppNumber(editForm.phone)) {
       toast.error("Enter one valid phone/WhatsApp number only. Do not combine two numbers.");
       return;
