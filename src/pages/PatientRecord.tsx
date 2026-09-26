@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { getUserFacingErrorMessage } from "@/lib/diag/connectionDiagnosis";
 import { confirmDestructiveAction } from "@/lib/safeDelete";
 import {
   ArrowLeft,
