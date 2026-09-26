@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Search, Pencil, Trash2, Download, Receipt, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import { getUserFacingErrorMessage } from "@/lib/diag/connectionDiagnosis";
 import { confirmDestructiveAction } from "@/lib/safeDelete";
 
 interface ExpenseRow {
@@ -56,25 +57,31 @@ export default function Expenses() {
   const [editing, setEditing] = useState<ExpenseRow | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
   const load = useCallback(async () => {
     if (!effectiveClinicId) return;
     setLoading(true);
+    const PAGE_SIZE = 200;
     let q = apiClient
       .from("expenses")
       .select("id,clinic_id,category,description,amount,payment_method,vendor,receipt_url,expense_date,created_by,created_at")
       .eq("clinic_id", effectiveClinicId)
       .order("expense_date", { ascending: false })
-      .limit(1000);
+      .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
     if (category !== "all") q = q.eq("category", category);
     if (from) q = q.gte("expense_date", from);
     if (to) q = q.lte("expense_date", to);
     const { data, error } = await q;
-    if (error) toast.error(error.message);
-    setRows((data as any) || []);
+    if (error) toast.error(await getUserFacingErrorMessage(error, "OptoCare could not complete this request. Please try again."));
+    const nextRows = (data as any) || [];
+    setRows(prev => page === 0 ? nextRows : [...prev, ...nextRows]);
+    setHasMore(nextRows.length === 200);
     setLoading(false);
-  }, [effectiveClinicId, category, from, to]);
+  }, [effectiveClinicId, category, from, to, page]);
 
+  useEffect(() => { setPage(0); }, [effectiveClinicId, category, from, to]);
   useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => {
@@ -147,7 +154,7 @@ export default function Expenses() {
       setDialogOpen(false);
       await load();
     } catch (e: any) {
-      toast.error(e.message || "Failed to save");
+      toast.error(await getUserFacingErrorMessage(e, "OptoCare could not save the expense."));
     } finally {
       setSaving(false);
     }

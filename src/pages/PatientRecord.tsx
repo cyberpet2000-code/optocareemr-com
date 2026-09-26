@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { getUserFacingErrorMessage } from "@/lib/diag/connectionDiagnosis";
+import { diag } from "@/lib/diag";
 import { confirmDestructiveAction } from "@/lib/safeDelete";
 import {
   ArrowLeft,
@@ -321,6 +323,7 @@ const canViewFinancials =
     let cancelled = false;
 
     (async () => {
+      const endPatientRecordPerf = diag.time("perf", "patient-record-load", { patientId });
       try {
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         const cachedPatient = await secureOfflineGet<any>("patient-record:" + cid + ":" + patientId);
@@ -379,7 +382,7 @@ const canViewFinancials =
         withPatientRecordTimeout(
           apiClient
             .from("patients")
-            .select("*")
+            .select("id, full_name, date_of_birth, age, gender, phone, address, next_of_kin, payment_type, active_hmo_id, enrollee_number, hmo_coverage_type, hmo_principal_name, hmo_relationship, queue_number, queue_status, priority, patient_number, preferred_contact_method, created_by, family_id, family_relationship")
             .eq("clinic_id", cid)
             .eq("id", patientId)
             .maybeSingle(),
@@ -1576,7 +1579,7 @@ hmo_relationship:
     ? editForm.hmo_relationship
     : null,
     } as any).eq("clinic_id", cid).eq("id", patient.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(await getUserFacingErrorMessage(error, "Unable to update patient information.")); return; }
     toast.success("Patient info updated");
     setPatient({ ...patient, ...editForm } as PatientData);
     setEditing(false);

@@ -14,7 +14,9 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useAccess } from "@/hooks/useAccess";
 import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 import { useOffline } from "@/hooks/useOffline";
+import { diag } from "@/lib/diag";
 import { enqueueOfflineOperation } from "@/lib/offlineEngine";
+import { getUserFacingErrorMessage } from "@/lib/diag/connectionDiagnosis";
 import { confirmDestructiveAction } from "@/lib/safeDelete";
 import WalkInSale from "@/components/billing/WalkInSale";
 const PAYMENT_METHODS = ["Cash", "Card", "Transfer", "HMO"];
@@ -209,6 +211,7 @@ export default function Billing() {
 
   const loadData = useCallback(async () => {
     if (!cid) { setBills([]); setPatients([]); setLoading(false); return; }
+    const endBillingPerf = diag.time("perf", "billing-load", { clinicId: cid });
     const billsKey = `bills:${cid}`;
     const patientsKey = `billing-patients:${cid}`;
     const hmosKey = `billing-hmos:${cid}`;
@@ -237,7 +240,7 @@ export default function Billing() {
         familyRes,
       ] = await Promise.all([
         apiClient.from("billing")
-          .select("*")
+          .select("id,clinic_id,patient_id,visit_id,consultation_fee,items_total,total_amount,amount_paid,status,created_at,payment_type,hmo_id,family_id,notes,discount_amount,discount_reason")
           .eq("clinic_id", cid)
           .order("created_at", { ascending: false })
           .limit(100),
@@ -791,7 +794,7 @@ setEditingBillingId(selectedBill.id);
           .eq("id", billingId);
 
         if (updateErr) {
-          toast.error("Failed to update bill: " + updateErr.message);
+          toast.error(await getUserFacingErrorMessage(updateErr, "Could not update the bill. Please try again."));
           setSaving(false);
           return;
         }

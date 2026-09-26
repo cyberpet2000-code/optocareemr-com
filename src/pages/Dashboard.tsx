@@ -16,6 +16,7 @@ import { useClinic } from "@/hooks/useClinic";
 import { useRole } from "@/hooks/useRole";
 import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 import { useOffline } from "@/hooks/useOffline";
+import { diag } from "@/lib/diag";
 import FinanceOverview from "@/components/dashboard/FinanceOverview";
 import PatientHistoryMeta from "@/components/patients/PatientHistoryMeta";
 import { buildBillingSummaryMap, buildVisitSummaryMap, getPaymentStatus } from "@/lib/patientHistory";
@@ -312,6 +313,7 @@ export default function Dashboard() {
     }
 
     const cid = effectiveClinicId;
+    const endDashboardPerf = diag.time("perf", "dashboard-load", { clinicId: cid });
     const cacheKey = `dashboard:${cid}`;
 
     // Offline must short-circuit BEFORE any Supabase query. Some mobile
@@ -448,12 +450,12 @@ setFeedbackFollowups(feedbackFollowupData ?? []);
       queryKeys.push("patients");
 
       queries.push(
-        apiClient.from("visits").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", `${today}T00:00:00`)
+        apiClient.from("visits").select("id", { count: "exact", head: true }).eq("clinic_id", cid).gte("created_at", `${today}T00:00:00`)
       );
       queryKeys.push("visits");
 
       queries.push(
-        apiClient.from("appointments").select("*", { count: "exact", head: true }).eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"])
+        apiClient.from("appointments").select("id", { count: "exact", head: true }).eq("clinic_id", cid).gte("appointment_date", today).in("status", ["pending", "confirmed"])
       );
       queryKeys.push("appointments");
 
@@ -487,7 +489,7 @@ setFeedbackFollowups(feedbackFollowupData ?? []);
       // Billing: only fetch if receptionist or admin
       if (showBillingMetrics) {
         queries.push(
-          apiClient.from("billing").select("*", { count: "exact", head: true }).eq("clinic_id", cid).eq("status", "pending").gt("total_amount", 0)
+          apiClient.from("billing").select("id", { count: "exact", head: true }).eq("clinic_id", cid).eq("status", "pending").gt("total_amount", 0)
         );
         queryKeys.push("pendingBills");
       }

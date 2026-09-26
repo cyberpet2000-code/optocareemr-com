@@ -117,7 +117,7 @@ export default function WalkInSale() {
     setLoading(true);
     const [invRes, salesRes, clinicRes] = await Promise.all([
       apiClient.from("inventory").select("id,name,category,price,stock_quantity").eq("clinic_id", cid).order("name"),
-      apiClient.from("inventory_sales").select("*").eq("clinic_id", cid).eq("sale_type", "walk_in").order("created_at", { ascending: false }).limit(50),
+      apiClient.from("inventory_sales").select("id,clinic_id,patient_id,patient_name,subtotal,discount_amount,total_amount,payment_method,notes,sale_type,created_at,created_by").eq("clinic_id", cid).eq("sale_type", "walk_in").order("created_at", { ascending: false }).limit(50),
       apiClient.from("clinics").select("name").eq("id", cid).maybeSingle(),
     ]);
     setItems(((invRes.data as any[]) || []) as InvItem[]);

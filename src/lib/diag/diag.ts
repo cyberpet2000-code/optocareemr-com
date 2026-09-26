@@ -35,12 +35,13 @@ function time(area: DiagArea, name: string, data?: Record<string, unknown>) {
     const durationMs = now() - started;
     const merged = { ...(data || {}), ...(extra || {}) };
     const slow = durationMs > 1500;
+    const severity = durationMs >= 5000 ? "critical" : durationMs >= 3000 ? "slow" : durationMs >= 1500 ? "degraded" : "normal";
     pushEntry({
       t: now(),
       level: slow ? "warn" : "info",
       area,
       name,
-      data: merged,
+      data: { ...merged, performance: severity },
       durationMs,
       hint: slow ? hintFor({ event: "query/slow" }) : null,
     });

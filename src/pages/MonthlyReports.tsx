@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, RefreshCw, FileText, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { getUserFacingErrorMessage } from "@/lib/diag/connectionDiagnosis";
 
 interface Report {
   id: string; clinic_id: string; year: number; month: number;
@@ -26,9 +27,9 @@ export default function MonthlyReports() {
   const load = useCallback(async () => {
     if (!effectiveClinicId) return;
     setLoading(true);
-    const { data, error } = await apiClient.from("monthly_reports").select("*")
+    const { data, error } = await apiClient.from("monthly_reports").select("id,clinic_id,year,month,status,storage_path,file_size_bytes,error_message,created_at")
       .eq("clinic_id", effectiveClinicId).order("year", { ascending: false }).order("month", { ascending: false }).limit(24);
-    if (error) toast.error(error.message);
+    if (error) toast.error(await getUserFacingErrorMessage(error, "OptoCare could not complete this request. Please try again."));
     setRows((data as any) || []);
     setLoading(false);
   }, [effectiveClinicId]);
@@ -48,7 +49,7 @@ export default function MonthlyReports() {
       toast.success("Report generated");
       await load();
     } catch (e: any) {
-      toast.error(e.message || "Failed to generate");
+      toast.error(await getUserFacingErrorMessage(e, "OptoCare could not generate the report."));
     } finally {
       setGen(false);
     }
@@ -57,7 +58,7 @@ export default function MonthlyReports() {
   async function download(r: Report) {
     if (!r.storage_path) return;
     const { data, error } = await apiClient.storage.from("monthly-reports").createSignedUrl(r.storage_path, 300);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(await getUserFacingErrorMessage(error, "OptoCare could not prepare the report download."));
     window.open(data.signedUrl, "_blank");
   }
 
@@ -71,7 +72,7 @@ export default function MonthlyReports() {
       const sentTo = (data as any)?.results?.find((x: any) => x.ok)?.recipient;
       toast.success(sentTo ? `Report emailed to ${sentTo}` : "Report email queued");
     } catch (e: any) {
-      toast.error(e.message || "Failed to resend email");
+      toast.error(await getUserFacingErrorMessage(e, "OptoCare could not resend the report email."));
     } finally {
       setSending(null);
     }

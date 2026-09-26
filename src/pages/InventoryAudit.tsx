@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { getUserFacingErrorMessage } from "@/lib/diag/connectionDiagnosis";
 
 interface Movement {
   id: string; clinic_id: string; inventory_id: string | null;
@@ -39,7 +40,7 @@ export default function InventoryAudit() {
     if (reason !== "all") q = q.eq("reason", reason);
     if (search.trim()) q = q.ilike("product_name", `%${search.trim().replace(/[%_]/g, "")}%`);
     const { data, error } = await q.range(0, 50);
-    if (error) toast.error(error.message);
+    if (error) toast.error(await getUserFacingErrorMessage(error, "OptoCare could not complete this request. Please try again."));
     const result = (data as any[]) || [];
     setRows(result.slice(0, 50));
     setHasMore(result.length > 50);
@@ -73,7 +74,7 @@ export default function InventoryAudit() {
       setHasMore(result.length > 50);
       setPage(page + 1);
     } catch (e: any) {
-      toast.error(e.message || "Could not load older movements");
+      toast.error(await getUserFacingErrorMessage(e, "OptoCare could not load older inventory movements."));
     } finally {
       setLoadingMore(false);
     }

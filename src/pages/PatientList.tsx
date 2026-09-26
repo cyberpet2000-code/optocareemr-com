@@ -23,12 +23,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAccess } from "@/hooks/useAccess";
 import { useRole } from "@/hooks/useRole";
 import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
-import { cachePatientsOffline, cacheVisitsOffline, cacheStaffProfilesOffline } from "@/lib/offlineEngine";
+import { cacheVisitsOffline, cacheStaffProfilesOffline } from "@/lib/offlineEngine";
 import { useOffline } from "@/hooks/useOffline";
+import { diag } from "@/lib/diag";
 import PatientHistoryMeta from "@/components/patients/PatientHistoryMeta";
 import { buildBillingSummaryMap, buildVisitSummaryMap, getPaymentStatus, type PatientBillingSummary, type PatientVisitSummary } from "@/lib/patientHistory";
 import { normalizeWhatsAppNumber } from "@/lib/whatsapp";
-import { diagnoseRequestFailure, type DiagnosisCode } from "@/lib/diag/connectionDiagnosis";
+import { diagnoseRequestFailure, getUserFacingErrorMessage, type DiagnosisCode } from "@/lib/diag/connectionDiagnosis";
 
 interface PatientRow {
   id: string;
@@ -171,6 +172,7 @@ export default function PatientList() {
     if (isOffline) { void loadFromCache("NO_NETWORK"); return; }
 
     (async () => {
+      const endPatientListPerf = diag.time("perf", "patient-list-load", { page, filter: filter || "all", search: Boolean(debouncedSearch) });
       try {
         setLoading(true);
         if (filter === "followup") {
@@ -238,10 +240,10 @@ export default function PatientList() {
         setLoading(false);
         if (page === 0) {
           await secureOfflineSave(cacheKey, mapped);
-          await secureOfflineSave(`patients:${cid}:all`, mapped);
-          await cachePatientsOffline(cid, mapped);
+
         }
       } catch (error) {
+        endPatientListPerf({ source: "error" });
         console.error("PatientList loading error:", error);
         await loadFromCache();
       }
