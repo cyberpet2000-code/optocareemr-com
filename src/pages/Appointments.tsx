@@ -154,6 +154,7 @@ export default function Appointments() {
       setLoading(false);
     } catch (e: any) {
       diag.error("query", "appointments.list threw", e, { clinic_id: cid });
+      setError(await getUserFacingErrorMessage(e, "Could not load appointments. Please try again."));
       loadFromCache();
     }
   }, [cid, filterDateStr, isOffline, networkQuality]);
