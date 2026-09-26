@@ -171,7 +171,6 @@ export async function cachePatientsOffline(clinicId: string, patients: any[]) {
   // row repeatedly serializes the growing list and can exhaust localStorage
   // on larger clinics.
   await secureOfflineSave(`patients:${clinicId}:all`, patients);
-  await secureOfflineSave(`patients:${clinicId}`, patients);
 }
 
 export async function cachePatientOffline(clinicId: string, patient: any) {
@@ -180,7 +179,6 @@ export async function cachePatientOffline(clinicId: string, patient: any) {
   const rows = await secureOfflineGet<any[]>(key) ?? [];
   const next = [patient, ...rows.filter((row) => row.id !== patient.id)];
   await secureOfflineSave(key, next);
-  await secureOfflineSave(`patients:${clinicId}`, next);
 }
 
 export async function cacheVisitsOffline(clinicId: string, patientId: string, visits: any[]) {
