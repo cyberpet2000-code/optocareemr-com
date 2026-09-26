@@ -5,10 +5,11 @@ import { safeSupabaseStorage } from '@/lib/supabase-auth';
 
 const env = import.meta.env as Record<string, string | undefined>;
 export const SUPABASE_URL = env.VITE_SUPABASE_URL;
-export const SUPABASE_PUBLISHABLE_KEY = env.VITE_SUPABASE_PUBLISHABLE_KEY;
+export const SUPABASE_PUBLISHABLE_KEY =
+  env.VITE_SUPABASE_PUBLISHABLE_KEY ?? env.VITE_SUPABASE_ANON_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  throw new Error('OptoCare configuration is missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY.');
+  throw new Error('OptoCare configuration is missing VITE_SUPABASE_URL or a publishable Supabase key.');
 }
 
 export const SUPABASE_AUTH_STORAGE_KEY = `sb-${new URL(SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
