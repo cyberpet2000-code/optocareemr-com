@@ -22,22 +22,62 @@ export default function InventoryAudit() {
   const [loading, setLoading] = useState(true);
   const [reason, setReason] = useState("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const load = useCallback(async () => {
     if (!effectiveClinicId) return;
     setLoading(true);
-    let q = apiClient.from("inventory_movements").select("*")
-      .eq("clinic_id", effectiveClinicId).order("created_at", { ascending: false }).limit(500);
+    let q = apiClient
+      .from("inventory_movements")
+      .select("id,clinic_id,inventory_id,product_name,quantity_before,quantity_delta,quantity_after,reason,patient_id,visit_id,staff_id,notes,created_at")
+      .eq("clinic_id", effectiveClinicId)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(51);
     if (reason !== "all") q = q.eq("reason", reason);
-    const { data, error } = await q;
+    if (search.trim()) q = q.ilike("product_name", `%${search.trim().replace(/[%_]/g, "")}%`);
+    const { data, error } = await q.range(0, 50);
     if (error) toast.error(error.message);
-    setRows((data as any) || []);
+    const result = (data as any[]) || [];
+    setRows(result.slice(0, 50));
+    setHasMore(result.length > 50);
+    setPage(0);
     setLoading(false);
   }, [effectiveClinicId, reason]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 250);
+    return () => window.clearTimeout(timer);
+  }, [load]);
 
-  const filtered = rows.filter(r => !search || (r.product_name || "").toLowerCase().includes(search.toLowerCase()));
+  const loadMore = async () => {
+    if (!effectiveClinicId || !hasMore || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const offset = (page + 1) * 50;
+      let q = apiClient
+        .from("inventory_movements")
+        .select("id,clinic_id,inventory_id,product_name,quantity_before,quantity_delta,quantity_after,reason,patient_id,visit_id,staff_id,notes,created_at")
+        .eq("clinic_id", effectiveClinicId)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(51);
+      if (reason !== "all") q = q.eq("reason", reason);
+      if (search.trim()) q = q.ilike("product_name", `%${search.trim().replace(/[%_]/g, "")}%`);
+      const { data, error } = await q.range(offset, offset + 50);
+      if (error) throw error;
+      const result = (data as any[]) || [];
+      setRows(prev => [...prev, ...result.slice(0, 50)]);
+      setHasMore(result.length > 50);
+      setPage(page + 1);
+    } catch (e: any) {
+      toast.error(e.message || "Could not load older movements");
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -71,7 +111,7 @@ export default function InventoryAudit() {
                 <tr key={i}><td colSpan={7} className="py-2"><Skeleton className="h-6 w-full" /></td></tr>
               )) : filtered.length === 0 ? (
                 <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">No movements</td></tr>
-              ) : filtered.map(r => (
+              ) : rows.map(r => (
                 <tr key={r.id} className="border-b border-border/50">
                   <td className="py-2 pr-3 whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
                   <td className="py-2 pr-3">{r.product_name || "—"}</td>
@@ -82,6 +122,13 @@ export default function InventoryAudit() {
                   <td className="py-2 pr-3 text-xs text-muted-foreground">{r.notes || ""}</td>
                 </tr>
               ))}
+              {hasMore && (
+                <tr><td colSpan={7} className="py-3 text-center">
+                  <button type="button" className="text-sm underline" onClick={loadMore} disabled={loadingMore}>
+                    {loadingMore ? "Loading older movements…" : "Load older movements"}
+                  </button>
+                </td></tr>
+              )}
             </tbody>
           </table>
         </div>
