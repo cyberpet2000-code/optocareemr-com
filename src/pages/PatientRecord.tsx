@@ -47,7 +47,7 @@ import {
 import { MedicationPicker, type MedItem } from "@/components/MedicationPicker";
 import { getPaymentStatus, getPaymentStatusClass } from "@/lib/patientHistory";
 import { AbbrTip } from "@/components/AbbrTip";
-import { normalizeWhatsAppNumber, whatsappLink } from "@/lib/whatsapp";
+import { normalizeWhatsAppNumber, isValidWhatsAppNumber, whatsappLink } from "@/lib/whatsapp";
 import { HMOVerificationCard, type HmoVerifStatus } from "@/components/HMOVerificationCard";
 import { PatientWhatsAppMessages } from "@/components/PatientWhatsAppMessages";
 import { ClinicalAiAssistant } from "@/components/ClinicalAiAssistant";
@@ -1552,6 +1552,10 @@ if (
 
   const handleEditPatient = async () => {
     if (!patient) return;
+    if (!isValidWhatsAppNumber(editForm.phone)) {
+      toast.error("Enter one valid phone/WhatsApp number only. Do not combine two numbers.");
+      return;
+    }
     if (!cid) { toast.error("No active clinic"); return; }
     const { error } = await apiClient.from("patients").update({
       full_name: editForm.full_name,
@@ -1815,7 +1819,7 @@ shadow-sm
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-  {patient.gender},{getCurrentPatientAge(patient.date_of_birth, patient.age)}• {patient.phone}
+  {patient.gender},{getCurrentPatientAge(patient.date_of_birth, patient.age)} • {isValidWhatsAppNumber(patient.phone) ? patient.phone : "Phone needs correction"}
 </p>
 
               <div className="flex flex-wrap gap-2 mt-2">
