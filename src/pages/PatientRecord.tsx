@@ -240,6 +240,10 @@ const canViewFinancials =
   const [hmos, setHmos] = useState<{ id: string; name: string; website?: string | null }[]>([]);
   const [hmoMap, setHmoMap] = useState<Map<string, { name: string; website?: string | null }>>(new Map());
   const [visits, setVisits] = useState<any[]>([]);
+  const [visitPage, setVisitPage] = useState(0);
+  const [hasMoreVisits, setHasMoreVisits] = useState(false);
+  const [loadingMoreVisits, setLoadingMoreVisits] = useState(false);
+  const VISIT_PAGE_SIZE = 50;
   const [doctorMap, setDoctorMap] = useState<Map<string, string>>(new Map());
   const [registrarMap, setRegistrarMap] = useState<Map<string, string>>(new Map());
   const [patientRegistrarName, setPatientRegistrarName] = useState<string | null>(null);
@@ -383,15 +387,19 @@ const canViewFinancials =
         ),
         withPatientRecordTimeout(
           isReceptionist
-            ? apiClient.rpc("get_receptionist_patient_visits", {
+            ? apiClient.rpc("get_receptionist_patient_visits_page", {
                 p_patient_id: patientId,
+                p_limit: VISIT_PAGE_SIZE + 1,
+                p_offset: 0,
               })
             : apiClient
                 .from("visits")
                 .select("*")
                 .eq("clinic_id", cid)
                 .eq("patient_id", patientId)
-                .order("created_at", { ascending: false }),
+                .order("created_at", { ascending: false })
+                .order("id", { ascending: false })
+                .limit(VISIT_PAGE_SIZE + 1),
           "visits",
         ),
         withPatientRecordTimeout(
@@ -421,6 +429,13 @@ const canViewFinancials =
         visitsSettled.status === "fulfilled"
           ? visitsSettled.value
           : { data: [], error: visitsSettled.reason };
+
+      if (visRes.data) {
+        const fetchedVisits = Array.isArray(visRes.data) ? visRes.data : [];
+        setHasMoreVisits(fetchedVisits.length > VISIT_PAGE_SIZE);
+        setVisitPage(0);
+        visRes.data = fetchedVisits.slice(0, VISIT_PAGE_SIZE);
+      }
 
       const hmoRes =
         hmosSettled.status === "fulfilled"
@@ -1359,15 +1374,24 @@ if (
 
       // Refresh visit history from the database
       const refreshResult = isReceptionist
-        ? await apiClient.rpc("get_receptionist_patient_visits", {
+        ? await apiClient.rpc("get_receptionist_patient_visits_page", {
             p_patient_id: patient.id,
+            p_limit: VISIT_PAGE_SIZE + 1,
+            p_offset: 0,
           })
         : await apiClient
             .from("visits")
             .select("*")
             .eq("clinic_id", cid)
             .eq("patient_id", patient.id)
-            .order("created_at", { ascending: false });
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .limit(VISIT_PAGE_SIZE + 1);
+
+      const refreshedVisits = Array.isArray(refreshResult.data) ? refreshResult.data : [];
+      setHasMoreVisits(refreshedVisits.length > VISIT_PAGE_SIZE);
+      setVisitPage(0);
+      const refreshData = refreshedVisits.slice(0, VISIT_PAGE_SIZE);
 
       const fresh = refreshResult.data;
       const refreshError = refreshResult.error;
@@ -1487,6 +1511,41 @@ if (
     );
   }
 };
+
+  const loadMoreVisits = async () => {
+    if (!cid || !patientId || !hasMoreVisits || loadingMoreVisits) return;
+    setLoadingMoreVisits(true);
+    const nextOffset = (visitPage + 1) * VISIT_PAGE_SIZE;
+    try {
+      const result = isReceptionist
+        ? await apiClient.rpc("get_receptionist_patient_visits_page", {
+            p_patient_id: patientId,
+            p_limit: VISIT_PAGE_SIZE + 1,
+            p_offset: nextOffset,
+          })
+        : await apiClient
+            .from("visits")
+            .select("*")
+            .eq("clinic_id", cid)
+            .eq("patient_id", patientId)
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .range(nextOffset, nextOffset + VISIT_PAGE_SIZE);
+
+      if (result.error) {
+        toast.error(result.error.message || "Could not load older visits");
+        return;
+      }
+      const rows = Array.isArray(result.data) ? result.data : [];
+      setVisits(prev => [...prev, ...rows.slice(0, VISIT_PAGE_SIZE)]);
+      setHasMoreVisits(rows.length > VISIT_PAGE_SIZE || rows.length === VISIT_PAGE_SIZE);
+      setVisitPage(visitPage + 1);
+    } catch (error: any) {
+      toast.error(error?.message || "Could not load older visits");
+    } finally {
+      setLoadingMoreVisits(false);
+    }
+  };
 
   const handleEditPatient = async () => {
     if (!patient) return;
@@ -3348,6 +3407,19 @@ shadow-sm
 
 </div>
                 ))}
+              </div>
+            )}
+            {hasMoreVisits && (
+              <div className="flex justify-center pt-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={loadMoreVisits}
+                  disabled={loadingMoreVisits}
+                >
+                  {loadingMoreVisits ? "Loading older visits…" : "Load older visits"}
+                </Button>
               </div>
             )}
           </div>
