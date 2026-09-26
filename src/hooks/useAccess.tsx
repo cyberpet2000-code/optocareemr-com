@@ -445,8 +445,67 @@ console.debug("[access:stage1_complete]", {
         if (requestRef.current !== requestId) return;
 
         const nextProfile = profileResult.data || null;
-        const userRolesRows = (userRolesResult.data || []) as Array<{ role: string; clinic_id: string | null }>;
-        const clinicUsersRows = (clinicUsersResult.data || []) as Array<{ role: string | null; clinic_id: string | null }>;
+        let userRolesRows = (userRolesResult.data || []) as Array<{ role: string; clinic_id: string | null }>;
+        let clinicUsersRows = (clinicUsersResult.data || []) as Array<{ role: string | null; clinic_id: string | null }>;
+
+        // A freshly authenticated browser can briefly have a valid Supabase
+        // session while the first PostgREST request is made without the
+        // expected JWT context. Supabase documents that RLS can then return an
+        // empty data array rather than an error. Do one bounded auth check and
+        // membership retry before treating an empty result as "no clinic".
+        if (userRolesRows.length === 0 && clinicUsersRows.length === 0) {
+          let authHealthy = false;
+          try {
+            const { data: verified, error: verifyError } = await apiClient.auth.getUser();
+            if (!verifyError && verified.user?.id === nextUser.id) {
+              authHealthy = true;
+            } else {
+              const { data: refreshed, error: refreshError } = await apiClient.auth.refreshSession();
+              if (!refreshError && refreshed.session?.user?.id === nextUser.id) {
+                authHealthy = true;
+              }
+            }
+          } catch (error: any) {
+            console.warn("[access:auth-recovery_failed]", {
+              user_id: nextUser.id,
+              message: error?.message,
+            });
+          }
+
+          if (authHealthy) {
+            await new Promise((resolve) => window.setTimeout(resolve, 250));
+
+            const [retryUserRoles, retryClinicUsers] = await Promise.allSettled([
+              withAccessTimeout(
+                apiClient
+                  .from("user_roles")
+                  .select("role, clinic_id")
+                  .eq("user_id", nextUser.id),
+                "user_roles retry",
+              ),
+              withAccessTimeout(
+                apiClient
+                  .from("clinic_users")
+                  .select("role, clinic_id")
+                  .eq("user_id", nextUser.id),
+                "clinic_users retry",
+              ),
+            ]);
+
+            if (retryUserRoles.status === "fulfilled" && retryUserRoles.value.data?.length) {
+              userRolesRows = retryUserRoles.value.data as Array<{ role: string; clinic_id: string | null }>;
+            }
+            if (retryClinicUsers.status === "fulfilled" && retryClinicUsers.value.data?.length) {
+              clinicUsersRows = retryClinicUsers.value.data as Array<{ role: string | null; clinic_id: string | null }>;
+            }
+
+            console.debug("[access:membership_retry]", {
+              user_id: nextUser.id,
+              user_roles: userRolesRows.length,
+              clinic_users: clinicUsersRows.length,
+            });
+          }
+        }
         const fallbackRoles = Array.from(new Set([
           ...userRolesRows.map((row) => normalizeRole(row.role)),
           ...clinicUsersRows.map((row) => normalizeRole(row.role)),
@@ -509,6 +568,32 @@ console.debug("[access:stage1_complete]", {
 
           const clinicMap = new Map((clinicsData || []).map((clinicRow: any) => [clinicRow.id, clinicRow]));
           membershipRows = sortMemberships(mergeMemberships({ userRolesRows, clinicUsersRows, clinicMap }));
+        }
+
+        // Last-known-good access is authoritative for recovery when the
+        // authenticated user is valid but the membership queries temporarily
+        // return no rows. Never turn a transient access lookup failure into a
+        // false "No clinic access" state.
+        if (membershipRows.length === 0 && cachedAccess?.userId === nextUser.id && cachedAccess.state?.memberships?.length) {
+          membershipRows = sortMemberships(cachedAccess.state.memberships);
+          if (!primaryRole) {
+            primaryRole =
+              cachedAccess.state.role ||
+              cachedAccess.state.profile?.role ||
+              cachedAccess.state.roles?.[0] ||
+              cachedAccess.state.memberships?.[0]?.role ||
+              null;
+            nextRoles = sortRoles(Array.from(new Set([
+              ...cachedAccess.state.roles,
+              ...(primaryRole ? [primaryRole] : []),
+            ].filter(Boolean))) as string[]);
+          }
+          console.warn("[access:preserve_cached_membership]", {
+            reason,
+            user_id: nextUser.id,
+            clinic_id: cachedAccess.state.resolvedClinicId,
+            membership_count: membershipRows.length,
+          });
         }
 
         let nextAccessState: AccessState = {
@@ -619,11 +704,39 @@ console.debug("[access:stage1_complete]", {
 
         let backendResolvedClinicId = (resolvedRow as any)?.resolved_clinic_id ?? null;
 
+        // A resolved clinic is only trusted when it is also present in the
+        // verified membership set. This prevents a stale/incorrect active
+        // clinic view from producing either the wrong tenant or a false access
+        // state.
+        if (
+          backendResolvedClinicId &&
+          membershipRows.length > 0 &&
+          !membershipRows.some((row) => row.clinic_id === backendResolvedClinicId)
+        ) {
+          console.warn("[access:reject_unverified_clinic]", {
+            user_id: nextUser.id,
+            clinic_id: backendResolvedClinicId,
+          });
+          backendResolvedClinicId = null;
+        }
+
         // Membership rows are already read through tenant-scoped RLS policies.
         // Use them as the authoritative client-side fallback if the
         // security-invoker active-clinic view is unavailable or returns no row.
         // Prefer the explicitly selected clinic when it is one of the user's
         // verified memberships; otherwise use the first verified membership.
+        if (!backendResolvedClinicId && cachedAccess?.userId === nextUser.id && cachedAccess.state?.resolvedClinicId) {
+          const cachedClinicId = cachedAccess.state.resolvedClinicId;
+          if (membershipRows.some((row) => row.clinic_id === cachedClinicId)) {
+            backendResolvedClinicId = cachedClinicId;
+            console.warn("[access:resolve_clinic_cached_fallback]", {
+              user_id: nextUser.id,
+              clinic_id: backendResolvedClinicId,
+              reason,
+            });
+          }
+        }
+
         if (!backendResolvedClinicId && membershipRows.length > 0) {
           const preferredMembership =
             (overrideClinicId && membershipRows.find((row) => row.clinic_id === overrideClinicId)) ||
@@ -997,96 +1110,3 @@ completedLoadKeyRef.current = loadKey;
     isAuthenticated,
     isAuthReady,
   }), [authLoading, isAuthenticated, isAuthReady, isOfflineSession, user]);
-
-  const clinicValue = useMemo(() => ({
-    profile: accessState.profile,
-    profileError: accessState.profileError,
-    clinic: accessState.clinic,
-    memberships: accessState.memberships,
-    profileLoading:
-  isAuthenticated &&
-  (!accessState.accessReady || !accessState.profile),
-
-clinicLoading:
-  isAuthenticated &&
-  (
-    !accessState.accessReady ||
-    (
-      !!effectiveClinicId &&
-      !accessState.clinic &&
-      !accessState.clinicResolutionFailed
-    )
-  ),
-
-membershipLoading:
-  isAuthenticated &&
-  !accessState.accessReady,
-    accessReady: accessState.accessReady,
-    activeClinicId,
-    effectiveClinicId,
-    resolvedClinicId: accessState.resolvedClinicId,
-    clinicResolutionFailed: accessState.clinicResolutionFailed,
-  }), [accessState.accessReady, accessState.clinic, accessState.clinicResolutionFailed, accessState.memberships, accessState.profile, accessState.profileError, accessState.resolvedClinicId, activeClinicId, effectiveClinicId, isAuthenticated]);
-
-  const roleValue = useMemo(() => ({
-    roles: accessState.roles,
-    role: accessState.role,
-    roleLoading: !accessState.accessReady && isAuthenticated,
-    roleMissing,
-  }), [accessState.accessReady, accessState.role, accessState.roles, isAuthenticated, roleMissing]);
-
-  const actionsValue = useMemo(() => ({
-    switchClinic,
-    reload,
-    signOut,
-  }), [reload, signOut, switchClinic]);
-
-  const value = useMemo(() => ({
-    ...authValue,
-    ...clinicValue,
-    ...roleValue,
-    ...actionsValue,
-  }), [actionsValue, authValue, clinicValue, roleValue]);
-
-  return (
-    <AccessAuthContext.Provider value={authValue}>
-      <AccessClinicContext.Provider value={clinicValue}>
-        <AccessRoleContext.Provider value={roleValue}>
-          <AccessActionsContext.Provider value={actionsValue}>
-            <AccessContext.Provider value={value}>{children}</AccessContext.Provider>
-          </AccessActionsContext.Provider>
-        </AccessRoleContext.Provider>
-      </AccessClinicContext.Provider>
-    </AccessAuthContext.Provider>
-  );
-}
-
-export function useAccess() {
-  const ctx = useContext(AccessContext);
-  if (!ctx) throw new Error("useAccess must be used within AccessProvider");
-  return ctx;
-}
-
-export function useAccessAuth() {
-  const ctx = useContext(AccessAuthContext);
-  if (!ctx) throw new Error("useAccessAuth must be used within AccessProvider");
-  return ctx;
-}
-
-export function useAccessClinic() {
-  const ctx = useContext(AccessClinicContext);
-  if (!ctx) throw new Error("useAccessClinic must be used within AccessProvider");
-  return ctx;
-}
-
-export function useAccessRole() {
-  const ctx = useContext(AccessRoleContext);
-  if (!ctx) throw new Error("useAccessRole must be used within AccessProvider");
-  return ctx;
-}
-
-export function useAccessActions() {
-  const ctx = useContext(AccessActionsContext);
-  if (!ctx) throw new Error("useAccessActions must be used within AccessProvider");
-  return ctx;
-}
