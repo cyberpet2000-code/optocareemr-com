@@ -487,7 +487,7 @@ setFeedbackFollowups(feedbackFollowupData ?? []);
       // Billing: only fetch if receptionist or admin
       if (showBillingMetrics) {
         queries.push(
-          apiClient.from("billing").select("*", { count: "exact", head: true }).eq("clinic_id", cid).eq("status", "pending").gt("total_amount", 0)
+          apiClient.from("billing").select("id", { count: "exact", head: true }).eq("clinic_id", cid).eq("status", "pending").gt("total_amount", 0)
         );
         queryKeys.push("pendingBills");
       }
