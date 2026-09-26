@@ -53,6 +53,14 @@ interface PatientRow {
   hmoClaimAmount?: number;
   patientPayable?: number;
   hmoClaimId?: string | null;
+  hmoRequestSent?: boolean;
+  hmoRequestStatus?: string | null;
+  hmoRequestResponseAt?: string | null;
+  hmoRequestRemarks?: string | null;
+  hmoClaimSent?: boolean;
+  hmoClaimResponseStatus?: string | null;
+  hmoClaimResponseAt?: string | null;
+  hmoClaimResponseRemarks?: string | null;
 }
 
 
@@ -82,6 +90,10 @@ export default function PatientList() {
   const { isOffline } = useOffline();
   const [patients, setPatients] = useState<PatientRow[]>([]);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [totalPatients, setTotalPatients] = useState(0);
+  const pageSize = 50;
   const [searchMode, setSearchMode] = useState<"all" | "hmo" | "private" | "family">("all");
   const [selectedHmo, setSelectedHmo] = useState("");
   const [selectedFamily, setSelectedFamily] = useState("");
@@ -103,6 +115,13 @@ export default function PatientList() {
   const filter = searchParams.get("filter");
 
   const patientListStateKey = `optocare:patient-list-state:${filter || "all"}`;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => { setPage(0); }, [debouncedSearch, searchMode, selectedHmo, selectedFamily, filter]);
   useEffect(() => {
     try {
       const saved = JSON.parse(sessionStorage.getItem(patientListStateKey) || "{}");
@@ -123,15 +142,13 @@ export default function PatientList() {
   }, [patientListStateKey, search, searchMode, selectedHmo, selectedFamily, showAdvancedSearch]);
 
   useEffect(() => {
-    if (!cid) { setPatients([]); setLoading(false); return; }
+    if (!cid) { setPatients([]); setTotalPatients(0); setLoading(false); return; }
     if (roleLoading) return;
     const cacheKey = `patients:${cid}`;
     const loadFromCache = async (failureCode: DiagnosisCode | null = null) => {
       const allCached = await secureOfflineGet<PatientRow[]>(`patients:${cid}:all`);
       const cached = allCached || await secureOfflineGet<PatientRow[]>(cacheKey);
       if (cached) {
-        // Older cache entries may contain raw patient rows. Normalize them so
-        // a stale/offline cache can never crash the patient cards.
         const normalized = cached.map((patient: any) => ({
           ...patient,
           visitSummary: patient.visitSummary || { visitCount: 0, lastVisit: null },
@@ -143,262 +160,93 @@ export default function PatientList() {
           hmoClaimId: patient.hmoClaimId || null,
         })) as PatientRow[];
         const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-        const visible = filter === "thismonth"
-          ? normalized.filter((patient: any) => new Date(patient.created_at) >= monthStart)
-          : normalized;
-        setPatients(visible);
+        const visible = filter === "thismonth" ? normalized.filter((p: any) => new Date(p.created_at) >= monthStart) : normalized;
+        const from = page * pageSize;
+        setPatients(visible.slice(from, from + pageSize));
+        setTotalPatients(visible.length);
       }
       setLoadError(failureCode);
       setLoading(false);
     };
-    if (isOffline) { loadFromCache("NO_NETWORK"); return; }
+    if (isOffline) { void loadFromCache("NO_NETWORK"); return; }
 
     (async () => {
       try {
+        setLoading(true);
         if (filter === "followup") {
-          const { data: followupData, error: followupError } = await apiClient.rpc("get_dashboard_feedback_followups", { p_clinic_id: cid });
-          if (!followupError) setFeedbackFollowups(followupData ?? []); else setFeedbackFollowups([]);
+          const { data, error } = await apiClient.rpc("get_dashboard_feedback_followups", { p_clinic_id: cid });
+          setFeedbackFollowups(error ? [] : (data ?? []));
+          setLoading(false);
+          return;
         }
-        const { data: clinicStaffRows, error: clinicStaffError } = await apiClient.from("clinic_users").select("user_id, role").eq("clinic_id", cid);
-        if (!clinicStaffError && clinicStaffRows) {
-          const staffUserIds = clinicStaffRows.map((staff: any) => staff.user_id).filter(Boolean);
-          if (staffUserIds.length > 0) {
-            const { data: staffProfiles } = await apiClient.from("profiles").select("id, full_name, role, is_active, is_super_admin").in("id", staffUserIds).eq("is_active", true);
-            const profileMap = new Map((staffProfiles || []).map((profile: any) => [profile.id, profile]));
-            const staffCandidates = clinicStaffRows.map((staff: any) => {
-              const profile = profileMap.get(staff.user_id);
-              if (!profile || !profile.full_name) return null;
-              return {
-                id: staff.user_id,
-                full_name: String(profile.full_name).trim(),
-                role: staff.role || profile.role,
-                is_super_admin: !!profile.is_super_admin,
-              };
-            }).filter(Boolean);
-            const dedupedStaff = new Map<string, any>();
-            staffCandidates.forEach((staff: any) => {
-              const key = staff.full_name.toLowerCase().replace(/\\s+/g, " ").trim();
-              const existing = dedupedStaff.get(key);
-              if (!existing || (existing.is_super_admin && !staff.is_super_admin)) dedupedStaff.set(key, staff);
-            });
-            setClinicStaff(Array.from(dedupedStaff.values()).sort((a: any, b: any) => a.full_name.localeCompare(b.full_name)));
-          } else setClinicStaff([]);
-        } else setClinicStaff([]);
 
-        // Always cache the complete patient list. Filtering is applied after
-        // retrieval so a prior "this month" view can never overwrite the
-        // offline cache with only a subset of patients.
-        // Supabase/PostgREST can cap a response at 1,000 rows. Patient List
-        // must never silently truncate a clinic, so fetch in deterministic pages.
-        const allPatientData: any[] = [];
-        const pageSize = 500;
-        for (let page = 0; ; page++) {
-          const { data: pageData, error: pageError } = await apiClient
-            .from("patients")
-            .select("*")
-            .eq("clinic_id", cid)
-            .order("created_at", { ascending: false })
-            .order("id", { ascending: false })
-            .range(page * pageSize, page * pageSize + pageSize - 1);
-          if (pageError) {
-            const diagnosis = await diagnoseRequestFailure(pageError);
-            await loadFromCache(diagnosis.code);
-            return;
-          }
-          if (!pageData || pageData.length === 0) break;
-          allPatientData.push(...pageData);
-          if (pageData.length < pageSize) break;
+        const [hmoResult, familyResult] = await Promise.all([
+          apiClient.from("hmos").select("id, name").eq("clinic_id", cid).eq("status", "active").order("name"),
+          apiClient.from("families").select("id, family_name, family_number").eq("clinic_id", cid).order("family_name"),
+        ]);
+        if (!hmoResult.error && hmoResult.data) setHmoOptions(hmoResult.data as { id: string; name: string }[]);
+        if (!familyResult.error && familyResult.data) setFamilyOptions(familyResult.data as any);
+
+        const terms = debouncedSearch.toLowerCase().replace(/[\\p{P}\\p{S}]+/gu, " ").replace(/\\s+/g, " ").trim().split(" ").filter(Boolean);
+        const wantsHmo = terms.includes("hmo") || terms.includes("insurance") || terms.includes("insurer");
+        const wantsFamily = terms.includes("family") || terms.includes("families");
+        const wantsPrivate = terms.includes("private");
+        const wantsPaid = terms.includes("paid");
+        const wantsDue = terms.includes("due") || terms.includes("owing") || terms.includes("owe");
+        const wantsHmoAttention = terms.includes("attention") || terms.includes("pending");
+        const categoryTerms = new Set(["hmo","insurance","insurer","family","families","private","paid","due","owing","owe","attention","pending","all","patient","patients"]);
+        const searchText = terms.filter(t => !categoryTerms.has(t)).join(" ") || null;
+        const mode = wantsHmo ? "hmo" : wantsFamily ? "family" : wantsPrivate ? "private" : searchMode;
+        const paymentFilter = wantsPaid ? "paid" : wantsDue ? "due" : null;
+        const monthStart = filter === "thismonth" ? new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString() : null;
+
+        const { data, error } = await apiClient.rpc("get_patient_list_page", {
+          p_clinic_id: cid, p_search: searchText, p_search_mode: mode,
+          p_hmo_id: selectedHmo || null, p_family_id: selectedFamily || null,
+          p_payment_filter: paymentFilter, p_hmo_attention: wantsHmoAttention,
+          p_created_after: monthStart, p_limit: pageSize, p_offset: page * pageSize,
+        });
+        if (error) {
+          const diagnosis = await diagnoseRequestFailure(error);
+          await loadFromCache(diagnosis.code);
+          return;
         }
-        if (allPatientData.length === 0) {
-          // An empty result is valid; do not treat it as a transport failure.
-        }
-        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-        const data = filter === "thismonth"
-          ? allPatientData.filter((patient: any) => new Date(patient.created_at) >= monthStart)
-          : allPatientData;
-        // IMPORTANT: the core patient list must not wait for HMO/family lookups.
-        // Those are optional enrichment and are deliberately loaded after the
-        // patient rows are rendered.
-        const patientIds = data.map(p => p.id);
-        const paymentTypes = new Map(data.map((p: any) => [p.id, p.payment_type]));
-        // Keep the UI responsive for large clinics: related records are queried
-        // in bounded batches instead of constructing oversized IN clauses.
-        const chunk = <T,>(items: T[], size = 200) => {
-          const out: T[][] = [];
-          for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
-          return out;
-        };
-        const baseRows = data.map((p: any) => ({
+
+        const rows = (data || []) as any[];
+        setTotalPatients(Number(rows[0]?.total_count || 0));
+        const mapped: PatientRow[] = rows.map((p: any) => ({
           ...p,
-          hmo_name: undefined,
-          family_name: undefined,
-          balance: 0,
-          patientPayable: 0,
-          hmoClaimStatus: null,
-          hmoClaimAmount: 0,
-          hmoClaimId: null,
-          visitSummary: { visitCount: 0, lastVisit: null },
-          billingSummary: getPaymentStatus([], p.payment_type),
+          balance: Number(p.outstanding_balance || 0),
+          patientPayable: Number(p.patient_payable || 0),
+          hmoClaimAmount: Number(p.hmo_claim_amount || 0),
+          hmoClaimStatus: p.hmo_claim_status || null,
+          hmoClaimId: p.hmo_claim_id || null,
+          hmoRequestSent: Boolean(p.hmo_request_sent),
+          hmoRequestStatus: p.hmo_request_status || "Not sent",
+          hmoRequestResponseAt: p.hmo_request_response_at || null,
+          hmoRequestRemarks: p.hmo_request_remarks || null,
+          hmoClaimSent: Boolean(p.hmo_claim_sent),
+          hmoClaimResponseStatus: p.hmo_claim_response_status || "Pending",
+          hmoClaimResponseAt: p.hmo_claim_response_at || null,
+          hmoClaimResponseRemarks: p.hmo_claim_response_remarks || null,
+          visitSummary: { visitCount: Number(p.visit_count || 0), lastVisit: p.last_visit || null },
+          billingSummary: { paymentStatus: p.payment_status || "No billing", outstandingBalance: Number(p.outstanding_balance || 0) },
           feedbackStatus: "none",
         }));
-        setPatients(baseRows);
+        setPatients(mapped);
         setLoadError(null);
         setLoading(false);
-        await secureOfflineSave(cacheKey, baseRows);
-        // Store the enriched row shape even for the offline "all" cache.
-        // Never overwrite it with raw patient records that lack visit/billing summaries.
-        await secureOfflineSave(`patients:${cid}:all`, baseRows);
-        cachePatientsOffline(cid, baseRows);
-
-        // Optional HMO/family enrichment. Failure here must never affect the
-        // already-visible patient list.
-        void (async () => {
-          try {
-            const hmoResult = await apiClient.from("hmos").select("id, name").eq("clinic_id", cid).eq("status", "active").order("name");
-            const hmoMap = new Map<string, string>();
-            if (hmoResult.data) {
-              setHmoOptions(hmoResult.data as { id: string; name: string }[]);
-              hmoResult.data.forEach((h: any) => hmoMap.set(h.id, h.name));
-            }
-            const familyIds = [...new Set(data.map((p: any) => p.family_id).filter(Boolean))];
-            const familyMap = new Map<string, string>();
-            if (familyIds.length > 0) {
-              const familyResult = await apiClient.from("families").select("id, family_name, family_number").eq("clinic_id", cid).in("id", familyIds as string[]);
-              (familyResult.data || []).forEach((family: any) => familyMap.set(family.id, family.family_name));
-            }
-            const allFamilyResult = await apiClient.from("families").select("id, family_name, family_number").eq("clinic_id", cid).order("family_name");
-            if (allFamilyResult.data) setFamilyOptions(allFamilyResult.data as any);
-            setPatients(prev => prev.map((p: any) => ({
-              ...p,
-              hmo_name: p.active_hmo_id ? hmoMap.get(p.active_hmo_id) : undefined,
-              family_name: p.family_id ? familyMap.get(p.family_id) : undefined,
-            })));
-          } catch (enrichmentError) {
-            console.warn("PatientList HMO/family enrichment unavailable:", enrichmentError);
-          }
-        })();
-        setLoadError(null);
-        setLoading(false);
-        // Core patient cache was saved immediately above.
-
-        if (patientIds.length === 0) return;
-
-        try {
-          const visitRows: any[] = [];
-          const bills: any[] = [];
-          const hmoClaims: any[] = [];
-
-          for (const ids of chunk(patientIds)) {
-            const [visitResponse, billingResponse, hmoClaimsResponse] = await Promise.all([
-              apiClient.from("visits")
-                .select(isReceptionist ? "id, patient_id, created_at, status" : "*")
-                .eq("clinic_id", cid).in("patient_id", ids)
-                .order("created_at", { ascending: false }),
-              canViewPayments
-                ? apiClient.from("billing")
-                    .select("id, patient_id, total_amount, balance, amount_paid, status, payer_type, hmo_id, hmo_covered_amount, patient_payable, created_at")
-                    .eq("clinic_id", cid).in("patient_id", ids)
-                : Promise.resolve({ data: [] as any[], error: null }),
-              canViewPayments
-                ? apiClient.from("hmo_claims")
-                    .select("id, patient_id, billing_id, hmo_id, service_cost, approved_amount, status, hmo_request_sent, hmo_request_sent_at, hmo_request_status, hmo_request_response_at, hmo_request_remarks, claim_sent, claim_sent_at, claim_response_status, claim_response_at, claim_response_remarks, created_at, updated_at")
-                    .eq("clinic_id", cid).in("patient_id", ids)
-                    .order("created_at", { ascending: false })
-                : Promise.resolve({ data: [] as any[] }),
-            ]);
-            if (!visitResponse.error) visitRows.push(...(visitResponse.data || []));
-            if (!billingResponse.error) bills.push(...(billingResponse.data || []));
-            if (!hmoClaimsResponse.error) hmoClaims.push(...(hmoClaimsResponse.data || []));
-          }
-
-          const latestVisitByPatient = new Map<string, any>();
-          visitRows.forEach((visit: any) => {
-            if (!latestVisitByPatient.has(visit.patient_id)) latestVisitByPatient.set(visit.patient_id, visit);
-          });
-
-          const latestClaimByPatient = new Map<string, any>();
-          hmoClaims.forEach((claim: any) => {
-            if (!latestClaimByPatient.has(claim.patient_id)) latestClaimByPatient.set(claim.patient_id, claim);
-          });
-
-          const balanceMap = new Map<string, number>();
-          bills.forEach((bill: any) => {
-            const current = balanceMap.get(bill.patient_id) || 0;
-            balanceMap.set(bill.patient_id, current + Number(bill.balance || 0));
-          });
-
-          const visitSummaryMap = buildVisitSummaryMap(visitRows);
-          const billingSummaryMap = buildBillingSummaryMap(bills, paymentTypes);
-
-          const enrichedRows = baseRows.map((p: any) => {
-            const patientBills = bills.filter((bill: any) => bill.patient_id === p.id);
-            const latestBill = patientBills.length > 0
-              ? patientBills.reduce((latest: any, bill: any) =>
-                  !latest || String(bill.created_at || "") > String(latest.created_at || "") ? bill : latest, null)
-              : null;
-            const latestClaim = latestClaimByPatient.get(p.id);
-            const claimAmount = latestClaim
-              ? Number(latestClaim.approved_amount || 0) > 0
-                ? Number(latestClaim.approved_amount)
-                : Number(latestClaim.service_cost || 0)
-              : Number(latestBill?.hmo_covered_amount || 0);
-            const patientPayable = patientBills.reduce(
-              (sum: number, bill: any) => sum + Number(bill.patient_payable || 0), 0,
-            );
-
-            return {
-              ...p,
-              balance: balanceMap.get(p.id) || 0,
-              patientPayable,
-              hmoClaimStatus: latestClaim?.status || null,
-              hmoClaimAmount: claimAmount,
-              hmoClaimId: latestClaim?.id || null,
-              hmoRequestSent: Boolean(latestClaim?.hmo_request_sent),
-              hmoRequestSentAt: latestClaim?.hmo_request_sent_at || null,
-              hmoRequestStatus: latestClaim?.hmo_request_status || "Not sent",
-              hmoRequestResponseAt: latestClaim?.hmo_request_response_at || null,
-              hmoRequestRemarks: latestClaim?.hmo_request_remarks || null,
-              hmoClaimSent: Boolean(latestClaim?.claim_sent),
-              hmoClaimSentAt: latestClaim?.claim_sent_at || null,
-              hmoClaimResponseStatus: latestClaim?.claim_response_status || "Pending",
-              hmoClaimResponseAt: latestClaim?.claim_response_at || null,
-              hmoClaimResponseRemarks: latestClaim?.claim_response_remarks || null,
-              visitSummary: visitSummaryMap.get(p.id) || { visitCount: 0, lastVisit: null },
-              billingSummary: billingSummaryMap.get(p.id) || getPaymentStatus([], p.payment_type),
-            };
-          });
-
-          setPatients(enrichedRows);
-          await secureOfflineSave(cacheKey, enrichedRows);
-          // Keep the existing HMO enrichment from the row itself. The HMO
-          // map belongs to the optional enrichment task above and must never
-          // leak into this core enrichment scope.
-          cachePatientsOffline(cid, enrichedRows);
-
-          if (!isReceptionist && visitRows.length > 0) {
-            const staffIds = Array.from(new Set(
-              visitRows.flatMap((visit: any) => [visit.doctor_id, visit.registered_by]).filter(Boolean),
-            ));
-            if (staffIds.length > 0) {
-              const { data: staffProfiles } = await apiClient
-                .from("profiles")
-                .select("id, full_name, role, title, is_active")
-                .in("id", staffIds);
-              if (staffProfiles) cacheStaffProfilesOffline(cid, staffProfiles);
-            }
-          }
-        } catch (enrichmentError) {
-          // The patient list is already rendered. A billing/visit/HMO
-          // enrichment failure must not blank the page or replace it with an
-          // error state.
-          console.warn("PatientList enrichment unavailable:", enrichmentError);
+        if (page === 0) {
+          await secureOfflineSave(cacheKey, mapped);
+          await secureOfflineSave(`patients:${cid}:all`, mapped);
+          await cachePatientsOffline(cid, mapped);
         }
       } catch (error) {
         console.error("PatientList loading error:", error);
-        loadFromCache();
+        await loadFromCache();
       }
     })();
-  }, [cid, isOffline, canViewPayments, roleLoading, filter]);
+  }, [cid, isOffline, canViewPayments, roleLoading, filter, debouncedSearch, searchMode, selectedHmo, selectedFamily, page]);
 
   const openFollowupAction = (followup: any, action: "complete" | "cancel") => {
     setSelectedFollowup(followup); setFollowupAction(action); setFollowupNotes(""); setFollowupDialogOpen(true);
@@ -417,61 +265,8 @@ export default function PatientList() {
     } catch (error) { console.error("Failed to update follow-up:", error); alert("Unable to update this follow-up. Please try again."); }
     finally { setUpdatingFollowup(false); }
   };
-  const normalizedSearch = search.trim().toLowerCase().replace(/[\\p{P}\\p{S}]+/gu, " ").replace(/\\s+/g, " ");
-  const searchTerms = normalizedSearch.split(" ").filter(Boolean);
-  const wantsHmo = searchTerms.includes("hmo") || searchTerms.includes("insurance") || searchTerms.includes("insurer");
-  const wantsFamily = searchTerms.includes("family") || searchTerms.includes("families");
-  const wantsPrivate = searchTerms.includes("private");
-  const wantsPaid = searchTerms.includes("paid");
-  const wantsDue = searchTerms.includes("due") || searchTerms.includes("owing") || searchTerms.includes("owe");
-  const wantsHmoAttention = searchTerms.includes("attention") || searchTerms.includes("pending");
-  const filtered = patients.filter(p => {
-    const isHmo = p.payment_type === "hmo";
-    const isFamily = !!p.family_id;
-    const matchesMode =
-      searchMode === "all"
-        ? true
-        : searchMode === "hmo"
-          ? isHmo
-          : searchMode === "private"
-            ? !isHmo
-            : isFamily;
-    if (!matchesMode) return false;
-
-    if (selectedHmo && p.active_hmo_id !== selectedHmo) return false;
-    if (selectedFamily && p.family_id !== selectedFamily) return false;
-
-    const explicitCategory = wantsHmo || wantsFamily || wantsPrivate;
-    const isHmoAttention = isHmo && (!p.hmoClaimStatus || ["pending", "requested", "submitted", "sent", "processing", "approved"].includes(String(p.hmoClaimStatus).toLowerCase()));
-    const isPaid = !isHmo ? p.billingSummary?.paymentStatus === "Paid" : false;
-    const isDue = !isHmo ? Number(p.balance || 0) > 0 : Number(p.patientPayable || 0) > 0;
-    const categoryMatches =
-      (!wantsHmo || isHmo) &&
-      (!wantsFamily || isFamily) &&
-      (!wantsPrivate || !isHmo);
-
-    const termsToMatch = searchTerms.filter(term =>
-      !["all", "patient", "patients", "hmo", "insurance", "insurer", "family", "families", "private", "paid", "due", "owing", "owe", "attention", "pending"].includes(term)
-    );
-
-    if (!categoryMatches) return false;
-    if (wantsPaid && !isPaid) return false;
-    if (wantsDue && !isDue) return false;
-    if (wantsHmoAttention && !isHmoAttention) return false;
-    if (termsToMatch.length === 0) return true;
-
-    const haystack = [
-      p.full_name,
-      p.phone,
-      p.patient_number,
-      p.hmo_name,
-      p.family_name,
-      p.family_id,
-      p.hmoClaimStatus,
-    ].filter(Boolean).join(" ").toLowerCase();
-
-    return termsToMatch.every(term => haystack.includes(term));
-  });
+  const normalizedSearch = debouncedSearch.trim().toLowerCase();
+  const filtered = patients;
 
   return (
     <>
@@ -542,7 +337,7 @@ export default function PatientList() {
 
         {(search || selectedHmo || selectedFamily || searchMode !== "all") && (
           <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-            <span>{filtered.length} patient{filtered.length === 1 ? "" : "s"} found</span>
+            <span>{totalPatients.toLocaleString()} patient{totalPatients === 1 ? "" : "s"} found</span>
             <button type="button" className="text-primary font-semibold" onClick={() => { setSearch(""); setSelectedHmo(""); setSelectedFamily(""); setSearchMode("all"); }}>
               Clear filters
             </button>
@@ -577,6 +372,15 @@ export default function PatientList() {
   )}
 </div>
 <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap"><span>Visits: {p.visitSummary.visitCount}</span><span>•</span><span>Last: {p.visitSummary.lastVisit ? new Date(p.visitSummary.lastVisit).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</span></div><div className="mt-2">{p.feedbackStatus === "completed" ? <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-1 text-[11px] font-medium text-green-700">✓ Feedback Completed</span> : p.feedbackStatus === "pending" ? <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-700">● Feedback Pending</span> : p.visitSummary.visitCount > 0 ? <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">○ No Feedback</span> : null}</div></div></Link><div className="flex items-center gap-1 shrink-0">{p.phone && <><a href={`tel:${p.phone}`} className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center hover:bg-green-100 transition-colors" title="Call"><Phone size={14} className="text-success" /></a><a href={`https://wa.me/${normalizeWhatsAppNumber(p.phone)}`} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center hover:bg-green-100 transition-colors" title="WhatsApp"><MessageCircle size={14} className="text-success" /></a></>}<Link to={`/patient/${p.id}`} className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"><ChevronRight size={16} className="text-primary" /></Link></div></div>; })}</div>}
+      {!loading && filter !== "followup" && totalPatients > pageSize && (
+        <div className="flex items-center justify-between gap-3 mt-5 px-1">
+          <span className="text-xs text-muted-foreground">Page {page + 1} of {Math.max(1, Math.ceil(totalPatients / pageSize))}</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="rounded-xl" disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>Previous</Button>
+            <Button size="sm" variant="outline" className="rounded-xl" disabled={(page + 1) * pageSize >= totalPatients} onClick={() => setPage(p => p + 1)}>Next</Button>
+          </div>
+        </div>
+      )}
       <Dialog open={followupDialogOpen} onOpenChange={(open) => { if (!updatingFollowup) { setFollowupDialogOpen(open); if (!open) { setSelectedFollowup(null); setFollowupAction(null); setFollowupNotes(""); } } }}><DialogContent className="rounded-3xl"><DialogHeader><DialogTitle>{followupAction === "complete" ? "Complete Follow-up" : "Cancel Follow-up"}</DialogTitle><DialogDescription>{followupAction === "complete" ? "Confirm that this patient follow-up has been resolved." : "Are you sure you want to cancel this patient follow-up?"}</DialogDescription></DialogHeader><div className="space-y-3"><div><p className="text-sm font-semibold">Patient</p><p className="text-sm text-muted-foreground">{selectedFollowup?.patient_name || "—"}</p></div><div><label className="text-sm font-semibold">{followupAction === "complete" ? "Resolution notes" : "Cancellation reason"}</label><Textarea value={followupNotes} onChange={(e) => setFollowupNotes(e.target.value)} placeholder={followupAction === "complete" ? "Describe what was done to resolve the patient's issue..." : "Enter the reason for cancelling this follow-up..."} className="mt-2 min-h-[120px] rounded-xl" /></div></div><DialogFooter className="gap-2"><Button type="button" variant="outline" className="rounded-xl" onClick={() => { if (updatingFollowup) return; setFollowupDialogOpen(false); setSelectedFollowup(null); setFollowupAction(null); setFollowupNotes(""); }} disabled={updatingFollowup}>Cancel</Button><Button type="button" className="rounded-xl" onClick={handleUpdateFollowup} disabled={updatingFollowup || followupNotes.trim().length === 0}>{updatingFollowup ? "Saving..." : followupAction === "complete" ? "Complete Follow-up" : "Cancel Follow-up"}</Button></DialogFooter></DialogContent></Dialog>
     </>
   );
