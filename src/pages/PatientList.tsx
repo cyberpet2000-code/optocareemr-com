@@ -25,6 +25,7 @@ import { useRole } from "@/hooks/useRole";
 import { secureOfflineGet, secureOfflineSave } from "@/lib/secureOfflineStore";
 import { cacheVisitsOffline, cacheStaffProfilesOffline } from "@/lib/offlineEngine";
 import { useOffline } from "@/hooks/useOffline";
+import { diag } from "@/lib/diag";
 import PatientHistoryMeta from "@/components/patients/PatientHistoryMeta";
 import { buildBillingSummaryMap, buildVisitSummaryMap, getPaymentStatus, type PatientBillingSummary, type PatientVisitSummary } from "@/lib/patientHistory";
 import { normalizeWhatsAppNumber } from "@/lib/whatsapp";
@@ -171,6 +172,7 @@ export default function PatientList() {
     if (isOffline) { void loadFromCache("NO_NETWORK"); return; }
 
     (async () => {
+      const endPatientListPerf = diag.time("perf", "patient-list-load", { page, filter: filter || "all", search: Boolean(debouncedSearch) });
       try {
         setLoading(true);
         if (filter === "followup") {
@@ -241,6 +243,7 @@ export default function PatientList() {
 
         }
       } catch (error) {
+        endPatientListPerf({ source: "error" });
         console.error("PatientList loading error:", error);
         await loadFromCache();
       }
