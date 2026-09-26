@@ -1,5 +1,16 @@
-const CACHE_NAME = "optocare-shell-v9";
+const CACHE_NAME = "optocare-shell-v10";
 const APP_SHELL = ["/", "/index.html"];
+
+const cacheShell = async (response) => {
+  if (!response?.ok) return;
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.put("/index.html", response.clone());
+    await cache.put("/", response.clone());
+  } catch {
+    // Cache refresh must never affect the active app.
+  }
+};
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -15,6 +26,7 @@ self.addEventListener("install", (event) => {
             }
           }),
         );
+
         try {
           const response = await fetch("/index.html", { cache: "no-store" });
           if (!response.ok) return;
@@ -66,19 +78,29 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
 
   // Never cache API/Supabase traffic.
-  if (url.pathname.startsWith("/rest/") || url.pathname.startsWith("/auth/") || url.pathname.startsWith("/functions/")) return;
+  if (
+    url.pathname.startsWith("/rest/") ||
+    url.pathname.startsWith("/auth/") ||
+    url.pathname.startsWith("/functions/")
+  ) return;
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put("/index.html", copy)).catch(() => undefined);
-          }
-          return response;
-        })
-        .catch(() => caches.match("/index.html").then((cached) => cached || caches.match("/"))),
+      caches.match("/index.html").then((cached) => {
+        const refresh = fetch(request, { cache: "no-store" })
+          .then((response) => {
+            if (response.ok) {
+              cacheShell(response).catch(() => undefined);
+            }
+            return response;
+          })
+          .catch(() => undefined);
+
+        // Cached shell wins immediately. Network is only a background refresh.
+        return cached || refresh.then((response) =>
+          response || caches.match("/").then((root) => root || Response.error()),
+        );
+      }),
     );
     return;
   }
@@ -92,8 +114,8 @@ self.addEventListener("fetch", (event) => {
     url.pathname.endsWith(".png") ||
     url.pathname.endsWith(".webp")
   ) {
-    // Static Vite assets are content-hashed/versioned. Serve a cached copy
-    // immediately on slow/unstable networks and refresh it in the background.
+    // Static Vite assets are content-hashed/versioned. Serve cached assets
+    // immediately and refresh them in the background.
     event.respondWith(
       caches.match(request).then((cached) => {
         const network = fetch(request, { cache: "no-store" })
