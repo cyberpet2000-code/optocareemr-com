@@ -1,4 +1,4 @@
-const CACHE_NAME = "optocare-shell-v8";
+const CACHE_NAME = "optocare-shell-v9";
 const APP_SHELL = ["/", "/index.html"];
 
 self.addEventListener("install", (event) => {
@@ -92,17 +92,22 @@ self.addEventListener("fetch", (event) => {
     url.pathname.endsWith(".png") ||
     url.pathname.endsWith(".webp")
   ) {
+    // Static Vite assets are content-hashed/versioned. Serve a cached copy
+    // immediately on slow/unstable networks and refresh it in the background.
     event.respondWith(
-      fetch(request, { cache: "no-store" })
-        .then((response) => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => undefined);
-          }
-          return response;
-        })
-        .catch(() => caches.match(request)),
+      caches.match(request).then((cached) => {
+        const network = fetch(request, { cache: "no-store" })
+          .then((response) => {
+            if (response.ok) {
+              const copy = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => undefined);
+            }
+            return response;
+          })
+          .catch(() => undefined);
 
+        return cached || network.then((response) => response || caches.match(request));
+      }),
     );
   }
 });

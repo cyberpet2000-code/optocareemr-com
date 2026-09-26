@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, memo, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,46 +9,46 @@ import { useRole } from "@/hooks/useRole";
 import { useAccessAuth, useAccessClinic, useAccessRole, AccessProvider } from "@/hooks/useAccess";
 import AppLayout from "@/components/AppLayout";
 import { ACCESS_TIMEOUT_MS, resolveDefaultRoute, resolveProtectedRoute } from "@/lib/route-access";
-import Dashboard from "./pages/Dashboard";
-import Visits from "@/pages/Visits";
-import PatientRegister from "./pages/PatientRegister";
-import PatientList from "./pages/PatientList";
-import PatientRecord from "./pages/PatientRecord";
-import Appointments from "./pages/Appointments";
-import Inventory from "./pages/Inventory";
-import Billing from "./pages/Billing";
-import AdminRoles from "./pages/AdminRoles";
-import HmoManagement from "./pages/HmoManagement";
-import Onboarding from "./pages/Onboarding";
-import SuperAdminDashboard from "./pages/SuperAdminDashboard";
-import SuperAdminClinics from "./pages/SuperAdminClinics";
-import SuperAdminCreateClinic from "./pages/SuperAdminCreateClinic";
-import SuperAdminArchives from "./pages/SuperAdminArchives";
-import SystemHealth from "./pages/SystemHealth";
-import EmergencyResponse from "./pages/EmergencyResponse";
-import Login from "./pages/Login";
-import ResetPassword from "./pages/ResetPassword";
-import SelectClinic from "./pages/SelectClinic";
-import AcceptInvite from "./pages/AcceptInvite";
-import NoAccess from "./pages/NoAccess";
-import NotFound from "./pages/NotFound";
-import LegalIndex from "./pages/legal/LegalIndex";
-import LegalTerms from "./pages/legal/Terms";
-import LegalPrivacy from "./pages/legal/Privacy";
-import LegalCookies from "./pages/legal/Cookies";
-import LegalDPA from "./pages/legal/DPA";
-import LegalSecurity from "./pages/legal/Security";
-import LegalCompliance from "./pages/legal/Compliance";
-import LegalMedical from "./pages/legal/MedicalDisclaimer";
-import LegalContact from "./pages/legal/Contact";
-import PatientFeedback from "./pages/PatientFeedback";
-import Notifications from "./pages/Notifications";
-import Expenses from "./pages/Expenses";
-import InventoryAudit from "./pages/InventoryAudit";
-import AccountSettings from "./pages/AccountSettings";
-import MonthlyReports from "./pages/MonthlyReports";
-import DailyFrontDeskReport from "./pages/DailyFrontDeskReport";
-import Outreach from "./pages/Outreach";
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Visits = lazy(() => import("@/pages/Visits"));
+const PatientRegister = lazy(() => import("./pages/PatientRegister"));
+const PatientList = lazy(() => import("./pages/PatientList"));
+const PatientRecord = lazy(() => import("./pages/PatientRecord"));
+const Appointments = lazy(() => import("./pages/Appointments"));
+const Inventory = lazy(() => import("./pages/Inventory"));
+const Billing = lazy(() => import("./pages/Billing"));
+const AdminRoles = lazy(() => import("./pages/AdminRoles"));
+const HmoManagement = lazy(() => import("./pages/HmoManagement"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
+const SuperAdminClinics = lazy(() => import("./pages/SuperAdminClinics"));
+const SuperAdminCreateClinic = lazy(() => import("./pages/SuperAdminCreateClinic"));
+const SuperAdminArchives = lazy(() => import("./pages/SuperAdminArchives"));
+const SystemHealth = lazy(() => import("./pages/SystemHealth"));
+const EmergencyResponse = lazy(() => import("./pages/EmergencyResponse"));
+const Login = lazy(() => import("./pages/Login"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const SelectClinic = lazy(() => import("./pages/SelectClinic"));
+const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
+const NoAccess = lazy(() => import("./pages/NoAccess"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const LegalIndex = lazy(() => import("./pages/legal/LegalIndex"));
+const LegalTerms = lazy(() => import("./pages/legal/Terms"));
+const LegalPrivacy = lazy(() => import("./pages/legal/Privacy"));
+const LegalCookies = lazy(() => import("./pages/legal/Cookies"));
+const LegalDPA = lazy(() => import("./pages/legal/DPA"));
+const LegalSecurity = lazy(() => import("./pages/legal/Security"));
+const LegalCompliance = lazy(() => import("./pages/legal/Compliance"));
+const LegalMedical = lazy(() => import("./pages/legal/MedicalDisclaimer"));
+const LegalContact = lazy(() => import("./pages/legal/Contact"));
+const PatientFeedback = lazy(() => import("./pages/PatientFeedback"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const Expenses = lazy(() => import("./pages/Expenses"));
+const InventoryAudit = lazy(() => import("./pages/InventoryAudit"));
+const AccountSettings = lazy(() => import("./pages/AccountSettings"));
+const MonthlyReports = lazy(() => import("./pages/MonthlyReports"));
+const DailyFrontDeskReport = lazy(() => import("./pages/DailyFrontDeskReport"));
+const Outreach = lazy(() => import("./pages/Outreach"));
 import {
   diag,
   isDiagEnabled,
@@ -265,6 +265,7 @@ export function AppRoutes() {
   }
 
   return isPublicRoute ? (
+    <Suspense fallback={<FullScreenLoader />}>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/reset-password" element={<ResetPassword />} />
@@ -283,8 +284,10 @@ export function AppRoutes() {
       <Route path="/legal/contact" element={<LegalContact />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
+    </Suspense>
   ) : (
     <ProtectedRouteGate>
+      <Suspense fallback={<FullScreenLoader />}>
       <Routes>
         <Route path="/onboarding" element={<PageErrorBoundary pageName="Onboarding"><Onboarding /></PageErrorBoundary>} />
         <Route path="/select-clinic" element={<PageErrorBoundary pageName="Clinic Selection"><SelectClinic /></PageErrorBoundary>} />
@@ -322,6 +325,7 @@ export function AppRoutes() {
 
         <Route path="/" element={<LandingRedirect />} />
       </Routes>
+      </Suspense>
     </ProtectedRouteGate>
   );
 }
