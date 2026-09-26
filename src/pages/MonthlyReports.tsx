@@ -27,7 +27,7 @@ export default function MonthlyReports() {
   const load = useCallback(async () => {
     if (!effectiveClinicId) return;
     setLoading(true);
-    const { data, error } = await apiClient.from("monthly_reports").select("id,clinic_id,year,month,status,storage_path,file_size_bytes,error_message,created_at,payload")
+    const { data, error } = await apiClient.from("monthly_reports").select("id,clinic_id,year,month,status,storage_path,file_size_bytes,error_message,created_at")
       .eq("clinic_id", effectiveClinicId).order("year", { ascending: false }).order("month", { ascending: false }).limit(24);
     if (error) toast.error(await getUserFacingErrorMessage(error, "OptoCare could not complete this request. Please try again."));
     setRows((data as any) || []);
@@ -58,7 +58,7 @@ export default function MonthlyReports() {
   async function download(r: Report) {
     if (!r.storage_path) return;
     const { data, error } = await apiClient.storage.from("monthly-reports").createSignedUrl(r.storage_path, 300);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(await getUserFacingErrorMessage(error, "OptoCare could not prepare the report download."));
     window.open(data.signedUrl, "_blank");
   }
 
