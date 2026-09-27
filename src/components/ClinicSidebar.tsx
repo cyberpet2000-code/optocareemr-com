@@ -59,7 +59,6 @@ export default function ClinicSidebar() {
         ],
         secondary: [
           { to: "/outreach", label: "Campaigns & Leads", icon: Megaphone },
-        { to: "/settings/clinic", label: "Clinic Settings", icon: Building2 },
           { to: "/settings/account", label: "Account", icon: UserCog },
           { to: "/super-admin/create-clinic", label: "Create Clinic", icon: Sparkles },
           { to: "/super-admin/archives", label: "Data Archives", icon: Archive },
@@ -114,6 +113,7 @@ export default function ClinicSidebar() {
         { to: "/outreach", label: "Campaigns & Leads", icon: Megaphone },
         { to: "/reports/monthly", label: "Monthly Reports", icon: FileBarChart },
         { to: "/inventory/audit", label: "Inventory Audit", icon: ClipboardList },
+        ...(isAdmin ? [{ to: "/settings/clinic", label: "Clinic Settings", icon: Building2 }] : []),
         { to: "/settings/account", label: "Account", icon: UserCog },
         ...(isAdmin ? [{ to: "/admin/roles", label: "Manage Roles", icon: ShieldCheck }] : []),
       ],
