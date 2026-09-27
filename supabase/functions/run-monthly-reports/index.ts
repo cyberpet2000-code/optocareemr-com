@@ -11,17 +11,18 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-function isInternalServiceCall(req: Request): boolean {
-  const auth = req.headers.get("Authorization") || "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
-  return !!token && token === SERVICE_ROLE;
+async function isInternalServiceCall(req: Request, admin: ReturnType<typeof createClient>): Promise<boolean> {
+  const provided = req.headers.get("x-optocare-internal-secret");
+  if (!provided) return false;
+  const { data: expected } = await admin.rpc("get_optocare_internal_edge_secret");
+  return !!expected && provided === expected;
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (!isInternalServiceCall(req)) return json({ error: "Unauthorized" }, 401);
   const json = (b: any, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+  if (!(await isInternalServiceCall(req, admin))) return json({ error: "Unauthorized" }, 401);
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -39,8 +40,11 @@ Deno.serve(async (req) => {
     for (const c of clinics || []) {
       if (c.is_active === false) continue;
       try {
+        const internalSecret = (await admin.rpc("get_optocare_internal_edge_secret")).data;
+        if (!internalSecret) throw new Error("Internal invocation secret is not configured");
         const r = await admin.functions.invoke("generate-monthly-report", {
           body: { clinic_id: c.id, year, month, send_email: true },
+          headers: { "x-optocare-internal-secret": internalSecret },
         });
         results.push({ clinic_id: c.id, ok: !r.error, error: r.error?.message });
       } catch (e: any) {
