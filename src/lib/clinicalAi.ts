@@ -1,7 +1,7 @@
 import { analyzeClinicalFlags } from "@/lib/clinicalRules";
 import { supabase } from "@/integrations/supabase/client";
 // OptoCare Clinical AI — secure cloud decision support.
-// The browser sends only de-identified clinical findings to /api/clinical-ai.
+// The browser sends de-identified clinical findings through the authenticated OptoCare AI Gateway.
 // The Gemini API key stays server-side in Vercel environment variables.
 
 export type ClinicalAiProgress = {
