@@ -264,10 +264,10 @@ export async function analyzeClinicalCase(
   const request = (async () => {
     let response: Response;
     try {
-      response = await fetch("/api/clinical-ai", {
+      response = await fetch("/api/ai-gateway", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clinicalData: requestData }),
+        body: JSON.stringify({ action: "clinical_case_analysis", clinicalData: requestData }),
       });
     } catch {
       throw new Error("OptoCare Clinical AI could not connect to its AI service. Please check your internet connection and try again.");
