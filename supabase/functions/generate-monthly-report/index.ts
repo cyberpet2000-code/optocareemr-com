@@ -323,15 +323,16 @@ Deno.serve(async (req) => {
                 ? { Authorization: incomingAuthorization }
                 : undefined,
           });
-        } catch (e) { console.error("email invoke failed", e); }
+        } catch { console.error("monthly report email invoke failed"); }
       }
 
       return json({ ok: true, report_id: reportId, path, size: pdfBytes.length });
     } catch (e: any) {
-      await admin.from("monthly_reports").update({ status: "failed", error_message: String(e?.message || e) }).eq("id", reportId);
-      return json({ error: e?.message || String(e) }, 500);
+      const internalMessage = typeof e?.message === "string" ? e.message.slice(0, 500) : "Monthly report generation failed.";
+      await admin.from("monthly_reports").update({ status: "failed", error_message: internalMessage }).eq("id", reportId);
+      return json({ error: "Monthly report generation failed." }, 500);
     }
-  } catch (e: any) {
-    return json({ error: e?.message || String(e) }, 500);
+  } catch {
+    return json({ error: "Monthly report generation failed." }, 500);
   }
 });
