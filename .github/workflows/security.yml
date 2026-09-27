@@ -38,7 +38,7 @@ jobs:
         run: npm audit --audit-level=high
 
       - name: Lint
-        run: npm run lint
+        run: npx eslint src api tests
 
       - name: TypeScript check
         run: npx tsc --noEmit
