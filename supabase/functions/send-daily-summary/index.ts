@@ -253,8 +253,15 @@ async function processClinic(admin: any, clinic: any, RESEND_API_KEY: string, bo
   return { clinic_id: clinic.id, sent, recipients: recipients.length };
 }
 
+function isInternalServiceCall(req: Request): boolean {
+  const auth = req.headers.get("Authorization") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+  return !!token && token === SERVICE_ROLE;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (!isInternalServiceCall(req)) return json({ error: "Unauthorized" }, 401);
   const json = (b: unknown, status = 200) =>
     new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
