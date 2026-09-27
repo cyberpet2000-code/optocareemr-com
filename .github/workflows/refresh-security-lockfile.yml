@@ -1,5 +1,7 @@
 name: Refresh security lockfile
 on:
+  push:
+    branches: [security/permanent-gate]
   workflow_dispatch:
 permissions:
   contents: write
