@@ -28,10 +28,17 @@ Deno.serve(async (req) => {
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const SECRET = Deno.env.get("RESEND_WEBHOOK_SECRET");
+  if (!SECRET) {
+    // Webhooks are privileged: fail closed if signature verification is not configured.
+    return new Response(JSON.stringify({ error: "Webhook verification is not configured" }), {
+      status: 503,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
   const raw = await req.text();
-  if (SECRET) {
+  {
     const ok = await verifySvix(req, raw, SECRET).catch(() => false);
     if (!ok) return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
