@@ -385,11 +385,21 @@ export default function Billing() {
               .select("*")
               .in("billing_id", billingIds),
             visitIds.length
-              ? apiClient.rpc("get_receptionist_patient_visits_page", {
-                  p_patient_id: patient.id,
-                  p_limit: 51,
-                  p_offset: 0,
-                })
+              ? (role === "receptionist"
+                  ? apiClient.rpc("get_receptionist_patient_visits_page", {
+                      p_patient_id: patient.id,
+                      p_limit: 51,
+                      p_offset: 0,
+                    })
+                  : apiClient
+                      .from("visits")
+                      .select(
+                        "id, patient_id, clinic_id, doctor_id, registered_by, created_at, completed_at, status, lens_type, sub_od_sphere, sub_od_cyl, sub_od_axis, sub_os_sphere, sub_os_cyl, sub_os_axis, sub_reading_add, sub_va_outcome, old_lens_prescription, medication, optical_dispensed, optical_dispensed_at, medication_dispensed, medication_dispensed_at"
+                      )
+                      .eq("clinic_id", cid)
+                      .eq("patient_id", patient.id)
+                      .order("created_at", { ascending: false })
+                      .limit(51))
               : Promise.resolve({ data: [], error: null }),
             apiClient
               .from("billing_items")
