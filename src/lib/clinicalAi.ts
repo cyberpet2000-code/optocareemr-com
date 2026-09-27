@@ -1,5 +1,5 @@
 import { analyzeClinicalFlags } from "@/lib/clinicalRules";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "@/lib/apiClient";
 // OptoCare Clinical AI — secure cloud decision support.
 // The browser sends de-identified clinical findings through the authenticated OptoCare AI Gateway.
 // The Gemini API key stays server-side in Vercel environment variables.
@@ -265,7 +265,7 @@ export async function analyzeClinicalCase(
   const request = (async () => {
     let response: Response;
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
+      const { data: sessionData } = await apiClient.auth.getSession();
       const accessToken = sessionData.session?.access_token;
       if (!accessToken) throw new Error("Authentication required.");
       response = await fetch("/api/ai-gateway", {
