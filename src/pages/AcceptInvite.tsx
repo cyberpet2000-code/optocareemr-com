@@ -15,7 +15,7 @@ const PENDING_KEY = "pending_invite_token";
 type InviteState =
   | { kind: "checking" }
   | { kind: "invalid"; reason: string; email?: string }
-  | { kind: "valid"; clinic_id: string; clinic_name: string; email: string };
+  | { kind: "valid"; clinic_name: string; email: string };
 
 export default function AcceptInvite() {
   const [params] = useSearchParams();
@@ -92,7 +92,6 @@ export default function AcceptInvite() {
   if (d.valid) {
     setInvite({
       kind: "valid",
-      clinic_id: d.clinic_id,
       clinic_name: d.clinic_name,
       email: d.email,
     });
