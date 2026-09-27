@@ -99,14 +99,16 @@ Deno.serve(async (req) => {
 
     // AuthZ: service role OR authenticated super_admin/admin
     const authHeader = req.headers.get("Authorization");
-    const isServiceCall = !authHeader || authHeader === `Bearer ${SERVICE_KEY}`;
+    if (!authHeader) return json({ error: "Unauthorized" }, 401);
+    const isServiceCall = authHeader === `Bearer ${SERVICE_KEY}`;
     if (!isServiceCall) {
       const userClient = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: authHeader! } } });
       const { data: u } = await userClient.auth.getUser();
       if (!u?.user) return json({ error: "Unauthorized" }, 401);
-      const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", u.user.id);
-      const allowed = (roles || []).some((r: any) => r.role === "super_admin" || r.role === "admin");
-      if (!allowed) return json({ error: "Forbidden" }, 403);
+      const { data: roles } = await admin.from("user_roles").select("role, clinic_id").eq("user_id", u.user.id);
+      const isSuper = (roles || []).some((r: any) => r.role === "super_admin");
+      const isClinicAdmin = (roles || []).some((r: any) => r.role === "admin" && !!clinic_id && r.clinic_id === clinic_id);
+      if (!isSuper && !isClinicAdmin) return json({ error: "Forbidden" }, 403);
     }
 
     // Suppression check
