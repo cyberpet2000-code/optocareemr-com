@@ -21,98 +21,73 @@ const filter = searchParams.get("filter");
     if (!cid) return;
 
     (async () => {
-      let query = apiClient
-  .from("visits")
-  .select(
-    isReceptionist
-      ? `
-        id,
-        patient_id,
-        clinic_id,
-        doctor_id,
-        created_at,
-        completed_at,
-        status,
-        sub_od_sphere,
-        sub_od_cyl,
-        sub_od_axis,
-        sub_os_sphere,
-        sub_os_cyl,
-        sub_os_axis,
-        sub_reading_add,
-        lens_type,
-        medication,
-        optical_dispensed,
-        optical_dispensed_at,
-        medication_dispensed,
-        medication_dispensed_at
-      `
-      : "*"
-  )
-  .eq("clinic_id", cid);
+      let data: any[] = [];
 
-      if (filter === "today") {
-        const today = new Date().toISOString().split("T")[0];
-        query = query.gte("created_at", `${today}T00:00:00`);
+      if (isReceptionist) {
+        const from = filter === "today"
+          ? new Date(new Date().toISOString().split("T")[0] + "T00:00:00").toISOString()
+          : null;
+        const { data: rpcData, error } = await apiClient.rpc(
+          "get_receptionist_clinic_visits",
+          {
+            p_clinic_id: cid,
+            p_limit: 500,
+            p_offset: 0,
+            p_from: from,
+            p_to: null,
+          } as any
+        );
+        if (error) {
+          console.error("Receptionist visits query failed:", error);
+          setVisits([]);
+          setLoading(false);
+          return;
+        }
+        data = rpcData || [];
+      } else {
+        let query = apiClient.from("visits").select("*").eq("clinic_id", cid);
+
+        if (filter === "today") {
+          const today = new Date().toISOString().split("T")[0];
+          query = query.gte("created_at", `${today}T00:00:00`);
+        }
+
+        const { data: rows, error } = await query.order("created_at", { ascending: false });
+        if (error) {
+          console.error("Visits query failed:", error);
+          setVisits([]);
+          setLoading(false);
+          return;
+        }
+        data = rows || [];
       }
 
-      const { data } = await query.order("created_at", { ascending: false });
-      const patientIds = [
-  ...new Set(
-    (data || [])
-      .map((v: any) => v.patient_id)
-      .filter(Boolean)
-  )
-];
+      const patientIds = [...new Set(data.map((v: any) => v.patient_id).filter(Boolean))];
 
-const { data: patients } = patientIds.length
-  ? await apiClient
-      .from("patients")
-      .select("id, full_name, phone")
-      .in("id", patientIds)
-  : { data: [] };
+      const { data: patients } = patientIds.length
+        ? await apiClient.from("patients").select("id, full_name, phone").in("id", patientIds)
+        : { data: [] };
 
-const doctorIds = [
-  ...new Set(
-    (data || [])
-      .map((v: any) => v.doctor_id)
-      .filter(Boolean)
-  )
-];
+      const doctorIds = [...new Set(data.map((v: any) => v.doctor_id).filter(Boolean))];
 
-const { data: doctorProfiles } = doctorIds.length
-  ? await apiClient
-      .from("profiles")
-      .select("id, full_name")
-      .in("id", doctorIds)
-  : { data: [] };
+      const { data: doctorProfiles } = doctorIds.length
+        ? await apiClient.from("profiles").select("id, full_name").in("id", doctorIds)
+        : { data: [] };
 
-const nextDoctorMap = new Map<string, string>(
-  (doctorProfiles || []).map((p: any) => [
-    p.id,
-    p.full_name || "Doctor",
-  ])
-);
-setDoctorMap(nextDoctorMap);
+      const nextDoctorMap = new Map<string, string>(
+        (doctorProfiles || []).map((p: any) => [p.id, p.full_name || "Doctor"])
+      );
+      setDoctorMap(nextDoctorMap);
 
-const patientMap = new Map(
-  (patients || []).map((p: any) => [
-    p.id,
-    { full_name: p.full_name, phone: p.phone },
-  ])
-);
+      const patientMap = new Map(
+        (patients || []).map((p: any) => [p.id, { full_name: p.full_name, phone: p.phone }])
+      );
 
-const visitsWithNames = (data || []).map(
-  (visit: any) => ({
-    ...visit,
-    patient_name:
-      patientMap.get(visit.patient_id)?.full_name ||
-      "Unknown Patient",
-    patient_phone:
-      patientMap.get(visit.patient_id)?.phone || null,
-  })
-);
-
+      const visitsWithNames = data.map((visit: any) => ({
+        ...visit,
+        patient_name: patientMap.get(visit.patient_id)?.full_name || "Unknown Patient",
+        patient_phone: patientMap.get(visit.patient_id)?.phone || null,
+      }));
 
       const finalVisits = visitsWithNames.map((visit: any) => ({
         ...visit,

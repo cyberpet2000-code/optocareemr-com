@@ -1,6 +1,7 @@
 import { analyzeClinicalFlags } from "@/lib/clinicalRules";
+import { apiClient } from "@/lib/apiClient";
 // OptoCare Clinical AI — secure cloud decision support.
-// The browser sends only de-identified clinical findings to /api/clinical-ai.
+// The browser sends de-identified clinical findings through the authenticated OptoCare AI Gateway.
 // The Gemini API key stays server-side in Vercel environment variables.
 
 export type ClinicalAiProgress = {
@@ -264,10 +265,16 @@ export async function analyzeClinicalCase(
   const request = (async () => {
     let response: Response;
     try {
-      response = await fetch("/api/clinical-ai", {
+      const { data: sessionData } = await apiClient.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) throw new Error("Authentication required.");
+      response = await fetch("/api/ai-gateway", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clinicalData: requestData }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ action: "clinical_case_analysis", clinicalData: requestData }),
       });
     } catch {
       throw new Error("OptoCare Clinical AI could not connect to its AI service. Please check your internet connection and try again.");

@@ -28,7 +28,8 @@ Deno.serve(async (req) => {
 
     // AuthZ: must be in clinic, or super_admin, or service-role
     const authHeader = req.headers.get("Authorization");
-    const isService = !authHeader || authHeader === `Bearer ${SERVICE_KEY}`;
+    const isService = authHeader === `Bearer ${SERVICE_KEY}`;
+    if (!authHeader) return json({ error: "Unauthorized" }, 401);
     if (!isService) {
       const userClient = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: authHeader! } } });
       const { data: u } = await userClient.auth.getUser();

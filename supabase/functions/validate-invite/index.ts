@@ -61,7 +61,6 @@ Deno.serve(async (req) => {
     return json({
       valid: true,
       email,
-      clinic_id: clinicId,
       clinic_name: clinic?.name || "the clinic",
     });
   } catch (e) {

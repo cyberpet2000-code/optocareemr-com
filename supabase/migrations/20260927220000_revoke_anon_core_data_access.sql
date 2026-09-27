@@ -1,0 +1,19 @@
+-- Anonymous clients must never have direct table access to core OptoCare data.
+-- Public workflows use explicit token-based RPCs instead.
+REVOKE ALL PRIVILEGES ON TABLE public.patients FROM anon;
+REVOKE ALL PRIVILEGES ON TABLE public.visits FROM anon;
+REVOKE ALL PRIVILEGES ON TABLE public.billing FROM anon;
+REVOKE ALL PRIVILEGES ON TABLE public.billing_items FROM anon;
+REVOKE ALL PRIVILEGES ON TABLE public.payments FROM anon;
+REVOKE ALL PRIVILEGES ON TABLE public.inventory FROM anon;
+REVOKE ALL PRIVILEGES ON TABLE public.inventory_movements FROM anon;
+REVOKE ALL PRIVILEGES ON TABLE public.inventory_sales FROM anon;
+REVOKE ALL PRIVILEGES ON TABLE public.inventory_sale_items FROM anon;
+REVOKE ALL PRIVILEGES ON TABLE public.hmos FROM anon;
+REVOKE ALL PRIVILEGES ON TABLE public.hmo_plans FROM anon;
+REVOKE ALL PRIVILEGES ON TABLE public.hmo_claims FROM anon;
+REVOKE ALL PRIVILEGES ON TABLE public.hmo_history FROM anon;
+REVOKE ALL PRIVILEGES ON TABLE public.hmo_verification_log FROM anon;
+REVOKE ALL PRIVILEGES ON TABLE public.user_roles FROM anon;
+REVOKE ALL PRIVILEGES ON TABLE public.clinic_users FROM anon;
+REVOKE ALL PRIVILEGES ON TABLE public.user_clinic_memberships FROM anon;

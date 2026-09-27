@@ -24,14 +24,18 @@ Deno.serve(async (req) => {
 
     // AuthZ: allow self-request OR authenticated admin/super_admin
     const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return json({ error: "Unauthorized" }, 401);
     let isSelf = false;
-    if (authHeader && authHeader !== `Bearer ${SERVICE_KEY}`) {
+    if (authHeader !== `Bearer ${SERVICE_KEY}`) {
       const userClient = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: authHeader } } });
       const { data: u } = await userClient.auth.getUser();
       if (u?.user?.email?.toLowerCase() === email) isSelf = true;
       else if (u?.user) {
-        const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", u.user.id);
-        const allowed = (roles || []).some((r: any) => r.role === "super_admin" || r.role === "admin");
+        const { data: roles } = await admin.from("user_roles").select("role, clinic_id").eq("user_id", u.user.id);
+        const allowed = (roles || []).some((r: any) =>
+          (r.role === "super_admin") ||
+          (r.role === "admin" && !!clinic_id && r.clinic_id === clinic_id)
+        );
         if (!allowed) return json({ error: "Forbidden" }, 403);
       } else {
         return json({ error: "Unauthorized" }, 401);
