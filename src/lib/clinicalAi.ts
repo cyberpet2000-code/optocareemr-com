@@ -1,4 +1,5 @@
 import { analyzeClinicalFlags } from "@/lib/clinicalRules";
+import { supabase } from "@/integrations/supabase/client";
 // OptoCare Clinical AI — secure cloud decision support.
 // The browser sends only de-identified clinical findings to /api/clinical-ai.
 // The Gemini API key stays server-side in Vercel environment variables.
@@ -264,9 +265,15 @@ export async function analyzeClinicalCase(
   const request = (async () => {
     let response: Response;
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) throw new Error("Authentication required.");
       response = await fetch("/api/ai-gateway", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({ action: "clinical_case_analysis", clinicalData: requestData }),
       });
     } catch {
