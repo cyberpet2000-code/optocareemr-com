@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { CheckCircle2, ArrowRight, Eye, Stethoscope, Pill, FlaskConical, Sparkles } from "lucide-react";
+import { CheckCircle2, ArrowRight, Eye, Stethoscope, Pill, FlaskConical, Sparkles, MapPin, MessageCircle } from "lucide-react";
 
 const CLINIC_TYPES = [
   { id: "eye_clinic", label: "Eye Clinic", desc: "Refraction, glaucoma, cataract", icon: Eye },
@@ -29,6 +29,9 @@ export default function Onboarding() {
   const [staff, setStaff] = useState({ doctor_name: "", doctor_email: "", reception_name: "", reception_email: "" });
   const [patient, setPatient] = useState({ full_name: "", phone: "", age: "" });
   const [clinicEmail, setClinicEmail] = useState("");
+  const [clinicAddress, setClinicAddress] = useState("");
+  const [clinicTagline, setClinicTagline] = useState("");
+  const [clinicWhatsapp, setClinicWhatsapp] = useState("");
   const [busy, setBusy] = useState(false);
   const isSetupCompleted = clinic?.setup_completed === true;
   const clinicName = clinic?.name ?? "";
@@ -42,8 +45,12 @@ export default function Onboarding() {
   }, [isSetupCompleted, loading, navigate, roleLoading]);
 
   useEffect(() => {
-    if ((clinic as any)?.email) setClinicEmail(String((clinic as any).email));
-  }, [(clinic as any)?.email]);
+    if (!clinic) return;
+    setClinicEmail(String((clinic as any).email || ""));
+    setClinicAddress(String((clinic as any).address || ""));
+    setClinicTagline(String((clinic as any).tagline || ""));
+    setClinicWhatsapp(String((clinic as any).whatsapp_phone || ""));
+  }, [clinic?.id, (clinic as any)?.email, (clinic as any)?.address, (clinic as any)?.tagline, (clinic as any)?.whatsapp_phone]);
 
   if (loading || roleLoading) {
     return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading clinic...</div>;
@@ -67,12 +74,23 @@ export default function Onboarding() {
 
   const saveClinicEmail = async () => {
     const email = clinicEmail.trim().toLowerCase();
+    if (clinicWhatsapp.trim() && clinicWhatsapp.replace(/\D/g, "").length > 15) {
+      toast.error("Enter one WhatsApp number only.");
+      return;
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       toast.error("Enter a valid clinic email");
       return;
     }
     setBusy(true);
-    const { error } = await apiClient.from("clinics").update({ email } as any).eq("id", clinic.id);
+    const { error } = await apiClient.rpc("update_clinic_public_settings", {
+      _clinic_id: clinic.id,
+      _name: clinicName,
+      _address: clinicAddress,
+      _tagline: clinicTagline,
+      _whatsapp_phone: clinicWhatsapp,
+      _email: email,
+    } as any);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     await reload();
@@ -192,6 +210,11 @@ export default function Onboarding() {
                   placeholder="clinic@example.com"
                   onChange={e => setClinicEmail(e.target.value)} />
                 <p className="text-xs text-muted-foreground">Monthly reports and important notices are sent here.</p>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-1.5"><Label><MapPin size={14} className="inline mr-1" />Clinic address</Label><Input value={clinicAddress} onChange={e => setClinicAddress(e.target.value)} placeholder="Full public clinic address" /></div>
+                <div className="space-y-1.5"><Label>Clinic tagline</Label><Input value={clinicTagline} onChange={e => setClinicTagline(e.target.value)} placeholder="e.g. Clear vision. Better care." maxLength={120} /></div>
+                <div className="space-y-1.5"><Label><MessageCircle size={14} className="inline mr-1" />WhatsApp contact line</Label><Input type="tel" inputMode="tel" value={clinicWhatsapp} onChange={e => setClinicWhatsapp(e.target.value)} placeholder="+234 801 234 5678" /><p className="text-xs text-muted-foreground">Enter one clinic WhatsApp number.</p></div>
               </div>
               <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm text-primary">
                 Welcome aboard — let's get your clinic set up.
