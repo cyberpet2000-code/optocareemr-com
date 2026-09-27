@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasClinicalAiRole, scrubUntrustedClinicalText, validateGatewayRequest } from "../api/ai-gateway.js";
+import { hasClinicalAiRole, scrubUntrustedClinicalText, validateGatewayRequest } from "../../api/ai-gateway.js";
 
 describe("OptoCare AI Gateway security", () => {
   it("rejects unsupported AI operations", () => {
