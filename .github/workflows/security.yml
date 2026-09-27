@@ -46,5 +46,8 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: AI gateway security tests
+        run: npx vitest run tests/ai-gateway.security.test.ts
+
       - name: Production build
         run: npm run build
