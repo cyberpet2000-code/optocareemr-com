@@ -46,6 +46,7 @@ const Notifications = lazy(() => import("./pages/Notifications"));
 const Expenses = lazy(() => import("./pages/Expenses"));
 const InventoryAudit = lazy(() => import("./pages/InventoryAudit"));
 const AccountSettings = lazy(() => import("./pages/AccountSettings"));
+const ClinicSettings = lazy(() => import("./pages/ClinicSettings"));
 const MonthlyReports = lazy(() => import("./pages/MonthlyReports"));
 const DailyFrontDeskReport = lazy(() => import("./pages/DailyFrontDeskReport"));
 const Outreach = lazy(() => import("./pages/Outreach"));
@@ -318,6 +319,7 @@ export function AppRoutes() {
           <Route path="/finance/expenses" element={<PageErrorBoundary pageName="Expenses"><Expenses /></PageErrorBoundary>} />
           <Route path="/inventory/audit" element={<PageErrorBoundary pageName="Inventory Audit"><InventoryAudit /></PageErrorBoundary>} />
           <Route path="/settings/account" element={<PageErrorBoundary pageName="Account Settings"><AccountSettings /></PageErrorBoundary>} />
+          <Route path="/settings/clinic" element={<PageErrorBoundary pageName="Clinic Settings"><ClinicSettings /></PageErrorBoundary>} />
           <Route path="/reports/monthly" element={<PageErrorBoundary pageName="Monthly Reports"><MonthlyReports /></PageErrorBoundary>} />
           <Route path="/reports/daily-front-desk" element={<PageErrorBoundary pageName="Daily Front Desk Report"><DailyFrontDeskReport /></PageErrorBoundary>} />
           <Route path="*" element={<NotFound />} />
