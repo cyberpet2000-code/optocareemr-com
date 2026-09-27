@@ -122,10 +122,15 @@ Deno.serve(async (req) => {
   if (!clinic_id || !year || !month) return json({ error: "clinic_id, year, month required" }, 400);
 
   const providedSecret = req.headers.get("x-optocare-internal-secret");
+  const incomingAuthorization = req.headers.get("Authorization");
   let authorized = false;
+  let internalSecret: string | null = null;
   if (providedSecret) {
     const { data: expectedSecret } = await admin.rpc("get_optocare_internal_edge_secret");
-    authorized = Boolean(expectedSecret && providedSecret === expectedSecret);
+    if (expectedSecret && providedSecret === expectedSecret) {
+      authorized = true;
+      internalSecret = expectedSecret;
+    }
   }
   if (!authorized) {
     const authHeader = req.headers.get("Authorization");
@@ -312,6 +317,11 @@ Deno.serve(async (req) => {
         try {
           await admin.functions.invoke("send-monthly-report-email", {
             body: { report_id: reportId },
+            headers: internalSecret
+              ? { "x-optocare-internal-secret": internalSecret }
+              : incomingAuthorization
+                ? { Authorization: incomingAuthorization }
+                : undefined,
           });
         } catch (e) { console.error("email invoke failed", e); }
       }
