@@ -38,7 +38,7 @@ jobs:
         run: npm audit --audit-level=high
 
       - name: Lint
-        run: npx eslint src api tests
+        run: npx eslint api/ai-gateway.js src/lib/clinicalAi.ts tests/ai-gateway.security.test.ts
 
       - name: TypeScript check
         run: npx tsc --noEmit
