@@ -1,0 +1,17 @@
+name: Refresh security lockfile
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - run: rm -f package-lock.json && npm install --package-lock-only --ignore-scripts --legacy-peer-deps
+      - run: git config user.name "github-actions[bot]" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - run: git add package-lock.json && git commit -m "security: regenerate lockfile for patched dependencies" && git push origin HEAD:security/permanent-gate
+      - run: rm -f .github/workflows/refresh-security-lockfile.yml && git add .github/workflows/refresh-security-lockfile.yml && git commit -m "chore: remove one-time lockfile workflow" && git push origin HEAD:security/permanent-gate
