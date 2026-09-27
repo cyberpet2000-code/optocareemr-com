@@ -385,12 +385,11 @@ export default function Billing() {
               .select("*")
               .in("billing_id", billingIds),
             visitIds.length
-              ? apiClient
-                  .from("visits")
-                  .select(
-                    "id, lens_type, medication, optical_dispensed, optical_dispensed_at, medication_dispensed, medication_dispensed_at"
-                  )
-                  .in("id", visitIds)
+              ? apiClient.rpc("get_receptionist_patient_visits_page", {
+                  p_patient_id: patient.id,
+                  p_limit: 51,
+                  p_offset: 0,
+                })
               : Promise.resolve({ data: [], error: null }),
             apiClient
               .from("billing_items")
