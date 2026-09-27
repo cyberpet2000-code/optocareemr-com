@@ -10,6 +10,7 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 Deno.serve(async (req) => {
@@ -17,8 +18,35 @@ Deno.serve(async (req) => {
   const json = (b: any, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
+  const body = await req.json().catch(() => ({} as any));
+  const report_id = body?.report_id;
+  if (!report_id) return json({ error: "report_id required" }, 400);
+
+  const { data: reportForAuth, error: reportAuthError } = await admin
+    .from("monthly_reports").select("id,clinic_id").eq("id", report_id).single();
+  if (reportAuthError || !reportForAuth) return json({ error: "Report not found" }, 404);
+
+  const providedSecret = req.headers.get("x-optocare-internal-secret");
+  let authorized = false;
+  if (providedSecret) {
+    const { data: expectedSecret } = await admin.rpc("get_optocare_internal_edge_secret");
+    authorized = Boolean(expectedSecret && providedSecret === expectedSecret);
+  }
+  if (!authorized) {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return json({ error: "Unauthorized" }, 401);
+    const userClient = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: authHeader } } });
+    const { data: userData } = await userClient.auth.getUser();
+    const callerId = userData.user?.id;
+    if (!callerId) return json({ error: "Unauthorized" }, 401);
+    const { data: roleRows } = await admin.from("user_roles")
+      .select("role,clinic_id").eq("user_id", callerId).eq("clinic_id", reportForAuth.clinic_id);
+    authorized = (roleRows || []).some((r: any) => r.role === "admin" || r.role === "super_admin");
+    if (!authorized) return json({ error: "Forbidden" }, 403);
+  }
+
   try {
-    const { report_id } = await req.json();
+    const report_id = body.report_id;
     if (!report_id) return json({ error: "report_id required" }, 400);
 
     const { data: report, error } = await admin.from("monthly_reports").select("*").eq("id", report_id).single();
