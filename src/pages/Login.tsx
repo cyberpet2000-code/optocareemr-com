@@ -10,6 +10,7 @@ import { APP_URL } from "@/lib/app-url";
 import OptoCareLogo from "@/components/OptoCareLogo";
 import { authenticateOffline, hasOfflineAccess } from "@/lib/offlineAuth";
 import { diagnoseRequestFailure } from "@/lib/diag/connectionDiagnosis";
+import { recordLegalAcceptance } from "@/lib/legalAcceptance";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export default function Login() {
   const [offlinePin, setOfflinePin] = useState("");
   const [offlineAvailable, setOfflineAvailable] = useState(false);
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
+  const [legalAccepted, setLegalAccepted] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -75,12 +77,22 @@ export default function Login() {
     }
 
     if (mode === "signup") {
-      const { error } = await apiClient.auth.signUp({
+      const { data: signupData, error } = await apiClient.auth.signUp({
         email, password,
         options: { emailRedirectTo: APP_URL },
       });
       setLoading(false);
       if (error) { toast.error(error.message); return; }
+      if (signupData?.session?.user) {
+        try {
+          await recordLegalAcceptance(signupData.session.user.id);
+        } catch (acceptError) {
+          console.error("[legal] acceptance record failed", acceptError);
+          toast.error("Your account was created, but legal acceptance could not be recorded. Please sign in again.");
+          return;
+        }
+      }
+      try { sessionStorage.setItem("optocare:legal_acceptance_pending", "1"); } catch {}
       toast.success("Account created! Check your email to confirm.");
     } else {
       const { data, error } = await apiClient.auth.signInWithPassword({ email, password });
@@ -109,6 +121,15 @@ export default function Login() {
         return;
       }
       if (data.user) {
+        try {
+          const pendingLegal = sessionStorage.getItem("optocare:legal_acceptance_pending");
+          if (pendingLegal === "1") {
+            await recordLegalAcceptance(data.user.id);
+            sessionStorage.removeItem("optocare:legal_acceptance_pending");
+          }
+        } catch (acceptError) {
+          console.error("[legal] acceptance reconciliation failed", acceptError);
+        }
         // Clear any stale active clinic on a fresh login
         try { localStorage.removeItem("active_clinic_id"); } catch {}
         // Honor pending invite token (set by /accept-invite when unauthenticated)
@@ -177,6 +198,20 @@ export default function Login() {
                 <Label>Password</Label>
                 <PasswordInput className="login-design-input" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} />
               </div>
+            )}
+            {mode === "signup" && (
+              <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={legalAccepted}
+                  onChange={(e) => setLegalAccepted(e.target.checked)}
+                  required
+                />
+                <span>
+                  I agree to the <a href="/legal/terms" className="text-primary hover:underline">Terms &amp; Conditions</a>, acknowledge the <a href="/legal/privacy" className="text-primary hover:underline">Privacy Policy</a>, and have reviewed the applicable legal policies for OptoCare-EMR.
+                </span>
+              </label>
             )}
             <Button
               type="submit"

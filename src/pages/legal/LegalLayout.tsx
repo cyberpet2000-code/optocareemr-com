@@ -12,10 +12,13 @@ export const LEGAL_PAGES = [
   { to: "/legal/security", label: "Security Policy" },
   { to: "/legal/compliance", label: "HIPAA/GDPR Disclaimer" },
   { to: "/legal/medical-disclaimer", label: "Medical Disclaimer" },
+  { to: "/legal/ai", label: "AI & Clinical Decision Support" },
+  { to: "/legal/acceptable-use", label: "Acceptable Use" },
+  { to: "/legal/subscription", label: "Subscription & Data Exit" },
   { to: "/legal/contact", label: "Contact" },
 ];
 
-export const LAST_UPDATED = "June 17, 2026";
+export const LAST_UPDATED = "September 28, 2026";
 
 interface Props {
   title: string;

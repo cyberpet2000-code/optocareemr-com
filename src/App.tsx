@@ -40,6 +40,9 @@ const LegalDPA = lazy(() => import("./pages/legal/DPA"));
 const LegalSecurity = lazy(() => import("./pages/legal/Security"));
 const LegalCompliance = lazy(() => import("./pages/legal/Compliance"));
 const LegalMedical = lazy(() => import("./pages/legal/MedicalDisclaimer"));
+const LegalAI = lazy(() => import("./pages/legal/AIAcceptance"));
+const LegalAcceptableUse = lazy(() => import("./pages/legal/AcceptableUse"));
+const LegalSubscription = lazy(() => import("./pages/legal/SubscriptionRefund"));
 const LegalContact = lazy(() => import("./pages/legal/Contact"));
 const PatientFeedback = lazy(() => import("./pages/PatientFeedback"));
 const Notifications = lazy(() => import("./pages/Notifications"));
@@ -282,6 +285,9 @@ export function AppRoutes() {
       <Route path="/legal/security" element={<LegalSecurity />} />
       <Route path="/legal/compliance" element={<LegalCompliance />} />
       <Route path="/legal/medical-disclaimer" element={<LegalMedical />} />
+      <Route path="/legal/ai" element={<LegalAI />} />
+      <Route path="/legal/acceptable-use" element={<LegalAcceptableUse />} />
+      <Route path="/legal/subscription" element={<LegalSubscription />} />
       <Route path="/legal/contact" element={<LegalContact />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
