@@ -520,7 +520,7 @@ const canViewFinancials =
   if (staffIds.length > 0) {
     const { data: staffProfiles } = await apiClient
       .from("profiles")
-      .select("id, full_name, role, title")
+      .select("id, full_name, role, title, is_super_admin")
       .in("id", staffIds);
 
     const nextDoctorMap = new Map<string, string>();
@@ -529,11 +529,19 @@ const canViewFinancials =
       let name = (staff?.full_name || "").trim();
       if (!name) return "Not recorded";
       const title = (staff?.title || "").trim();
-      // Prevent duplicated titles such as "Dr. Dr. Obinna Kalu".
       if (/^dr\.?\s+/i.test(name)) name = name.replace(/^dr\.?\s+/i, "").trim();
-      if (title) return /^dr\.?$/i.test(title) ? `Dr. ${name}` : `${title} ${name}`;
-      if (asDoctor || staff?.role === "doctor") return `Dr. ${name}`;
-      return name;
+
+      const displayName = title
+        ? (/^dr\.?$/i.test(title) ? `Dr. ${name}` : `${title} ${name}`)
+        : (asDoctor || staff?.role === "doctor" || staff?.is_super_admin ? `Dr. ${name}` : name);
+
+      // Keep same-name accounts unmistakably distinct. An admin can also be a doctor.
+      if (staff?.is_super_admin) return `${displayName} — Super-admin account`;
+      if (asDoctor && staff?.role === "admin") return `${displayName} — Admin + Doctor`;
+      if (asDoctor || staff?.role === "doctor") return `${displayName} — Doctor account`;
+      if (staff?.role === "admin") return `${displayName} — Admin account`;
+      if (staff?.role === "receptionist") return `${displayName} — Receptionist account`;
+      return displayName;
     };
 
     (staffProfiles || []).forEach((staff: any) => {
