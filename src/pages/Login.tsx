@@ -77,13 +77,23 @@ export default function Login() {
     }
 
     if (mode === "signup") {
-      const { error } = await apiClient.auth.signUp({
+      const { data: signupData, error } = await apiClient.auth.signUp({
         email, password,
         options: { emailRedirectTo: APP_URL },
       });
       setLoading(false);
       if (error) { toast.error(error.message); return; }
-      if (signupData?.session?.user) {\n        try { await recordLegalAcceptance(signupData.session.user.id); } catch (acceptError) {\n          console.error("[legal] acceptance record failed", acceptError);\n          toast.error("Your account was created, but legal acceptance could not be recorded. Please sign in again.");\n          return;\n        }\n      }\n      try { sessionStorage.setItem("optocare:legal_acceptance_pending", "1"); } catch {}\n      toast.success("Account created! Check your email to confirm.");
+      if (signupData?.session?.user) {
+        try {
+          await recordLegalAcceptance(signupData.session.user.id);
+        } catch (acceptError) {
+          console.error("[legal] acceptance record failed", acceptError);
+          toast.error("Your account was created, but legal acceptance could not be recorded. Please sign in again.");
+          return;
+        }
+      }
+      try { sessionStorage.setItem("optocare:legal_acceptance_pending", "1"); } catch {}
+      toast.success("Account created! Check your email to confirm.");
     } else {
       const { data, error } = await apiClient.auth.signInWithPassword({ email, password });
       setLoading(false);
