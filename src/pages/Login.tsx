@@ -10,6 +10,7 @@ import { APP_URL } from "@/lib/app-url";
 import OptoCareLogo from "@/components/OptoCareLogo";
 import { authenticateOffline, hasOfflineAccess } from "@/lib/offlineAuth";
 import { diagnoseRequestFailure } from "@/lib/diag/connectionDiagnosis";
+import { recordLegalAcceptance } from "@/lib/legalAcceptance";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export default function Login() {
   const [offlinePin, setOfflinePin] = useState("");
   const [offlineAvailable, setOfflineAvailable] = useState(false);
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
+  const [legalAccepted, setLegalAccepted] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -81,7 +83,7 @@ export default function Login() {
       });
       setLoading(false);
       if (error) { toast.error(error.message); return; }
-      toast.success("Account created! Check your email to confirm.");
+      if (signupData?.session?.user) {\n        try { await recordLegalAcceptance(signupData.session.user.id); } catch (acceptError) {\n          console.error("[legal] acceptance record failed", acceptError);\n          toast.error("Your account was created, but legal acceptance could not be recorded. Please sign in again.");\n          return;\n        }\n      }\n      try { sessionStorage.setItem("optocare:legal_acceptance_pending", "1"); } catch {}\n      toast.success("Account created! Check your email to confirm.");
     } else {
       const { data, error } = await apiClient.auth.signInWithPassword({ email, password });
       setLoading(false);
