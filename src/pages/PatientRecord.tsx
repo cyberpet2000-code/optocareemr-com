@@ -2979,27 +2979,55 @@ shadow-sm
   
     {isReceptionist && (
       <div className="mt-3 text-xs space-y-3">
-        {v.lens_type && (
+        {(hasOpticalPrescription(v) || v.lens_type) && (
           <div className="rounded-xl bg-primary/5 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <p className="font-medium text-primary">Optical order</p>
-              <span className="text-[11px] text-muted-foreground">{v.lens_type}</span>
-            </div>
+            <p className="font-semibold text-primary">Optical prescription</p>
+            {(eyeHasRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis) ||
+              eyeHasRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis)) && (
+              <div className="mt-2 space-y-1 font-mono text-[11px]">
+                {sameEyeRx(v) ? (
+                  <p>OU {fmtEyeRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis)}</p>
+                ) : (
+                  <>
+                    {eyeHasRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis) && (
+                      <p>OD {fmtEyeRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis)}</p>
+                    )}
+                    {eyeHasRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis) && (
+                      <p>OS {fmtEyeRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis)}</p>
+                    )}
+                  </>
+                )}
+                {v.sub_reading_add && <p>ADD {v.sub_reading_add}</p>}
+              </div>
+            )}
+            {v.lens_type && (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Lens: {v.lens_type}
+              </p>
+            )}
             {v.optical_dispensed ? (
               <span className="mt-2 inline-flex h-7 items-center rounded-lg bg-green-100 px-2 text-[10px] font-medium text-green-700">
                 ✅ Dispensed
               </span>
             ) : (
               <Button size="sm" variant="outline" className="mt-2 h-7 rounded-lg px-2 text-[10px] font-medium"
-                onClick={() => handleMarkDispensed(v.id, "optical")} title="Dispense optical order">
+                onClick={() => handleMarkDispensed(v.id, "optical")} title="Dispense optical prescription">
                 ✔️ Dispense
               </Button>
             )}
           </div>
         )}
+
+        {v.diagnosis && (
+          <div className="rounded-xl bg-red-50 p-3">
+            <p className="font-semibold text-red-600">Diagnosis</p>
+            <p className="mt-1 text-[11px] leading-relaxed">{v.diagnosis}</p>
+          </div>
+        )}
+
         {v.medication && (
           <div className="rounded-xl bg-success/5 p-3">
-            <p className="font-medium text-success mb-2">Medication</p>
+            <p className="font-semibold text-success mb-2">Medical prescription</p>
             <div className="space-y-1.5">
               {parseMedicationItems(v.medication).map((medicationItem) => {
                 const medicationKey = `${v.id}:${medicationItem.name.toLowerCase()}`;
@@ -3007,7 +3035,7 @@ shadow-sm
                 const isDispensed = dispensing?.dispensed ?? false;
                 return (
                   <div key={`${v.id}-reception-${medicationItem.name}`} className="flex items-center justify-between gap-2">
-                    <p className="min-w-0 flex-1 text-[11px] font-medium">{medicationItem.name}</p>
+                    <p className="min-w-0 flex-1 text-[11px] font-medium">{medicationItem.prescribedText}</p>
                     {isDispensed ? (
                       <span className="shrink-0 inline-flex h-7 items-center rounded-lg bg-green-100 px-2 text-[10px] font-medium text-green-700">✅ Dispensed</span>
                     ) : (
