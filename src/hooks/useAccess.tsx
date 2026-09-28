@@ -387,7 +387,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       try {
         const stage1Start = performance.now();
 
-        const [profileSettled, userRolesSettled, clinicUsersSettled] = await Promise.allSettled([
+        const [profileSettled, userRolesSettled, clinicUsersSettled, clinicUserRolesSettled] = await Promise.allSettled([
           withAccessTimeout(
             apiClient
               .from("profiles")
@@ -410,6 +410,13 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
               .eq("user_id", nextUser.id),
             "clinic_users",
           ),
+          withAccessTimeout(
+            apiClient
+              .from("clinic_user_roles")
+              .select("role, clinic_id")
+              .eq("user_id", nextUser.id),
+            "clinic_user_roles",
+          ),
         ]);
 
         const profileResult =
@@ -427,6 +434,11 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
             ? clinicUsersSettled.value
             : { data: [], error: clinicUsersSettled.reason };
 
+        const clinicUserRolesResult =
+          clinicUserRolesSettled.status === "fulfilled"
+            ? clinicUserRolesSettled.value
+            : { data: [], error: clinicUserRolesSettled.reason };
+
         if (profileSettled.status === "rejected") {
           console.warn("[access:profile_timeout]", { message: profileSettled.reason?.message });
         }
@@ -435,6 +447,9 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         }
         if (clinicUsersSettled.status === "rejected") {
           console.warn("[access:clinic_users_timeout]", { message: clinicUsersSettled.reason?.message });
+        }
+        if (clinicUserRolesSettled.status === "rejected") {
+          console.warn("[access:clinic_user_roles_timeout]", { message: clinicUserRolesSettled.reason?.message });
         }
 
 console.debug("[access:stage1_complete]", {
@@ -447,13 +462,14 @@ console.debug("[access:stage1_complete]", {
         const nextProfile = profileResult.data || null;
         let userRolesRows = (userRolesResult.data || []) as Array<{ role: string; clinic_id: string | null }>;
         let clinicUsersRows = (clinicUsersResult.data || []) as Array<{ role: string | null; clinic_id: string | null }>;
+        let clinicUserRolesRows = (clinicUserRolesResult.data || []) as Array<{ role: string; clinic_id: string | null }>;
 
         // A freshly authenticated browser can briefly have a valid Supabase
         // session while the first PostgREST request is made without the
         // expected JWT context. Supabase documents that RLS can then return an
         // empty data array rather than an error. Do one bounded auth check and
         // membership retry before treating an empty result as "no clinic".
-        if (userRolesRows.length === 0 && clinicUsersRows.length === 0) {
+        if (userRolesRows.length === 0 && clinicUsersRows.length === 0 && clinicUserRolesRows.length === 0) {
           let authHealthy = false;
           try {
             const { data: verified, error: verifyError } = await apiClient.auth.getUser();
@@ -475,7 +491,7 @@ console.debug("[access:stage1_complete]", {
           if (authHealthy) {
             await new Promise((resolve) => window.setTimeout(resolve, 250));
 
-            const [retryUserRoles, retryClinicUsers] = await Promise.allSettled([
+            const [retryUserRoles, retryClinicUsers, retryClinicUserRoles] = await Promise.allSettled([
               withAccessTimeout(
                 apiClient
                   .from("user_roles")
@@ -490,6 +506,13 @@ console.debug("[access:stage1_complete]", {
                   .eq("user_id", nextUser.id),
                 "clinic_users retry",
               ),
+              withAccessTimeout(
+                apiClient
+                  .from("clinic_user_roles")
+                  .select("role, clinic_id")
+                  .eq("user_id", nextUser.id),
+                "clinic_user_roles retry",
+              ),
             ]);
 
             if (retryUserRoles.status === "fulfilled" && retryUserRoles.value.data?.length) {
@@ -498,17 +521,22 @@ console.debug("[access:stage1_complete]", {
             if (retryClinicUsers.status === "fulfilled" && retryClinicUsers.value.data?.length) {
               clinicUsersRows = retryClinicUsers.value.data as Array<{ role: string | null; clinic_id: string | null }>;
             }
+            if (retryClinicUserRoles.status === "fulfilled" && retryClinicUserRoles.value.data?.length) {
+              clinicUserRolesRows = retryClinicUserRoles.value.data as Array<{ role: string; clinic_id: string | null }>;
+            }
 
             console.debug("[access:membership_retry]", {
               user_id: nextUser.id,
               user_roles: userRolesRows.length,
               clinic_users: clinicUsersRows.length,
+              clinic_user_roles: clinicUserRolesRows.length,
             });
           }
         }
         const fallbackRoles = Array.from(new Set([
           ...userRolesRows.map((row) => normalizeRole(row.role)),
           ...clinicUsersRows.map((row) => normalizeRole(row.role)),
+          ...clinicUserRolesRows.map((row) => normalizeRole(row.role)),
         ].filter(Boolean))) as string[];
         let primaryRole = resolvePrimaryRole(nextProfile, fallbackRoles);
         let nextRoles = sortRoles(Array.from(new Set([primaryRole, ...fallbackRoles].filter(Boolean))) as string[]);
