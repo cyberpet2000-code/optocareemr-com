@@ -537,12 +537,9 @@ const canViewFinancials =
         ? (/^dr\.?$/i.test(title) ? `Dr. ${name}` : `${title} ${name}`)
         : (asDoctor || staff?.role === "doctor" || staff?.is_super_admin ? `Dr. ${name}` : name);
 
-      // Keep same-name accounts unmistakably distinct. An admin can also be a doctor.
-      if (staff?.is_super_admin) return `${displayName} — Super-admin account`;
-      if (asDoctor && staff?.role === "admin") return `${displayName} — Admin + Doctor`;
-      if (asDoctor || staff?.role === "doctor") return `${displayName} — Doctor account`;
-      if (staff?.role === "admin") return `${displayName} — Admin account`;
-      if (staff?.role === "receptionist") return `${displayName} — Receptionist account`;
+      // Clinical history should identify the actual person, not expose account/role labels.
+      // Role information remains available to the authorization layer; it does not belong in
+      // the patient-facing visit history.
       return displayName;
     };
 
