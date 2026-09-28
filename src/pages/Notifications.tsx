@@ -21,6 +21,7 @@ type StaffNotification = {
   expires_at: string | null;
   patient_name?: string | null;
   patient_id?: string | null;
+  metadata?: Record<string, any> | null;
 };
 
 export default function Notifications() {
@@ -31,13 +32,14 @@ export default function Notifications() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [patientNames, setPatientNames] = useState<Record<string, { name: string; id: string }>>({});
+  const [clearing, setClearing] = useState(false);
 
   const load = useCallback(async () => {
     if (!effectiveClinicId || !user?.id) return;
     setLoading(true);
     const { data, error } = await apiClient
       .from("staff_notifications")
-      .select("id,title,body,link,notification_type,category,priority,entity_type,entity_id,read_at,created_at,expires_at")
+      .select("id,title,body,link,notification_type,category,priority,entity_type,entity_id,metadata,read_at,created_at,expires_at")
       .eq("clinic_id", effectiveClinicId)
       .eq("recipient_user_id", user.id)
       .order("created_at", { ascending: false })
@@ -50,7 +52,8 @@ export default function Notifications() {
       // older notifications created before patient_name was added.
       const feedbackIds = rows.filter(n => n.entity_type === "feedback_response").map(n => n.entity_id).filter(Boolean) as string[];
       const appointmentIds = rows.filter(n => n.entity_type === "appointment").map(n => n.entity_id).filter(Boolean) as string[];
-      const patientIds = rows.filter(n => n.category === "patient" && n.entity_id).map(n => n.entity_id!) ;
+      const visitIds = rows.filter(n => n.entity_type === "visit").map(n => n.entity_id).filter(Boolean) as string[];
+      const patientIds = rows.filter(n => n.category === "patient" && n.entity_type === "patient" && n.entity_id).map(n => n.entity_id!) ;
       const resolved: Record<string, { name: string; id: string }> = {};
 
       if (feedbackIds.length) {
@@ -59,6 +62,17 @@ export default function Notifications() {
         if (ids.length) {
           const { data: patients } = await apiClient.from("patients").select("id,full_name").in("id", ids);
           (patients || []).forEach((p: any) => resolved[`feedback:${feedbackRows?.find((r: any) => r.patient_id === p.id)?.id}`] = { name: p.full_name, id: p.id });
+        }
+      }
+      if (visitIds.length) {
+        const { data: visits } = await apiClient.from("visits").select("id,patient_id").in("id", visitIds);
+        const ids = (visits || []).map((r: any) => r.patient_id).filter(Boolean);
+        if (ids.length) {
+          const { data: patients } = await apiClient.from("patients").select("id,full_name").in("id", ids);
+          (patients || []).forEach((p: any) => {
+            const visit = visits?.find((v: any) => v.patient_id === p.id);
+            if (visit) resolved[`visit:${visit.id}`] = { name: p.full_name, id: p.id };
+          });
         }
       }
       if (appointmentIds.length) {
@@ -129,7 +143,7 @@ export default function Notifications() {
       .eq("clinic_id", effectiveClinicId)
       .eq("recipient_user_id", user.id);
     if (error) return;
-    setItems(current => current.filter(item => item.id !== id));
+    setItems(current => current.map(item => item.id === id ? { ...item, read_at: readAt } : item));
     window.dispatchEvent(new CustomEvent("optocare:notifications:read", { detail: { count: 1 } }));
   };
 
@@ -143,6 +157,21 @@ export default function Notifications() {
       .eq("recipient_user_id", user.id)
       .is("read_at", null);
     if (error) return;
+    setItems(current => current.map(item => item.read_at ? item : { ...item, read_at: readAt }));
+    window.dispatchEvent(new CustomEvent("optocare:notifications:read-all"));
+  };
+
+  const clearAll = async () => {
+    if (!effectiveClinicId || !user?.id || clearing) return;
+    if (!window.confirm("Clear all notifications? This removes them from your notification history.")) return;
+    setClearing(true);
+    const { error } = await apiClient
+      .from("staff_notifications")
+      .delete()
+      .eq("clinic_id", effectiveClinicId)
+      .eq("recipient_user_id", user.id);
+    setClearing(false);
+    if (error) return;
     setItems([]);
     window.dispatchEvent(new CustomEvent("optocare:notifications:read-all"));
   };
@@ -150,7 +179,8 @@ export default function Notifications() {
   const getPatientContext = (item: StaffNotification) => {
     if (item.entity_type === "feedback_response") return patientNames[`feedback:${item.entity_id}`] || null;
     if (item.entity_type === "appointment") return patientNames[`appointment:${item.entity_id}`] || null;
-    if (item.category === "patient" && item.entity_id) return patientNames[`patient:${item.entity_id}`] || null;
+    if (item.entity_type === "visit") return patientNames[`visit:${item.entity_id}`] || null;
+    if (item.entity_type === "patient" && item.entity_id) return patientNames[`patient:${item.entity_id}`] || null;
     return null;
   };
 
@@ -180,9 +210,14 @@ export default function Notifications() {
           <h1 className="text-xl font-bold">Notifications</h1>
           <p className="text-sm text-muted-foreground">Important updates for your clinic and your role.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => void markAllRead()} disabled={!items.some(item => !item.read_at)}>
-          <CheckCheck size={15} className="mr-1.5" /> Mark all read
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => void markAllRead()} disabled={!items.some(item => !item.read_at)}>
+            <CheckCheck size={15} className="mr-1.5" /> Mark all read
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => void clearAll()} disabled={clearing || items.length === 0}>
+            Clear all
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
