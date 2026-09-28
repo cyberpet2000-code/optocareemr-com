@@ -866,8 +866,10 @@ if (!isReceptionist) {
         }))
         .sort((a, b) => a.full_name.localeCompare(b.full_name));
 
-      // If the logged-in user is a clinic doctor, keep attribution on that
-      // doctor. Otherwise use the clinic's first operational doctor.
+      // Attribution must never silently default to an arbitrary doctor.
+      // A clinic admin/receptionist must explicitly select the clinician who
+      // actually handled the encounter. A logged-in doctor may default to
+      // themselves because their identity is known.
       const currentDoctor = user?.id
         ? operationalDoctors.find((doctor) => doctor.id === user.id)
         : null;
@@ -877,14 +879,10 @@ if (!isReceptionist) {
         : null;
 
       const existingOperationalDoctor = editingDoctorId
-        ? operationalDoctors.find((doctor) => doctor.id === editingDoctorId)
+        ? operationalDoctors.find((doctor: any) => doctor.id === editingDoctorId)
         : null;
 
-      const preferredDoctor =
-        currentDoctor ||
-        existingOperationalDoctor ||
-        operationalDoctors[0] ||
-        null;
+      const preferredDoctor = currentDoctor || existingOperationalDoctor || null;
 
       setResponsibleDoctor(preferredDoctor);
       setSelectedDoctorId(preferredDoctor?.id || null);
