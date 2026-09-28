@@ -1,3 +1,4 @@
+// Release verification: actionable notification inbox and compact recall UX.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bell, CheckCheck, MessageSquare, CalendarDays, CreditCard, Package, FileText, ShieldAlert, Users, ClipboardCheck, ChevronRight, Megaphone } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
