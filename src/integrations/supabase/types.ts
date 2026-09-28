@@ -1035,6 +1035,7 @@ export type Database = {
           id: string
           role: string | null
           user_id: string | null
+          is_clinical_provider: boolean
         }
         Insert: {
           clinic_id?: string | null
@@ -1042,6 +1043,8 @@ export type Database = {
           id?: string
           role?: string | null
           user_id?: string | null
+          is_clinical_provider?: boolean
+          is_clinical_provider?: boolean
         }
         Update: {
           clinic_id?: string | null
