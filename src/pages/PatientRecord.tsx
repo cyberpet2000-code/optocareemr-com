@@ -251,6 +251,7 @@ const canViewFinancials =
   const [patientRegistrarName, setPatientRegistrarName] = useState<string | null>(null);
   const [responsibleDoctor, setResponsibleDoctor] = useState<{ id: string; full_name: string } | null>(null);
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
+  const [availableDoctors, setAvailableDoctors] = useState<{ id: string; full_name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   // Prevent rapid double-clicks from creating a second visit.
@@ -813,6 +814,7 @@ if (!isReceptionist) {
     if (!cid) {
       setResponsibleDoctor(null);
       setSelectedDoctorId(null);
+      setAvailableDoctors([]);
       return;
     }
 
@@ -829,6 +831,7 @@ if (!isReceptionist) {
         console.warn("[patient-record:doctor-resolve-failed]", staffError);
         setResponsibleDoctor(null);
         setSelectedDoctorId(null);
+        setAvailableDoctors([]);
         return;
       }
 
@@ -884,6 +887,7 @@ if (!isReceptionist) {
 
       const preferredDoctor = currentDoctor || existingOperationalDoctor || null;
 
+      setAvailableDoctors(operationalDoctors);
       setResponsibleDoctor(preferredDoctor);
       setSelectedDoctorId(preferredDoctor?.id || null);
     })();
@@ -2031,6 +2035,43 @@ transition-colors
         </div>
       )}
 
+
+      {!isReceptionist && (
+        <div className="form-section mb-5 border-2 border-primary/20">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 className="section-title text-sm">Visit clinician</h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                This is the clinician whose name will be attached to a new or edited visit. OptoCare will never silently assign the first doctor in the clinic.
+              </p>
+            </div>
+            <div className="w-full sm:w-72">
+              <Label className="text-xs">Doctor who handled the encounter</Label>
+              <Select
+                value={selectedDoctorId || ""}
+                onValueChange={(value) => {
+                  setSelectedDoctorId(value || null);
+                  const doctor = availableDoctors.find((item) => item.id === value) || null;
+                  setResponsibleDoctor(doctor);
+                }}
+                disabled={role === "doctor" && Boolean(user?.id)}
+              >
+                <SelectTrigger className="rounded-xl mt-1">
+                  <SelectValue placeholder="Select the actual clinician" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableDoctors.map((doctor) => (
+                    <SelectItem key={doctor.id} value={doctor.id}>{doctor.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {role !== "doctor" && !selectedDoctorId && (
+                <p className="text-[11px] text-amber-700 mt-1">Required before saving a new visit.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {editing && (
         <div className="form-section mb-5 border-2 border-primary/20">
