@@ -266,6 +266,7 @@ const canViewFinancials =
   const [showAppointmentBooking, setShowAppointmentBooking] = useState(false);
   const [savingAppointment, setSavingAppointment] = useState(false);
   const [patientRecall, setPatientRecall] = useState<any | null>(null);
+  const [showRecallPanel, setShowRecallPanel] = useState(false);
   const [recallIntervalMonths, setRecallIntervalMonths] = useState(18);
   const [recallEvent, setRecallEvent] = useState<"new_prescription" | "previous_prescription_reused" | "follow_up" | "none">("new_prescription");
   const [recallAction, setRecallAction] = useState<"reset" | "preserve" | "none">("reset");
@@ -3744,39 +3745,79 @@ shadow-sm
         </DialogContent>
       </Dialog>
 
-      {patientRecall && (
-        <div className="mt-5 rounded-2xl border border-primary/15 bg-card p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold">Patient Recall</p>
-              <p className="text-xs text-muted-foreground mt-1">Shared by doctors and reception. It does not appear on the Patient Card.</p>
-            </div>
-            <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">18-month capable</span>
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-            <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Interval</span><div className="font-semibold mt-0.5">{patientRecall.recall_interval_months} months</div></div>
-            <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Due</span><div className="font-semibold mt-0.5">{patientRecall.due_date ? new Date(patientRecall.due_date + "T00:00:00").toLocaleDateString("en-GB") : "—"}</div></div>
-            <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Status</span><div className="font-semibold mt-0.5 capitalize">{patientRecall.status}</div></div>
-            <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Contact</span><div className="font-semibold mt-0.5 capitalize">{String(patientRecall.contact_status || "pending").replace(/_/g, " ")}</div></div>
-          </div>
-        </div>
-      )}
-
       <div className="mt-5 rounded-2xl border border-primary/15 bg-card p-4 shadow-sm">
         <div className="flex items-center justify-between gap-3">
-          <div><p className="text-sm font-semibold">Recall for this visit</p><p className="text-xs text-muted-foreground">Choose what should happen after this completed visit.</p></div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">Recall</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Optional follow-up reminder for this patient.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0 rounded-xl"
+            onClick={() => setShowRecallPanel(value => !value)}
+          >
+            {showRecallPanel ? "Hide recall" : patientRecall?.status === "active" ? "View / edit" : "Set recall"}
+          </Button>
         </div>
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <label className="rounded-xl border p-3 cursor-pointer"><input type="radio" name="recall-event" checked={recallEvent === "new_prescription"} onChange={() => {setRecallEvent("new_prescription");setRecallAction("reset");}} className="mr-2"/>New prescription</label>
-          <label className="rounded-xl border p-3 cursor-pointer"><input type="radio" name="recall-event" checked={recallEvent === "previous_prescription_reused"} onChange={() => {setRecallEvent("previous_prescription_reused");setRecallAction("preserve");}} className="mr-2"/>Previous prescription reused</label>
-          <label className="rounded-xl border p-3 cursor-pointer"><input type="radio" name="recall-event" checked={recallEvent === "follow_up"} onChange={() => {setRecallEvent("follow_up");setRecallAction("preserve");}} className="mr-2"/>Follow-up / no new Rx</label>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">Recall interval</span>
-          {[6,12,18].map(months => <Button key={months} type="button" size="sm" variant={recallIntervalMonths === months ? "default" : "outline"} onClick={() => setRecallIntervalMonths(months)} disabled={recallAction !== "reset"}>{months} months</Button>)}
-          <Input type="number" min={1} max={60} value={recallIntervalMonths} onChange={e => setRecallIntervalMonths(Math.max(1, Math.min(60, Number(e.target.value) || 1)))} className="w-24" disabled={recallAction !== "reset"} aria-label="Custom recall interval in months" />
-        </div>
-        {recallAction === "preserve" && <p className="mt-2 text-xs text-muted-foreground">The existing recall date will remain unchanged.</p>}
+
+        {!showRecallPanel && patientRecall?.status === "active" && (
+          <div className="mt-3 rounded-xl bg-muted/40 p-3 text-xs">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="font-semibold">{patientRecall.recall_interval_months} months</span>
+              <span className="text-muted-foreground">•</span>
+              <span>
+                Due {patientRecall.due_date
+                  ? new Date(patientRecall.due_date + "T00:00:00").toLocaleDateString("en-GB")
+                  : "—"}
+              </span>
+              <span className="capitalize text-muted-foreground">
+                • {String(patientRecall.contact_status || "pending").replace(/_/g, " ")}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {showRecallPanel && (
+          <div className="mt-4 space-y-3">
+            {patientRecall?.status === "active" && (
+              <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Interval</span><div className="font-semibold mt-0.5">{patientRecall.recall_interval_months} months</div></div>
+                <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Due</span><div className="font-semibold mt-0.5">{patientRecall.due_date ? new Date(patientRecall.due_date + "T00:00:00").toLocaleDateString("en-GB") : "—"}</div></div>
+                <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Status</span><div className="font-semibold mt-0.5 capitalize">{patientRecall.status}</div></div>
+                <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Contact</span><div className="font-semibold mt-0.5 capitalize">{String(patientRecall.contact_status || "pending").replace(/_/g, " ")}</div></div>
+              </div>
+            )}
+
+            <div>
+              <p className="text-sm font-semibold">Recall for this visit</p>
+              <p className="text-xs text-muted-foreground mt-1">Choose what should happen after this completed visit.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <label className="rounded-xl border p-3 cursor-pointer">
+                <input type="radio" name="recall-event" checked={recallEvent === "new_prescription"} onChange={() => {setRecallEvent("new_prescription");setRecallAction("reset");}} className="mr-2"/>
+                New prescription
+              </label>
+              <label className="rounded-xl border p-3 cursor-pointer">
+                <input type="radio" name="recall-event" checked={recallEvent === "previous_prescription_reused"} onChange={() => {setRecallEvent("previous_prescription_reused");setRecallAction("preserve");}} className="mr-2"/>
+                Previous prescription reused
+              </label>
+              <label className="rounded-xl border p-3 cursor-pointer">
+                <input type="radio" name="recall-event" checked={recallEvent === "follow_up"} onChange={() => {setRecallEvent("follow_up");setRecallAction("preserve");}} className="mr-2"/>
+                Follow-up / no new Rx
+              </label>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground">Recall interval</span>
+              {[6,12,18].map(months => <Button key={months} type="button" size="sm" variant={recallIntervalMonths === months ? "default" : "outline"} onClick={() => setRecallIntervalMonths(months)} disabled={recallAction !== "reset"}>{months} months</Button>)}
+              <Input type="number" min={1} max={60} value={recallIntervalMonths} onChange={e => setRecallIntervalMonths(Math.max(1, Math.min(60, Number(e.target.value) || 1)))} className="w-24" disabled={recallAction !== "reset"} aria-label="Custom recall interval in months" />
+            </div>
+            {recallAction === "preserve" && <p className="text-xs text-muted-foreground">The existing recall date will remain unchanged because this visit does not create a new prescription recall.</p>}
+          </div>
+        )}
       </div>
 
       <div className="sticky bottom-20 lg:bottom-4 mt-6 flex justify-end gap-2">
