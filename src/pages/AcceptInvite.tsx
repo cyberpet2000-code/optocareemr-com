@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { CheckCircle2, MailCheck, Loader2, AlertTriangle } from "lucide-react";
 import { APP_URL } from "@/lib/app-url";
+import { recordLegalAcceptance } from "@/lib/legalAcceptance";
 
 const PENDING_KEY = "pending_invite_token";
 
@@ -32,6 +33,7 @@ export default function AcceptInvite() {
   const [mode, setMode] = useState<"signup" | "signin">("signup");
   const [signinPassword, setSigninPassword] = useState("");
   const [emailSentMsg, setEmailSentMsg] = useState<string | null>(null);
+  const [legalAccepted, setLegalAccepted] = useState(false);
 
   const tokenFromUrl = params.get("token");
 
@@ -205,7 +207,7 @@ export default function AcceptInvite() {
     setErrMsg(null);
     if (!fullName.trim()) { setErrMsg("Please enter your full name"); return; }
     if (password.length < 6) { setErrMsg("Password must be at least 6 characters"); return; }
-    if (password !== confirm) { setErrMsg("Passwords do not match"); return; }
+    if (password !== confirm) { setErrMsg("Passwords do not match"); return; }\n    if (!legalAccepted) { setErrMsg("Please accept the Terms, Privacy Policy and applicable legal policies before joining the clinic."); return; }
 
     setWorking(true);
     const redirect = `${APP_URL}/accept-invite?token=${encodeURIComponent(token!)}`;
@@ -386,6 +388,10 @@ setWorking(false);
               <PasswordInput id="confirm" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
             </div>
             {errMsg && <p className="text-sm text-destructive">{errMsg}</p>}
+            <label className="flex items-start gap-2 text-xs text-muted-foreground">
+              <input type="checkbox" className="mt-0.5" checked={legalAccepted} onChange={(e) => setLegalAccepted(e.target.checked)} required />
+              <span>I agree to the <Link to="/legal/terms" className="text-primary hover:underline">Terms & Conditions</Link>, acknowledge the <Link to="/legal/privacy" className="text-primary hover:underline">Privacy Policy</Link>, and have reviewed the applicable legal policies for OptoCare-EMR.</span>
+            </label>
             <Button type="submit" className="w-full" disabled={working}>
               {working && <Loader2 size={14} className="animate-spin mr-2" />}
               {working ? "Creating account…" : "Create account & join"}
