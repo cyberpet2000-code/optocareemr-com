@@ -829,9 +829,9 @@ if (!isReceptionist) {
     (async () => {
       const { data: staffRows, error: staffError } = await apiClient
         .from("clinic_users")
-        .select("user_id, role")
+        .select("user_id, is_clinical_provider")
         .eq("clinic_id", cid)
-        .in("role", ["doctor", "admin"]);
+        .eq("is_clinical_provider", true);
 
       if (cancelled) return;
 
@@ -878,9 +878,9 @@ if (!isReceptionist) {
         .sort((a, b) => a.full_name.localeCompare(b.full_name));
 
       // Attribution must never silently default to an arbitrary doctor.
-      // A clinic admin/receptionist must explicitly select the clinician who
-      // actually handled the encounter. A logged-in doctor may default to
-      // themselves because their identity is known.
+      // Admin is full clinic authority, but administrative authority does
+      // not itself make an account the examining clinician. Only an explicitly
+      // marked clinical provider may be attributed as the doctor.
       const currentDoctor = user?.id
         ? operationalDoctors.find((doctor) => doctor.id === user.id)
         : null;
@@ -1123,7 +1123,7 @@ subVaOutcome: v.sub_va_outcome || "",
       editingVisit?.doctor_id ||
       null;
 
-    if (!visitDoctorId && role === "doctor" && user?.id) {
+    if (!visitDoctorId && user?.id && availableDoctors.some((doctor) => doctor.id === user.id)) {
       visitDoctorId = user.id;
     }
 
