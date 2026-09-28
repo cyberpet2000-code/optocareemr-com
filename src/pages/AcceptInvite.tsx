@@ -207,7 +207,11 @@ export default function AcceptInvite() {
     setErrMsg(null);
     if (!fullName.trim()) { setErrMsg("Please enter your full name"); return; }
     if (password.length < 6) { setErrMsg("Password must be at least 6 characters"); return; }
-    if (password !== confirm) { setErrMsg("Passwords do not match"); return; }\n    if (!legalAccepted) { setErrMsg("Please accept the Terms, Privacy Policy and applicable legal policies before joining the clinic."); return; }
+    if (password !== confirm) { setErrMsg("Passwords do not match"); return; }
+    if (!legalAccepted) {
+      setErrMsg("Please accept the Terms, Privacy Policy and applicable legal policies before joining the clinic.");
+      return;
+    }
 
     setWorking(true);
     const redirect = `${APP_URL}/accept-invite?token=${encodeURIComponent(token!)}`;
@@ -231,6 +235,14 @@ export default function AcceptInvite() {
     }
 
     if (data.session) {
+      try {
+        await recordLegalAcceptance(data.session.user.id);
+      } catch (acceptError) {
+        console.error("[legal] invite acceptance record failed", acceptError);
+        setErrMsg("Your account was created, but legal acceptance could not be recorded. Please sign in again.");
+        setWorking(false);
+        return;
+      }
       // Auto-logged in — finalize() will run via the user effect
       return;
     }
