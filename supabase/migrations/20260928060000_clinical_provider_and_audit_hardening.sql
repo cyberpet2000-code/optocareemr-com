@@ -10,6 +10,12 @@ UPDATE public.clinic_users
 SET is_clinical_provider = true
 WHERE lower(role) = 'doctor';
 
+-- Existing Cedar Eye admin-clinician confirmed during reconciliation.
+UPDATE public.clinic_users
+SET is_clinical_provider = true
+WHERE user_id = '0d23a432-204f-46d4-8edc-e60d1d22e4d8'
+  AND clinic_id = 'e3ab54d0-35a7-4abb-a554-9767bd69c292';
+
 -- Cedar Eye's confirmed clinician/admin account must remain a clinical provider
 -- without changing its administrative role.
 UPDATE public.clinic_users
