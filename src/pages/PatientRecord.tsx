@@ -823,7 +823,7 @@ if (!isReceptionist) {
         .from("clinic_users")
         .select("user_id, role")
         .eq("clinic_id", cid)
-        .eq("role", "doctor");
+        .in("role", ["doctor", "admin"]);
 
       if (cancelled) return;
 
