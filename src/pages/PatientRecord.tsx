@@ -894,7 +894,12 @@ if (!isReceptionist) {
         ? operationalDoctors.find((doctor: any) => doctor.id === editingDoctorId)
         : null;
 
-      const preferredDoctor = currentDoctor || existingOperationalDoctor || null;
+      // For an existing visit, the visit's persisted doctor_id is authoritative.
+      // Never replace it merely because another clinical provider is currently logged in.
+      // For a new visit, a logged-in clinical provider is the automatic clinician.
+      const preferredDoctor = editingVisitId
+        ? (existingOperationalDoctor || currentDoctor || null)
+        : (currentDoctor || null);
 
       setAvailableDoctors(operationalDoctors);
       setResponsibleDoctor(preferredDoctor);
@@ -1119,9 +1124,11 @@ subVaOutcome: v.sub_va_outcome || "",
       ? visits.find((visit: any) => visit.id === editingVisitId)
       : null;
 
+    // An existing visit already knows its responsible clinician.
+    // Preserve that attribution when editing; do not let the current account overwrite it.
     let visitDoctorId =
-      selectedDoctorId ||
       editingVisit?.doctor_id ||
+      selectedDoctorId ||
       null;
 
     if (!visitDoctorId && user?.id && availableDoctors.some((doctor) => doctor.id === user.id)) {
@@ -2044,43 +2051,6 @@ transition-colors
         </div>
       )}
 
-
-      {!isReceptionist && (
-        <div className="form-section mb-5 border-2 border-primary/20">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div>
-              <h2 className="section-title text-sm">Visit clinician</h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                This is the clinician whose name will be attached to a new or edited visit. OptoCare will never silently assign the first doctor in the clinic.
-              </p>
-            </div>
-            <div className="w-full sm:w-72">
-              <Label className="text-xs">Doctor who handled the encounter</Label>
-              <Select
-                value={selectedDoctorId || ""}
-                onValueChange={(value) => {
-                  setSelectedDoctorId(value || null);
-                  const doctor = availableDoctors.find((item) => item.id === value) || null;
-                  setResponsibleDoctor(doctor);
-                }}
-                disabled={role === "doctor" && Boolean(user?.id)}
-              >
-                <SelectTrigger className="rounded-xl mt-1">
-                  <SelectValue placeholder="Select the actual clinician" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableDoctors.map((doctor) => (
-                    <SelectItem key={doctor.id} value={doctor.id}>{doctor.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {role !== "doctor" && !selectedDoctorId && (
-                <p className="text-[11px] text-amber-700 mt-1">Required before saving a new visit.</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {editing && (
         <div className="form-section mb-5 border-2 border-primary/20">
