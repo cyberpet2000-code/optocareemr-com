@@ -62,3 +62,11 @@ where cu.user_id is not null
   and cu.clinic_id is not null
   and lower(coalesce(cu.role, '')) in ('admin', 'doctor', 'receptionist')
 on conflict (user_id, clinic_id, role) do nothing;
+
+insert into public.clinic_user_roles (user_id, clinic_id, role)
+select cu.user_id, cu.clinic_id, 'doctor'::public.app_role
+from public.clinic_users cu
+where cu.user_id is not null
+  and cu.clinic_id is not null
+  and cu.is_clinical_provider = true
+on conflict (user_id, clinic_id, role) do nothing;
