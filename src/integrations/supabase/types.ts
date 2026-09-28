@@ -1028,6 +1028,33 @@ export type Database = {
         }
         Relationships: []
       }
+      clinic_user_roles: {
+        Row: {
+          id: string
+          user_id: string
+          clinic_id: string
+          role: string
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          clinic_id: string
+          role: string
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          clinic_id?: string
+          role?: string
+          created_at?: string
+          created_by?: string | null
+        }
+        Relationships: []
+      }
       clinic_users: {
         Row: {
           clinic_id: string | null
