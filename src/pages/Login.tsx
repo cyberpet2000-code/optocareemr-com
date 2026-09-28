@@ -111,6 +111,15 @@ export default function Login() {
         return;
       }
       if (data.user) {
+        try {
+          const pendingLegal = sessionStorage.getItem("optocare:legal_acceptance_pending");
+          if (pendingLegal === "1") {
+            await recordLegalAcceptance(data.user.id);
+            sessionStorage.removeItem("optocare:legal_acceptance_pending");
+          }
+        } catch (acceptError) {
+          console.error("[legal] acceptance reconciliation failed", acceptError);
+        }
         // Clear any stale active clinic on a fresh login
         try { localStorage.removeItem("active_clinic_id"); } catch {}
         // Honor pending invite token (set by /accept-invite when unauthenticated)
