@@ -1120,7 +1120,7 @@ subVaOutcome: v.sub_va_outcome || "",
     }
 
     if (!visitDoctorId) {
-      toast.error("No clinic doctor is available for this visit. Please assign a clinic doctor and try again.");
+      toast.error("No doctor is assigned to this visit. Select the clinician who actually handled the encounter before saving.");
       return;
     }
 
