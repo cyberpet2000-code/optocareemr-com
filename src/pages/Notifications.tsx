@@ -21,6 +21,7 @@ type StaffNotification = {
   expires_at: string | null;
   patient_name?: string | null;
   patient_id?: string | null;
+  metadata?: Record<string, any> | null;
 };
 
 export default function Notifications() {
@@ -31,13 +32,14 @@ export default function Notifications() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [patientNames, setPatientNames] = useState<Record<string, { name: string; id: string }>>({});
+  const [clearing, setClearing] = useState(false);
 
   const load = useCallback(async () => {
     if (!effectiveClinicId || !user?.id) return;
     setLoading(true);
     const { data, error } = await apiClient
       .from("staff_notifications")
-      .select("id,title,body,link,notification_type,category,priority,entity_type,entity_id,read_at,created_at,expires_at")
+      .select("id,title,body,link,notification_type,category,priority,entity_type,entity_id,metadata,read_at,created_at,expires_at")
       .eq("clinic_id", effectiveClinicId)
       .eq("recipient_user_id", user.id)
       .order("created_at", { ascending: false })
@@ -129,7 +131,7 @@ export default function Notifications() {
       .eq("clinic_id", effectiveClinicId)
       .eq("recipient_user_id", user.id);
     if (error) return;
-    setItems(current => current.filter(item => item.id !== id));
+    setItems(current => current.map(item => item.id === id ? { ...item, read_at: readAt } : item));
     window.dispatchEvent(new CustomEvent("optocare:notifications:read", { detail: { count: 1 } }));
   };
 
@@ -142,6 +144,21 @@ export default function Notifications() {
       .eq("clinic_id", effectiveClinicId)
       .eq("recipient_user_id", user.id)
       .is("read_at", null);
+    if (error) return;
+    setItems(current => current.map(item => item.read_at ? item : { ...item, read_at: readAt }));
+    window.dispatchEvent(new CustomEvent("optocare:notifications:read-all"));
+  };
+
+  const clearAll = async () => {
+    if (!effectiveClinicId || !user?.id || clearing) return;
+    if (!window.confirm("Clear all notifications? This removes them from your notification history.")) return;
+    setClearing(true);
+    const { error } = await apiClient
+      .from("staff_notifications")
+      .delete()
+      .eq("clinic_id", effectiveClinicId)
+      .eq("recipient_user_id", user.id);
+    setClearing(false);
     if (error) return;
     setItems([]);
     window.dispatchEvent(new CustomEvent("optocare:notifications:read-all"));
@@ -180,9 +197,14 @@ export default function Notifications() {
           <h1 className="text-xl font-bold">Notifications</h1>
           <p className="text-sm text-muted-foreground">Important updates for your clinic and your role.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => void markAllRead()} disabled={!items.some(item => !item.read_at)}>
-          <CheckCheck size={15} className="mr-1.5" /> Mark all read
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => void markAllRead()} disabled={!items.some(item => !item.read_at)}>
+            <CheckCheck size={15} className="mr-1.5" /> Mark all read
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => void clearAll()} disabled={clearing || items.length === 0}>
+            Clear all
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
