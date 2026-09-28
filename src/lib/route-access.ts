@@ -81,8 +81,23 @@ export async function assertClinicAccess(
     .eq("user_id", userId)
     .eq("clinic_id", clinicId)
     .maybeSingle();
-  if (clinicMembershipError || !clinicMembership) return null;
-  return (clinicMembership as { role: string }).role ?? null;
+  if (!clinicMembershipError && clinicMembership) {
+    return (clinicMembership as { role: string }).role ?? null;
+  }
+
+  // Multi-role foundation fallback: retain legacy membership support while
+  // allowing clinic_user_roles to resolve clinic access during migration.
+  const { data: multiRoleMembership, error: multiRoleError } = await supabase
+    .from("clinic_user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("clinic_id", clinicId)
+    .neq("role", "super_admin")
+    .order("role", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (multiRoleError || !multiRoleMembership) return null;
+  return (multiRoleMembership as { role: string }).role ?? null;
 }
 
 export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision {
