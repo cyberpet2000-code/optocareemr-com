@@ -2,34 +2,18 @@ import LegalLayout from "./LegalLayout";
 
 export default function Cookies() {
   return (
-    <LegalLayout
-      title="Cookie Policy"
-      description="How OptoCare-EMR uses cookies and similar technologies."
-    >
-      <p>
-        OptoCare-EMR uses cookies and similar technologies to operate and improve the platform.
-      </p>
-
-      <h2>How We Use Cookies</h2>
-      <ul>
-        <li><strong>Authentication</strong> — to keep you securely signed in to your clinic workspace.</li>
-        <li><strong>Preferences</strong> — to remember settings such as theme and clinic selection.</li>
-        <li><strong>Analytics</strong> — to understand usage patterns and improve features.</li>
-        <li><strong>Performance</strong> — to monitor and improve load times and reliability.</li>
-      </ul>
-
-      <h2>Managing Cookies</h2>
-      <p>
-        You may disable cookies in your browser settings. Please note that some features of OptoCare-EMR,
-        particularly authentication, may not work properly when cookies are disabled.
-      </p>
-
-      <h2>Third-Party Cookies</h2>
-      <p>
-        Some cookies may be set by trusted third-party services used to operate OptoCare-EMR (for
-        example, payment processors and analytics providers). These cookies are governed by the
-        respective providers' policies.
-      </p>
+    <LegalLayout title="Cookie & Similar Technologies Policy" description="How OptoCare uses cookies and similar technologies.">
+      <p><strong>Version 1.0 · Effective date: [TO BE INSERTED].</strong></p>
+      <h2>1. Essential Technologies</h2>
+      <p>Authentication, security, session continuity and core application functions may require cookies or similar storage. Disabling them can prevent the service from working.</p>
+      <h2>2. Preferences</h2>
+      <p>We may store preferences such as theme, interface settings and selected workspace information to provide a consistent experience.</p>
+      <h2>3. Analytics and Performance</h2>
+      <p>Where optional analytics or performance tools are enabled, they should be configured in accordance with applicable consent requirements. Providers may process technical identifiers under their own privacy terms.</p>
+      <h2>4. Third Parties</h2>
+      <p>Third-party infrastructure, payment, analytics or communication services may use their own cookies or similar technologies. Customers should review the relevant provider disclosures where applicable.</p>
+      <h2>5. Choices</h2>
+      <p>Browser controls and any OptoCare consent controls can be used to manage optional technologies. Essential technologies cannot normally be disabled without affecting core functionality.</p>
     </LegalLayout>
   );
 }
