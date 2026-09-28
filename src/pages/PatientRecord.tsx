@@ -1220,10 +1220,12 @@ const visitPayload = {
   medication: form.medication || null,
   notes: form.notes || null,
 
-  status: markCompleted ? "completed" : "open",
+  // Save Changes preserves the existing status; Complete Visit explicitly
+  // transitions an open visit to completed.
+  status: markCompleted ? "completed" : (editingVisit?.status || "open"),
   completed_at: markCompleted
     ? new Date().toISOString()
-    : null,
+    : (editingVisit?.completed_at || null),
 };
 
 if (typeof navigator !== "undefined" && !navigator.onLine) {
@@ -3858,13 +3860,26 @@ shadow-sm
 
       <Button
         size="lg"
-        className="shadow-lg rounded-2xl px-6"
-        onClick={() => handleSaveVisit(true)}
+        variant="outline"
+        className="rounded-2xl px-6"
+        onClick={() => handleSaveVisit(false)}
         disabled={saving}
       >
-        <Pencil size={16} className="mr-1" />
-        Update Visit
+        <Save size={16} className="mr-1" />
+        Save Changes
       </Button>
+
+      {visits.find(v => v.id === editingVisitId)?.status !== "completed" && (
+        <Button
+          size="lg"
+          className="shadow-lg rounded-2xl px-6"
+          onClick={() => handleSaveVisit(true)}
+          disabled={saving}
+        >
+          <CheckCircle2 size={16} className="mr-1" />
+          Complete Visit
+        </Button>
+      )}
     </>
   ) : (
     <>
