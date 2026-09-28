@@ -199,6 +199,20 @@ export default function Login() {
                 <PasswordInput className="login-design-input" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} />
               </div>
             )}
+            {mode === "signup" && (
+              <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={legalAccepted}
+                  onChange={(e) => setLegalAccepted(e.target.checked)}
+                  required
+                />
+                <span>
+                  I agree to the <a href="/legal/terms" className="text-primary hover:underline">Terms &amp; Conditions</a>, acknowledge the <a href="/legal/privacy" className="text-primary hover:underline">Privacy Policy</a>, and have reviewed the applicable legal policies for OptoCare-EMR.
+                </span>
+              </label>
+            )}
             <Button
               type="submit"
               className="login-design-primary w-full h-12 shadow-glow hover:scale-[1.02] hover:shadow-elevated transition-all duration-300"
