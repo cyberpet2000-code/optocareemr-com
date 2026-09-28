@@ -136,15 +136,17 @@ function resolvePrimaryRole(profile: any, userRoles: string[]) {
 function mergeMemberships({
   userRolesRows,
   clinicUsersRows,
+  clinicUserRolesRows,
   clinicMap,
 }: {
   userRolesRows: Array<{ role: string; clinic_id: string | null }>;
   clinicUsersRows: Array<{ role: string | null; clinic_id: string | null }>;
+  clinicUserRolesRows: Array<{ role: string; clinic_id: string | null }>;
   clinicMap: Map<string, any>;
 }): MembershipRow[] {
   const membershipMap = new Map<string, MembershipRow>();
 
-  const upsert = (clinicId: string | null, role: string | null | undefined, source: "user_roles" | "clinic_users") => {
+  const upsert = (clinicId: string | null, role: string | null | undefined, source: "user_roles" | "clinic_users" | "clinic_user_roles") => {
     if (!clinicId) return;
 
     const normalizedRole = normalizeRole(role);
@@ -164,6 +166,7 @@ function mergeMemberships({
 
   userRolesRows.forEach((row) => upsert(row.clinic_id, row.role, "user_roles"));
   clinicUsersRows.forEach((row) => upsert(row.clinic_id, row.role, "clinic_users"));
+  clinicUserRolesRows.forEach((row) => upsert(row.clinic_id, row.role, "clinic_user_roles"));
 
   return Array.from(membershipMap.values());
 }
@@ -566,6 +569,7 @@ console.debug("[access:stage1_complete]", {
         const membershipClinicIds = Array.from(new Set([
           ...userRolesRows.map((row) => row.clinic_id),
           ...clinicUsersRows.map((row) => row.clinic_id),
+          ...clinicUserRolesRows.map((row) => row.clinic_id),
         ].filter(Boolean) as string[]));
 
         let membershipRows: MembershipRow[] = [];
@@ -595,7 +599,7 @@ console.debug("[access:stage1_complete]", {
           if (requestRef.current !== requestId) return;
 
           const clinicMap = new Map((clinicsData || []).map((clinicRow: any) => [clinicRow.id, clinicRow]));
-          membershipRows = sortMemberships(mergeMemberships({ userRolesRows, clinicUsersRows, clinicMap }));
+          membershipRows = sortMemberships(mergeMemberships({ userRolesRows, clinicUsersRows, clinicUserRolesRows, clinicMap }));
         }
 
         // Last-known-good access is authoritative for recovery when the
