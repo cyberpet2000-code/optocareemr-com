@@ -4,7 +4,7 @@
 CREATE OR REPLACE FUNCTION public.validate_visit_doctor_attribution()
 RETURNS trigger
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path TO 'public'
 AS $function$
 BEGIN
