@@ -52,7 +52,8 @@ export default function Notifications() {
       // older notifications created before patient_name was added.
       const feedbackIds = rows.filter(n => n.entity_type === "feedback_response").map(n => n.entity_id).filter(Boolean) as string[];
       const appointmentIds = rows.filter(n => n.entity_type === "appointment").map(n => n.entity_id).filter(Boolean) as string[];
-      const patientIds = rows.filter(n => n.category === "patient" && n.entity_id).map(n => n.entity_id!) ;
+      const visitIds = rows.filter(n => n.entity_type === "visit").map(n => n.entity_id).filter(Boolean) as string[];
+      const patientIds = rows.filter(n => n.category === "patient" && n.entity_type === "patient" && n.entity_id).map(n => n.entity_id!) ;
       const resolved: Record<string, { name: string; id: string }> = {};
 
       if (feedbackIds.length) {
@@ -61,6 +62,17 @@ export default function Notifications() {
         if (ids.length) {
           const { data: patients } = await apiClient.from("patients").select("id,full_name").in("id", ids);
           (patients || []).forEach((p: any) => resolved[`feedback:${feedbackRows?.find((r: any) => r.patient_id === p.id)?.id}`] = { name: p.full_name, id: p.id });
+        }
+      }
+      if (visitIds.length) {
+        const { data: visits } = await apiClient.from("visits").select("id,patient_id").in("id", visitIds);
+        const ids = (visits || []).map((r: any) => r.patient_id).filter(Boolean);
+        if (ids.length) {
+          const { data: patients } = await apiClient.from("patients").select("id,full_name").in("id", ids);
+          (patients || []).forEach((p: any) => {
+            const visit = visits?.find((v: any) => v.patient_id === p.id);
+            if (visit) resolved[`visit:${visit.id}`] = { name: p.full_name, id: p.id };
+          });
         }
       }
       if (appointmentIds.length) {
@@ -167,7 +179,8 @@ export default function Notifications() {
   const getPatientContext = (item: StaffNotification) => {
     if (item.entity_type === "feedback_response") return patientNames[`feedback:${item.entity_id}`] || null;
     if (item.entity_type === "appointment") return patientNames[`appointment:${item.entity_id}`] || null;
-    if (item.category === "patient" && item.entity_id) return patientNames[`patient:${item.entity_id}`] || null;
+    if (item.entity_type === "visit") return patientNames[`visit:${item.entity_id}`] || null;
+    if (item.entity_type === "patient" && item.entity_id) return patientNames[`patient:${item.entity_id}`] || null;
     return null;
   };
 
