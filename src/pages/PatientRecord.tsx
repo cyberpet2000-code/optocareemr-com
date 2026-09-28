@@ -28,6 +28,7 @@ import {
   Pill,
   FileText,
   CalendarPlus,
+  Save,
 } from "lucide-react";
 import { generateVisitPdf } from "@/lib/visitPdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1254,28 +1255,64 @@ if (typeof navigator !== "undefined" && !navigator.onLine) {
   return;
 }
 
-const { data, error } = editingVisitId
-  ? await apiClient
+let data: any = null;
+let error: any = null;
+
+try {
+  if (editingVisitId) {
+    const result = await apiClient
       .from("visits")
       .update(visitPayload)
       .eq("id", editingVisitId)
+      .eq("clinic_id", cid)
       .select()
-      .single()
-  : await apiClient
+      .maybeSingle();
+
+    data = result.data;
+    error = result.error;
+
+    // An UPDATE can legally return zero rows when RLS/policy filters the row.
+    // Do not report success in that case.
+    if (!error && !data) {
+      error = new Error(
+        "The visit was not updated. The current account may not have permission to edit this visit, or the visit no longer exists in this clinic."
+      );
+    }
+  } else {
+    const result = await apiClient
       .from("visits")
       .insert(visitPayload)
       .select()
       .single();
-    setSaving(false);
-    if (error) {
+
+    data = result.data;
+    error = result.error;
+  }
+} catch (requestError: any) {
+  error = requestError;
+}
+
+setSaving(false);
+
+if (error) {
   savingVisitRef.current = false;
+
   if (error.code === "23505" && !editingVisitId) {
     toast.warning("This visit has already been saved or completed. It was not saved twice.");
   } else {
-    toast.error(error.message);
+    console.error("[patient-record:visit-save-failed]", {
+      editingVisitId,
+      clinicId: cid,
+      error,
+    });
+    toast.error(
+      getUserFacingErrorMessage(error) ||
+      error?.message ||
+      "Unable to save this visit. Please try again."
+    );
   }
   return;
-    }
+}
 
     // Persist recall only after the visit is safely saved. A replacement visit that
     // reuses the old prescription preserves the existing recall; a genuinely new
@@ -1329,6 +1366,8 @@ if (
       "Visit was completed, but billing could not be verified."
     );
 
+    savingVisitRef.current = false;
+    setSaving(false);
     return;
   }
 }
