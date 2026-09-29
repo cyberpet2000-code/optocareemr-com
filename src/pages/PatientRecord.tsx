@@ -937,6 +937,12 @@ if (!isReceptionist) {
     if (!cid || !patient?.id || !hasDraftClinicalInformation(form)) return;
     const draftKey = `patient-visit-draft:${cid}:${patient.id}:${editingVisitId || "new"}`;
     const timer = window.setTimeout(() => {
+      if (!editingVisitId && !newVisitIdRef.current) {
+        newVisitIdRef.current =
+          typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `visit-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      }
       void secureOfflineSave(draftKey, {
         version: 1,
         savedAt: new Date().toISOString(),
