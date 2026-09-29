@@ -2289,17 +2289,17 @@ shadow-sm
     </TabsTrigger>
 
     <TabsTrigger
-      value="refraction"
-      className="flex items-center gap-1 text-[11px] rounded-xl"
-    >
-      <Eye size={12} /> Refraction
-    </TabsTrigger>
-
-    <TabsTrigger
       value="exam"
       className="flex items-center gap-1 text-[11px] rounded-xl"
     >
       <Gauge size={12} /> Exam
+    </TabsTrigger>
+
+    <TabsTrigger
+      value="refraction"
+      className="flex items-center gap-1 text-[11px] rounded-xl"
+    >
+      <Eye size={12} /> Refraction
     </TabsTrigger>
 
     <TabsTrigger
