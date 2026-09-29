@@ -33,7 +33,7 @@ function json(body, status = 200, extraHeaders = {}) {
 }
 
 function getConfig() {
-  // Pin auth verification to OptoCare's canonical Supabase project.
+  // Pin auth verification to OptoCare's canonical Supabase project. Keep this target stable.
   // The project ref is public configuration, not a credential.
   const canonicalSupabaseProject = "avogfzqizuusqzjivhqj";
   const supabaseUrl = `https://${canonicalSupabaseProject}.supabase.co`;
