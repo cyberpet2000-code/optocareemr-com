@@ -131,11 +131,27 @@ begin
     'feedback',
     v_priority,
     v_title,
-    v_body,
-    '/dashboard',
+    'Patient feedback received for ' || coalesce((select p.full_name from public.patients p where p.id = new.patient_id), 'a patient') ||
+      case when v_priority = 'urgent' then '. Follow-up has been requested.' else '.' end,
+    '/patient/' || new.patient_id::text,
     'feedback',
     new.id,
-    jsonb_build_object('feedback_id', new.id, 'visit_id', new.visit_id, 'requires_follow_up', v_priority = 'urgent'),
+    jsonb_build_object(
+      'feedback_id', new.id,
+      'visit_id', new.visit_id,
+      'patient_id', new.patient_id,
+      'doctor_id', new.doctor_id,
+      'overall_rating', new.overall_rating,
+      'doctor_rating', new.doctor_rating,
+      'front_desk_rating', new.front_desk_rating,
+      'eye_exam_rating', new.eye_exam_rating,
+      'service_rating', new.service_rating,
+      'requires_follow_up', v_priority = 'urgent',
+      'positive_feedback', new.positive_feedback,
+      'improvement_feedback', new.improvement_feedback,
+      'follow_up_notes', new.follow_up_notes,
+      'submitted_at', new.submitted_at
+    ),
     'feedback:' || new.id::text
   );
 
