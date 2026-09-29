@@ -3057,26 +3057,16 @@ shadow-sm
             {(eyeHasRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis) ||
               eyeHasRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis)) && (
               <div className="mt-2 space-y-1 font-mono text-[11px]">
-                {sameEyeRx(v) ? (
-                  <p>OU {fmtEyeRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis)}</p>
-                ) : (
-                  <>
-                    {eyeHasRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis) && (
-                      <p>OD {fmtEyeRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis)}</p>
-                    )}
-                    {eyeHasRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis) && (
-                      <p>OS {fmtEyeRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis)}</p>
-                    )}
-                  </>
+                {eyeHasRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis) && (
+                  <p>OD {fmtEyeRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis)}{v.sub_va_od ? " " + v.sub_va_od : ""}</p>
                 )}
-                {v.sub_reading_add && <p>ADD {v.sub_reading_add}</p>}
-                {(v.sub_va_od || v.sub_va_os) && (
-                  <p className="mt-1 font-sans font-semibold text-primary">
-                    Final VA — OD {v.sub_va_od || "—"} | OS {v.sub_va_os || "—"}{v.sub_va_outcome ? ` | Near ${v.sub_va_outcome}` : ""}
-                  </p>
+                {eyeHasRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis) && (
+                  <p>OS {fmtEyeRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis)}{v.sub_va_os ? " " + v.sub_va_os : ""}</p>
                 )}
-              </div>
-            )}
+                {v.sub_reading_add && (
+                  <p>ADD {v.sub_reading_add}{v.sub_va_outcome ? " " + v.sub_va_outcome : ""}</p>
+                )}
+              </div>           )}
             {v.lens_type && (
               <p className="mt-2 text-[11px] text-muted-foreground">
                 Lens: {v.lens_type}
@@ -3217,36 +3207,23 @@ shadow-sm
 
       {(eyeHasRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis) ||
         eyeHasRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis)) &&
-        (sameEyeRx(v) ? (
-          <p className="font-mono text-sm">
-            OU {fmtEyeRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis)}
-          </p>
-        ) : (
-          <>
-            {eyeHasRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis) && (
-              <p className="font-mono text-sm">
-                OD {fmtEyeRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis)}
-              </p>
-            )}
-            {eyeHasRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis) && (
-              <p className="font-mono text-sm">
-                OS {fmtEyeRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis)}
-              </p>
-            )}
-          </>
-        ))}
-
-      {(v.sub_va_od || v.sub_va_os) && (
-        <p className="mt-2 text-xs font-semibold text-primary">
-          Final VA — OD {v.sub_va_od || "—"} | OS {v.sub_va_os || "—"}{v.sub_va_outcome ? ` | Near ${v.sub_va_outcome}` : ""}
-        </p>
-      )}
-
-      {v.sub_reading_add && (
-        <p className="font-mono text-sm">
-          ADD {v.sub_reading_add}
-        </p>
-      )}
+        <>
+          {eyeHasRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis) && (
+            <p className="font-mono text-sm">
+              OD {fmtEyeRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis)}{v.sub_va_od ? " " + v.sub_va_od : ""}
+            </p>
+          )}
+          {eyeHasRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis) && (
+            <p className="font-mono text-sm">
+              OS {fmtEyeRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis)}{v.sub_va_os ? " " + v.sub_va_os : ""}
+            </p>
+          )}
+          {v.sub_reading_add && (
+            <p className="font-mono text-sm">
+              ADD {v.sub_reading_add}{v.sub_va_outcome ? " " + v.sub_va_outcome : ""}
+            </p>
+          )}
+        </>
 
       {hasOpticalPrescription(v) && (
         <div className="mt-2 flex items-center justify-between gap-2">
