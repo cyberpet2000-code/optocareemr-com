@@ -3756,8 +3756,9 @@ shadow-sm
                              <Link
                                to={"/billing?patient_id=" + patient.id + "&visit_id=" + bill.visit_id}
                                className="inline-flex items-center gap-1 rounded-xl bg-primary px-2.5 py-1.5 text-[10px] sm:text-xs font-medium text-primary-foreground hover:opacity-90"
+                               title="Open this visit's billing record"
                              >
-                               <FileText size={12} /> View Bill
+                               <FileText size={12} /> Open Billing
                              </Link>
                            )}
                          </div>
