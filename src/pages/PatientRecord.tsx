@@ -34,7 +34,7 @@ import { generateVisitPdf } from "@/lib/visitPdf";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAccess } from "@/hooks/useAccess";
 import {
-  QuickPicker, PickerChips,
+  QuickPicker, PickerChips, ClinicalAutocompleteTextarea,
 
   CHIEF_COMPLAINT_OPTIONS,
   HISTORY_OPTIONS,
@@ -2389,11 +2389,12 @@ shadow-sm
     />
   </div>
 
-  <Textarea
+  <ClinicalAutocompleteTextarea
     className="rounded-xl"
     value={form.chiefComplaint}
-    onChange={e => setField("chiefComplaint", e.target.value)}
+    onChange={v => setField("chiefComplaint", v)}
     rows={2}
+    aria-label="Chief Complaint"
   />
 
   <PickerChips
@@ -2419,11 +2420,12 @@ shadow-sm
     />
   </div>
 
-  <Textarea
+  <ClinicalAutocompleteTextarea
     className="rounded-xl"
     value={form.history}
-    onChange={e => setField("history", e.target.value)}
+    onChange={v => setField("history", v)}
     rows={3}
+    aria-label="History"
   />
 
   <PickerChips
@@ -2677,12 +2679,13 @@ shadow-sm
     />
   </div>
 
-  <Textarea
+  <ClinicalAutocompleteTextarea
     className="rounded-xl"
     value={form.examination}
-    onChange={e => setField("examination", e.target.value)}
+    onChange={v => setField("examination", v)}
     rows={4}
     placeholder="External, anterior segment, posterior segment..."
+    aria-label="Examination findings"
   />
 
   <PickerChips
@@ -2788,7 +2791,7 @@ shadow-sm
                     />
                   </div>
                 </div>
-                <Textarea className="rounded-xl" value={form.diagnosis} onChange={e => setField("diagnosis", e.target.value)} rows={3} />
+                <ClinicalAutocompleteTextarea className="rounded-xl" value={form.diagnosis} onChange={v => setField("diagnosis", v)} rows={3} aria-label="Diagnosis" />
                 <PickerChips value={form.diagnosis} onChange={v => setField("diagnosis", v)} />
               </div>
 
@@ -2876,11 +2879,12 @@ shadow-sm
     </div>
   </div>
 
-  <Textarea
+  <ClinicalAutocompleteTextarea
     className="rounded-xl"
     value={form.notes}
-    onChange={e => setField("notes", e.target.value)}
+    onChange={v => setField("notes", v)}
     rows={3}
+    aria-label="Notes, advice and referral"
   />
 
   <PickerChips
