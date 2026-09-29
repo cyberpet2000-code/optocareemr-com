@@ -1909,45 +1909,43 @@ if (error) {
                       </div>
                       <div className="col-span-4">
                         <Label className="text-[10px]">Name</Label>
-                        {it.item_type === "Lens Transfer" ||
-                        it.item_type === "Frame Fixing" ||
-                        it.item_type === "Others" ? (
+                        <div className="flex gap-1">
                           <Input
-                            className="rounded-lg h-8 text-xs"
+                            className="rounded-lg h-8 text-xs min-w-0"
                             value={it.item_name}
                             onChange={(e) =>
                               updateItem(idx, {
                                 item_name: e.target.value,
+                                // A manually typed name is a non-inventory charge
+                                // unless the user explicitly selects a stock item.
                                 inventory_id: null,
                               })
                             }
-                            placeholder={
-                              it.item_type === "Lens Transfer"
-                                ? "Describe transferred lens"
-                                : it.item_type === "Frame Fixing"
-                                  ? "Describe frame repair/fixing"
-                                  : "Enter custom charge"
-                            }
+                            placeholder="Type any item or service name"
                           />
-                        ) : (
-                          <StockItemPicker
-                            value={it.inventory_id}
-                            items={inventoryItems}
-                            placeholder="Select exact item from stock"
-                            onSelect={(selected) => {
-                              const rawType = String(selected.item_type || selected.category || "").trim();
-                              const matchedType = ITEM_TYPES.find(
-                                (type) => type.toLowerCase() === rawType.toLowerCase()
-                              );
-                              updateItem(idx, {
-                                inventory_id: selected.id,
-                                item_name: selected.name || "",
-                                unit_price: Number(selected.price) || 0,
-                                ...(matchedType ? { item_type: matchedType } : {}),
-                              });
-                            }}
-                          />
-                        )}
+                          <div className="w-24 shrink-0">
+                            <StockItemPicker
+                              value={it.inventory_id}
+                              items={inventoryItems}
+                              placeholder="Stock"
+                              onSelect={(selected) => {
+                                const rawType = String(selected.item_type || selected.category || "").trim();
+                                const matchedType = ITEM_TYPES.find(
+                                  (type) => type.toLowerCase() === rawType.toLowerCase()
+                                );
+                                updateItem(idx, {
+                                  inventory_id: selected.id,
+                                  item_name: selected.name || "",
+                                  unit_price: Number(selected.price) || 0,
+                                  ...(matchedType ? { item_type: matchedType } : {}),
+                                });
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <p className="text-[9px] text-muted-foreground mt-0.5">
+                          Type manually, or choose an in-stock item.
+                        </p>
                       </div>
                       <div className="col-span-2">
                         <Label className="text-[10px]">Qty</Label>
