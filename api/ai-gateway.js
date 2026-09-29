@@ -33,12 +33,10 @@ function json(body, status = 200, extraHeaders = {}) {
 }
 
 function getConfig() {
-  // Keep the server-side AI gateway on the same Supabase project configuration
-  // used by the browser application. A stale SUPABASE_URL can otherwise make
-  // Clinical AI fail while the rest of OptoCare remains connected.
-  // The browser is pinned to OptoCare's canonical Supabase project.
-  // Do not let an unrelated/stale Vercel URL override the auth target.
-  const supabaseUrl = "https://avogfzqizuusqzjivhqj.supabase.co";
+  // Pin auth verification to OptoCare's canonical Supabase project.
+  // The project ref is public configuration, not a credential.
+  const canonicalSupabaseProject = "avogfzqizuusqzjivhqj";
+  const supabaseUrl = `https://${canonicalSupabaseProject}.supabase.co`;
   const publishableKey =
     process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
     process.env.SUPABASE_PUBLISHABLE_KEY ||
