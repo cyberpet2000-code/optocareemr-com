@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { getUserFacingErrorMessage } from "@/lib/diag/connectionDiagnosis";
+import { secureOfflineGet, secureOfflineSave, secureOfflineRemove } from "@/lib/secureOfflineStore";
 
 type AnyDb = any;
 
@@ -128,6 +129,45 @@ export default function DailyFrontDeskReport() {
   const [mobileRow, setMobileRow] = useState<string | null>(null);
   const [expenseDraft, setExpenseDraft] = useState({ description: "", amount: "", payment_method: "cash", paid_to: "", remarks: "" });
   const [savingExpense, setSavingExpense] = useState(false);
+
+  // Local draft mirror protects in-progress reception work from refresh/network loss.
+  // It never creates or submits a database report; the server remains the source of truth.
+  const draftKey = effectiveClinicId ? `daily-front-desk-draft:${effectiveClinicId}:${reportDate}` : null;
+  const draftState = {
+    reportNotes,
+    expenseDraft,
+    patients,
+    savedAt: new Date().toISOString(),
+  };
+
+  useEffect(() => {
+    if (!draftKey || loading || report?.status === "submitted") return;
+    const timer = window.setTimeout(() => {
+      void secureOfflineSave(draftKey, draftState);
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [draftKey, reportDate, report?.status, reportNotes, expenseDraft, patients, loading]);
+
+  useEffect(() => {
+    if (!draftKey || loading) return;
+    let cancelled = false;
+    void (async () => {
+      const draft = await secureOfflineGet<any>(draftKey);
+      if (cancelled || !draft) return;
+      if (report?.status === "submitted") {
+        await secureOfflineRemove(draftKey);
+        return;
+      }
+      if (draft.reportNotes != null) setReportNotes(draft.reportNotes);
+      if (draft.expenseDraft) setExpenseDraft(draft.expenseDraft);
+      if (Array.isArray(draft.patients) && draft.patients.length) setPatients(draft.patients);
+    })();
+    return () => { cancelled = true; };
+  }, [draftKey, loading, report?.status]);
+
+  const discardLocalDraft = async () => {
+    if (draftKey) await secureOfflineRemove(draftKey);
+  };
 
   const load = useCallback(async () => {
     if (!effectiveClinicId || !canOperate) return;
@@ -307,7 +347,7 @@ export default function DailyFrontDeskReport() {
       const rowsToSave = patients.filter((p) => p.patient_type === "hmo" || p.prescription_available || p.lens_order_required || p.feedback_form_sent || p.remarks || p.medication_name);
       for (const row of rowsToSave) await savePatient(row);
       const { data, error } = await db.rpc("submit_daily_front_desk_report", { p_report_id: report.id });
-      if (error) throw error; setReport(asArray<Report>(data)[0] || report); toast.success("Daily report submitted and locked");
+      if (error) throw error; setReport(asArray<Report>(data)[0] || report); await discardLocalDraft(); toast.success("Daily report submitted and locked");
     } catch (e: any) { toast.error(await getUserFacingErrorMessage(e, "Failed to submit report")); } finally { setSubmitting(false); }
   }
 
