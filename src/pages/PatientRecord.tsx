@@ -3064,6 +3064,11 @@ shadow-sm
                   </>
                 )}
                 {v.sub_reading_add && <p>ADD {v.sub_reading_add}</p>}
+                {(v.sub_va_od || v.sub_va_os) && (
+                  <p className="mt-1 font-sans font-semibold text-primary">
+                    Final VA — OD {v.sub_va_od || "—"} | OS {v.sub_va_os || "—"}{v.sub_va_outcome ? ` | Near ${v.sub_va_outcome}` : ""}
+                  </p>
+                )}
               </div>
             )}
             {v.lens_type && (
