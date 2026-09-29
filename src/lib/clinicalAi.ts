@@ -108,6 +108,26 @@ function caseKey(value: string) {
   return (hash >>> 0).toString(16);
 }
 
+async function getClinicalAiAccessToken(forceRefresh = false): Promise<string | null> {
+  try {
+    const { data: sessionData } = await apiClient.auth.getSession();
+    const session = sessionData.session;
+    const now = Math.floor(Date.now() / 1000);
+    const expiresAt = session?.expires_at ?? 0;
+
+    if (session?.access_token && !forceRefresh && expiresAt > now + 60) {
+      return session.access_token;
+    }
+
+    const { data: refreshed, error } = await apiClient.auth.refreshSession();
+    if (error || !refreshed.session?.access_token) return null;
+
+    return refreshed.session.access_token;
+  } catch {
+    return null;
+  }
+}
+
 export function isClinicalAiSupported() {
   return typeof window !== "undefined" && typeof navigator !== "undefined" && navigator.onLine;
 }
@@ -265,18 +285,34 @@ export async function analyzeClinicalCase(
   const request = (async () => {
     let response: Response;
     try {
-      const { data: sessionData } = await apiClient.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-      if (!accessToken) throw new Error("Authentication required.");
-      response = await fetch("/api/ai-gateway", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ action: "clinical_case_analysis", clinicalData: requestData }),
-      });
-    } catch {
+      let accessToken = await getClinicalAiAccessToken();
+      if (!accessToken) throw new Error("Your OptoCare session has expired. Please sign in again.");
+
+      const request = () =>
+        fetch("/api/ai-gateway", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ action: "clinical_case_analysis", clinicalData: requestData }),
+        });
+
+      response = await request();
+
+      // The gateway remains strict. If a token expired between session lookup
+      // and request, refresh once and retry rather than weakening the gateway.
+      if (response.status === 401) {
+        accessToken = await getClinicalAiAccessToken(true);
+        if (!accessToken) {
+          throw new Error("Your OptoCare session has expired. Please sign in again.");
+        }
+        response = await request();
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message === "Your OptoCare session has expired. Please sign in again.") {
+        throw error;
+      }
       throw new Error("OptoCare Clinical AI could not connect to its AI service. Please check your internet connection and try again.");
     }
 
