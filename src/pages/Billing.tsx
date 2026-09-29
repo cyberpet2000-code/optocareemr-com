@@ -240,7 +240,7 @@ export default function Billing() {
         familyRes,
       ] = await Promise.all([
         apiClient.from("billing")
-          .select("id,clinic_id,patient_id,visit_id,consultation_fee,items_total,total_amount,amount_paid,status,created_at,payment_type,hmo_id,family_id,notes,discount_amount,discount_reason")
+          .select("id,clinic_id,patient_id,visit_id,consultation_fee,items_total,total_amount,amount_paid,balance,status,created_at,payer_type,hmo_id,family_id,notes,discount_amount,discount_reason")
           .eq("clinic_id", cid)
           .order("created_at", { ascending: false })
           .limit(100),
@@ -261,7 +261,20 @@ export default function Billing() {
           .eq("clinic_id", cid)
           .order("family_name")
       ]);
-      if (billRes.error && patRes.error) { await hydrateFromCache(); return; }
+      if (billRes.error) {
+        console.error("[billing] bill list query failed:", billRes.error);
+        const cached = await secureOfflineGet<BillingRow[]>(billsKey);
+        if (cached) {
+          setBills(cached);
+          setLoading(false);
+          toast.error("Could not refresh billing. Showing the last saved bill list.");
+        } else {
+          setBills([]);
+          setLoading(false);
+          toast.error(await getUserFacingErrorMessage(billRes.error, "Could not load bills. Please try again."));
+        }
+        return;
+      }
       console.debug("[billing]", { clinic_id: cid, bills: billRes.data?.length ?? 0 });
       const hmosList = (hmoRes.data || []) as Array<{ id: string; name: string }>;
       const familiesList = (familyRes.data || []) as any[];
@@ -1192,14 +1205,11 @@ if (error) {
     return "bg-primary/10 text-primary";
   };
 
-  const pendingBills = bills.filter(b => {
-  const total = Number(b.total_amount || 0);
-
-  return (
-    total > 0 &&
-    b.status !== "paid"
-  );
-});
+  const pendingBills = bills.filter((b) => {
+    const balance = Number(b.balance ?? (Number(b.total_amount || 0) - Number(b.amount_paid || 0)));
+    const status = String(b.status || "").toLowerCase();
+    return balance > 0 && status !== "paid";
+  });
 
   const medicationItems =
     inventoryItems.filter(
@@ -1211,12 +1221,12 @@ if (error) {
   // ensureBillingForVisit creates zero-value billing placeholders for visits.
   // They are useful internally for editing a bill, but they are not actual bills
   // and should never appear in billing lists or patient billing history.
-  const actualBills = bills.filter(
-    (b) =>
-      Number(b.consultation_fee || 0) > 0 ||
-      Number(b.items_total || 0) > 0 ||
-      Number(b.total_amount || 0) > 0 ||
-      Number(b.amount_paid || 0) > 0
+  const actualBills = bills.filter((b) =>
+    Number(b.consultation_fee || 0) > 0 ||
+    Number(b.items_total || 0) > 0 ||
+    Number(b.total_amount || 0) > 0 ||
+    Number(b.amount_paid || 0) > 0 ||
+    Number(b.balance || 0) > 0
   );
 
   let displayBills = actualBills;
