@@ -233,7 +233,19 @@ const isReceptionist = role === "receptionist" || roles?.includes("receptionist"
 const isClinicalUser =
   role === "doctor" ||
   role === "admin" ||
-  role === "super_admin";  
+  role === "super_admin";
+
+const isClinicAdmin =
+  role === "admin" ||
+  role === "super_admin" ||
+  roles?.includes("admin") ||
+  roles?.includes("super_admin");
+
+const canEditVisit = (visit: any) =>
+  Boolean(
+    isClinicAdmin ||
+    (role === "doctor" && visit?.doctor_id && visit.doctor_id === user?.id)
+  );
 
 const canViewFinancials =
   role === "admin" ||
@@ -1045,6 +1057,18 @@ subVaOutcome: v.sub_va_outcome || "",
     }
     if (!patient) return;
     if (!cid) { toast.error("No active clinic"); return; }
+
+    if (editingVisitId) {
+      const existingVisit = visits.find((visit: any) => visit.id === editingVisitId);
+      if (!existingVisit) {
+        toast.error("This visit could not be found. Please reload the patient record and try again.");
+        return;
+      }
+      if (!canEditVisit(existingVisit)) {
+        toast.error("Doctors can only edit their own clinical visits. An Admin can edit any clinic visit.");
+        return;
+      }
+    }
 
     // A completed visit must never be submitted as a brand-new visit.
     // This also protects against reopening an already-completed visit and
@@ -3484,9 +3508,11 @@ shadow-sm
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => startEditVisit(v)}>
-          <Pencil className="mr-2 h-4 w-4" /> Edit Visit
-        </DropdownMenuItem>
+        {canEditVisit(v) && (
+          <DropdownMenuItem onClick={() => startEditVisit(v)}>
+            <Pencil className="mr-2 h-4 w-4" /> Edit Visit
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={() => generateVisitPdf(patient, v)}>
           <Download className="mr-2 h-4 w-4" /> Export Visit
         </DropdownMenuItem>
