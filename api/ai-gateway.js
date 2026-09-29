@@ -32,21 +32,19 @@ function json(body, status = 200, extraHeaders = {}) {
   });
 }
 
+const OPTOCARE_SUPABASE_URL = "https://avogfzqizuusqzjivhqj.supabase.co";
+
 function getConfig() {
-  // Keep the server-side AI gateway on the same Supabase project configuration
-  // used by the browser application. A stale SUPABASE_URL can otherwise make
-  // Clinical AI fail while the rest of OptoCare remains connected.
-  const supabaseUrl =
-    process.env.VITE_SUPABASE_URL ||
-    process.env.SUPABASE_URL ||
-    "";
+  // Always authenticate Clinical AI against the canonical OptoCare Supabase
+  // project. Keep the publishable key and Gemini key in Vercel environment
+  // variables; never hardcode credentials in source.
   const publishableKey =
     process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
     process.env.SUPABASE_PUBLISHABLE_KEY ||
     process.env.VITE_SUPABASE_ANON_KEY ||
     "";
   const geminiKey = process.env.GEMINI_API_KEY || "";
-  return { supabaseUrl, publishableKey, geminiKey };
+  return { supabaseUrl: OPTOCARE_SUPABASE_URL, publishableKey, geminiKey };
 }
 
 function bearerToken(header) {
