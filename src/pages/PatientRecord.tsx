@@ -531,6 +531,7 @@ const canViewFinancials =
       let name = (staff?.full_name || "").trim();
       if (!name) return "Not recorded";
       const title = (staff?.title || "").trim();
+      if (asDoctor) name = name.replace(/^user\s+/i, "").trim();
       if (/^dr\.?\s+/i.test(name)) name = name.replace(/^dr\.?\s+/i, "").trim();
 
       const displayName = title
@@ -3058,21 +3059,30 @@ shadow-sm
               eyeHasRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis)) && (
               <div className="mt-2 space-y-1 font-mono text-[11px]">
                 {sameEyeRx(v) ? (
-                  <p>OU {fmtEyeRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis)}</p>
+                  <p>
+                    OU {fmtEyeRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis)}
+                    {(v.sub_va_od || v.sub_va_os) && <span className="ml-2 text-primary">VA {v.sub_va_od || v.sub_va_os}</span>}
+                  </p>
                 ) : (
                   <>
                     {eyeHasRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis) && (
-                      <p>OD {fmtEyeRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis)}</p>
+                      <p>
+                        OD {fmtEyeRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis)}
+                        {v.sub_va_od && <span className="ml-2 text-primary">VA {v.sub_va_od}</span>}
+                      </p>
                     )}
                     {eyeHasRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis) && (
-                      <p>OS {fmtEyeRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis)}</p>
+                      <p>
+                        OS {fmtEyeRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis)}
+                        {v.sub_va_os && <span className="ml-2 text-primary">VA {v.sub_va_os}</span>}
+                      </p>
                     )}
                   </>
                 )}
-                {v.sub_reading_add && <p>ADD {v.sub_reading_add}</p>}
-                {(v.sub_va_od || v.sub_va_os) && (
-                  <p className="mt-1 font-sans font-semibold text-primary">
-                    Final VA — OD {v.sub_va_od || "—"} | OS {v.sub_va_os || "—"}{v.sub_va_outcome ? ` | Near ${v.sub_va_outcome}` : ""}
+                {v.sub_reading_add && (
+                  <p>
+                    ADD {v.sub_reading_add}
+                    {v.sub_va_outcome && <span className="ml-2 text-primary">VA {v.sub_va_outcome}</span>}
                   </p>
                 )}
               </div>
@@ -3220,31 +3230,31 @@ shadow-sm
         (sameEyeRx(v) ? (
           <p className="font-mono text-sm">
             OU {fmtEyeRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis)}
+            {(v.sub_va_od || v.sub_va_os) && (
+              <span className="ml-2 font-sans text-primary">VA {v.sub_va_od || v.sub_va_os}</span>
+            )}
           </p>
         ) : (
           <>
             {eyeHasRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis) && (
               <p className="font-mono text-sm">
                 OD {fmtEyeRx(v.sub_od_sphere, v.sub_od_cyl, v.sub_od_axis)}
+                {v.sub_va_od && <span className="ml-2 font-sans text-primary">VA {v.sub_va_od}</span>}
               </p>
             )}
             {eyeHasRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis) && (
               <p className="font-mono text-sm">
                 OS {fmtEyeRx(v.sub_os_sphere, v.sub_os_cyl, v.sub_os_axis)}
+                {v.sub_va_os && <span className="ml-2 font-sans text-primary">VA {v.sub_va_os}</span>}
               </p>
             )}
           </>
         ))}
 
-      {(v.sub_va_od || v.sub_va_os) && (
-        <p className="mt-2 text-xs font-semibold text-primary">
-          Final VA — OD {v.sub_va_od || "—"} | OS {v.sub_va_os || "—"}{v.sub_va_outcome ? ` | Near ${v.sub_va_outcome}` : ""}
-        </p>
-      )}
-
       {v.sub_reading_add && (
         <p className="font-mono text-sm">
           ADD {v.sub_reading_add}
+          {v.sub_va_outcome && <span className="ml-2 font-sans text-primary">VA {v.sub_va_outcome}</span>}
         </p>
       )}
 
