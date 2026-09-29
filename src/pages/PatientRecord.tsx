@@ -54,7 +54,7 @@ import { PatientWhatsAppMessages } from "@/components/PatientWhatsAppMessages";
 import { ClinicalAiAssistant } from "@/components/ClinicalAiAssistant";
 import { ClinicalVisitInsights } from "@/components/ClinicalVisitInsights";
 import { enqueueOfflineOperation, cachePatientOffline, cacheVisitsOffline, cacheVisitOffline, cacheStaffProfilesOffline, getStaffProfilesOffline } from "@/lib/offlineEngine";
-import { secureOfflineGet } from "@/lib/secureOfflineStore";
+import { secureOfflineGet, secureOfflineSave, secureOfflineRemove } from "@/lib/secureOfflineStore";
 import {
   MoreVertical,
   Trash2,
@@ -137,7 +137,7 @@ const emptyVisitForm = () => ({
   subOsSphere: "", subOsCyl: "", subOsAxis: "", subVaOs: "",
   subReadingAdd: "", subVaOutcome: "",
   examination: "",
-  iopOd: "", iopOs: "", iopTime: "",
+  iopOd: "", iopOs: "", iopTime: "", tonometerType: "",
   diagnosis: "",
 lensType: "",
 medication: "",
@@ -914,6 +914,39 @@ if (!isReceptionist) {
     ...prev,
     [k]: v,
   }));
+
+  const hasDraftClinicalInformation = (draft: any) => Object.values(draft || {}).some(
+    (value) => typeof value === "string" && value.trim().length > 0
+  );
+
+  // Encrypted background draft: autosave never creates a visit row.
+  useEffect(() => {
+    if (!cid || !patient?.id) return;
+    let cancelled = false;
+    const draftKey = `patient-visit-draft:${cid}:${patient.id}:${editingVisitId || "new"}`;
+    void (async () => {
+      const draft = await secureOfflineGet<any>(draftKey);
+      if (cancelled || !draft?.form || !hasDraftClinicalInformation(draft.form)) return;
+      setForm(draft.form);
+      if (!editingVisitId && draft.visitId) newVisitIdRef.current = draft.visitId;
+    })();
+    return () => { cancelled = true; };
+  }, [cid, patient?.id, editingVisitId]);
+
+  useEffect(() => {
+    if (!cid || !patient?.id || !hasDraftClinicalInformation(form)) return;
+    const draftKey = `patient-visit-draft:${cid}:${patient.id}:${editingVisitId || "new"}`;
+    const timer = window.setTimeout(() => {
+      void secureOfflineSave(draftKey, {
+        version: 1,
+        savedAt: new Date().toISOString(),
+        visitId: editingVisitId || newVisitIdRef.current || null,
+        editingVisitId: editingVisitId || null,
+        form,
+      });
+    }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [cid, patient?.id, editingVisitId, form]);
   const startEditVisit = (v: any) => {
   setEditingVisitId(v.id);
   setSelectedDoctorId(v.doctor_id || (role === "doctor" ? user?.id ?? null : null));
@@ -970,6 +1003,7 @@ subVaOutcome: v.sub_va_outcome || "",
     iopOd: v.iop_od?.toString() || "",
     iopOs: v.iop_os?.toString() || "",
     iopTime: v.iop_time || "",
+    tonometerType: v.tonometer_type || "",
   });
 
   window.scrollTo({
@@ -1212,6 +1246,7 @@ const visitPayload = {
   iop_od: form.iopOd ? Number(form.iopOd) : null,
   iop_os: form.iopOs ? Number(form.iopOs) : null,
   iop_time: form.iopTime || null,
+  tonometer_type: form.tonometerType || null,
 
   diagnosis: form.diagnosis || null,
   lens_type: form.lensType || null,
@@ -1370,6 +1405,8 @@ if (
 }
     savingVisitRef.current = false;
     newVisitIdRef.current = null;
+    await secureOfflineRemove(`patient-visit-draft:${cid}:${patient.id}:${editingVisitId || "new"}`);
+    await secureOfflineRemove(`patient-visit-draft:${cid}:${patient.id}:new`);
     toast.success(markCompleted ? "Visit completed — bill auto-created" : "Visit saved");
     setEditingVisitId(null);
     setForm(emptyVisitForm());
@@ -2654,9 +2691,26 @@ shadow-sm
   />
 </div>
               <div className="space-y-3">
-                <div className="space-y-1 max-w-xs">
-                  <Label className="text-xs">IOP — Time</Label>
-                  <Input className="rounded-xl" type="time" value={form.iopTime} onChange={e => setField("iopTime", e.target.value)} aria-label="IOP time (shared)" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Tonometer</Label>
+                    <Select value={form.tonometerType || undefined} onValueChange={v => setField("tonometerType", v)}>
+                      <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select tonometer" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Goldmann Applanation Tonometer (GAT)">Goldmann Applanation (GAT)</SelectItem>
+                        <SelectItem value="Non-contact / Air-puff Tonometer">Non-contact / Air-puff</SelectItem>
+                        <SelectItem value="Tono-Pen">Tono-Pen</SelectItem>
+                        <SelectItem value="iCare Rebound Tonometer">iCare Rebound</SelectItem>
+                        <SelectItem value="Perkins Applanation Tonometer">Perkins</SelectItem>
+                        <SelectItem value="Schotz Tonometer">Schiøtz</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">IOP — Time</Label>
+                    <Input className="rounded-xl" type="time" value={form.iopTime} onChange={e => setField("iopTime", e.target.value)} aria-label="IOP time (shared)" />
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
@@ -3102,6 +3156,7 @@ shadow-sm
   IOP
 </div>
       {" "}
+      {v.tonometer_type ? `${v.tonometer_type}: ` : ""}
       OD {v.iop_od || "—"} mmHg
       {" | "}
       OS {v.iop_os || "—"} mmHg
@@ -3165,6 +3220,12 @@ shadow-sm
             )}
           </>
         ))}
+
+      {(v.sub_va_od || v.sub_va_os) && (
+        <p className="mt-2 text-xs font-semibold text-primary">
+          Final VA — OD {v.sub_va_od || "—"} | OS {v.sub_va_os || "—"}{v.sub_va_outcome ? ` | Near ${v.sub_va_outcome}` : ""}
+        </p>
+      )}
 
       {v.sub_reading_add && (
         <p className="font-mono text-sm">
@@ -3889,6 +3950,7 @@ shadow-sm
 
         setEditingVisitId(null);
         setForm(emptyVisitForm());
+        await secureOfflineRemove(`patient-visit-draft:${cid}:${patient.id}:${editingVisitId}`);
       }}
       >
         Delete Visit
