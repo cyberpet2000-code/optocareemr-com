@@ -482,15 +482,56 @@ export default function Billing() {
 
       // Select from all billing records so a zero-value placeholder can still
       // be used to create the patient's first real bill.
-const selectedBill = targetVisitId
+let selectedBill = targetVisitId
   ? (billsRes.find((b) => b.visit_id === targetVisitId) ?? null)
-  : (billsRes.find((b) => Number(b.total_amount || 0) > 0 && b.status !== "paid") ??
-     billsRes.find((b) => Number(b.total_amount || 0) > 0) ??
-     billsRes[0]);
+  : (billsRes.find((b) => Number(b.total_amount || 0) > 0 && String(b.status || "").toLowerCase() !== "paid") ??
+     billsRes.find((b) => Number(b.total_amount || 0) === 0 && String(b.status || "").toLowerCase() !== "paid") ??
+     null);
 
+// "New Bill" from Patient Record must remain usable even when the patient has
+// no bill yet or all previous bills are already paid. Create a zero-value draft
+// and let the existing Save Bill flow populate it. This is intentionally scoped
+// to an explicit patient billing context; it does not create bills during normal
+// patient-list loading.
 if (!selectedBill) {
-  setEditingBillingId(null);
-  return;
+  const isHmo = patient.payment_type === "hmo";
+  const { data: createdBill, error: createBillError } = await apiClient
+    .from("billing")
+    .insert({
+      clinic_id: cid,
+      patient_id: patient.id,
+      visit_id: targetVisitId || null,
+      payer_type: isHmo ? "hmo" : "private",
+      hmo_id: isHmo ? patient.active_hmo_id : null,
+      consultation_fee: 0,
+      items_total: 0,
+      total_amount: 0,
+      amount_paid: 0,
+      balance: 0,
+      status: "pending",
+    })
+    .select("id, visit_id, total_amount, amount_paid, balance, consultation_fee, discount_amount, discount_reason, status, notes, created_at")
+    .single();
+
+  if (createBillError || !createdBill) {
+    console.error("[billing] draft bill creation failed:", createBillError);
+    toast.error(createBillError?.message || "Could not open a new bill");
+    setEditingBillingId(null);
+    setLoadingBilling(false);
+    return;
+  }
+
+  selectedBill = createdBill as any;
+  setLookupBills((prev) => [createdBill as any, ...prev]);
+  setLookupBillDetails((prev) => ({
+    ...prev,
+    [createdBill.id]: {
+      items: [],
+      visit: targetVisitId ? visitMap.get(targetVisitId) || null : null,
+      medicationDispensing: [],
+      hmoClaim: null,
+    },
+  }));
 }
 
 setEditingBillingId(selectedBill.id);
@@ -538,14 +579,42 @@ setEditingBillingId(selectedBill.id);
   };
 
   useEffect(() => {
-    if (!cid || patients.length === 0) return;
+    if (!cid) return;
     const patientId = searchParams.get("patient_id");
     const visitId = searchParams.get("visit_id");
     if (!patientId) return;
-    const patient = patients.find(p => p.id === patientId);
-    if (!patient) return;
-    loadPatientBilling(patient, visitId);
-  }, [cid, patients, searchParams]);
+
+    // Patient-context billing routes intentionally do not preload the clinic's
+    // patient list. Resolve the requested patient directly so links from
+    // Patient Record → Payment History work for receptionists as well as admins.
+    let cancelled = false;
+    const loadPatientContext = async () => {
+      const { data, error } = await apiClient
+        .from("patients")
+        .select("id, full_name, payment_type, active_hmo_id, family_id")
+        .eq("clinic_id", cid)
+        .eq("id", patientId)
+        .maybeSingle();
+
+      if (cancelled) return;
+      if (error) {
+        console.error("[billing] patient context load failed:", error);
+        toast.error(error.message || "Could not load this patient");
+        return;
+      }
+      if (!data) {
+        toast.error("Patient not found in the active clinic");
+        return;
+      }
+
+      await loadPatientBilling(data as Patient, visitId);
+    };
+
+    void loadPatientContext();
+    return () => {
+      cancelled = true;
+    };
+  }, [cid, searchParams]);
 
   useEffect(() => {
     if (!cid || patientContext) return;
