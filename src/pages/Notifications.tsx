@@ -260,6 +260,19 @@ export default function Notifications() {
                   {getPatientContext(item) && (
                     <p className="mt-1 text-xs font-semibold text-primary">Patient: {getPatientContext(item)?.name}</p>
                   )}
+                  {item.category === "feedback" && item.metadata && (
+                    <div className="mt-2 rounded-xl bg-muted/40 p-2 text-xs space-y-1">
+                      <p className="font-semibold">Feedback details</p>
+                      <p>
+                        Overall: {item.metadata.overall_rating ?? "—"}/5
+                        {item.metadata.doctor_rating != null ? ` · Doctor: ${item.metadata.doctor_rating}/5` : ""}
+                        {item.metadata.front_desk_rating != null ? ` · Front desk: ${item.metadata.front_desk_rating}/5` : ""}
+                      </p>
+                      {item.metadata.positive_feedback && <p><span className="font-medium">Positive:</span> {item.metadata.positive_feedback}</p>}
+                      {item.metadata.improvement_feedback && <p><span className="font-medium">Improve:</span> {item.metadata.improvement_feedback}</p>}
+                      {item.metadata.follow_up_notes && <p><span className="font-medium">Follow-up:</span> {item.metadata.follow_up_notes}</p>}
+                    </div>
+                  )}
                   <div className="mt-2 flex items-center justify-between gap-3">
                     <p className="text-[11px] text-muted-foreground">{new Date(item.created_at).toLocaleString("en-GB")}</p>
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
