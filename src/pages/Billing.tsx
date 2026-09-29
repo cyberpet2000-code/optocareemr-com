@@ -209,6 +209,7 @@ export default function Billing() {
   // State for editing mode (when a billing record is selected)
   const [editingBillingId, setEditingBillingId] = useState<string | null>(null);
 
+  // Load the full clinic billing history in bounded pages so the All tab is not capped at 100 rows.
   const loadData = useCallback(async () => {
     if (!cid) { setBills([]); setPatients([]); setLoading(false); return; }
     const endBillingPerf = diag.time("perf", "billing-load", { clinicId: cid });
