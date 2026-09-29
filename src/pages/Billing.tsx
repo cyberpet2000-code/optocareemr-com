@@ -239,11 +239,22 @@ export default function Billing() {
         inventoryRes,
         familyRes,
       ] = await Promise.all([
-        apiClient.from("billing")
-          .select("id,clinic_id,patient_id,visit_id,consultation_fee,items_total,total_amount,amount_paid,balance,status,created_at,payer_type,hmo_id,family_id,notes,discount_amount,discount_reason")
-          .eq("clinic_id", cid)
-          .order("created_at", { ascending: false })
-          .limit(100),
+        (async () => {
+          const pageSize = 1000;
+          const rows: any[] = [];
+          for (let from = 0; ; from += pageSize) {
+            const { data, error } = await apiClient
+              .from("billing")
+              .select("id,clinic_id,patient_id,visit_id,consultation_fee,items_total,total_amount,amount_paid,balance,status,created_at,payer_type,hmo_id,family_id,notes,discount_amount,discount_reason")
+              .eq("clinic_id", cid)
+              .order("created_at", { ascending: false })
+              .range(from, from + pageSize - 1);
+            if (error) return { data: null, error };
+            rows.push(...(data || []));
+            if (!data || data.length < pageSize) break;
+          }
+          return { data: rows, error: null };
+        })(),
 
         // Patient selection is searched on demand below. Never preload the
         // entire clinic population into Billing.
