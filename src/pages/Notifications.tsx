@@ -51,7 +51,7 @@ export default function Notifications() {
 
       // Resolve patient names for patient-related notifications, including
       // older notifications created before patient_name was added.
-      const feedbackIds = rows.filter(n => n.entity_type === "feedback_response").map(n => n.entity_id).filter(Boolean) as string[];
+      const feedbackIds = rows.filter(n => (n.entity_type === "feedback_response" || n.entity_type === "feedback")).map(n => n.entity_id).filter(Boolean) as string[];
       const appointmentIds = rows.filter(n => n.entity_type === "appointment").map(n => n.entity_id).filter(Boolean) as string[];
       const visitIds = rows.filter(n => n.entity_type === "visit").map(n => n.entity_id).filter(Boolean) as string[];
       const patientIds = rows.filter(n => n.category === "patient" && n.entity_type === "patient" && n.entity_id).map(n => n.entity_id!) ;
@@ -178,7 +178,7 @@ export default function Notifications() {
   };
 
   const getPatientContext = (item: StaffNotification) => {
-    if (item.entity_type === "feedback_response") return patientNames[`feedback:${item.entity_id}`] || null;
+    if (item.entity_type === "feedback_response" || item.entity_type === "feedback") return patientNames[`feedback:${item.entity_id}`] || null;
     if (item.entity_type === "appointment") return patientNames[`appointment:${item.entity_id}`] || null;
     if (item.entity_type === "visit") return patientNames[`visit:${item.entity_id}`] || null;
     if (item.entity_type === "patient" && item.entity_id) return patientNames[`patient:${item.entity_id}`] || null;
@@ -258,8 +258,9 @@ export default function Notifications() {
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{item.body}</p>
                   {getPatientContext(item) && (
-                    <p className="mt-1 text-xs font-semibold text-primary">Patient: {getPatientContext(item)?.name}</p>
+                    <p className="mt-1 text-sm font-semibold">Patient: {getPatientContext(item)?.name}</p>
                   )}
+
                   <div className="mt-2 flex items-center justify-between gap-3">
                     <p className="text-[11px] text-muted-foreground">{new Date(item.created_at).toLocaleString("en-GB")}</p>
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
