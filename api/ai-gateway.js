@@ -32,19 +32,54 @@ function json(body, status = 200, extraHeaders = {}) {
   });
 }
 
+const OPT0CARE_SUPABASE_PROJECT_ID = "avogfzqizuusqzjivhqj";
+const OPTOCARE_SUPABASE_URL = `https://${OPT0CARE_SUPABASE_PROJECT_ID}.supabase.co`;
+const OPTOCARE_PUBLISHABLE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2b2dmenFpenV1c3F6aml2aHFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5OTQ0MTgsImV4cCI6MjA5MDU3MDQxOH0._mQQxxm-raT1p_fqowfQu65Tww_8nLduDuYJBKyzo2U";
+
+function getJwtRef(value) {
+  try {
+    const parts = String(value).split(".");
+    if (parts.length !== 3) return "";
+    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = payload + "=".repeat((4 - (payload.length % 4)) % 4);
+    return JSON.parse(Buffer.from(padded, "base64").toString("utf8"))?.ref || "";
+  } catch {
+    return "";
+  }
+}
+
 function getConfig() {
-  // Keep the server-side AI gateway on the same Supabase project configuration
-  // used by the browser application. A stale SUPABASE_URL can otherwise make
-  // Clinical AI fail while the rest of OptoCare remains connected.
-  const supabaseUrl =
+  // Vercel may retain legacy Supabase variables. Never allow a stale project
+  // configuration to authenticate Clinical AI against a different tenant.
+  const configuredUrl =
     process.env.VITE_SUPABASE_URL ||
     process.env.SUPABASE_URL ||
     "";
-  const publishableKey =
+  const configuredKey =
     process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
     process.env.SUPABASE_PUBLISHABLE_KEY ||
     process.env.VITE_SUPABASE_ANON_KEY ||
     "";
+
+  const configuredHost = (() => {
+    try {
+      return new URL(configuredUrl).hostname;
+    } catch {
+      return "";
+    }
+  })();
+
+  const configuredRef = getJwtRef(configuredKey);
+  const supabaseUrl =
+    configuredHost === `${OPT0CARE_SUPABASE_PROJECT_ID}.supabase.co`
+      ? configuredUrl.replace(/\/$/, "")
+      : OPTOCARE_SUPABASE_URL;
+  const publishableKey =
+    configuredRef === OPT0CARE_SUPABASE_PROJECT_ID
+      ? configuredKey
+      : OPTOCARE_PUBLISHABLE_KEY;
+
   const geminiKey = process.env.GEMINI_API_KEY || "";
   return { supabaseUrl, publishableKey, geminiKey };
 }
