@@ -5,31 +5,18 @@
 -- repairs visits in clinics with exactly one active clinical provider, where the
 -- provider attribution is unambiguous.
 
-do $repair$
-declare
-  r record;
-begin
-  for r in
-    select v.id, v.clinic_id, v.registered_by, cp.user_id as sole_clinical_provider
-    from public.visits v
-    join (
-      select clinic_id, min(user_id) as user_id
-      from public.clinic_users
-      where is_clinical_provider=true
-      group by clinic_id
-      having count(distinct user_id)=1
-    ) cp on cp.clinic_id=v.clinic_id
-    where v.status='completed' and v.doctor_id is null
-  loop
-    update public.visits
-    set doctor_id = r.sole_clinical_provider,
-        registered_by = coalesce(r.registered_by, r.sole_clinical_provider)
-    where id=r.id
-      and clinic_id=r.clinic_id
-      and doctor_id is null;
-  end loop;
-end
-$repair$;
+update public.visits v
+set doctor_id = d.user_id
+from (
+  select clinic_id,(array_agg(user_id order by user_id))[1] as user_id
+  from public.clinic_users
+  where lower(role)='doctor' and is_clinical_provider=true
+  group by clinic_id
+  having count(distinct user_id)=1
+) d
+where v.clinic_id=d.clinic_id
+  and v.status='completed'
+  and v.doctor_id is null;
 
 -- Make the dispensing RPC explicitly reject an orphaned completed visit with a
 -- useful operational message instead of allowing the failure to surface later.
