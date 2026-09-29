@@ -37,11 +37,6 @@ export function removeValue(current: string, value: string): string {
 }
 
 export const CLINICAL_AUTOCOMPLETE_TERMS = [
-  ...CHIEF_COMPLAINT_OPTIONS,
-  ...HISTORY_OPTIONS,
-  ...EXAM_OPTIONS,
-  ...REFRACTIVE_ERROR_OPTIONS,
-  ...DIAGNOSIS_GROUPS.flatMap(group => group.items),
   "visual acuity", "intraocular pressure", "intraocular pressure normal",
   "pupils equal and reactive to light", "extraocular movements full",
   "conjunctiva quiet", "cornea clear", "anterior chamber deep and quiet",
