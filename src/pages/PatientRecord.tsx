@@ -1302,11 +1302,11 @@ if (error) {
       clinicId: cid,
       error,
     });
-    toast.error(
-      getUserFacingErrorMessage(error) ||
-      error?.message ||
+    const userMessage = await getUserFacingErrorMessage(
+      error,
       "Unable to save this visit. Please try again."
     );
+    toast.error(userMessage);
   }
   return;
 }
