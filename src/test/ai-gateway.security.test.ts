@@ -37,4 +37,28 @@ describe("OptoCare AI Gateway security", () => {
     expect(cleaned).not.toContain("08012345678");
     expect(cleaned).not.toContain("test@example.com");
   });
+
+  it("de-identifies labelled patient identifiers while preserving clinical content", () => {
+    const cleaned = scrubUntrustedClinicalText(
+      "Patient Name: John Doe\nDOB: 12/03/1989\nPhone: 08012345678\nMRN: ABC-12345\nDiagnosis: Myopia with astigmatism.",
+    );
+
+    expect(cleaned).not.toContain("John Doe");
+    expect(cleaned).not.toContain("12/03/1989");
+    expect(cleaned).not.toContain("08012345678");
+    expect(cleaned).not.toContain("ABC-12345");
+    expect(cleaned).toContain("Diagnosis: Myopia with astigmatism.");
+  });
+
+  it("removes common membership, government and machine identifiers", () => {
+    const cleaned = scrubUntrustedClinicalText(
+      "Enrollee Number: HMO-998877\nNIN: 12345678901\nVisit ID: 550e8400-e29b-41d4-a716-446655440000\nReferral: https://example.com/patient/abc.",
+    );
+
+    expect(cleaned).not.toContain("HMO-998877");
+    expect(cleaned).not.toContain("12345678901");
+    expect(cleaned).not.toContain("550e8400-e29b-41d4-a716-446655440000");
+    expect(cleaned).not.toContain("https://example.com/patient/abc");
+    expect(cleaned).toContain("Referral:");
+  });
 });
