@@ -1107,8 +1107,8 @@ subVaOutcome: v.sub_va_outcome || "",
       (value) => typeof value === "string" && value.trim().length > 0
     );
 
-    if (markCompleted && !hasClinicalInformation) {
-      toast.error("Add at least one clinical finding, measurement, diagnosis, treatment, or note before completing this visit.");
+    if (!hasClinicalInformation) {
+      toast.error("This visit is empty. Add at least one clinical finding, measurement, diagnosis, treatment, or note before saving.");
       return;
     }
 
