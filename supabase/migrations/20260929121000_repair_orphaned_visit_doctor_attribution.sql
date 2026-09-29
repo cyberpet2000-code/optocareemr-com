@@ -10,19 +10,16 @@ declare
   r record;
 begin
   for r in
-    select v.id, v.clinic_id, v.registered_by,
-           cp.user_id as sole_clinical_provider
+    select v.id, v.clinic_id, v.registered_by, cp.user_id as sole_clinical_provider
     from public.visits v
-    join lateral (
-      select cu.user_id
-      from public.clinic_users cu
-      where cu.clinic_id=v.clinic_id
-        and cu.is_clinical_provider=true
-      group by cu.user_id
-      having count(*) = 1
-    ) cp on true
-    where v.status='completed'
-      and v.doctor_id is null
+    join (
+      select clinic_id, min(user_id) as user_id
+      from public.clinic_users
+      where is_clinical_provider=true
+      group by clinic_id
+      having count(distinct user_id)=1
+    ) cp on cp.clinic_id=v.clinic_id
+    where v.status='completed' and v.doctor_id is null
   loop
     update public.visits
     set doctor_id = r.sole_clinical_provider,
