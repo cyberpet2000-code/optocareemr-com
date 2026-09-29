@@ -580,7 +580,7 @@ const canViewFinancials =
           await apiClient
             .from("visit_medication_dispensing")
             .select(
-              "visit_id, medication_name, dispensed, dispensed_at, dispensed_by"
+              "visit_id, medication_name, prescribed_text, dispensed, dispensed_at, dispensed_by"
             )
             .in("visit_id", visitIds);
 
@@ -602,7 +602,7 @@ const canViewFinancials =
           (medicationDispensingData || []).forEach(
             (item: any) => {
               medicationMap[
-                `${item.visit_id}:${item.medication_name.toLowerCase()}`
+                `${item.visit_id}:${item.prescribed_text.toLowerCase()}`
               ] = {
                 dispensed: item.dispensed,
                 dispensed_at: item.dispensed_at,
@@ -1521,7 +1521,8 @@ if (
 
   const handleMarkMedicationDispensed = async (
   visitId: string,
-  medicationName: string
+  medicationName: string,
+  prescribedText: string = medicationName,
 ) => {
   if (!cid || !patient) {
     toast.error("No active clinic or patient");
@@ -1533,7 +1534,7 @@ if (
       "mark_medication_item_dispensed",
       {
         p_visit_id: visitId,
-        p_medication_name: medicationName,
+        p_medication_name: prescribedText,
         p_inventory_id: null,
       }
     );
@@ -1550,7 +1551,7 @@ if (
 
     console.log("Medication dispensing result:", data);
 
-    const medicationKey = `${visitId}:${medicationName.toLowerCase()}`;
+    const medicationKey = `${visitId}:${prescribedText.toLowerCase()}`;
     setMedicationDispensingMap(prev => ({
       ...prev,
       [medicationKey]: {
@@ -1567,7 +1568,7 @@ if (
       await apiClient
         .from("visit_medication_dispensing")
         .select(
-          "medication_name, dispensed, dispensed_at, dispensed_by"
+          "medication_name, prescribed_text, dispensed, dispensed_at, dispensed_by"
         )
         .eq("visit_id", visitId);
 
@@ -1590,7 +1591,7 @@ if (
 
     (dispensingData || []).forEach((item: any) => {
       nextMap[
-        `${visitId}:${item.medication_name.toLowerCase()}`
+        `${visitId}:${item.prescribed_text.toLowerCase()}`
       ] = {
         dispensed: item.dispensed,
         dispensed_at: item.dispensed_at,
@@ -3117,17 +3118,17 @@ shadow-sm
             <p className="font-semibold text-success mb-2">Medical prescription</p>
             <div className="space-y-1.5">
               {parseMedicationItems(v.medication).map((medicationItem) => {
-                const medicationKey = `${v.id}:${medicationItem.name.toLowerCase()}`;
+                const medicationKey = `${v.id}:${medicationItem.prescribedText.toLowerCase()}`;
                 const dispensing = medicationDispensingMap[medicationKey];
                 const isDispensed = dispensing?.dispensed ?? false;
                 return (
-                  <div key={`${v.id}-reception-${medicationItem.name}`} className="flex items-center justify-between gap-2">
+                  <div key={`${v.id}-reception-${medicationItem.prescribedText}`} className="flex items-center justify-between gap-2">
                     <p className="min-w-0 flex-1 text-[11px] font-medium">{medicationItem.prescribedText}</p>
                     {isDispensed ? (
                       <span className="shrink-0 inline-flex h-7 items-center rounded-lg bg-green-100 px-2 text-[10px] font-medium text-green-700">✅ Dispensed</span>
                     ) : (
                       <Button size="sm" variant="outline" className="h-7 shrink-0 rounded-lg px-2 text-[10px] font-medium"
-                        onClick={() => handleMarkMedicationDispensed(v.id, medicationItem.name)} title={`Dispense medication: ${medicationItem.name}`}>
+                        onClick={() => handleMarkMedicationDispensed(v.id, medicationItem.name, medicationItem.prescribedText)} title={`Dispense medication: ${medicationItem.prescribedText}`}>
                         ✔️ Dispense
                       </Button>
                     )}
@@ -3294,13 +3295,13 @@ shadow-sm
       {v.medication && (
         <div className="mt-2 space-y-1.5">
           {parseMedicationItems(v.medication).map((medicationItem) => {
-            const medicationKey = `${v.id}:${medicationItem.name.toLowerCase()}`;
+            const medicationKey = `${v.id}:${medicationItem.prescribedText.toLowerCase()}`;
             const dispensing = medicationDispensingMap[medicationKey];
             const isDispensed = dispensing?.dispensed ?? false;
 
             return (
               <div
-                key={`${v.id}-${medicationItem.name}`}
+                key={`${v.id}-${medicationItem.prescribedText}`}
                 className="flex items-center justify-between gap-2"
               >
                 <p className="min-w-0 flex-1 text-[11px] leading-tight font-medium">
@@ -3322,7 +3323,7 @@ shadow-sm
                         medicationItem.name
                       )
                     }
-                    title={`Dispense medication: ${medicationItem.name}`}
+                    title={`Dispense medication: ${medicationItem.prescribedText}`}
                   >
                     ✔️ Dispense
                   </Button>
