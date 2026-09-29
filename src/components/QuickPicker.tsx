@@ -36,6 +36,92 @@ export function removeValue(current: string, value: string): string {
     .join(SEP);
 }
 
+export const CLINICAL_AUTOCOMPLETE_TERMS = [
+  ...CHIEF_COMPLAINT_OPTIONS,
+  ...HISTORY_OPTIONS,
+  ...EXAM_OPTIONS,
+  ...REFRACTIVE_ERROR_OPTIONS,
+  ...DIAGNOSIS_GROUPS.flatMap(group => group.items),
+  "visual acuity", "intraocular pressure", "intraocular pressure normal",
+  "pupils equal and reactive to light", "extraocular movements full",
+  "conjunctiva quiet", "cornea clear", "anterior chamber deep and quiet",
+  "lens clear", "pseudophakia", "optic disc", "cup-to-disc ratio",
+  "retinal examination", "fundus examination", "macula normal",
+  "dry eye disease", "ocular hypertension", "glaucoma suspect",
+  "primary open angle glaucoma", "refractive error", "presbyopia",
+  "hyperopia", "myopia", "astigmatism", "anisometropia",
+  "no known drug allergies", "no history of ocular surgery",
+  "no history of ocular trauma", "family history of glaucoma",
+  "family history of cataract", "diabetes mellitus", "hypertension",
+  "photophobia", "diplopia", "floaters", "flashes", "ocular pain",
+];
+
+interface ClinicalAutocompleteTextareaProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  rows?: number;
+  className?: string;
+  suggestions?: string[];
+  "aria-label"?: string;
+}
+
+export function ClinicalAutocompleteTextarea({
+  value,
+  onChange,
+  placeholder,
+  rows = 3,
+  className,
+  suggestions = CLINICAL_AUTOCOMPLETE_TERMS,
+  "aria-label": ariaLabel,
+}: ClinicalAutocompleteTextareaProps) {
+  const [focused, setFocused] = useState(false);
+  const lastToken = (value.match(/(^|\\s)([^\\s,;]*)$/)?.[2] || "").trim().toLowerCase();
+  const matches = lastToken.length < 2
+    ? []
+    : [...new Set(suggestions)]
+        .filter(item => item.toLowerCase().includes(lastToken))
+        .slice(0, 6);
+
+  const applySuggestion = (term: string) => {
+    const match = value.match(/^(.*?)([^\\s,;]*)$/s);
+    const prefix = match?.[1] ?? value;
+    const separator = prefix && !/[\\s,;]$/.test(prefix) ? " " : "";
+    onChange(prefix + separator + term);
+  };
+
+  return (
+    <div className="relative">
+      <Textarea
+        className={className}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => window.setTimeout(() => setFocused(false), 120)}
+        rows={rows}
+        placeholder={placeholder}
+        aria-label={ariaLabel}
+        spellCheck
+      />
+      {focused && matches.length > 0 && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border bg-popover p-1 shadow-lg">
+          {matches.map(term => (
+            <button
+              type="button"
+              key={term}
+              className="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-muted"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => applySuggestion(term)}
+            >
+              {term}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function isGrouped(opts: PickerOptions): opts is PickerGroup[] {
   return Array.isArray(opts) && opts.length > 0 && typeof (opts as any)[0] === "object";
 }
