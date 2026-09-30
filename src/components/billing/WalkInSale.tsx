@@ -117,11 +117,11 @@ export default function WalkInSale() {
     setLoading(true);
     const [invRes, salesRes, clinicRes] = await Promise.all([
       apiClient.from("inventory").select("id,name,category,price,stock_quantity").eq("clinic_id", cid).order("name"),
-      apiClient.from("inventory_sales").select("id,clinic_id,patient_id,patient_name,subtotal,discount_amount,total_amount,payment_method,notes,sale_type,created_at,created_by").eq("clinic_id", cid).eq("sale_type", "walk_in").order("created_at", { ascending: false }).limit(50),
+      apiClient.from("inventory_sales").select("id,clinic_id,patient_id,sold_by,customer_name,customer_phone,customer_email,subtotal,discount_amount,total_amount,amount_paid,payment_method,receipt_number,notes,sale_type,created_at").eq("clinic_id", cid).eq("sale_type", "walk_in").order("created_at", { ascending: false }).limit(50),
       apiClient.from("clinics").select("name").eq("id", cid).maybeSingle(),
     ]);
     setItems(((invRes.data as any[]) || []) as InvItem[]);
-    setSales(((salesRes.data as any[]) || []) as WalkInSaleRow[]);
+    if (salesRes.error) { toast.error(`Could not load walk-in sales: ${salesRes.error.message}`); setSales([]); } else { setSales(((salesRes.data as any[]) || []) as WalkInSaleRow[]); }
     if ((clinicRes.data as any)?.name) setClinicName((clinicRes.data as any).name);
     setLoading(false);
   }, [cid]);
