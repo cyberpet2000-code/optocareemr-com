@@ -186,6 +186,22 @@ Deno.serve(async (req) => {
       );
     if (linkErr) return fail("membership_insert", `clinic_users upsert failed: ${linkErr.message}`, 500);
 
+    // Keep the hardened tenant-membership table in sync with the legacy
+    // clinic_users link. Security-sensitive database guards use this table.
+    const { error: hardenedMembershipErr } = await admin
+      .from("user_clinic_memberships")
+      .upsert(
+        { user_id: userId, clinic_id: clinicId, is_active: true } as any,
+        { onConflict: "user_id,clinic_id" },
+      );
+    if (hardenedMembershipErr) {
+      return fail(
+        "membership_sync",
+        `user_clinic_memberships upsert failed: ${hardenedMembershipErr.message}`,
+        500,
+      );
+    }
+
     const { error: roleErr } = await admin
       .from("user_roles")
       .insert({ user_id: userId, role: normalizedRole, clinic_id: clinicId } as any);
