@@ -213,18 +213,19 @@ export default function Outreach() {
   }, [effectiveClinicId, selected?.id]);
 
   const loadNextRecipientPage = async () => {
-    if (!selected) return false;
+    if (!selected) return [] as Recipient[];
     const nextPage = recipientPage + 1;
-    const { data } = await apiClient.from("outreach_recipients")
+    const { data, error } = await apiClient.from("outreach_recipients")
       .select("id,full_name,phone,normalized_phone,status,patient_id,contact_id,lead_id,sent_at")
       .eq("campaign_id", selected.id)
       .order("created_at", { ascending: true })
       .range(nextPage * OUTREACH_RECIPIENT_PAGE_SIZE, (nextPage + 1) * OUTREACH_RECIPIENT_PAGE_SIZE - 1);
+    if (error) throw error;
     const rows = (data || []) as Recipient[];
-    if (!rows.length) return false;
+    if (!rows.length) return [];
     setRecipients(prev => [...prev, ...rows]);
     setRecipientPage(nextPage);
-    return true;
+    return rows;
   };
 
   useEffect(() => {
@@ -272,7 +273,7 @@ export default function Outreach() {
       });
     })();
     return () => { cancelled = true; };
-  }, [effectiveClinicId, selected?.id, recipients]);
+  }, [effectiveClinicId, selected?.id]);
 
   const current = (currentRecipientId ? recipients.find(r => r.id === currentRecipientId) : null)
     || recipients.find(r => r.status === "opened")
@@ -491,24 +492,65 @@ export default function Outreach() {
       if (audience === "external" || audience === "both") {
         const seen = new Set(patientPhones);
         const { parsed } = parseExternalContacts();
-        const externalRows: any[] = [];
-        for (const item of parsed) {
-          if (seen.has(item.normalized_phone)) continue;
-          const { data: existingContact } = await apiClient
+        const candidates = parsed.filter(item => !seen.has(item.normalized_phone));
+
+        // The old implementation performed a SELECT + UPSERT for every
+        // external contact. For a 191-number campaign that meant hundreds of
+        // sequential network round trips before the campaign could open.
+        // Resolve opt-outs in batches, then bulk-upsert contacts and bulk-insert
+        // recipients. Supabase/PostgREST supports array upserts, so this keeps
+        // the same tenant/opt-out rules without the per-contact latency.
+        const optedOut = new Set<string>();
+        for (let i = 0; i < candidates.length; i += 500) {
+          const batch = candidates.slice(i, i + 500).map(item => item.normalized_phone);
+          if (!batch.length) continue;
+          const { data: existing, error: existingError } = await apiClient
             .from("outreach_contacts")
-            .select("id,opted_out")
+            .select("normalized_phone,opted_out")
             .eq("clinic_id", effectiveClinicId)
-            .eq("normalized_phone", item.normalized_phone)
-            .maybeSingle();
-          if (existingContact?.opted_out) continue;
-          seen.add(item.normalized_phone);
-          const { data: contact } = await apiClient.from("outreach_contacts").upsert({
-            clinic_id: effectiveClinicId, full_name: item.full_name, phone: item.phone, normalized_phone: item.normalized_phone, source: "campaign",
-          }, { onConflict: "clinic_id,normalized_phone" }).select("id").single();
-          externalRows.push({ campaign_id: campaign.id, contact_id: contact?.id || null, full_name: item.full_name, phone: item.phone, normalized_phone: item.normalized_phone, status: "ready" });
+            .in("normalized_phone", batch);
+          if (existingError) throw existingError;
+          for (const row of existing || []) {
+            if (row.opted_out) optedOut.add(row.normalized_phone);
+          }
         }
-        for (let i = 0; i < externalRows.length; i += 500) {
-          await apiClient.from("outreach_recipients").insert(externalRows.slice(i, i + 500));
+
+        const usable = candidates.filter(item => !optedOut.has(item.normalized_phone));
+        for (let i = 0; i < usable.length; i += 500) {
+          const batch = usable.slice(i, i + 500);
+          const { data: contacts, error: contactError } = await apiClient
+            .from("outreach_contacts")
+            .upsert(
+              batch.map(item => ({
+                clinic_id: effectiveClinicId,
+                full_name: item.full_name,
+                phone: item.phone,
+                normalized_phone: item.normalized_phone,
+                source: "campaign",
+              })),
+              { onConflict: "clinic_id,normalized_phone" }
+            )
+            .select("id,normalized_phone");
+          if (contactError) throw contactError;
+
+          const contactMap = new Map(
+            (contacts || []).map((contact: { id: string; normalized_phone: string }) => [
+              contact.normalized_phone,
+              contact.id,
+            ])
+          );
+          const externalRows = batch.map(item => ({
+            campaign_id: campaign.id,
+            contact_id: contactMap.get(item.normalized_phone) || null,
+            full_name: item.full_name,
+            phone: item.phone,
+            normalized_phone: item.normalized_phone,
+            status: "ready",
+          }));
+          const { error: recipientError } = await apiClient
+            .from("outreach_recipients")
+            .insert(externalRows);
+          if (recipientError) throw recipientError;
         }
       }
       setShowCreate(false);
@@ -573,7 +615,11 @@ export default function Outreach() {
     const { error } = await apiClient.from("outreach_recipients").update({ status: "sent", sent_at: sentAt }).eq("id", current.id);
     if (error) return;
     setRecipients(prev => prev.map(r => r.id === current.id ? { ...r, status: "sent", sent_at: sentAt } : r));
-    const next = recipients.find(r => r.id !== current.id && r.status === "ready");
+    let next = recipients.find(r => r.id !== current.id && r.status === "ready");
+    if (!next && selected) {
+      const nextPageRows = await loadNextRecipientPage();
+      next = nextPageRows.find(r => r.status === "ready") || null;
+    }
     setCurrentRecipientId(next?.id || null);
     if (!next) {
       setSendMode(false);
@@ -586,7 +632,11 @@ export default function Outreach() {
     const { error } = await apiClient.from("outreach_recipients").update({ status: "skipped" }).eq("id", current.id);
     if (error) return;
     setRecipients(prev => prev.map(r => r.id === current.id ? { ...r, status: "skipped" } : r));
-    const next = recipients.find(r => r.id !== current.id && r.status === "ready");
+    let next = recipients.find(r => r.id !== current.id && r.status === "ready");
+    if (!next && selected) {
+      const nextPageRows = await loadNextRecipientPage();
+      next = nextPageRows.find(r => r.status === "ready") || null;
+    }
     setCurrentRecipientId(next?.id || null);
     if (!next) {
       setSendMode(false);
