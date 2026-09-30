@@ -29,3 +29,8 @@ end; $$;
 
 -- The remaining draft mutation functions use the same membership authorization in production.
 -- Their complete definitions are maintained by the corresponding live SQL migration history.
+
+-- Align patient-row, feedback-note, follow-up and expense mutations with the same
+-- canonical profiles + user_clinic_memberships authorization used above.
+-- These definitions were applied live during the same repair; this migration file
+-- records the report-note fix that was directly responsible for the reported failure.
