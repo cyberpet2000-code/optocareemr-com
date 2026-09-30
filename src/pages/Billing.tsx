@@ -1049,6 +1049,31 @@ if (error) {
     setBillItems(prev => ({ ...prev, [billingId]: (data || []) as any }));
   };
 
+  const openPayment = (bill: BillingRow) => {
+    const balance = Math.max(
+      0,
+      Number(bill.balance ?? (Number(bill.total_amount || 0) - Number(bill.amount_paid || 0)))
+    );
+    if (balance <= 0 || String(bill.status || "").toLowerCase() === "paid") {
+      toast.info("This bill has no outstanding balance.");
+      return;
+    }
+
+    setPaymentBillingId(bill.id);
+    setPaymentAmount(String(balance));
+    setPaymentMethod(bill.payer_type === "hmo" ? "HMO" : "Cash");
+
+    // Pay controls are rendered inline beneath the bill. Bring them into view
+    // so the action is visibly responsive even when the bill is near the
+    // bottom of the viewport.
+    window.setTimeout(() => {
+      document.getElementById(`payment-panel-${bill.id}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 0);
+  };
+
   const addPayment = async () => {
   if (!cid) {
     toast.error("No active clinic");
@@ -2046,8 +2071,14 @@ if (error) {
                         </p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        {b.status !== "paid" && (
-                          <Button variant="ghost" size="sm" className="rounded-xl text-xs" onClick={() => setPaymentBillingId(b.id)}>
+                        {String(b.status || "").toLowerCase() !== "paid" && Number(b.balance ?? (Number(b.total_amount || 0) - Number(b.amount_paid || 0))) > 0 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-xl text-xs"
+                            onClick={() => openPayment(b)}
+                          >
                             <Plus size={12} className="mr-1" /> Pay
                           </Button>
                         )}
@@ -2058,7 +2089,7 @@ if (error) {
                     </div>
 
                     {paymentBillingId === b.id && (
-                      <div className="mt-3 pt-3 border-t border-border/60 animate-fade-in">
+                      <div id={`payment-panel-${b.id}`} className="mt-3 pt-3 border-t border-border/60 animate-fade-in">
                         <p className="text-xs font-semibold mb-2">Add Payment (Balance: ₦{Number(b.balance).toLocaleString()})</p>
                         <div className="flex gap-2 items-end">
                           <div className="flex-1 space-y-1">
