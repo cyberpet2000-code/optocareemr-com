@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,6 +111,10 @@ export default function WalkInSale() {
   const [sales, setSales] = useState<WalkInSaleRow[]>([]);
   const [clinicName, setClinicName] = useState("OptoCare EMR");
   const [emailingId, setEmailingId] = useState<string | null>(null);
+  const [manualItemName, setManualItemName] = useState("");
+  const [manualItemPrice, setManualItemPrice] = useState("");
+  const [manualItemQuantity, setManualItemQuantity] = useState("1");
+  const submittingRef = useRef(false);
 
   const load = useCallback(async () => {
     if (!cid) { setItems([]); setSales([]); setLoading(false); return; }
@@ -142,6 +146,25 @@ export default function WalkInSale() {
       }
       return [...prev, { inventory_id: item.id, name: item.name, quantity: 1, unit_price: Number(item.price) || 0, available_stock: item.stock_quantity }];
     });
+  };
+
+  const addManualItem = () => {
+    const name = manualItemName.trim();
+    const price = Math.max(0, parseFloat(manualItemPrice) || 0);
+    const quantity = Math.max(1, parseInt(manualItemQuantity, 10) || 1);
+    if (!name) { toast.error("Enter the order item name, e.g. Lens"); return; }
+    if (price <= 0) { toast.error("Enter the price for this order item"); return; }
+    setLines((prev) => [...prev, {
+      inventory_id: null,
+      name,
+      quantity,
+      unit_price: price,
+      available_stock: Number.POSITIVE_INFINITY,
+      isTransfer: true,
+    }]);
+    setManualItemName("");
+    setManualItemPrice("");
+    setManualItemQuantity("1");
   };
 
   const addOpticalService = (name: "Lens Transfer" | "Frame Fixing") => {
@@ -207,6 +230,7 @@ export default function WalkInSale() {
   };
 
   const completeSale = async () => {
+    if (submittingRef.current) return;
     if (!cid) { toast.error("No active clinic"); return; }
     if (lines.length === 0) { toast.error("Add at least one item"); return; }
     if (lines.some((l) => l.quantity < 1)) { toast.error("Quantity must be at least 1"); return; }
@@ -214,6 +238,7 @@ export default function WalkInSale() {
     if (overStock) { toast.error(`Only ${overStock.available_stock} left of ${overStock.name}`); return; }
 
     const paid = amountPaid === "" ? total : Math.max(parseFloat(amountPaid) || 0, 0);
+    submittingRef.current = true;
     setSaving(true);
     try {
       const receiptNumber = makeReceiptNumber();
@@ -265,6 +290,7 @@ export default function WalkInSale() {
     } catch (e: any) {
       toast.error(e?.message || "Failed to complete sale");
     } finally {
+      submittingRef.current = false;
       setSaving(false);
     }
   };
@@ -314,6 +340,30 @@ export default function WalkInSale() {
               <Button type="button" variant="outline" size="sm" className="h-8 rounded-xl text-[10px]" onClick={() => addOpticalService("Frame Fixing")}>Frame Fixing</Button>
             </div>
           </div>
+          <div className="rounded-xl border border-dashed bg-muted/20 p-2.5 space-y-2">
+            <div>
+              <p className="text-[10px] font-semibold">Order item not in stock</p>
+              <p className="text-[9px] text-muted-foreground">Use this for items such as lenses that are ordered rather than deducted from inventory.</p>
+            </div>
+            <div className="grid grid-cols-12 gap-1.5 items-end">
+              <div className="col-span-5">
+                <Label className="text-[9px]">Item</Label>
+                <Input className="rounded-lg h-8 text-xs" value={manualItemName} onChange={(e) => setManualItemName(e.target.value)} placeholder="e.g. Lens" />
+              </div>
+              <div className="col-span-3">
+                <Label className="text-[9px]">Price ₦</Label>
+                <Input className="rounded-lg h-8 text-xs" type="number" min={0} value={manualItemPrice} onChange={(e) => setManualItemPrice(e.target.value)} placeholder="0" />
+              </div>
+              <div className="col-span-2">
+                <Label className="text-[9px]">Qty</Label>
+                <Input className="rounded-lg h-8 text-xs" type="number" min={1} value={manualItemQuantity} onChange={(e) => setManualItemQuantity(e.target.value)} />
+              </div>
+              <Button type="button" className="col-span-2 h-8 rounded-lg text-[10px]" onClick={addManualItem}>
+                <Plus size={11} className="mr-1" /> Add
+              </Button>
+            </div>
+          </div>
+
           <p className="text-[10px] text-muted-foreground mb-1">Tap an item to add it to the sale.</p>
           <div className="max-h-72 overflow-y-auto space-y-1">
             {filtered.length === 0 ? (
