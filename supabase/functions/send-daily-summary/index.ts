@@ -253,24 +253,131 @@ async function processClinic(admin: any, clinic: any, RESEND_API_KEY: string, bo
   return { clinic_id: clinic.id, sent, recipients: recipients.length };
 }
 
-function isInternalServiceCall(req: Request): boolean {
+const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+
+
+async function sendManualFrontDeskReport(req: Request, admin: any) {
   const auth = req.headers.get("Authorization") || "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
-  return !!token && token === SERVICE_ROLE;
+  if (!auth.startsWith("Bearer ")) return { error: "Authentication required", status: 401 };
+  const caller = createClient(Deno.env.get("SUPABASE_URL") || "", auth.slice(7).trim());
+  const { data: userData, error: userError } = await caller.auth.getUser();
+  if (userError || !userData.user) return { error: "Authentication required", status: 401 };
+
+  const body = await req.json().catch(() => ({} as any));
+  const reportId = typeof body?.report_id === "string" ? body.report_id.trim() : "";
+  if (!reportId) return { error: "report_id required", status: 400 };
+
+  const { data: report, error: reportError } = await admin.from("daily_front_desk_reports").select("*").eq("id", reportId).maybeSingle();
+  if (reportError || !report) return { error: "Daily report not found", status: 404 };
+  if (report.status !== "submitted") return { error: "Submit the daily report before sending it by email", status: 400 };
+
+  const { data: membership, error: membershipError } = await admin.from("user_clinic_memberships")
+    .select("user_id,is_active").eq("clinic_id", report.clinic_id).eq("user_id", userData.user.id).eq("is_active", true).maybeSingle();
+  if (membershipError) return { error: membershipError.message, status: 500 };
+  const { data: profile, error: profileError } = await admin.from("profiles")
+    .select("role,is_super_admin,is_active").eq("id", userData.user.id).maybeSingle();
+  if (profileError) return { error: profileError.message, status: 500 };
+  const role = String(profile?.role || "").toLowerCase();
+  const allowed = (!!membership && profile?.is_active === true && ["receptionist","admin"].includes(role)) ||
+    (profile?.is_super_admin === true && profile?.is_active === true);
+  if (!allowed) return { error: "Daily report access required", status: 403 };
+
+  const { data: clinic, error: clinicError } = await admin.from("clinics")
+    .select("id,name,daily_report_email,logo_url,theme_color").eq("id", report.clinic_id).maybeSingle();
+  if (clinicError || !clinic) return { error: "Clinic not found", status: 404 };
+
+  const recipient = String(clinic.daily_report_email || "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
+    return { error: "No valid daily report recipient email is configured", status: 400 };
+  }
+
+  const [itemsRes, activitiesRes, expensesRes, financeRes] = await Promise.all([
+    admin.from("daily_front_desk_report_items").select("*").eq("report_id", report.id).order("created_at",{ascending:true}),
+    admin.from("daily_front_desk_activities").select("*").eq("report_id", report.id).order("created_at",{ascending:true}),
+    admin.from("daily_front_desk_expenses").select("*").eq("report_id", report.id).order("created_at",{ascending:true}),
+    admin.rpc("get_daily_front_desk_financials",{p_clinic_id:report.clinic_id,p_report_date:report.report_date}),
+  ]);
+  for (const r of [itemsRes,activitiesRes,expensesRes,financeRes]) if (r.error) return { error:r.error.message, status:500 };
+
+  const items=itemsRes.data||[], activities=activitiesRes.data||[], expenses=expensesRes.data||[];
+  const finance=Array.isArray(financeRes.data)?financeRes.data[0]:financeRes.data;
+  const money=(v:any)=>"₦"+(Number(v)||0).toLocaleString("en-NG",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const safe=(v:any)=>escapeHtml(String(v??"—"));
+
+  const hmoIds=[...new Set(items.map((x:any)=>x.hmo_claim_id).filter((x:any)=>typeof x==="string"&&x))];
+  const {data:claims,error:claimsError}=hmoIds.length
+    ? await admin.from("hmo_claims").select("id,service_cost,approved_amount,hmo_request_sent,hmo_request_status,claim_sent,claim_response_status").in("id",hmoIds)
+    : {data:[],error:null};
+  if(claimsError) return {error:claimsError.message,status:500};
+  const claimMap=new Map((claims||[]).map((c:any)=>[c.id,c]));
+
+  const visitIds=[...new Set(items.map((x:any)=>x.visit_id).filter((x:any)=>typeof x==="string"&&x))];
+  const {data:visits,error:visitsError}=visitIds.length
+    ? await admin.from("visits").select("id,sub_od_sphere,sub_od_cyl,sub_od_axis,sub_os_sphere,sub_os_cyl,sub_os_axis,sub_reading_add,lens_type").in("id",visitIds)
+    : {data:[],error:null};
+  if(visitsError) return {error:visitsError.message,status:500};
+  const visitMap=new Map((visits||[]).map((v:any)=>[v.id,v]));
+
+  const rx=(s:any,c:any,a:any)=>[s,c,a].filter((v:any)=>v!==null&&v!==undefined&&v!=="").map(String).join(" / ")||"—";
+  const patientRows=items.length?items.map((p:any)=>{
+    const v=p.visit_id?visitMap.get(p.visit_id):null;
+    const claim=p.hmo_claim_id?claimMap.get(p.hmo_claim_id):null;
+    const hmo=p.patient_type==="hmo"?(claim
+      ? `Request: ${claim.hmo_request_sent?"Yes":"No"} · ${safe(claim.hmo_request_status||"Not sent")} · Amount: ${money(Number(claim.approved_amount)>0?claim.approved_amount:claim.service_cost)} · Claim: ${claim.claim_sent?"Sent":"Not sent"} · Response: ${safe(claim.claim_response_status||"Pending")}`
+      : `HMO · Amount: ${money(p.hmo_amount_to_claim)}`):"Private";
+    const rxText=v?`OD ${safe(rx(v.sub_od_sphere,v.sub_od_cyl,v.sub_od_axis))} · OS ${safe(rx(v.sub_os_sphere,v.sub_os_cyl,v.sub_os_axis))} · ADD ${safe(v.sub_reading_add)} · Lens: ${safe(v.lens_type)}`:"";
+    return `<tr><td style="padding:8px;border-bottom:1px solid #e2e8f0"><strong>${safe(p.patient_name)}</strong><br/><span style="font-size:11px;color:#64748b">${safe(p.patient_number)} · ${safe(p.patient_type)}</span></td><td style="padding:8px;border-bottom:1px solid #e2e8f0;font-size:12px">${p.glasses_prescription_sent?"Prescription sent":"Prescription not sent"} · Lens: ${safe(p.lens_order_status||"not required")}<br/>${rxText}</td><td style="padding:8px;border-bottom:1px solid #e2e8f0;font-size:12px">${hmo}</td><td style="padding:8px;border-bottom:1px solid #e2e8f0;font-size:12px">${p.eye_drop_quantity||0} dispensed</td><td style="padding:8px;border-bottom:1px solid #e2e8f0;font-size:12px">${safe(p.remarks)}</td></tr>`;
+  }).join(""):'<tr><td colspan="5" style="padding:14px;color:#64748b;text-align:center">No patient entries recorded.</td></tr>';
+
+  const activityRows=activities.length?activities.map((a:any)=>`<tr><td>${safe(a.description)}</td><td>${safe(a.payment_method)}</td><td style="text-align:right">${money(a.amount)}</td></tr>`).join(""):'<tr><td colspan="3">No manually recorded activities.</td></tr>';
+  const expenseRows=expenses.length?expenses.map((e:any)=>`<tr><td>${safe(e.description)}</td><td>${safe(e.payment_method)}</td><td style="text-align:right">${money(e.amount)}</td></tr>`).join(""):'<tr><td colspan="3">No expenses recorded.</td></tr>';
+
+  const subject=`Daily Front Desk Report — ${clinic.name} — ${report.report_date}`;
+  const html=`<h2 style="margin:0 0 4px;color:#1e40af">${safe(clinic.name)}</h2>
+<p style="margin:0 0 18px;color:#64748b">Daily Front Desk Report · ${safe(report.report_date)}</p>
+<h3 style="color:#1e40af">Patient-by-Patient Operations</h3>
+<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#f8fafc;text-align:left"><th>Patient</th><th>Prescription / Lens</th><th>HMO</th><th>Medication</th><th>Remarks</th></tr></thead><tbody>${patientRows}</tbody></table>
+<h3 style="color:#1e40af;margin-top:22px">Financial Summary</h3>
+<table style="width:100%;font-size:13px"><tr><td>Cash received</td><td style="text-align:right">${money(finance?.cash_received)}</td></tr><tr><td>Transfer received</td><td style="text-align:right">${money(finance?.transfer_received)}</td></tr><tr><td>POS/Card received</td><td style="text-align:right">${money(finance?.card_received)}</td></tr><tr><td>HMO received</td><td style="text-align:right">${money(finance?.hmo_received)}</td></tr><tr><td><strong>Total income</strong></td><td style="text-align:right"><strong>${money(finance?.total_income)}</strong></td></tr><tr><td>Total expenses</td><td style="text-align:right">${money(finance?.total_expenses)}</td></tr><tr><td><strong>Daily balance</strong></td><td style="text-align:right"><strong>${money(finance?.daily_balance)}</strong></td></tr></table>
+<h3 style="color:#1e40af;margin-top:22px">Sales / Other Activities</h3><table style="width:100%;font-size:13px"><tbody>${activityRows}</tbody></table>
+<h3 style="color:#1e40af;margin-top:22px">Expenses</h3><table style="width:100%;font-size:13px"><tbody>${expenseRows}</tbody></table>
+<h3 style="color:#1e40af;margin-top:22px">Front Desk Notes</h3><div style="white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;padding:10px">${safe(report.report_notes||"No additional notes.")}</div>`;
+
+  const {sendEmail}=await import("../_shared/sendEmail.ts");
+  const result=await sendEmail({to:recipient,subject,html,emailType:"daily_front_desk_report",clinicId:report.clinic_id,clinicName:clinic.name,clinicLogo:clinic.logo_url,primaryColor:clinic.theme_color,preheader:`Daily front desk report for ${clinic.name} — ${report.report_date}`,maxAttempts:3});
+  if(!result.ok) return {error:result.error||"Report email failed",status:502};
+
+  const {data:updated,error:updateError}=await admin.from("daily_front_desk_reports").update({email_sent_at:new Date().toISOString(),email_sent_by:userData.user.id,updated_at:new Date().toISOString()}).eq("id",report.id).select("*").single();
+  if(updateError) return {error:updateError.message,status:500};
+  return {ok:true,recipient,message_id:result.messageId||null,report:updated};
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (!isInternalServiceCall(req)) return json({ error: "Unauthorized" }, 401);
   const json = (b: unknown, status = 200) =>
     new Response(JSON.stringify(b), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
   const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
   if (!RESEND_API_KEY) return json({ error: "RESEND_API_KEY not configured" }, 500);
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+
+  const requestPeek = await req.clone().json().catch(() => ({} as any));
+  if (requestPeek?.action === "send_daily_front_desk_report") {
+    const result = await sendManualFrontDeskReport(req, admin);
+    return json(result, result.status || 200);
+  }
+
+  const providedSecret = req.headers.get("x-optocare-internal-secret");
+  if (!providedSecret) return json({ error: "Unauthorized" }, 401);
+  const { data: expectedSecret, error: secretError } = await admin.rpc("get_optocare_internal_edge_secret");
+  if (secretError || !expectedSecret || providedSecret !== expectedSecret) {
+    return json({ error: "Unauthorized" }, 401);
+  }
+
   const body = await req.json().catch(() => ({} as any));
   const single_clinic_id: string | undefined = body?.clinic_id;
   const bounds = lagosDayBoundsUTC();
