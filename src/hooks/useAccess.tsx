@@ -390,7 +390,7 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
       try {
         const stage1Start = performance.now();
 
-        const [profileSettled, userRolesSettled, clinicUsersSettled, clinicUserRolesSettled] = await Promise.allSettled([
+        const [profileSettled, userRolesSettled, clinicUsersSettled, clinicUserRolesSettled, canonicalMembershipsSettled] = await Promise.allSettled([
           withAccessTimeout(
             apiClient
               .from("profiles")
@@ -420,6 +420,14 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
               .eq("user_id", nextUser.id),
             "clinic_user_roles",
           ),
+          withAccessTimeout(
+            apiClient
+              .from("user_clinic_memberships")
+              .select("clinic_id, is_active")
+              .eq("user_id", nextUser.id)
+              .eq("is_active", true),
+            "user_clinic_memberships",
+          ),
         ]);
 
         const profileResult =
@@ -442,6 +450,11 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
             ? clinicUserRolesSettled.value
             : { data: [], error: clinicUserRolesSettled.reason };
 
+        const canonicalMembershipsResult =
+          canonicalMembershipsSettled.status === "fulfilled"
+            ? canonicalMembershipsSettled.value
+            : { data: [], error: canonicalMembershipsSettled.reason };
+
         if (profileSettled.status === "rejected") {
           console.warn("[access:profile_timeout]", { message: profileSettled.reason?.message });
         }
@@ -453,6 +466,9 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
         }
         if (clinicUserRolesSettled.status === "rejected") {
           console.warn("[access:clinic_user_roles_timeout]", { message: clinicUserRolesSettled.reason?.message });
+        }
+        if (canonicalMembershipsSettled.status === "rejected") {
+          console.warn("[access:user_clinic_memberships_timeout]", { message: canonicalMembershipsSettled.reason?.message });
         }
 
 console.debug("[access:stage1_complete]", {
@@ -466,13 +482,16 @@ console.debug("[access:stage1_complete]", {
         let userRolesRows = (userRolesResult.data || []) as Array<{ role: string; clinic_id: string | null }>;
         let clinicUsersRows = (clinicUsersResult.data || []) as Array<{ role: string | null; clinic_id: string | null }>;
         let clinicUserRolesRows = (clinicUserRolesResult.data || []) as Array<{ role: string; clinic_id: string | null }>;
+        const canonicalMembershipRows = (canonicalMembershipsResult.data || []) as Array<{ clinic_id: string | null; is_active: boolean | null }>;
+        // user_clinic_memberships is the canonical tenant-membership table. It intentionally has no role column;
+        // the user profile/legacy clinic-role tables provide the role while this table proves active clinic linkage.
 
         // A freshly authenticated browser can briefly have a valid Supabase
         // session while the first PostgREST request is made without the
         // expected JWT context. Supabase documents that RLS can then return an
         // empty data array rather than an error. Do one bounded auth check and
         // membership retry before treating an empty result as "no clinic".
-        if (userRolesRows.length === 0 && clinicUsersRows.length === 0 && clinicUserRolesRows.length === 0) {
+        if (userRolesRows.length === 0 && clinicUsersRows.length === 0 && clinicUserRolesRows.length === 0 && canonicalMembershipRows.length === 0) {
           let authHealthy = false;
           try {
             const { data: verified, error: verifyError } = await apiClient.auth.getUser();
@@ -540,6 +559,7 @@ console.debug("[access:stage1_complete]", {
           ...userRolesRows.map((row) => normalizeRole(row.role)),
           ...clinicUsersRows.map((row) => normalizeRole(row.role)),
           ...clinicUserRolesRows.map((row) => normalizeRole(row.role)),
+          ...canonicalMembershipRows.map(() => normalizeRole(nextProfile?.role)),
         ].filter(Boolean))) as string[];
         let primaryRole = resolvePrimaryRole(nextProfile, fallbackRoles);
         let nextRoles = sortRoles(Array.from(new Set([primaryRole, ...fallbackRoles].filter(Boolean))) as string[]);
@@ -570,6 +590,7 @@ console.debug("[access:stage1_complete]", {
           ...userRolesRows.map((row) => row.clinic_id),
           ...clinicUsersRows.map((row) => row.clinic_id),
           ...clinicUserRolesRows.map((row) => row.clinic_id),
+          ...canonicalMembershipRows.map((row) => row.clinic_id),
         ].filter(Boolean) as string[]));
 
         let membershipRows: MembershipRow[] = [];
@@ -599,7 +620,15 @@ console.debug("[access:stage1_complete]", {
           if (requestRef.current !== requestId) return;
 
           const clinicMap = new Map((clinicsData || []).map((clinicRow: any) => [clinicRow.id, clinicRow]));
-          membershipRows = sortMemberships(mergeMemberships({ userRolesRows, clinicUsersRows, clinicUserRolesRows, clinicMap }));
+          membershipRows = sortMemberships(mergeMemberships({
+            userRolesRows: [
+              ...userRolesRows,
+              ...canonicalMembershipRows.map((row) => ({ role: nextProfile?.role || "admin", clinic_id: row.clinic_id })),
+            ],
+            clinicUsersRows,
+            clinicUserRolesRows,
+            clinicMap,
+          }));
         }
 
         // Last-known-good access is authoritative for recovery when the
