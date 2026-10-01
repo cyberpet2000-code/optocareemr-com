@@ -125,6 +125,7 @@ export default function DailyFrontDeskReport() {
   const [saving, setSaving] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [reopening, setReopening] = useState(false);
   const [filter, setFilter] = useState("");
   const [mobileRow, setMobileRow] = useState<string | null>(null);
   const [expenseDraft, setExpenseDraft] = useState({ description: "", amount: "", payment_method: "cash", paid_to: "", remarks: "" });
@@ -358,12 +359,29 @@ export default function DailyFrontDeskReport() {
     catch (e: any) { toast.error(await getUserFacingErrorMessage(e, "Failed to send report")); } finally { setSendingEmail(false); }
   }
 
+  async function reopenReport() {
+    if (!report || report.status !== "submitted") return;
+    if (!window.confirm("Reopen today's report for editing? The report will return to Draft and can be updated and resubmitted.")) return;
+    setReopening(true);
+    try {
+      const { data, error } = await db.rpc("reopen_daily_front_desk_report", { p_report_id: report.id });
+      if (error) throw error;
+      setReport(asArray<Report>(data)[0] || { ...report, status: "draft", submitted_at: null });
+      await load();
+      toast.success("Daily report reopened. You can now update patient entries and resubmit it.");
+    } catch (e: any) {
+      toast.error(await getUserFacingErrorMessage(e, "Failed to reopen daily report"));
+    } finally {
+      setReopening(false);
+    }
+  }
+
   if (!canOperate) return <div className="p-6 text-sm text-muted-foreground">This report is available to front-desk and administrative staff.</div>;
 
   return <div className="min-h-full bg-background"><div className="mx-auto max-w-[1600px] p-3 md:p-6 space-y-4 md:space-y-5">
     <header className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
       <div><div className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Front Desk Operations</div><div className="mt-1 flex flex-wrap items-center gap-2"><h1 className="text-2xl md:text-3xl font-bold">Daily Front Desk Report</h1>{report && <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${report.status === "submitted" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{report.status === "submitted" ? "Submitted" : "Draft"}</span>}</div><p className="text-sm text-muted-foreground mt-1">{clinic?.name || "Clinic"} · {formatDate(reportDate)}</p></div>
-      <div className="flex flex-wrap gap-2"><Input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)} className="w-[180px]" /><Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw size={15} className="mr-1" />Refresh</Button>{report?.status === "submitted" && email && <Button variant="outline" onClick={() => void sendEmail()} disabled={sendingEmail}>{sendingEmail ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Mail size={15} className="mr-1" />}Send Email</Button>}<Button onClick={() => void submitReport()} disabled={!report || report.status === "submitted" || submitting}>{submitting ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Send size={15} className="mr-1" />}Submit Report</Button></div>
+      <div className="flex flex-wrap gap-2"><Input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)} className="w-[180px]" /><Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw size={15} className="mr-1" />Refresh</Button>{report?.status === "submitted" && <Button variant="outline" onClick={() => void reopenReport()} disabled={reopening}>{reopening ? <Loader2 size={15} className="mr-1 animate-spin" /> : <RefreshCw size={15} className="mr-1" />}Reopen Report</Button>}{report?.status === "submitted" && email && <Button variant="outline" onClick={() => void sendEmail()} disabled={sendingEmail}>{sendingEmail ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Mail size={15} className="mr-1" />}Send Email</Button>}<Button onClick={() => void submitReport()} disabled={!report || report.status === "submitted" || submitting}>{submitting ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Send size={15} className="mr-1" />}Submit Report</Button></div>
     </header>
 
 
@@ -387,7 +405,7 @@ export default function DailyFrontDeskReport() {
 
     <div className="rounded-2xl border bg-card p-4"><Label className="font-semibold">Notes / Additional Information</Label><Textarea className="mt-2 min-h-[100px]" value={reportNotes} onChange={(e) => setReportNotes(e.target.value)} disabled={report?.status === "submitted"} placeholder="Important issues, HMO responses, outstanding tasks, expenses, follow-ups or anything management should know…" /><div className="mt-3 flex justify-end"><Button variant="outline" onClick={() => void saveNotes()} disabled={!report || report.status === "submitted"}>Save Notes</Button></div></div>
 
-    <div className="rounded-2xl border bg-muted/20 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"><div><div className="font-semibold">End of Day</div><div className="text-xs text-muted-foreground">{report?.status === "submitted" ? "Submitted and locked." : report?.status === "draft" ? (outstanding ? `Draft — ${outstanding} patient tasks still need attention.` : "Draft — all tracked patient tasks are complete. Submit the report when ready.") : "Preparing daily report…"}</div></div><div className="flex gap-2"><Button onClick={() => void submitReport()} disabled={!report || report.status === "submitted" || submitting}>{submitting ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Send size={15} className="mr-1" />}Submit Report</Button>{report?.status === "submitted" && email && <Button variant="outline" onClick={() => void sendEmail()} disabled={sendingEmail}>{sendingEmail ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Mail size={15} className="mr-1" />}Send Email Manually</Button>}</div></div>
+    <div className="rounded-2xl border bg-muted/20 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"><div><div className="font-semibold">End of Day</div><div className="text-xs text-muted-foreground">{report?.status === "submitted" ? "Submitted and locked. Reopen if late patient entries or corrections are needed." : report?.status === "draft" ? (outstanding ? `Draft — ${outstanding} patient tasks still need attention.` : "Draft — all tracked patient tasks are complete. Submit the report when ready.") : "Preparing daily report…"}</div></div><div className="flex gap-2">{report?.status === "submitted" && <Button variant="outline" onClick={() => void reopenReport()} disabled={reopening}>{reopening ? <Loader2 size={15} className="mr-1 animate-spin" /> : <RefreshCw size={15} className="mr-1" />}Reopen Report</Button>}<Button onClick={() => void submitReport()} disabled={!report || report.status === "submitted" || submitting}>{submitting ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Send size={15} className="mr-1" />}Submit Report</Button>{report?.status === "submitted" && email && <Button variant="outline" onClick={() => void sendEmail()} disabled={sendingEmail}>{sendingEmail ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Mail size={15} className="mr-1" />}Send Email Manually</Button>}</div></div>
   </div></div>;
 }
 
