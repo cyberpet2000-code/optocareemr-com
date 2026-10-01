@@ -64,10 +64,11 @@ Deno.serve(async (req) => {
     if (reportError || !report) return json({ error: "Daily report not found" }, 404);
 
     const { data: membership } = await admin
-      .from("clinic_users")
-      .select("user_id,role")
+      .from("user_clinic_memberships")
+      .select("user_id,role,is_active")
       .eq("clinic_id", report.clinic_id)
       .eq("user_id", userData.user.id)
+      .eq("is_active", true)
       .maybeSingle();
 
     const { data: profile } = await admin
@@ -77,9 +78,8 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const allowed =
-      !!membership &&
-      ["receptionist", "admin"].includes(String(membership.role || "")) ||
-      profile?.is_super_admin === true && profile?.is_active === true;
+      (!!membership && ["receptionist", "admin"].includes(String(membership.role || "").toLowerCase())) ||
+      (profile?.is_super_admin === true && profile?.is_active === true);
 
     if (!allowed) return json({ error: "Daily report access required" }, 403);
     if (report.status !== "submitted") {
