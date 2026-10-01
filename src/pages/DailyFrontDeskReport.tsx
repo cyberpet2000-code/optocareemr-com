@@ -4,6 +4,7 @@ import { apiClient } from "@/lib/apiClient";
 import { useClinic } from "@/hooks/useClinic";
 import { useRole } from "@/hooks/useRole";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -125,6 +126,8 @@ export default function DailyFrontDeskReport() {
   const [saving, setSaving] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [sendConfirmOpen, setSendConfirmOpen] = useState(false);
+  const [sendIntentConfirmed, setSendIntentConfirmed] = useState(false);
   const [reopening, setReopening] = useState(false);
   const [filter, setFilter] = useState("");
   const [mobileRow, setMobileRow] = useState<string | null>(null);
@@ -352,11 +355,26 @@ export default function DailyFrontDeskReport() {
     } catch (e: any) { toast.error(await getUserFacingErrorMessage(e, "Failed to submit report")); } finally { setSubmitting(false); }
   }
 
-  async function sendEmail() {
-    if (!report || report.status !== "submitted" || !email) return;
+  function requestSendEmail() {
+    if (!report || report.status !== "submitted" || !email || sendingEmail) return;
+    setSendIntentConfirmed(false);
+    setSendConfirmOpen(true);
+  }
+
+  async function confirmSendEmail() {
+    if (!report || report.status !== "submitted" || !email || !sendIntentConfirmed) return;
     setSendingEmail(true);
-    try { const { data, error } = await apiClient.functions.invoke("send-daily-front-desk-report", { body: { report_id: report.id } }); if (error || data?.error) throw new Error(data?.error || error?.message || "Email failed"); toast.success(`Report sent to ${data?.recipient || email}`); }
-    catch (e: any) { toast.error(await getUserFacingErrorMessage(e, "Failed to send report")); } finally { setSendingEmail(false); }
+    try {
+      const { data, error } = await apiClient.functions.invoke("send-daily-front-desk-report", { body: { report_id: report.id } });
+      if (error || data?.error) throw new Error(data?.error || error?.message || "Email failed");
+      setSendConfirmOpen(false);
+      setSendIntentConfirmed(false);
+      toast.success(`Report sent to ${data?.recipient || email}`);
+    } catch (e: any) {
+      toast.error(await getUserFacingErrorMessage(e, "Failed to send report"));
+    } finally {
+      setSendingEmail(false);
+    }
   }
 
   async function reopenReport() {
@@ -381,9 +399,39 @@ export default function DailyFrontDeskReport() {
   return <div className="min-h-full bg-background"><div className="mx-auto max-w-[1600px] p-3 md:p-6 space-y-4 md:space-y-5">
     <header className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
       <div><div className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Front Desk Operations</div><div className="mt-1 flex flex-wrap items-center gap-2"><h1 className="text-2xl md:text-3xl font-bold">Daily Front Desk Report</h1>{report && <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${report.status === "submitted" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{report.status === "submitted" ? "Submitted" : "Draft"}</span>}</div><p className="text-sm text-muted-foreground mt-1">{clinic?.name || "Clinic"} · {formatDate(reportDate)}</p></div>
-      <div className="flex flex-wrap gap-2"><Input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)} className="w-[180px]" /><Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw size={15} className="mr-1" />Refresh</Button>{report?.status === "submitted" && <Button variant="outline" onClick={() => void reopenReport()} disabled={reopening}>{reopening ? <Loader2 size={15} className="mr-1 animate-spin" /> : <RefreshCw size={15} className="mr-1" />}Reopen Report</Button>}{report?.status === "submitted" && email && <Button variant="outline" onClick={() => void sendEmail()} disabled={sendingEmail}>{sendingEmail ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Mail size={15} className="mr-1" />}Send Email</Button>}<Button onClick={() => void submitReport()} disabled={!report || report.status === "submitted" || submitting}>{submitting ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Send size={15} className="mr-1" />}Submit Report</Button></div>
+      <div className="flex flex-wrap gap-2"><Input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)} className="w-[180px]" /><Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw size={15} className="mr-1" />Refresh</Button>{report?.status === "submitted" && <Button variant="outline" onClick={() => void reopenReport()} disabled={reopening}>{reopening ? <Loader2 size={15} className="mr-1 animate-spin" /> : <RefreshCw size={15} className="mr-1" />}Reopen Report</Button>}{report?.status === "submitted" && email && <Button variant="outline" onClick={requestSendEmail} disabled={sendingEmail}>{sendingEmail ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Mail size={15} className="mr-1" />}Send Email</Button>}<Button onClick={() => void submitReport()} disabled={!report || report.status === "submitted" || submitting}>{submitting ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Send size={15} className="mr-1" />}Submit Report</Button></div>
     </header>
 
+
+    <AlertDialog open={sendConfirmOpen} onOpenChange={(open) => { if (!sendingEmail) { setSendConfirmOpen(open); if (!open) setSendIntentConfirmed(false); } }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirm daily report email</AlertDialogTitle>
+          <AlertDialogDescription>
+            You are about to send the submitted daily front desk report for <strong>{formatDate(reportDate)}</strong> to <strong>{email}</strong>. This is an external email and should only be sent when you intentionally want management to receive this report.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <label className="flex items-start gap-3 rounded-lg border bg-muted/30 p-3 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4"
+            checked={sendIntentConfirmed}
+            onChange={(e) => setSendIntentConfirmed(e.target.checked)}
+          />
+          <span>I intentionally want to send this daily report to the recipient shown above.</span>
+        </label>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={sendingEmail}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={!sendIntentConfirmed || sendingEmail}
+            onClick={(e) => { e.preventDefault(); void confirmSendEmail(); }}
+          >
+            {sendingEmail ? <Loader2 size={15} className="mr-1 animate-spin" /> : <Mail size={15} className="mr-1" />}
+            Yes, Send Daily Report
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
 
     <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
       <div className="p-3 md:p-4 border-b flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
