@@ -96,8 +96,25 @@ export async function assertClinicAccess(
     .order("role", { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (multiRoleError || !multiRoleMembership) return null;
-  return (multiRoleMembership as { role: string }).role ?? null;
+  if (!multiRoleError && multiRoleMembership) {
+    return (multiRoleMembership as { role: string }).role ?? null;
+  }
+
+  // Canonical tenant linkage. user_clinic_memberships intentionally has no role;
+  // use the user's profile role after proving the active clinic membership.
+  const { data: canonicalMembership, error: canonicalMembershipError } = await supabase
+    .from("user_clinic_memberships")
+    .select("clinic_id, is_active")
+    .eq("user_id", userId)
+    .eq("clinic_id", clinicId)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (canonicalMembershipError || !canonicalMembership) return null;
+
+  const profileRole = profile?.role;
+  return typeof profileRole === "string" && profileRole !== "super_admin"
+    ? profileRole
+    : null;
 }
 
 export function resolveProtectedRoute(input: ProtectedRouteInput): RouteDecision {
