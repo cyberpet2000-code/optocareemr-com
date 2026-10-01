@@ -20,18 +20,36 @@ function resolveSourceModule() {
 }
 
 async function getAccessToken(): Promise<string | null> {
-  const cached = getKnownSupabaseSession()?.access_token;
-  if (cached) return cached;
-  // Fallback: load from supabase auth storage in case useAccess hasn't hydrated yet.
+  const cachedSession = getKnownSupabaseSession();
+  const now = Math.floor(Date.now() / 1000);
+
+  // Do not reuse a cached JWT that is already expired (or about to expire).
+  if (cachedSession?.access_token && (!cachedSession.expires_at || cachedSession.expires_at > now + 60)) {
+    return cachedSession.access_token;
+  }
+
+  // Read the authoritative browser session. Supabase may refresh an expired
+  // session here when auto-refresh is enabled.
   try {
     const { data } = await supabase.auth.getSession();
-    if (data?.session) {
-      setKnownSupabaseSession(data.session);
-      return data.session.access_token ?? null;
+    const session = data?.session;
+    if (session?.access_token && (!session.expires_at || session.expires_at > now + 60)) {
+      setKnownSupabaseSession(session);
+      return session.access_token;
+    }
+
+    // If the session is expired, explicitly refresh before invoking protected
+    // Edge Functions so a stale cached JWT cannot produce a 401.
+    const refreshed = await supabase.auth.refreshSession();
+    const refreshedSession = refreshed.data?.session;
+    if (refreshedSession?.access_token) {
+      setKnownSupabaseSession(refreshedSession);
+      return refreshedSession.access_token;
     }
   } catch {
-    // ignore
+    // ignore; the caller will surface the authenticated-request error
   }
+
   return null;
 }
 
