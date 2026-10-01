@@ -354,7 +354,7 @@ export default function DailyFrontDeskReport() {
   async function sendEmail() {
     if (!report || report.status !== "submitted" || !email) return;
     setSendingEmail(true);
-    try { const { data, error } = await apiClient.functions.invoke("send-daily-front-desk-report", { body: { report_id: report.id } }); if (error || data?.error) throw new Error(data?.error || error?.message || "Email failed"); toast.success(`Report sent to ${data?.recipient || email}`); }
+    try { const { data, error } = await apiClient.functions.invoke("send-daily-summary", { body: { action: "send_daily_front_desk_report", report_id: report.id } }); if (error || data?.error) throw new Error(data?.error || error?.message || "Email failed"); toast.success(`Report sent to ${data?.recipient || email}`); }
     catch (e: any) { toast.error(await getUserFacingErrorMessage(e, "Failed to send report")); } finally { setSendingEmail(false); }
   }
 
