@@ -1050,7 +1050,6 @@ export default function Outreach() {
           .eq("id", leadId);
         if (leadUpdateError) throw leadUpdateError;
       }
-      }
 
       const { error: appointmentError } = await apiClient.from("appointments").insert({
         clinic_id: effectiveClinicId,
