@@ -1,0 +1,113 @@
+const ALLOWED_ORIGIN = process.env.APP_URL || "";
+
+function json(res, body, status = 200) {
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  if (ALLOWED_ORIGIN) {
+    res.setHeader("Vary", "Origin");
+  }
+  return res.status(status).json(body);
+}
+
+function validEmail(value) {
+  return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function safeReference(value) {
+  if (!value) return `oc_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  const ref = String(value).trim();
+  if (!/^[A-Za-z0-9.=\-]+$/.test(ref) || ref.length > 100) return "";
+  return ref;
+}
+
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return json(res, { ok: false, error: "Method not allowed." }, 405);
+  }
+
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  if (!secret) {
+    return json(res, {
+      ok: false,
+      code: "paystack_not_configured",
+      error: "Paystack is not configured on this environment.",
+    }, 503);
+  }
+
+  let body = req.body;
+  if (typeof body === "string") {
+    try {
+      body = JSON.parse(body);
+    } catch {
+      return json(res, { ok: false, error: "Invalid JSON body." }, 400);
+    }
+  }
+
+  const email = String(body?.email || "").trim();
+  const amount = Number(body?.amount);
+  const plan = typeof body?.plan === "string" ? body.plan.trim() : "";
+  const callbackUrl =
+    typeof body?.callback_url === "string" && body.callback_url.trim()
+      ? body.callback_url.trim()
+      : `${process.env.APP_URL || ""}/paystack/callback`;
+
+  if (!validEmail(email)) return json(res, { ok: false, error: "A valid customer email is required." }, 400);
+  if (!Number.isInteger(amount) || amount <= 0) return json(res, { ok: false, error: "Amount must be an integer in the smallest currency unit." }, 400);
+  if (!callbackUrl.startsWith("http://") && !callbackUrl.startsWith("https://")) {
+    return json(res, { ok: false, error: "A valid callback URL is required." }, 400);
+  }
+
+  const reference = safeReference(body?.reference);
+  if (!reference) return json(res, { ok: false, error: "Invalid transaction reference." }, 400);
+
+  const metadata = {
+    source: "optocare-paystack-project",
+    ...(body?.metadata && typeof body.metadata === "object" ? body.metadata : {}),
+  };
+
+  const payload = {
+    email,
+    amount: String(amount),
+    currency: String(body?.currency || "NGN"),
+    reference,
+    callback_url: callbackUrl,
+    metadata,
+    ...(plan ? { plan } : {}),
+    ...(Array.isArray(body?.channels) ? { channels: body.channels } : {}),
+  };
+
+  try {
+    const upstream = await fetch("https://api.paystack.co/transaction/initialize", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${secret}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await upstream.json().catch(() => ({}));
+
+    if (!upstream.ok || !data?.status) {
+      return json(res, {
+        ok: false,
+        code: "paystack_initialize_failed",
+        error: data?.message || "Paystack could not initialize the transaction.",
+      }, upstream.ok ? 400 : 502);
+    }
+
+    return json(res, {
+      ok: true,
+      authorization_url: data.data?.authorization_url || null,
+      access_code: data.data?.access_code || null,
+      reference: data.data?.reference || reference,
+    });
+  } catch {
+    return json(res, {
+      ok: false,
+      code: "paystack_network_error",
+      error: "Could not reach Paystack.",
+    }, 502);
+  }
+}
