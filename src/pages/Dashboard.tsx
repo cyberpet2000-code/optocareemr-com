@@ -147,8 +147,19 @@ export default function Dashboard() {
       if (!cancelled) {
         if (error) { console.error("Failed to load today's birthdays:", error); setBirthdayPatients([]); }
         else {
-          const today = new Date(); const month = today.getMonth() + 1; const day = today.getDate();
-          setBirthdayPatients((data || []).filter((patient: any) => { const dob = new Date(patient.date_of_birth + "T00:00:00"); return dob.getMonth() + 1 === month && dob.getDate() === day; }));
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const upcoming = (data || [])
+            .map((patient: any) => {
+              const dob = new Date(patient.date_of_birth + "T00:00:00");
+              let birthday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+              if (birthday < today) birthday = new Date(today.getFullYear() + 1, dob.getMonth(), dob.getDate());
+              const daysUntilBirthday = Math.round((birthday.getTime() - today.getTime()) / 86400000);
+              return { ...patient, daysUntilBirthday };
+            })
+            .filter((patient: any) => patient.daysUntilBirthday >= 0 && patient.daysUntilBirthday <= 3)
+            .sort((a: any, b: any) => a.daysUntilBirthday - b.daysUntilBirthday || String(a.full_name).localeCompare(String(b.full_name)));
+          setBirthdayPatients(upcoming);
         }
         setBirthdayLoading(false);
       }
@@ -207,23 +218,45 @@ export default function Dashboard() {
       }
 
       if (isDoctor) {
-        const { data, error } = await apiClient
-          .from("feedback_responses")
-          .select("doctor_professionalism_rating")
+        const { data: visitRows, error: visitError } = await apiClient
+          .from("visits")
+          .select("id")
           .eq("clinic_id", effectiveClinicId)
-          .eq("doctor_id", user.id)
-          .not("doctor_professionalism_rating", "is", null);
+          .eq("doctor_id", user.id);
 
         if (cancelled) return;
 
-        if (error) {
-          console.error("Failed to load doctor rating:", error);
+        if (visitError) {
+          console.error("Failed to load doctor visits for rating:", visitError);
           setStaffRating(null);
           setStaffRatingCount(0);
           return;
         }
 
-        const ratings = (data || [])
+        const visitIds = (visitRows || []).map((row: any) => row.id);
+        if (!visitIds.length) {
+          setStaffRating(null);
+          setStaffRatingCount(0);
+          return;
+        }
+
+        const { data: ratingsData, error: ratingError } = await apiClient
+          .from("feedback_responses")
+          .select("doctor_professionalism_rating")
+          .eq("clinic_id", effectiveClinicId)
+          .in("visit_id", visitIds)
+          .not("doctor_professionalism_rating", "is", null);
+
+        if (cancelled) return;
+
+        if (ratingError) {
+          console.error("Failed to load doctor ratings:", ratingError);
+          setStaffRating(null);
+          setStaffRatingCount(0);
+          return;
+        }
+
+        const ratings = (ratingsData || [])
           .map((row: any) => Number(row.doctor_professionalism_rating))
           .filter((rating: number) => Number.isFinite(rating));
 
@@ -953,14 +986,14 @@ setFeedbackFollowups(feedbackFollowupData ?? []);
       {(isReceptionist || isAdmin || isSuperAdmin) && (birthdayLoading || birthdayPatients.length > 0) && (
         <section className="mb-6">
           <div className="medical-card overflow-hidden">
-            <SectionHeader title="🎂 Today's Birthdays" subtitle="Patients celebrating today." />
+            <SectionHeader title="🎂 Upcoming Birthdays" subtitle="Birthdays today and over the next 3 days." />
             {birthdayLoading ? <div className="py-4 text-sm text-muted-foreground">Loading birthdays...</div> : (
               <div className="space-y-2">
                 {birthdayPatients.map((patient: any) => (
                   <div key={patient.id} className="flex flex-col gap-3 rounded-2xl border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
                     <Link to={"/patient/" + patient.id} className="min-w-0 flex-1 hover:text-primary">
                       <p className="truncate text-sm font-semibold">{patient.full_name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{patient.patient_number || "Patient"}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{patient.patient_number || "Patient"} • {patient.daysUntilBirthday === 0 ? "Today" : patient.daysUntilBirthday === 1 ? "Tomorrow" : `In ${patient.daysUntilBirthday} days`}</p>
                     </Link>
                     <PatientWhatsAppMessages clinicId={effectiveClinicId || ""} clinicName={clinic?.name || "Clinic"} patientId={patient.id} patientName={patient.full_name} phone={patient.phone} />
                   </div>
