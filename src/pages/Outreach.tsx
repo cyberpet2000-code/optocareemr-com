@@ -132,6 +132,17 @@ export default function Outreach() {
   const [bookingTime, setBookingTime] = useState("");
   const [bookingReason, setBookingReason] = useState("Eye examination");
   const [bookingSaving, setBookingSaving] = useState(false);
+  const [showDirectBooking, setShowDirectBooking] = useState(false);
+  const [directBookingSaving, setDirectBookingSaving] = useState(false);
+  const [directBooking, setDirectBooking] = useState({
+    fullName: "",
+    phone: "",
+    date: "",
+    time: "",
+    reason: "Eye examination",
+    notes: "",
+    campaignId: "",
+  });
   const [convertingLead, setConvertingLead] = useState<Lead | null>(null);
   const [conversionSaving, setConversionSaving] = useState(false);
   const [followUpLead, setFollowUpLead] = useState<Lead | null>(null);
@@ -824,6 +835,120 @@ export default function Outreach() {
     }
   };
 
+  const resetDirectBooking = () => {
+    setDirectBooking({
+      fullName: "",
+      phone: "",
+      date: "",
+      time: "",
+      reason: "Eye examination",
+      notes: "",
+      campaignId: selected?.id || "",
+    });
+  };
+
+  const openDirectBooking = () => {
+    resetDirectBooking();
+    setShowDirectBooking(true);
+  };
+
+  const bookDirectAppointment = async () => {
+    if (!effectiveClinicId || directBookingSaving) return;
+    const fullName = directBooking.fullName.trim();
+    const normalized = normalizeWhatsAppNumber(directBooking.phone);
+    if (!fullName) { window.alert("Enter the person's full name."); return; }
+    if (!normalized) { window.alert("Enter a valid phone number."); return; }
+    if (!directBooking.date) { window.alert("Select an appointment date."); return; }
+    if (!directBooking.time) { window.alert("Select an appointment time."); return; }
+
+    setDirectBookingSaving(true);
+    try {
+      const phone = "+" + normalized;
+
+      const { data: patient, error: patientError } = await apiClient
+        .from("patients")
+        .select("id,full_name,phone")
+        .eq("clinic_id", effectiveClinicId)
+        .eq("phone", phone)
+        .limit(1)
+        .maybeSingle();
+      if (patientError) throw patientError;
+
+      let patientId = patient?.id || null;
+      let leadId: string | null = null;
+
+      if (!patientId) {
+        const { data: existingLead, error: leadLookupError } = await apiClient
+          .from("outreach_leads")
+          .select("id,patient_id")
+          .eq("clinic_id", effectiveClinicId)
+          .eq("normalized_phone", normalized)
+          .limit(1)
+          .maybeSingle();
+        if (leadLookupError) throw leadLookupError;
+
+        leadId = existingLead?.id || null;
+        patientId = existingLead?.patient_id || null;
+
+        if (!leadId && !patientId) {
+          const { data: newLead, error: leadCreateError } = await apiClient
+            .from("outreach_leads")
+            .insert({
+              clinic_id: effectiveClinicId,
+              contact_id: null,
+              patient_id: null,
+              full_name: fullName,
+              phone: directBooking.phone.trim(),
+              normalized_phone: normalized,
+              campaign_id: directBooking.campaignId || null,
+              created_by: (await apiClient.auth.getUser()).data.user?.id ?? null,
+              status: "appointment_booked",
+              notes: directBooking.notes.trim() || "Appointment booked from direct enquiry.",
+            })
+            .select("id")
+            .single();
+          if (leadCreateError || !newLead) throw leadCreateError || new Error("The enquiry could not be saved.");
+          leadId = newLead.id;
+        } else if (leadId) {
+          const { error: leadUpdateError } = await apiClient
+            .from("outreach_leads")
+            .update({
+              status: "appointment_booked",
+              next_follow_up_at: null,
+              ...(directBooking.notes.trim() ? { notes: directBooking.notes.trim() } : {}),
+            })
+            .eq("clinic_id", effectiveClinicId)
+            .eq("id", leadId);
+          if (leadUpdateError) throw leadUpdateError;
+        }
+      }
+
+      const { error: appointmentError } = await apiClient.from("appointments").insert({
+        clinic_id: effectiveClinicId,
+        patient_id: patientId,
+        outreach_lead_id: leadId,
+        outreach_campaign_id: directBooking.campaignId || null,
+        appointment_date: directBooking.date,
+        appointment_time: directBooking.time,
+        reason: directBooking.reason.trim() || null,
+        notes: directBooking.notes.trim() || null,
+        status: "pending",
+        source: "outreach",
+      });
+      if (appointmentError) throw appointmentError;
+
+      setShowDirectBooking(false);
+      resetDirectBooking();
+      await load();
+      window.alert("Appointment booked successfully.");
+    } catch (e) {
+      console.error("Direct appointment booking failed", e);
+      window.alert(e instanceof Error ? e.message : "The appointment could not be booked.");
+    } finally {
+      setDirectBookingSaving(false);
+    }
+  };
+
   const bookLeadAppointment = async () => {
     if (!effectiveClinicId || !bookingTarget || !bookingDate || !bookingTime) return;
     setBookingSaving(true);
@@ -959,7 +1084,10 @@ export default function Outreach() {
           <h1 className="text-2xl lg:text-3xl font-bold mt-1">Campaigns & Leads</h1>
           <p className="text-sm text-muted-foreground mt-1">Reach existing patients and external contacts without turning prospects into patients prematurely.</p>
         </div>
-        <Button onClick={() => setShowCreate(true)}><Megaphone className="w-4 h-4 mr-2"/> New Campaign</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={openDirectBooking}><CalendarDays className="w-4 h-4 mr-2"/> Book appointment</Button>
+          <Button onClick={() => setShowCreate(true)}><Megaphone className="w-4 h-4 mr-2"/> New Campaign</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1264,6 +1392,71 @@ export default function Outreach() {
               <Button variant="outline" onClick={() => setBookingTarget(null)}>Cancel</Button>
               <Button onClick={() => void bookLeadAppointment()} disabled={bookingSaving || !bookingDate || !bookingTime}>
                 {bookingSaving ? "Booking..." : "Confirm appointment"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>}
+
+      {showDirectBooking && <div className="fixed inset-0 z-[55] bg-black/50 flex items-center justify-center p-4">
+        <div className="w-full max-w-lg rounded-2xl bg-card border shadow-2xl p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-primary"><CalendarDays size={19}/><span className="text-sm font-semibold">Direct appointment booking</span></div>
+              <h2 className="text-xl font-bold mt-1">Book a caller or enquiry</h2>
+              <p className="text-sm text-muted-foreground mt-1">Use this for people who are not in a campaign queue.</p>
+            </div>
+            <button onClick={() => setShowDirectBooking(false)} className="text-muted-foreground">✕</button>
+          </div>
+
+          <div className="grid gap-3 mt-5">
+            <div>
+              <label className="text-sm font-medium">Full name</label>
+              <Input className="mt-1" value={directBooking.fullName} onChange={e => setDirectBooking(v => ({ ...v, fullName: e.target.value }))} placeholder="Patient / caller name" autoFocus />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Phone number</label>
+              <Input className="mt-1" value={directBooking.phone} onChange={e => setDirectBooking(v => ({ ...v, phone: e.target.value }))} placeholder="0803… or +234…" inputMode="tel" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium">Appointment date</label>
+                <Input className="mt-1" type="date" value={directBooking.date} onChange={e => setDirectBooking(v => ({ ...v, date: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Time</label>
+                <Input className="mt-1" type="time" value={directBooking.time} onChange={e => setDirectBooking(v => ({ ...v, time: e.target.value }))} />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Reason</label>
+              <Input className="mt-1" value={directBooking.reason} onChange={e => setDirectBooking(v => ({ ...v, reason: e.target.value }))} placeholder="Eye examination" />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Notes <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <Textarea className="mt-1" rows={3} value={directBooking.notes} onChange={e => setDirectBooking(v => ({ ...v, notes: e.target.value }))} placeholder="Any useful information from the caller…" />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Campaign/source <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <select value={directBooking.campaignId} onChange={e => setDirectBooking(v => ({ ...v, campaignId: e.target.value }))} className="w-full h-10 rounded-md border bg-background px-3 text-sm mt-1">
+                <option value="">No campaign — direct enquiry</option>
+                {campaigns.filter(c => c.status !== "archived").map(c => <option key={c.id} value={c.id}>{c.name}{c.campaign_date ? " · " + c.campaign_date : ""}</option>)}
+              </select>
+            </div>
+
+            <div className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
+              OptoCare will check the phone number against existing patients first. A new person is saved as a lead, and the appointment is linked to that lead. No campaign membership is required.
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setShowDirectBooking(false)} disabled={directBookingSaving}>Cancel</Button>
+              <Button onClick={() => void bookDirectAppointment()} disabled={directBookingSaving}>
+                {directBookingSaving ? "Booking…" : "Confirm appointment"}
               </Button>
             </div>
           </div>
