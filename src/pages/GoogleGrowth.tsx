@@ -69,7 +69,25 @@ export default function GoogleGrowth() {
 
     trackGoogleGrowthPageView("/growth");
 
-    return () => {
+    useEffect(() => {
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: "OptoCare-EMR",
+      applicationCategory: "BusinessApplication",
+      applicationSubCategory: "Electronic Medical Record",
+      operatingSystem: "Web",
+      url: "https://optocareemr.com/growth",
+      description:
+        "Intelligent eye care management platform for eye clinics and optometry practices.",
+    });
+    document.head.appendChild(script);
+    return () => script.remove();
+  }, []);
+
+  return () => {
       document.title = "Optocareemr";
     };
   }, []);
