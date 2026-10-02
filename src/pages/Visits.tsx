@@ -157,6 +157,7 @@ const filter = searchParams.get("filter");
 {!isReceptionist && (
   <p className="text-xs text-muted-foreground mt-1">
     {visit.diagnosis} • IOP {visit.iop_od || "-"} / {visit.iop_os || "-"}
+    {visit.iop_time ? ` • Tonometer time ${String(visit.iop_time).slice(0, 5)}` : ""}
   </p>
 )}
 
