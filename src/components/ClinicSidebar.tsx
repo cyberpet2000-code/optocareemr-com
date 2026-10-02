@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, ShoppingBag, ShieldCheck, Calendar, AlertOctagon,
   UserPlus, Building2, Sparkles, LifeBuoy, CheckCircle2, CircleDashed, Clock, Activity, Archive,
-  Wallet, ClipboardList, FileBarChart, UserCog, Megaphone,
+  Wallet, ClipboardList, FileBarChart, UserCog, Megaphone, BellRing,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -59,6 +59,7 @@ export default function ClinicSidebar() {
         ],
         secondary: [
           { to: "/outreach", label: "Campaigns & Leads", icon: Megaphone },
+          { to: "/recall", label: "Patient Recall", icon: BellRing },
           { to: "/settings/account", label: "Account", icon: UserCog },
           { to: "/super-admin/create-clinic", label: "Create Clinic", icon: Sparkles },
           { to: "/super-admin/archives", label: "Data Archives", icon: Archive },
@@ -89,6 +90,7 @@ export default function ClinicSidebar() {
           { to: "/appointments", label: "Appointments", icon: Calendar },
           { to: "/billing", label: "Billing", icon: NairaIcon },
           { to: "/outreach", label: "Campaigns & Leads", icon: Megaphone },
+          { to: "/recall", label: "Patient Recall", icon: BellRing },
           { to: "/settings/account", label: "Account", icon: UserCog },
         ],
         secondary: [
@@ -107,6 +109,7 @@ export default function ClinicSidebar() {
       secondary: [
         { to: "/register", label: "Add Patient", icon: UserPlus },
         { to: "/appointments", label: "Appointments", icon: Calendar },
+        { to: "/recall", label: "Patient Recall", icon: BellRing },
         { to: "/hmos", label: "HMOs", icon: Building2 },
         { to: "/finance/expenses", label: "Expenses", icon: Wallet },
         { to: "/reports/daily-front-desk", label: "Daily Front Desk Report", icon: ClipboardList },
