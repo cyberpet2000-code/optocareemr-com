@@ -385,7 +385,7 @@ const canViewFinancials =
         withPatientRecordTimeout(
           apiClient
             .from("patients")
-            .select("id, full_name, date_of_birth, age, gender, phone, address, next_of_kin, payment_type, active_hmo_id, enrollee_number, hmo_coverage_type, hmo_principal_name, hmo_relationship, queue_number, queue_status, priority, patient_number, preferred_contact_method, created_by, family_id, family_relationship")
+            .select("id, full_name, date_of_birth, age, gender, phone, address, next_of_kin, payment_type, active_hmo_id, enrollee_number, hmo_coverage_type, hmo_principal_name, hmo_relationship, hmo_verification_status, hmo_verified_at, hmo_verification_notes, queue_number, queue_status, priority, patient_number, preferred_contact_method, created_by, family_id, family_relationship")
             .eq("clinic_id", cid)
             .eq("id", patientId)
             .maybeSingle(),
