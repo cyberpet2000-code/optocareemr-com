@@ -777,7 +777,7 @@ const refreshReminderAlerts = useCallback(async () => {
                       const label = type === "24h" ? "24h" : "2h";
                       if (reminder.status === "sent" || reminder.sent_at) return <span key={type} className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-success/10 text-success"><Bell size={11} /> {label} sent</span>;
                       if (reminder.status === "due") return <span key={type} className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-amber-100 text-amber-700"><BellRing size={11} /> {label} due</span>;
-                      return <span key={type} className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-muted text-muted-foreground"><Clock size={11} /> {label} scheduled</span>;
+                      return <span key={type} className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-muted text-muted-foreground"><Clock size={11} /> {label} {getReminderTimingLabel(reminder)}</span>;
                     })}
                     {a.source === "auto" && <span className="text-[10px] px-2 py-1 rounded-full bg-primary/10 text-primary">From visit</span>}
                   </div>
