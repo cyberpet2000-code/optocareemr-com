@@ -273,6 +273,8 @@ const canViewFinancials =
   const [recallIntervalMonths, setRecallIntervalMonths] = useState(18);
   const [recallEvent, setRecallEvent] = useState<"new_prescription" | "previous_prescription_reused" | "follow_up" | "none">("new_prescription");
   const [recallAction, setRecallAction] = useState<"reset" | "preserve" | "none">("reset");
+  const [manualRecallBasis, setManualRecallBasis] = useState<"activation" | "dispensing">("dispensing");
+  const [savingManualRecall, setSavingManualRecall] = useState(false);
 
   useEffect(() => {
     if (!patientRecall?.status || patientRecall.status !== "active") return;
@@ -297,6 +299,40 @@ const canViewFinancials =
     if (days === 1) return "Due tomorrow";
     if (days === 0) return "Due today";
     return `Overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"}`;
+  };
+
+  const activateRecallForCompletedVisit = async () => {
+    const completedVisit = (editingVisitId ? visits.find((v: any) => v.id === editingVisitId && v.status === "completed") : null)
+      || [...visits].filter((v: any) => v.status === "completed").sort((a: any, b: any) => new Date(b.completed_at || b.created_at).getTime() - new Date(a.completed_at || a.created_at).getTime())[0];
+
+    if (!completedVisit?.id) {
+      toast.error("No completed visit is available to schedule a recall.");
+      return;
+    }
+
+    setSavingManualRecall(true);
+    try {
+      const { data, error } = await apiClient.rpc("schedule_patient_recall", {
+        p_clinic_id: cid,
+        p_patient_id: patient.id,
+        p_visit_id: completedVisit.id,
+        p_interval_months: recallIntervalMonths,
+        p_start_basis: manualRecallBasis,
+      });
+      if (error) throw error;
+      if (data) setPatientRecall(data);
+      toast.success(
+        manualRecallBasis === "dispensing"
+          ? "Recall scheduled. The countdown will start when the optical prescription is dispensed."
+          : "Recall activated from today."
+      );
+      setShowRecallPanel(true);
+    } catch (error: any) {
+      console.error("Manual recall scheduling failed:", error);
+      toast.error(error?.message || "Could not schedule the recall.");
+    } finally {
+      setSavingManualRecall(false);
+    }
   };
 
   const getRecallElapsed = (visitId?: string | null) => {
