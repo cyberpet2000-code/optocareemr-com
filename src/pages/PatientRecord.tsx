@@ -3257,15 +3257,16 @@ shadow-sm
   <Gauge size={14} />
   IOP
 </div>
-      <span className="ml-2 text-xs font-normal text-muted-foreground">
-        {v.tonometer_type || "Instrument not recorded"}
-      </span>
-      <span className="ml-2 inline-flex items-center rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
-        {v.iop_time ? `Time ${String(v.iop_time).slice(0, 5)}` : "Time not recorded"}
-      </span>
-      <span className="ml-2 font-medium">OD {v.iop_od || "—"} mmHg</span>
-      <span className="mx-1">|</span>
-      <span className="font-medium">OS {v.iop_os || "—"} mmHg</span>
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+        <span className="font-medium text-foreground">{v.tonometer_type || "Instrument not recorded"}</span>
+        <span className="text-muted-foreground">•</span>
+        <span className="rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+          {v.iop_time ? `Measured ${String(v.iop_time).slice(0, 5)}` : "Measurement time not recorded"}
+        </span>
+      </div>
+      <div className="mt-1 font-medium">
+        OD {v.iop_od || "—"} mmHg <span className="mx-1 text-muted-foreground">|</span> OS {v.iop_os || "—"} mmHg
+      </div>
     </p>
   )}
 
