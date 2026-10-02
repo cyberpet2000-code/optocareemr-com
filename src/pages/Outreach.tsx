@@ -792,13 +792,21 @@ export default function Outreach() {
 
   const createLead = async (r: Recipient) => {
     if (!effectiveClinicId || !selected || r.patient_id) return;
-    const { data: existing } = await apiClient.from("outreach_leads").select("*").eq("clinic_id", effectiveClinicId).eq("normalized_phone", r.normalized_phone).limit(1).maybeSingle();
+    const { data: existing, error: existingError } = await apiClient
+      .from("outreach_leads")
+      .select("*")
+      .eq("clinic_id", effectiveClinicId)
+      .eq("normalized_phone", r.normalized_phone)
+      .limit(1)
+      .maybeSingle();
+    if (existingError) throw existingError;
     if (existing?.id) {
-      await apiClient
+      const { error: linkError } = await apiClient
         .from("outreach_recipients")
         .update({ lead_id: existing.id })
         .eq("id", r.id)
         .eq("campaign_id", selected.id);
+      if (linkError) throw linkError;
       setRecipients(prev => prev.map(item => item.id === r.id ? { ...item, lead_id: existing.id } : item));
       setLeads(prev => prev.some(l => l.id === existing.id) ? prev : [existing as Lead, ...prev]);
       setLeadFilter("all");
@@ -827,11 +835,11 @@ export default function Outreach() {
     }
   };
 
-  const openLeadBooking = (lead: Lead) => {
+  const openLeadBooking = (lead: Lead, campaignIdOverride?: string | null) => {
     setBookingTarget({
       leadId: lead.id,
       patientId: lead.patient_id || null,
-      campaignId: lead.campaign_id || selected?.id || null,
+      campaignId: campaignIdOverride ?? lead.campaign_id ?? null,
       full_name: lead.full_name,
       phone: lead.phone,
     });
@@ -885,7 +893,7 @@ export default function Outreach() {
       return;
     }
 
-    openLeadBooking(lead);
+    openLeadBooking(lead, selected?.id || lead.campaign_id || null);
   };
 
   const convertLeadToPatient = async () => {
@@ -987,33 +995,30 @@ export default function Outreach() {
     try {
       const phone = "+" + normalized;
 
-      const { data: patient, error: patientError } = await apiClient
-        .from("patients")
-        .select("id,full_name,phone")
-        .eq("clinic_id", effectiveClinicId)
-        .eq("phone", phone)
-        .limit(1)
-        .maybeSingle();
-      if (patientError) throw patientError;
-
-      let patientId = patient?.id || null;
-      let leadId: string | null = null;
-
-      if (!patientId) {
-        const { data: existingLead, error: leadLookupError } = await apiClient
+      const [{ data: patient, error: patientError }, { data: existingLead, error: leadLookupError }] = await Promise.all([
+        apiClient
+          .from("patients")
+          .select("id,full_name,phone")
+          .eq("clinic_id", effectiveClinicId)
+          .eq("phone", phone)
+          .limit(1)
+          .maybeSingle(),
+        apiClient
           .from("outreach_leads")
-          .select("id,patient_id")
+          .select("id,patient_id,status")
           .eq("clinic_id", effectiveClinicId)
           .eq("normalized_phone", normalized)
           .limit(1)
-          .maybeSingle();
-        if (leadLookupError) throw leadLookupError;
+          .maybeSingle(),
+      ]);
+      if (patientError) throw patientError;
+      if (leadLookupError) throw leadLookupError;
 
-        leadId = existingLead?.id || null;
-        patientId = existingLead?.patient_id || null;
+      let patientId = patient?.id || existingLead?.patient_id || null;
+      let leadId: string | null = existingLead?.id || null;
 
-        if (!leadId && !patientId) {
-          const { data: newLead, error: leadCreateError } = await apiClient
+      if (!leadId && !patientId) {
+        const { data: newLead, error: leadCreateError } = await apiClient
             .from("outreach_leads")
             .insert({
               clinic_id: effectiveClinicId,
@@ -1030,19 +1035,21 @@ export default function Outreach() {
             .select("id")
             .single();
           if (leadCreateError || !newLead) throw leadCreateError || new Error("The enquiry could not be saved.");
-          leadId = newLead.id;
-        } else if (leadId) {
-          const { error: leadUpdateError } = await apiClient
-            .from("outreach_leads")
-            .update({
-              status: "appointment_booked",
-              next_follow_up_at: null,
-              ...(directBooking.notes.trim() ? { notes: directBooking.notes.trim() } : {}),
-            })
-            .eq("clinic_id", effectiveClinicId)
-            .eq("id", leadId);
-          if (leadUpdateError) throw leadUpdateError;
-        }
+        leadId = newLead.id;
+      }
+
+      if (leadId) {
+        const { error: leadUpdateError } = await apiClient
+          .from("outreach_leads")
+          .update({
+            status: "appointment_booked",
+            next_follow_up_at: null,
+            ...(directBooking.notes.trim() ? { notes: directBooking.notes.trim() } : {}),
+          })
+          .eq("clinic_id", effectiveClinicId)
+          .eq("id", leadId);
+        if (leadUpdateError) throw leadUpdateError;
+      }
       }
 
       const { error: appointmentError } = await apiClient.from("appointments").insert({
