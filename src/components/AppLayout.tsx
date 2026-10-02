@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   LayoutDashboard, Users, ShoppingBag, LogOut, Calendar, UserPlus,
-  Bell, Search, Building2,
+  Bell, Search, Building2, BellRing,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
