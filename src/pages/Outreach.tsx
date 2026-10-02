@@ -1524,28 +1524,39 @@ export default function Outreach() {
         </div>
       </div>}
 
-      {bookingTarget && <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-2xl bg-card border shadow-2xl p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold">Book appointment</h2>
-              <p className="text-sm text-muted-foreground mt-1">{bookingTarget.full_name || "Unnamed lead"} · {bookingTarget.phone}</p>
+      {bookingTarget && <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="w-full max-w-md max-h-[calc(100dvh-1rem)] sm:max-h-[90dvh] rounded-t-2xl sm:rounded-2xl bg-card border shadow-2xl flex flex-col overflow-hidden">
+          <div className="shrink-0 p-5 pb-3 border-b bg-card">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="text-xl font-bold">Book appointment</h2>
+                <p className="text-sm text-muted-foreground mt-1 truncate">{bookingTarget.full_name || "Unnamed lead"} · {bookingTarget.phone}</p>
+              </div>
+              <button onClick={() => setBookingTarget(null)} className="text-muted-foreground shrink-0">✕</button>
             </div>
-            <button onClick={() => setBookingTarget(null)} className="text-muted-foreground">✕</button>
           </div>
-          <div className="space-y-3 mt-5">
-            <Input type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)} />
-            <Input type="time" value={bookingTime} onChange={e => setBookingTime(e.target.value)} />
-            <Input value={bookingReason} onChange={e => setBookingReason(e.target.value)} placeholder="Reason" />
+          <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-3">
+            <div>
+              <label className="text-sm font-medium">Appointment date</label>
+              <Input className="mt-1" type="date" value={bookingDate} onChange={e => setBookingDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Appointment time</label>
+              <Input className="mt-1" type="time" value={bookingTime} onChange={e => setBookingTime(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Reason</label>
+              <Input className="mt-1" value={bookingReason} onChange={e => setBookingReason(e.target.value)} placeholder="Reason for visit" />
+            </div>
             <div className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
               This books the clinic appointment and keeps the campaign source attached. Booking does not automatically convert an external prospect into a patient.
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setBookingTarget(null)}>Cancel</Button>
-              <Button onClick={() => void bookLeadAppointment()} disabled={bookingSaving || !bookingDate || !bookingTime}>
-                {bookingSaving ? "Booking..." : "Confirm appointment"}
-              </Button>
-            </div>
+          </div>
+          <div className="shrink-0 border-t bg-card p-4 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setBookingTarget(null)} disabled={bookingSaving}>Cancel</Button>
+            <Button onClick={() => void bookLeadAppointment()} disabled={bookingSaving || !bookingDate || !bookingTime}>
+              {bookingSaving ? "Saving..." : "Save appointment"}
+            </Button>
           </div>
         </div>
       </div>}
@@ -1579,28 +1590,28 @@ export default function Outreach() {
         </div>
       </div>}
 
-      {showDirectBooking && <div className="fixed inset-0 z-[55] bg-black/50 flex items-center justify-center p-4">
-        <div className="w-full max-w-lg rounded-2xl bg-card border shadow-2xl p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 text-primary"><CalendarDays size={19}/><span className="text-sm font-semibold">Direct appointment booking</span></div>
-              <h2 className="text-xl font-bold mt-1">Book a caller or enquiry</h2>
-              <p className="text-sm text-muted-foreground mt-1">Use this for people who are not in a campaign queue.</p>
+      {showDirectBooking && <div className="fixed inset-0 z-[55] bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="w-full max-w-lg max-h-[calc(100dvh-1rem)] sm:max-h-[90dvh] rounded-t-2xl sm:rounded-2xl bg-card border shadow-2xl flex flex-col overflow-hidden">
+          <div className="shrink-0 p-5 pb-3 border-b bg-card">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-primary"><CalendarDays size={19}/><span className="text-sm font-semibold">Direct appointment booking</span></div>
+                <h2 className="text-xl font-bold mt-1">Book a caller or enquiry</h2>
+                <p className="text-sm text-muted-foreground mt-1">Use this for people who are not in a campaign queue.</p>
+              </div>
+              <button onClick={() => setShowDirectBooking(false)} className="text-muted-foreground shrink-0">✕</button>
             </div>
-            <button onClick={() => setShowDirectBooking(false)} className="text-muted-foreground">✕</button>
           </div>
 
-          <div className="grid gap-3 mt-5">
+          <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-3">
             <div>
               <label className="text-sm font-medium">Full name</label>
               <Input className="mt-1" value={directBooking.fullName} onChange={e => setDirectBooking(v => ({ ...v, fullName: e.target.value }))} placeholder="Patient / caller name" autoFocus />
             </div>
-
             <div>
               <label className="text-sm font-medium">Phone number</label>
               <Input className="mt-1" value={directBooking.phone} onChange={e => setDirectBooking(v => ({ ...v, phone: e.target.value }))} placeholder="0803… or +234…" inputMode="tel" />
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-medium">Appointment date</label>
@@ -1611,17 +1622,14 @@ export default function Outreach() {
                 <Input className="mt-1" type="time" value={directBooking.time} onChange={e => setDirectBooking(v => ({ ...v, time: e.target.value }))} />
               </div>
             </div>
-
             <div>
               <label className="text-sm font-medium">Reason</label>
               <Input className="mt-1" value={directBooking.reason} onChange={e => setDirectBooking(v => ({ ...v, reason: e.target.value }))} placeholder="Eye examination" />
             </div>
-
             <div>
               <label className="text-sm font-medium">Notes <span className="text-muted-foreground font-normal">(optional)</span></label>
               <Textarea className="mt-1" rows={3} value={directBooking.notes} onChange={e => setDirectBooking(v => ({ ...v, notes: e.target.value }))} placeholder="Any useful information from the caller…" />
             </div>
-
             <div>
               <label className="text-sm font-medium">Campaign/source <span className="text-muted-foreground font-normal">(optional)</span></label>
               <select value={directBooking.campaignId} onChange={e => setDirectBooking(v => ({ ...v, campaignId: e.target.value }))} className="w-full h-10 rounded-md border bg-background px-3 text-sm mt-1">
@@ -1629,17 +1637,16 @@ export default function Outreach() {
                 {campaigns.filter(c => c.status !== "archived").map(c => <option key={c.id} value={c.id}>{c.name}{c.campaign_date ? " · " + c.campaign_date : ""}</option>)}
               </select>
             </div>
-
             <div className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">
               OptoCare will check the phone number against existing patients first. A new person is saved as a lead, and the appointment is linked to that lead. No campaign membership is required.
             </div>
+          </div>
 
-            <div className="flex justify-end gap-2 pt-1">
-              <Button variant="outline" onClick={() => setShowDirectBooking(false)} disabled={directBookingSaving}>Cancel</Button>
-              <Button onClick={() => void bookDirectAppointment()} disabled={directBookingSaving}>
-                {directBookingSaving ? "Booking…" : "Confirm appointment"}
-              </Button>
-            </div>
+          <div className="shrink-0 border-t bg-card p-4 flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowDirectBooking(false)} disabled={directBookingSaving}>Cancel</Button>
+            <Button onClick={() => void bookDirectAppointment()} disabled={directBookingSaving}>
+              {directBookingSaving ? "Saving…" : "Save appointment"}
+            </Button>
           </div>
         </div>
       </div>}
