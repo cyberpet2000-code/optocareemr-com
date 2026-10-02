@@ -129,3 +129,6 @@ export default async function handler(req, res) {
     return json(res, { ok: false, error: "Webhook processing failed." }, 500);
   }
 }
+
+
+export const config = { api: { bodyParser: false } };
