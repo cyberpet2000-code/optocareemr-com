@@ -133,25 +133,32 @@ export default function OptoCareDemo() {
 
   return (
     <main className="min-h-screen bg-[#E5E5E5] text-slate-900">
-      <header className="sticky top-0 z-30 border-b border-slate-300 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
-            <Button
-              size="icon"
-              variant="outline"
-              className="lg:hidden"
-              onClick={() => setMobileNavOpen((open) => !open)}
-              aria-label="Toggle demo navigation"
-            >
-              <Menu className="h-4 w-4" />
-            </Button>
-            <OptoCareLogo size="sm" showTagline={false} />
-            <div className="hidden sm:block">
-              <p className="text-sm font-semibold text-[#0B3150]">Interactive Product Demo</p>
-              <p className="text-xs text-slate-500">Fictional data • no production records</p>
+      <header className="sticky top-0 z-40 border-b border-slate-300 bg-white/90 backdrop-blur-xl">
+        <div className="flex h-14 items-center gap-2 px-3 sm:h-16 sm:px-6">
+          <Button size="icon" variant="outline" className="lg:hidden shrink-0" onClick={() => setMobileNavOpen((open) => !open)} aria-label="Toggle demo navigation"><Menu className="h-4 w-4" /></Button>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h1 className="truncate text-base font-bold text-[#0B3150] sm:text-xl">Cedar Demo Clinic</h1>
+              <span className="hidden items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 sm:inline-flex"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-600" /> Active</span>
             </div>
+            <div className="hidden text-[10px] leading-tight text-slate-400 sm:block">OptoCare EMR · Doctor</div>
           </div>
-          <Badge className="bg-[#155D80] text-white hover:bg-[#155D80]">Demo clinic</Badge>
+          <div className="hidden w-64 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 xl:flex">
+            <Search className="h-3.5 w-3.5 text-slate-400" />
+            <input className="h-9 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400" placeholder="Search patients, visits, invoices…" aria-label="Demo global search" />
+          </div>
+          <Button variant="ghost" size="icon" className="relative" aria-label="Notifications"><Bell className="h-4 w-4" /><span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" /></Button>
+          <Badge variant="outline" className="hidden sm:inline-flex bg-cyan-50 text-cyan-700">Doctor</Badge>
+          <div className="hidden items-center gap-2 border-l border-slate-200 pl-3 md:flex">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#C8DFEC] text-xs font-semibold text-[#155D80]">DK</div>
+            <div className="hidden leading-tight lg:block"><div className="text-xs font-medium">Dr. Kalu</div><div className="text-[10px] text-slate-400">Doctor</div></div>
+          </div>
+          <Button variant="ghost" size="icon" aria-label="Demo logout"><LogOut className="h-4 w-4" /></Button>
+        </div>
+        <div className="border-t border-slate-200 bg-emerald-50/70 px-3 py-1 sm:px-6">
+          <div className="flex items-center gap-1.5 text-[10px] font-medium text-emerald-700 sm:text-[11px]">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" /> ACTIVE CLINIC: <span className="uppercase tracking-wide">CEDAR DEMO CLINIC</span><span className="ml-auto text-[9px] font-normal text-emerald-600">Demo environment</span>
+          </div>
         </div>
       </header>
 
@@ -205,7 +212,7 @@ export default function OptoCareDemo() {
         </aside>
 
         <section className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-6xl pb-16 md:pb-0">
             <div className="mb-6 flex flex-col justify-between gap-3 md:flex-row md:items-end">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700">
@@ -525,6 +532,15 @@ export default function OptoCareDemo() {
           </div>
         </section>
       </div>
+      <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-300 bg-white/95 px-2 pb-[env(safe-area-inset-bottom)] pt-1 backdrop-blur md:hidden">
+        <div className="flex items-center justify-around">
+          {navigation.slice(0, 5).map(({ id, label, icon: Icon }) => (
+            <button key={id} onClick={() => go(id)} className={["flex min-w-16 flex-col items-center gap-0.5 rounded-lg px-2 py-1.5 text-[10px] font-medium", view === id ? "text-[#0B3150]" : "text-slate-500"].join(" ")}>
+              <Icon className="h-4 w-4" /><span>{label}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
     </main>
   );
 }
