@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { OptoCareLogo } from "@/components/OptoCareLogo";
+import OptoCareLogo from "@/components/OptoCareLogo";
 import {
   googleGrowthMeasurementConfigured,
   initGoogleGrowthAnalytics,
