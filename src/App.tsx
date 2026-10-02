@@ -54,6 +54,7 @@ const ClinicSettings = lazy(() => import("./pages/ClinicSettings"));
 const MonthlyReports = lazy(() => import("./pages/MonthlyReports"));
 const DailyFrontDeskReport = lazy(() => import("./pages/DailyFrontDeskReport"));
 const Outreach = lazy(() => import("./pages/Outreach"));
+const PaystackTest = lazy(() => import("./pages/PaystackTest"));
 import {
   diag,
   isDiagEnabled,
@@ -297,6 +298,7 @@ export function AppRoutes() {
     <ProtectedRouteGate>
       <Suspense fallback={<FullScreenLoader />}>
       <Routes>
+        <Route path="/paystack-test" element={<PageErrorBoundary pageName="Paystack Test"><PaystackTest /></PageErrorBoundary>} />
         <Route path="/onboarding" element={<PageErrorBoundary pageName="Onboarding"><Onboarding /></PageErrorBoundary>} />
         <Route path="/select-clinic" element={<PageErrorBoundary pageName="Clinic Selection"><SelectClinic /></PageErrorBoundary>} />
 
