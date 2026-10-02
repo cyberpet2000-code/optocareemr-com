@@ -325,6 +325,8 @@ export type PatientWhatsAppMessagesProps = {
   feedbackLink?: string | null;
   appointmentDate?: string | null;
   appointmentTime?: string | null;
+  defaultTemplateKey?: WhatsAppTemplateKey;
+  onSent?: () => void | Promise<void>;
   canUse?: boolean;
 };
 
@@ -338,6 +340,8 @@ export function PatientWhatsAppMessages({
   feedbackLink = null,
   appointmentDate = null,
   appointmentTime = null,
+  defaultTemplateKey = "glasses_ready",
+  onSent,
   canUse = true,
 }: PatientWhatsAppMessagesProps) {
   const [open, setOpen] = useState(false);
@@ -369,7 +373,8 @@ export function PatientWhatsAppMessages({
       toast.error("This patient does not have a valid WhatsApp number.");
       return;
     }
-    const template = selectedTemplate || templates[0];
+    const preferredTemplate = templates.find((template) => template.key === defaultTemplateKey);
+    const template = preferredTemplate || selectedTemplate || templates[0];
     setSelectedKey(template.key);
     setMessage(template.build(values));
     setCommunicationId(null);
@@ -434,6 +439,11 @@ export function PatientWhatsAppMessages({
         .eq("id", communicationId);
 
       if (error) throw error;
+      try {
+        await onSent?.();
+      } catch (callbackError: any) {
+        console.warn("WhatsApp sent callback failed:", callbackError);
+      }
       setOpen(false);
       setCommunicationId(null);
       toast.success("WhatsApp communication marked as sent.");
