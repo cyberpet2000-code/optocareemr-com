@@ -113,6 +113,7 @@ interface PaymentHistoryRow {
   consultation_fee: number;
   discount_amount: number;
   discount_reason: string | null;
+  patient_payable?: number | null;
   status: string;
   notes: string | null;
   created_at: string;
@@ -703,7 +704,7 @@ if (visRes.data && visRes.data.length > 0) {
       if (canViewFinancials) {
         const { data: billingRows } = await apiClient
           .from("billing")
-          .select("id, visit_id, total_amount, amount_paid, balance, consultation_fee, discount_amount, discount_reason, status, notes, created_at")
+          .select("id, visit_id, total_amount, amount_paid, balance, consultation_fee, discount_amount, discount_reason, patient_payable, status, notes, created_at")
           .eq("clinic_id", cid)
           .eq("patient_id", patientId)
           .order("created_at", { ascending: false });
@@ -1869,6 +1870,15 @@ Powered by OptoCare-EMR`;
   const hmoName = hmoEntry?.name || null;
   const hmoWebsite = hmoEntry?.website || null;
   const paymentSummary = getPaymentStatus(paymentHistory, patient.payment_type);
+  const hmoOutOfPocket = paymentHistory.reduce((sum, bill) => {
+    const patientPayable = Number(bill.patient_payable || 0);
+    const paidByPatient = (bill.payments || [])
+      .filter((p: any) => String(p.method || "").trim().toLowerCase() !== "hmo")
+      .reduce((paid: number, p: any) => paid + Number(p.amount || 0), 0);
+    return sum + Math.min(patientPayable, paidByPatient);
+  }, 0);
+  const hmoOutOfPocketRequired = paymentHistory.reduce((sum, bill) => sum + Number(bill.patient_payable || 0), 0);
+  const hmoOutOfPocketDue = Math.max(0, hmoOutOfPocketRequired - hmoOutOfPocket);
 
   console.log("Current editingVisitId:", editingVisitId);
 
@@ -2113,7 +2123,7 @@ transition-colors
       </div>
 
       {isHmo && cid && (
-        <div className="mb-5">
+        <div className="mb-5 space-y-3">
           <HMOVerificationCard
             patientId={patient.id}
             clinicId={cid}
@@ -2131,6 +2141,26 @@ transition-colors
               hmo_verification_notes: next.notes,
             } as any) : p)}
           />
+          {canViewFinancials && (
+            <div className="medical-card border border-primary/15 p-4 rounded-2xl">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <p className="text-sm font-semibold">Out-of-pocket payment</p>
+                  <p className="text-xs text-muted-foreground">Patient contribution is tracked separately from HMO requests and claims.</p>
+                </div>
+                <span className={`text-xs font-semibold rounded-full px-2.5 py-1 ${hmoOutOfPocketRequired <= 0 ? "bg-muted text-muted-foreground" : hmoOutOfPocketDue <= 0 ? "bg-green-100 text-green-700" : hmoOutOfPocket > 0 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                  {hmoOutOfPocketRequired <= 0 ? "Not required" : hmoOutOfPocketDue <= 0 ? "Paid" : hmoOutOfPocket > 0 ? "Part-paid" : "Not paid"}
+                </span>
+              </div>
+              {hmoOutOfPocketRequired > 0 && (
+                <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                  <div><span className="text-muted-foreground">Required</span><p className="font-semibold">₦{hmoOutOfPocketRequired.toLocaleString()}</p></div>
+                  <div><span className="text-muted-foreground">Paid</span><p className="font-semibold">₦{hmoOutOfPocket.toLocaleString()}</p></div>
+                  <div><span className="text-muted-foreground">Balance</span><p className="font-semibold">₦{hmoOutOfPocketDue.toLocaleString()}</p></div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
