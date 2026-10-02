@@ -103,6 +103,11 @@ export default function Outreach() {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [recipientPage, setRecipientPage] = useState(0);
   const [recipientCounts, setRecipientCounts] = useState({ total: 0, sent: 0, ready: 0, skipped: 0, invalid: 0 });
+  const [recipientSearch, setRecipientSearch] = useState("");
+  const [selectedRecipientIds, setSelectedRecipientIds] = useState<string[]>([]);
+  const [showNewLead, setShowNewLead] = useState(false);
+  const [newLeadSaving, setNewLeadSaving] = useState(false);
+  const [newLead, setNewLead] = useState({ fullName: "", phone: "", notes: "", campaignId: "" });
   const OUTREACH_RECIPIENT_PAGE_SIZE = 500;
   const [leads, setLeads] = useState<Lead[]>([]);
   const [tab, setTab] = useState<"campaign" | "leads">("campaign");
@@ -655,6 +660,62 @@ export default function Outreach() {
     }
   };
 
+  const visibleQueueRecipients = useMemo(() => {
+    const q = recipientSearch.trim().toLowerCase();
+    const base = q
+      ? recipients.filter(r => [r.full_name || "", r.phone, r.normalized_phone].some(v => v.toLowerCase().includes(q)))
+      : recipients;
+    return base.slice(0, 300);
+  }, [recipients, recipientSearch]);
+
+  const removableRecipients = visibleQueueRecipients.filter(r => r.status === "ready" || r.status === "opened");
+  const allVisibleRemovableSelected = removableRecipients.length > 0 &&
+    removableRecipients.every(r => selectedRecipientIds.includes(r.id));
+
+  const toggleRecipientSelection = (id: string) => {
+    setSelectedRecipientIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const toggleAllVisibleRecipients = () => {
+    const ids = removableRecipients.map(r => r.id);
+    if (!ids.length) return;
+    setSelectedRecipientIds(prev => allVisibleRemovableSelected
+      ? prev.filter(id => !ids.includes(id))
+      : [...new Set([...prev, ...ids])]
+    );
+  };
+
+  const removeSelectedRecipientsFromQueue = async () => {
+    if (!selected || !selectedRecipientIds.length) return;
+    const ids = selectedRecipientIds.filter(id => recipients.some(r => r.id === id && (r.status === "ready" || r.status === "opened")));
+    if (!ids.length) return;
+
+    const message = ids.length === 1
+      ? "Remove this person from the campaign sending queue? Their campaign record will be kept as skipped."
+      : "Remove the selected people from the campaign sending queue? Their campaign records will be kept as skipped.";
+    if (!window.confirm(message)) return;
+
+    const { error } = await apiClient
+      .from("outreach_recipients")
+      .update({ status: "skipped" })
+      .eq("campaign_id", selected.id)
+      .in("id", ids)
+      .in("status", ["ready", "opened"]);
+    if (error) {
+      window.alert(error.message);
+      return;
+    }
+
+    setRecipients(prev => prev.map(r => ids.includes(r.id) ? { ...r, status: "skipped" } : r));
+    setSelectedRecipientIds([]);
+    const next = recipients.find(r => !ids.includes(r.id) && r.status === "ready");
+    if (currentRecipientId && ids.includes(currentRecipientId)) {
+      setCurrentRecipientId(next?.id || null);
+      if (!next) setSendMode(false);
+    }
+    await maybeCompleteCampaign(selected.id);
+  };
+
   const pauseCampaign = async () => {
     if (!selected || selected.status === "completed" || selected.status === "archived") return;
     const nextStatus = selected.status === "paused" ? "active" : "paused";
@@ -662,6 +723,71 @@ export default function Outreach() {
     if (error) return;
     setSelected({ ...selected, status: nextStatus });
     setCampaigns(prev => prev.map(c => c.id === selected.id ? { ...c, status: nextStatus } : c));
+  };
+
+  const createStandaloneLead = async () => {
+    if (!effectiveClinicId || newLeadSaving) return;
+    const fullName = newLead.fullName.trim();
+    const normalized = normalizeWhatsAppNumber(newLead.phone);
+    if (!fullName) { window.alert("Enter the lead's full name."); return; }
+    if (!normalized) { window.alert("Enter a valid phone number."); return; }
+
+    setNewLeadSaving(true);
+    try {
+      const phone = "+" + normalized;
+      const { data: existing, error: existingError } = await apiClient
+        .from("outreach_leads")
+        .select("id,full_name,phone,normalized_phone,status,campaign_id,next_follow_up_at,notes,patient_id,converted_at")
+        .eq("clinic_id", effectiveClinicId)
+        .eq("normalized_phone", normalized)
+        .limit(1)
+        .maybeSingle();
+      if (existingError) throw existingError;
+      if (existing?.id) {
+        window.alert("A lead with this phone number already exists.");
+        setLeads(prev => prev.some(l => l.id === existing.id) ? prev : [existing as Lead, ...prev]);
+        setShowNewLead(false);
+        return;
+      }
+
+      const { data: patient } = await apiClient
+        .from("patients")
+        .select("id,full_name,phone")
+        .eq("clinic_id", effectiveClinicId)
+        .eq("phone", phone)
+        .limit(1)
+        .maybeSingle();
+
+      if (patient?.id) {
+        window.alert("This phone number already belongs to a patient. Use the patient record or Book appointment instead of creating a separate lead.");
+        return;
+      }
+
+      const { data, error } = await apiClient.from("outreach_leads").insert({
+        clinic_id: effectiveClinicId,
+        contact_id: null,
+        patient_id: null,
+        full_name: fullName,
+        phone: newLead.phone.trim(),
+        normalized_phone: normalized,
+        campaign_id: newLead.campaignId || null,
+        created_by: (await apiClient.auth.getUser()).data.user?.id ?? null,
+        status: "new",
+        notes: newLead.notes.trim() || null,
+      }).select("id,full_name,phone,normalized_phone,status,campaign_id,next_follow_up_at,notes,patient_id,converted_at").single();
+
+      if (error || !data) throw error || new Error("The lead could not be created.");
+      setLeads(prev => [data as Lead, ...prev]);
+      setLeadFilter("all");
+      setTab("leads");
+      setShowNewLead(false);
+      setNewLead({ fullName: "", phone: "", notes: "", campaignId: "" });
+    } catch (e) {
+      console.error("Failed to create standalone lead", e);
+      window.alert(e instanceof Error ? e.message : "The lead could not be created.");
+    } finally {
+      setNewLeadSaving(false);
+    }
   };
 
   const createLead = async (r: Recipient) => {
@@ -1114,7 +1240,8 @@ export default function Outreach() {
         <div className="rounded-2xl border bg-card overflow-hidden">
           <div className="p-4 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-2"><Users size={18}/><div><div className="font-semibold">Lead pipeline</div><div className="text-xs text-muted-foreground">Prospects stay here until they actually become patients.</div></div></div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
+              <Button size="sm" variant="outline" onClick={() => { setNewLead({ fullName: "", phone: "", notes: "", campaignId: selected?.id || "" }); setShowNewLead(true); }}><UserPlus className="w-4 h-4 mr-1.5"/> New lead</Button>
               {([["all","All"],["appointments","Appointments"],["converted","Converted"]] as const).map(([value,label]) => (
                 <button key={value} type="button" onClick={() => setLeadFilter(value)} className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${leadFilter === value ? "bg-primary/10 border-primary/30 text-primary" : "bg-background hover:bg-muted"}`}>{label}</button>
               ))}
@@ -1235,10 +1362,33 @@ export default function Outreach() {
               )}
 
               <div className="rounded-2xl border bg-card overflow-hidden">
-                <div className="p-4 border-b flex items-center gap-2"><Clock3 size={17}/><div><div className="font-semibold">Recipient queue</div><div className="text-xs text-muted-foreground">Progress is saved, so you can stop and continue later.</div></div></div>
-                <div className="max-h-[420px] overflow-auto divide-y" data-oc-scroll>{recipients.slice(0, 300).map(r => <div key={r.id} className={"p-3 flex items-center gap-3 " + (current?.id === r.id ? "bg-primary/5" : "")}><div className="flex-1 min-w-0"><div className="text-sm font-medium truncate">{r.full_name || "Unnamed contact"}</div><div className="text-xs text-muted-foreground">{r.phone}</div></div><span className="text-xs capitalize">{r.status}</span>{r.status === "sent" && <CheckCircle2 size={16} className="text-success"/>}{(r.status === "ready" || r.status === "opened" || r.status === "sent" || r.status === "skipped") && <button className="text-xs text-primary" onClick={() => setCurrentRecipientId(r.id)}>Select</button>}{r.contact_id && <button className="text-xs text-primary" onClick={() => void createLead(r)}>{leads.some(l => l.phone === r.phone || l.normalized_phone === r.normalized_phone) ? "Open lead" : "Create lead"}</button>}
-              <button className="text-xs font-medium text-primary" onClick={() => void openRecipientBooking(r)}>Book appointment</button></div>)}</div>
-              </div>
+                <div className="p-4 border-b space-y-3">
+                  <div className="flex items-center gap-2"><Clock3 size={17}/><div className="flex-1"><div className="font-semibold">Recipient queue</div><div className="text-xs text-muted-foreground">Search by name or number. Select one or all visible people to remove them from the sending queue.</div></div></div>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Input value={recipientSearch} onChange={e => setRecipientSearch(e.target.value)} placeholder="Search name or phone number…" className="h-9" />
+                    <div className="flex gap-2 shrink-0">
+                      <Button size="sm" variant="outline" onClick={toggleAllVisibleRecipients} disabled={!removableRecipients.length}>{allVisibleRemovableSelected ? "Clear selection" : "Select all"}</Button>
+                      {selectedRecipientIds.length > 0 && <Button size="sm" variant="outline" onClick={() => void removeSelectedRecipientsFromQueue()} className="text-destructive">Remove ({selectedRecipientIds.length}) from queue</Button>}
+                    </div>
+                  </div>
+                  {recipientSearch.trim() && <div className="text-xs text-muted-foreground">{visibleQueueRecipients.length} matching recipient{visibleQueueRecipients.length === 1 ? "" : "s"} shown.</div>}
+                </div>
+                <div className="max-h-[420px] overflow-auto divide-y" data-oc-scroll>
+                  {visibleQueueRecipients.length === 0 ? (
+                    <div className="p-8 text-center text-sm text-muted-foreground">No recipients match that name or number.</div>
+                  ) : visibleQueueRecipients.map(r => {
+                    const removable = r.status === "ready" || r.status === "opened";
+                    return <div key={r.id} className={"p-3 flex items-center gap-3 " + (current?.id === r.id ? "bg-primary/5" : "")}>
+                      <input type="checkbox" checked={selectedRecipientIds.includes(r.id)} disabled={!removable} onChange={() => toggleRecipientSelection(r.id)} aria-label={"Select " + (r.full_name || r.phone)} />
+                      <div className="flex-1 min-w-0"><div className="text-sm font-medium truncate">{r.full_name || "Unnamed contact"}</div><div className="text-xs text-muted-foreground">{r.phone}</div></div>
+                      <span className="text-xs capitalize">{r.status}</span>
+                      {r.status === "sent" && <CheckCircle2 size={16} className="text-success"/>}
+                      {(r.status === "ready" || r.status === "opened" || r.status === "sent" || r.status === "skipped") && <button className="text-xs text-primary" onClick={() => setCurrentRecipientId(r.id)}>Select</button>}
+                      <button className="text-xs text-primary" onClick={() => void createLead(r)}>{leads.some(l => l.phone === r.phone || l.normalized_phone === r.normalized_phone) ? "Open lead" : "Create lead"}</button>
+                      <button className="text-xs font-medium text-primary" onClick={() => void openRecipientBooking(r)}>Book appointment</button>
+                    </div>;
+                  })}
+                </div>              </div>
             </>
             }
           </div>
@@ -1393,6 +1543,35 @@ export default function Outreach() {
               <Button onClick={() => void bookLeadAppointment()} disabled={bookingSaving || !bookingDate || !bookingTime}>
                 {bookingSaving ? "Booking..." : "Confirm appointment"}
               </Button>
+            </div>
+          </div>
+        </div>
+      </div>}
+
+      {showNewLead && <div className="fixed inset-0 z-[56] bg-black/50 flex items-center justify-center p-4">
+        <div className="w-full max-w-lg rounded-2xl bg-card border shadow-2xl p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-primary"><UserPlus size={19}/><span className="text-sm font-semibold">New lead</span></div>
+              <h2 className="text-xl font-bold mt-1">Create an enquiry</h2>
+              <p className="text-sm text-muted-foreground mt-1">A lead does not need to belong to a campaign.</p>
+            </div>
+            <button onClick={() => setShowNewLead(false)} className="text-muted-foreground">✕</button>
+          </div>
+          <div className="grid gap-3 mt-5">
+            <div><label className="text-sm font-medium">Full name</label><Input className="mt-1" value={newLead.fullName} onChange={e => setNewLead(v => ({ ...v, fullName: e.target.value }))} placeholder="Name" autoFocus /></div>
+            <div><label className="text-sm font-medium">Phone number</label><Input className="mt-1" value={newLead.phone} onChange={e => setNewLead(v => ({ ...v, phone: e.target.value }))} placeholder="0803… or +234…" inputMode="tel" /></div>
+            <div><label className="text-sm font-medium">Notes <span className="text-muted-foreground font-normal">(optional)</span></label><Textarea rows={3} value={newLead.notes} onChange={e => setNewLead(v => ({ ...v, notes: e.target.value }))} placeholder="How did they enquire? What are they interested in?" /></div>
+            <div><label className="text-sm font-medium">Campaign <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <select value={newLead.campaignId} onChange={e => setNewLead(v => ({ ...v, campaignId: e.target.value }))} className="w-full h-10 rounded-md border bg-background px-3 text-sm mt-1">
+                <option value="">No campaign — standalone lead</option>
+                {campaigns.filter(c => c.status !== "archived").map(c => <option key={c.id} value={c.id}>{c.name}{c.campaign_date ? " · " + c.campaign_date : ""}</option>)}
+              </select>
+            </div>
+            <div className="rounded-xl bg-muted/50 p-3 text-xs text-muted-foreground">This creates the lead without requiring a campaign recipient. You can book an appointment later, follow up, or convert the lead when appropriate.</div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowNewLead(false)} disabled={newLeadSaving}>Cancel</Button>
+              <Button onClick={() => void createStandaloneLead()} disabled={newLeadSaving}>{newLeadSaving ? "Creating…" : "Create lead"}</Button>
             </div>
           </div>
         </div>
