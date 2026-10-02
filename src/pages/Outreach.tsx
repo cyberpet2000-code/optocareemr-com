@@ -654,7 +654,7 @@ export default function Outreach() {
   };
 
   const createLead = async (r: Recipient) => {
-    if (!effectiveClinicId || !selected || !r.contact_id || r.patient_id) return;
+    if (!effectiveClinicId || !selected || r.patient_id) return;
     const { data: existing } = await apiClient.from("outreach_leads").select("*").eq("clinic_id", effectiveClinicId).eq("normalized_phone", r.normalized_phone).limit(1).maybeSingle();
     if (existing?.id) {
       const { data: clinicCampaigns } = await apiClient.from("outreach_campaigns").select("id").eq("clinic_id", effectiveClinicId);
@@ -672,7 +672,7 @@ export default function Outreach() {
     }
     const { data } = await apiClient.from("outreach_leads").insert({
       clinic_id: effectiveClinicId,
-      contact_id: r.contact_id,
+      contact_id: r.contact_id || null,
       patient_id: null,
       full_name: r.full_name,
       phone: r.phone,
@@ -735,7 +735,7 @@ export default function Outreach() {
       lead = (data as Lead | null) || null;
     }
 
-    if (!lead && r.contact_id) {
+    if (!lead) {
       await createLead(r);
       const { data } = await apiClient
         .from("outreach_leads")
@@ -1109,7 +1109,7 @@ export default function Outreach() {
               <div className="rounded-2xl border bg-card overflow-hidden">
                 <div className="p-4 border-b flex items-center gap-2"><Clock3 size={17}/><div><div className="font-semibold">Recipient queue</div><div className="text-xs text-muted-foreground">Progress is saved, so you can stop and continue later.</div></div></div>
                 <div className="max-h-[420px] overflow-auto divide-y" data-oc-scroll>{recipients.slice(0, 300).map(r => <div key={r.id} className={"p-3 flex items-center gap-3 " + (current?.id === r.id ? "bg-primary/5" : "")}><div className="flex-1 min-w-0"><div className="text-sm font-medium truncate">{r.full_name || "Unnamed contact"}</div><div className="text-xs text-muted-foreground">{r.phone}</div></div><span className="text-xs capitalize">{r.status}</span>{r.status === "sent" && <CheckCircle2 size={16} className="text-success"/>}{(r.status === "ready" || r.status === "opened" || r.status === "sent" || r.status === "skipped") && <button className="text-xs text-primary" onClick={() => setCurrentRecipientId(r.id)}>Select</button>}{r.contact_id && <button className="text-xs text-primary" onClick={() => void createLead(r)}>{leads.some(l => l.phone === r.phone || l.normalized_phone === r.normalized_phone) ? "Open lead" : "Create lead"}</button>}
-              {(r.contact_id || r.patient_id || r.lead_id) && <button className="text-xs font-medium text-primary" onClick={() => void openRecipientBooking(r)}>Book appointment</button>}</div>)}</div>
+              <button className="text-xs font-medium text-primary" onClick={() => void openRecipientBooking(r)}>Book appointment</button></div>)}</div>
               </div>
             </>
             }
