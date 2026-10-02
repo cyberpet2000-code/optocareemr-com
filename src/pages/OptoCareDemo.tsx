@@ -125,6 +125,25 @@ export default function OptoCareDemo() {
     [query],
   );
 
+  const shareDemoUrl = typeof window !== "undefined" ? window.location.origin + "/demo" : "/demo";
+
+  const emailDemo = () => {
+    const subject = encodeURIComponent("OptoCare-EMR Interactive Demo");
+    const body = encodeURIComponent(
+      "Hello,\n\nHere is the OptoCare-EMR interactive demo:\n" + shareDemoUrl +
+      "\n\nThe demo uses fictional data and does not connect to production clinic records or payments.\n"
+    );
+    window.location.href = "mailto:?subject=" + subject + "&body=" + body;
+    trackGoogleGrowthEvent("demo_email_share", { placement: "demo_header" });
+  };
+
+  const copyDemoLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareDemoUrl);
+      trackGoogleGrowthEvent("demo_link_copy", { placement: "demo_header" });
+    } catch {}
+  };
+
   const go = (next: DemoView) => {
     setView(next);
     setMobileNavOpen(false);
@@ -153,6 +172,12 @@ export default function OptoCareDemo() {
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#C8DFEC] text-xs font-semibold text-[#155D80]">DK</div>
             <div className="hidden leading-tight lg:block"><div className="text-xs font-medium">Dr. Kalu</div><div className="text-[10px] text-slate-400">Doctor</div></div>
           </div>
+          <Button variant="outline" size="sm" className="hidden gap-1.5 border-[#155D80]/30 text-[#155D80] sm:inline-flex" onClick={emailDemo}>
+            <Mail className="h-3.5 w-3.5" /> Email demo
+          </Button>
+          <Button variant="ghost" size="icon" aria-label="Copy demo link" title="Copy demo link" onClick={copyDemoLink}>
+            <Copy className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" aria-label="Demo logout"><LogOut className="h-4 w-4" /></Button>
         </div>
         <div className="border-t border-slate-200 bg-emerald-50/70 px-3 py-1 sm:px-6">
