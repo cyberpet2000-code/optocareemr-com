@@ -60,7 +60,24 @@ async function updateSubscriptionFromEvent(event) {
       ? (() => { try { return JSON.parse(data.metadata); } catch { return {}; } })()
       : (data.metadata && typeof data.metadata === "object" ? data.metadata : {});
 
-  const clinicId = metadata?.clinic_id;
+  let clinicId = metadata?.clinic_id || null;
+  const customerCode = data.customer?.customer_code || null;
+
+  if (!clinicId && customerCode) {
+    const lookup = await fetch(
+      `${url}/rest/v1/clinic_subscriptions?select=clinic_id&paystack_customer_id=eq.${encodeURIComponent(customerCode)}&limit=1`,
+      {
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          Accept: "application/json",
+        },
+      },
+    );
+    const rows = await lookup.json().catch(() => []);
+    clinicId = Array.isArray(rows) ? rows[0]?.clinic_id || null : null;
+  }
+
   if (!clinicId) return;
 
   const plan =
