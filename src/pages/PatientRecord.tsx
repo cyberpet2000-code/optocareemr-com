@@ -268,10 +268,51 @@ const canViewFinancials =
   const [showAppointmentBooking, setShowAppointmentBooking] = useState(false);
   const [savingAppointment, setSavingAppointment] = useState(false);
   const [patientRecall, setPatientRecall] = useState<any | null>(null);
+  const [recallNow, setRecallNow] = useState(() => Date.now());
   const [showRecallPanel, setShowRecallPanel] = useState(false);
   const [recallIntervalMonths, setRecallIntervalMonths] = useState(18);
   const [recallEvent, setRecallEvent] = useState<"new_prescription" | "previous_prescription_reused" | "follow_up" | "none">("new_prescription");
   const [recallAction, setRecallAction] = useState<"reset" | "preserve" | "none">("reset");
+
+  useEffect(() => {
+    if (!patientRecall?.status || patientRecall.status !== "active") return;
+    const timer = window.setInterval(() => setRecallNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, [patientRecall?.status, patientRecall?.due_date]);
+
+  const getRecallCountdown = (dueDate?: string | null) => {
+    if (!dueDate) return "Recall date not set";
+    const due = new Date(dueDate + "T00:00:00");
+    const today = new Date(recallNow);
+    today.setHours(0, 0, 0, 0);
+    const dueDay = new Date(due);
+    dueDay.setHours(0, 0, 0, 0);
+    const days = Math.round((dueDay.getTime() - today.getTime()) / 86400000);
+    if (days > 30) {
+      const months = Math.floor(days / 30);
+      const remainder = days % 30;
+      return remainder ? `Due in ~${months} month${months === 1 ? "" : "s"} ${remainder} day${remainder === 1 ? "" : "s"}` : `Due in ${months} month${months === 1 ? "" : "s"}`;
+    }
+    if (days > 1) return `Due in ${days} days`;
+    if (days === 1) return "Due tomorrow";
+    if (days === 0) return "Due today";
+    return `Overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"}`;
+  };
+
+  const getRecallElapsed = (visitId?: string | null) => {
+    if (!visitId) return null;
+    const visit = visits.find((entry: any) => entry.id === visitId);
+    const dispensedAt = visit?.optical_dispensed_at;
+    if (!dispensedAt) return null;
+    const start = new Date(dispensedAt);
+    const current = new Date(recallNow);
+    const days = Math.max(0, Math.floor((current.getTime() - start.getTime()) / 86400000));
+    if (days < 1) return "Dispensed today";
+    if (days < 30) return `${days} day${days === 1 ? "" : "s"} since dispensing`;
+    const months = Math.floor(days / 30);
+    const remainder = days % 30;
+    return remainder ? `${months} month${months === 1 ? "" : "s"} ${remainder} day${remainder === 1 ? "" : "s"} since dispensing` : `${months} month${months === 1 ? "" : "s"} since dispensing`;
+  };
   const [appointmentCreated, setAppointmentCreated] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editingVisitId, setEditingVisitId] =
@@ -3216,16 +3257,15 @@ shadow-sm
   <Gauge size={14} />
   IOP
 </div>
-      {" "}
-      {v.tonometer_type ? `${v.tonometer_type}: ` : ""}
-      OD {v.iop_od || "—"} mmHg
-      {" | "}
-      OS {v.iop_os || "—"} mmHg
-      {v.iop_time ? (
-        <span className="ml-2 text-xs font-normal text-muted-foreground">
-          · Tonometer time {String(v.iop_time).slice(0, 5)}
-        </span>
-      ) : null}
+      <span className="ml-2 text-xs font-normal text-muted-foreground">
+        {v.tonometer_type || "Instrument not recorded"}
+      </span>
+      <span className="ml-2 inline-flex items-center rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
+        {v.iop_time ? `Time ${String(v.iop_time).slice(0, 5)}` : "Time not recorded"}
+      </span>
+      <span className="ml-2 font-medium">OD {v.iop_od || "—"} mmHg</span>
+      <span className="mx-1">|</span>
+      <span className="font-medium">OS {v.iop_os || "—"} mmHg</span>
     </p>
   )}
 
@@ -3933,11 +3973,9 @@ shadow-sm
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span className="font-semibold">{patientRecall.recall_interval_months} months</span>
               <span className="text-muted-foreground">•</span>
-              <span>
-                Due {patientRecall.due_date
-                  ? new Date(patientRecall.due_date + "T00:00:00").toLocaleDateString("en-GB")
-                  : "—"}
-              </span>
+              <span className="font-semibold text-primary">{getRecallCountdown(patientRecall.due_date)}</span>
+              <span className="text-muted-foreground">•</span>
+              <span>{getRecallElapsed(patientRecall.source_visit_id) || "Waiting for optical dispensing"}</span>
               <span className="capitalize text-muted-foreground">
                 • {String(patientRecall.contact_status || "pending").replace(/_/g, " ")}
               </span>
@@ -3950,7 +3988,8 @@ shadow-sm
             {patientRecall?.status === "active" && (
               <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
                 <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Interval</span><div className="font-semibold mt-0.5">{patientRecall.recall_interval_months} months</div></div>
-                <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Due</span><div className="font-semibold mt-0.5">{patientRecall.due_date ? new Date(patientRecall.due_date + "T00:00:00").toLocaleDateString("en-GB") : "—"}</div></div>
+                <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Countdown</span><div className="font-semibold mt-0.5 text-primary">{getRecallCountdown(patientRecall.due_date)}</div></div>
+                <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Dispensing clock</span><div className="font-semibold mt-0.5">{getRecallElapsed(patientRecall.source_visit_id) || "Not dispensed"}</div></div>
                 <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Status</span><div className="font-semibold mt-0.5 capitalize">{patientRecall.status}</div></div>
                 <div className="rounded-xl bg-muted/40 p-2"><span className="text-muted-foreground">Contact</span><div className="font-semibold mt-0.5 capitalize">{String(patientRecall.contact_status || "pending").replace(/_/g, " ")}</div></div>
               </div>
