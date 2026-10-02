@@ -154,7 +154,11 @@ export default function Dashboard() {
       }
     };
     void loadBirthdays();
-    return () => { cancelled = true; };
+    const birthdayTimer = window.setInterval(loadBirthdays, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(birthdayTimer);
+    };
   }, [effectiveClinicId, isOffline]);
 
   const getGreeting = () => {
