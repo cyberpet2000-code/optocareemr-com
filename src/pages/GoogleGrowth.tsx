@@ -144,6 +144,17 @@ export default function GoogleGrowth() {
                   </a>
                 </Button>
               </div>
+              <div className="mt-3">
+                <Button asChild variant="outline" className="border-white/45 bg-white/5 text-white hover:bg-white/15">
+                  <Link
+                    to="/demo/login"
+                    onClick={() => trackGoogleGrowthEvent("demo_cta_click", { placement: "growth_hero" })}
+                  >
+                    Try the interactive demo
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
               <p className="mt-4 text-xs text-white/65">
                 {googleGrowthMeasurementConfigured
                   ? "Google Analytics tracking is enabled for this growth surface."
