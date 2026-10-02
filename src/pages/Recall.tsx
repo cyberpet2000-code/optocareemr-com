@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarCheck, MessageCircle, RefreshCw, Search, Phone, Clock3, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { CalendarCheck, MessageCircle, RefreshCw, Search, Phone, CheckCircle2 } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { useAccess } from "@/hooks/useAccess";
 import { useRole } from "@/hooks/useRole";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PatientWhatsAppMessages } from "@/components/PatientWhatsAppMessages";
 import { normalizeWhatsAppNumber } from "@/lib/whatsapp";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 type RecallRow = {
@@ -137,11 +138,11 @@ export default function Recall() {
       <div className="space-y-2">{filtered.map(row => {
         const st=statusLabel(row); const wa=normalizeWhatsAppNumber(row.phone);
         return <div key={row.id} className="rounded-2xl border bg-card p-4 flex flex-col md:flex-row md:items-center gap-3">
-          <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><a href={`/patient/${row.patient_id}`} className="font-semibold hover:text-primary">{row.patient_name}</a>{row.patient_number && <span className="text-[10px] font-mono bg-primary/10 text-primary rounded px-1.5 py-0.5">{row.patient_number}</span>}<span className={`text-[10px] font-semibold rounded-full px-2 py-1 ${st.tone}`}>{st.text}</span></div><div className="mt-1 text-xs text-muted-foreground flex flex-wrap gap-2"><span>Recall: {row.recall_interval_months} months</span><span>•</span><span>Due {new Date(row.due_date+"T00:00:00").toLocaleDateString("en-GB")}</span>{row.phone && <><span>•</span><span>{row.phone}</span></>}</div><div className="mt-2 text-[11px]">{row.contact_status === "message_sent" ? "WhatsApp message sent" : row.contact_status === "called" ? "Called" : row.contact_status === "appointment_booked" ? "Appointment booked" : "Not contacted"}</div></div>
+          <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><Link to={`/patient/${row.patient_id}`} className="font-semibold hover:text-primary">{row.patient_name}</Link>{row.patient_number && <span className="text-[10px] font-mono bg-primary/10 text-primary rounded px-1.5 py-0.5">{row.patient_number}</span>}<span className={`text-[10px] font-semibold rounded-full px-2 py-1 ${st.tone}`}>{st.text}</span></div><div className="mt-1 text-xs text-muted-foreground flex flex-wrap gap-2"><span>Recall: {row.recall_interval_months} months</span><span>•</span><span>Due {new Date(row.due_date+"T00:00:00").toLocaleDateString("en-GB")}</span>{row.phone && <><span>•</span><span>{row.phone}</span></>}</div><div className="mt-2 text-[11px]">{row.contact_status === "message_sent" ? "WhatsApp message sent" : row.contact_status === "called" ? "Called" : row.contact_status === "appointment_booked" ? "Appointment booked" : "Not contacted"}</div></div>
           <div className="flex items-center gap-2 flex-wrap">
             {wa && canOutreach && <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-xl border bg-green-50 text-green-700 px-3 py-2 text-xs font-semibold"><MessageCircle size={14}/>WhatsApp</a>}
             {row.phone && <a href={`tel:${row.phone}`} className="inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold"><Phone size={14}/>Call</a>}
-            {canOutreach && <PatientWhatsAppMessages clinicId={cid || ""} clinicName="Clinic" patientId={row.patient_id} patientName={row.patient_name} phone={row.phone} defaultTemplateKey="recall_first" onSent={() => markContacted(row,"message_sent")} />}
+            {canOutreach && <PatientWhatsAppMessages clinicId={cid || ""} clinicName={(window.localStorage.getItem("active_clinic_name") || "Clinic")} patientId={row.patient_id} patientName={row.patient_name} phone={row.phone} defaultTemplateKey="recall_first" onSent={() => markContacted(row,"message_sent")} />}
             {row.contact_status !== "appointment_booked" && <Button size="sm" variant="outline" className="rounded-xl" onClick={()=>void markContacted(row,"appointment_booked")}><CalendarCheck size={14} className="mr-1"/>Appointment booked</Button>}
           </div>
         </div>;
