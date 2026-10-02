@@ -184,7 +184,20 @@ export default function Appointments() {
     return () => window.removeEventListener("optocare:sync:done", onSync as EventListener);
   }, [cid, loadAppointments]);
 
-  const refreshReminderAlerts = useCallback(async () => {
+  const getReminderTimingLabel = (reminder: any) => {
+  if (!reminder?.due_at) return "";
+  const diffMs = new Date(reminder.due_at).getTime() - Date.now();
+  if (reminder.status === "sent" || reminder.sent_at) return "Sent";
+  if (diffMs <= 0) return "Due now";
+  const minutes = Math.ceil(diffMs / 60000);
+  if (minutes < 60) return `Due in ${minutes}m`;
+  const hours = Math.ceil(minutes / 60);
+  if (hours < 48) return `Due in ${hours}h`;
+  const days = Math.ceil(hours / 24);
+  return `Due in ${days}d`;
+};
+
+const refreshReminderAlerts = useCallback(async () => {
     if (!cid || isOffline || (typeof navigator !== "undefined" && !navigator.onLine)) return;
 
     await apiClient.rpc("refresh_due_appointment_reminders");
