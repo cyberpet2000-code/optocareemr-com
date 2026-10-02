@@ -67,9 +67,6 @@ export default function GoogleGrowth() {
     }
     meta.setAttribute("content", description);
 
-    trackGoogleGrowthPageView("/growth");
-
-    useEffect(() => {
     const script = document.createElement("script");
     script.type = "application/ld+json";
     script.text = JSON.stringify({
@@ -84,10 +81,11 @@ export default function GoogleGrowth() {
         "Intelligent eye care management platform for eye clinics and optometry practices.",
     });
     document.head.appendChild(script);
-    return () => script.remove();
-  }, []);
 
-  return () => {
+    trackGoogleGrowthPageView("/growth");
+
+    return () => {
+      script.remove();
       document.title = "Optocareemr";
     };
   }, []);
@@ -101,7 +99,9 @@ export default function GoogleGrowth() {
             <Button asChild variant="outline" className="border-white/60 bg-white/10 text-white hover:bg-white/20">
               <Link
                 to="/login"
-                onClick={() => trackGoogleGrowthEvent("login_cta_click", { placement: "growth_header" })}
+                onClick={() =>
+                  trackGoogleGrowthEvent("login_cta_click", { placement: "growth_header" })
+                }
               >
                 Sign in
               </Link>
@@ -122,14 +122,12 @@ export default function GoogleGrowth() {
                 optometry practices.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button
-                  asChild
-                  size="lg"
-                  className="bg-white text-[#0B3150] hover:bg-white/90"
-                >
+                <Button asChild size="lg" className="bg-white text-[#0B3150] hover:bg-white/90">
                   <Link
                     to="/signup"
-                    onClick={() => trackGoogleGrowthEvent("signup_cta_click", { placement: "growth_hero" })}
+                    onClick={() =>
+                      trackGoogleGrowthEvent("signup_cta_click", { placement: "growth_hero" })
+                    }
                   >
                     Get started
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -141,10 +139,7 @@ export default function GoogleGrowth() {
                   variant="outline"
                   className="border-white/60 bg-white/10 text-white hover:bg-white/20"
                 >
-                  <a
-                    href="#features"
-                    onClick={() => trackGoogleGrowthEvent("features_cta_click")}
-                  >
+                  <a href="#features" onClick={() => trackGoogleGrowthEvent("features_cta_click")}>
                     Explore features
                   </a>
                 </Button>
@@ -187,9 +182,11 @@ export default function GoogleGrowth() {
       <section id="features" className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
         <div className="max-w-2xl">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-700">Why OptoCare</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight">A clinic system shaped around eye care</h2>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight">
+            A clinic system shaped around eye care
+          </h2>
           <p className="mt-4 text-muted-foreground">
-            The growth site should explain the product clearly first, then give visitors a direct path
+            The growth site explains the product clearly first, then gives visitors a direct path
             into the product rather than hiding the important information behind marketing copy.
           </p>
         </div>
@@ -219,7 +216,9 @@ export default function GoogleGrowth() {
             <Button asChild className="mt-6 bg-white text-[#0B3150] hover:bg-white/90 lg:mt-0">
               <Link
                 to="/signup"
-                onClick={() => trackGoogleGrowthEvent("signup_cta_click", { placement: "growth_footer" })}
+                onClick={() =>
+                  trackGoogleGrowthEvent("signup_cta_click", { placement: "growth_footer" })
+                }
               >
                 Create an account
                 <ArrowRight className="ml-2 h-4 w-4" />
