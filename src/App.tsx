@@ -9,7 +9,7 @@ import { useRole } from "@/hooks/useRole";
 import { useAccessAuth, useAccessClinic, useAccessRole, AccessProvider } from "@/hooks/useAccess";
 import AppLayout from "@/components/AppLayout";
 import { ACCESS_TIMEOUT_MS, resolveDefaultRoute, resolveProtectedRoute } from "@/lib/route-access";
-const Dashboard = lazy(() => import("./pages/Dashboard"));\nconst OptoCareDemo = lazy(() => import("./pages/OptoCareDemo"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));\nconst OptoCareDemo = lazy(() => import("./pages/OptoCareDemo"));\nconst OptoCareDemoLogin = lazy(() => import("./pages/OptoCareDemoLogin"));
 const Visits = lazy(() => import("@/pages/Visits"));
 const PatientRegister = lazy(() => import("./pages/PatientRegister"));
 const PatientList = lazy(() => import("./pages/PatientList"));
@@ -255,7 +255,7 @@ export function AppRoutes() {
   }, [location.pathname]);
 
   const isLegalRoute = location.pathname === "/legal" || location.pathname.startsWith("/legal/");
-  const isGrowthRoute = location.pathname === "/growth";\n  const isDemoRoute = location.pathname === "/demo";
+  const isGrowthRoute = location.pathname === "/growth";\n  const isDemoRoute = location.pathname === "/demo" || location.pathname === "/demo/login";
   const isPublicRoute =
   isGrowthRoute ||\n  isDemoRoute ||
   isLegalRoute ||
@@ -274,7 +274,7 @@ export function AppRoutes() {
   return isPublicRoute ? (
     <Suspense fallback={<FullScreenLoader />}>
     <Routes>
-      <Route path="/growth" element={<PageErrorBoundary pageName="OptoCare Growth"><GoogleGrowth /></PageErrorBoundary>} />\n      <Route path="/demo" element={<PageErrorBoundary pageName="OptoCare Demo"><OptoCareDemo /></PageErrorBoundary>} />
+      <Route path="/growth" element={<PageErrorBoundary pageName="OptoCare Growth"><GoogleGrowth /></PageErrorBoundary>} />\n      <Route path="/demo/login" element={<PageErrorBoundary pageName="OptoCare Demo Login"><OptoCareDemoLogin /></PageErrorBoundary>} />\n      <Route path="/demo" element={<PageErrorBoundary pageName="OptoCare Demo"><OptoCareDemo /></PageErrorBoundary>} />
       <Route path="/login" element={<Login />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
