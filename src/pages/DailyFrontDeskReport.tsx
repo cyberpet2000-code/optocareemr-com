@@ -370,7 +370,8 @@ export default function DailyFrontDeskReport() {
       if (error) throw error;
       const updated = data as Expense;
       setExpenses(rows => rows.map(row => row.id === editingExpense.id ? updated : row));
-      closeExpenseEditor();
+      setEditingExpense(null);
+      setEditingExpenseDraft({ description: "", amount: "", payment_method: "cash", paid_to: "", remarks: "" });
       toast.success("Expenditure updated");
     } catch (e: any) {
       toast.error(await getUserFacingErrorMessage(e, "Failed to update expenditure"));
