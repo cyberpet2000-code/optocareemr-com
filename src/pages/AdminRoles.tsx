@@ -158,6 +158,18 @@ const averageRating =
       totalRatings
     : 0;
 
+  const staffRatingMap = new Map<string, { average: number; count: number }>();
+  staffFeedback.forEach((item) => {
+    if (!item.staff_id) return;
+    const current = staffRatingMap.get(item.staff_id) || { average: 0, count: 0 };
+    current.average += Number(item.rating || 0);
+    current.count += 1;
+    staffRatingMap.set(item.staff_id, current);
+  });
+  staffRatingMap.forEach((value) => {
+    value.average = value.count > 0 ? value.average / value.count : 0;
+  });
+
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!effectiveClinicId) { toast.error("No active clinic"); return; }
@@ -304,7 +316,16 @@ const averageRating =
             {staff.map(row => (
               <div key={row.id} className="medical-card p-3 flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{row.full_name || "Unnamed"}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold truncate">{row.full_name || "Unnamed"}</p>
+                    {staffRatingMap.has(row.id) && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                        <Star size={11} className="fill-current" />
+                        {staffRatingMap.get(row.id)!.average.toFixed(1)}/5
+                        <span className="font-normal">({staffRatingMap.get(row.id)!.count})</span>
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px] text-muted-foreground">
                     {row.is_active ? (
                       <span className="text-success">Active</span>
