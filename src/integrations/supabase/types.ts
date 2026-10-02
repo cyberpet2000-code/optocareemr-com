@@ -4242,7 +4242,14 @@ export type Database = {
         Args: { p_clinic_id: string }
         Returns: number
       }
-      get_daily_front_desk_report_data: {\n        Args: { p_clinic_id: string; p_report_date: string }\n        Returns: { [key: string]: any }[]\n      }\n      get_daily_front_desk_financials: {\n        Args: { p_clinic_id: string; p_report_date: string }\n        Returns: { [key: string]: any }[]\n      }\n      open_daily_front_desk_report: {\n        Args: { p_clinic_id: string; p_report_date: string }\n        Returns: { [key: string]: any }[]\n      }\n      save_daily_front_desk_report: {\n        Args: { p_report_id: string; p_report_date: string; p_opening_cash?: number; p_report_notes?: string }\n        Returns: { [key: string]: any }[]\n      }\n      save_daily_front_desk_report_item: {\n        Args: { [key: string]: any }\n        Returns: { [key: string]: any }[]\n      }\n      save_daily_front_desk_activity: {\n        Args: { [key: string]: any }\n        Returns: { [key: string]: any }[]\n      }\n      save_daily_front_desk_expense: {\n        Args: { [key: string]: any }\n        Returns: { [key: string]: any }[]\n      }\n      submit_daily_front_desk_report: {\n        Args: { p_report_id: string }\n        Returns: { [key: string]: any }[]\n      }\n      mark_daily_front_desk_report_emailed: {\n        Args: { p_report_id: string }\n        Returns: { [key: string]: any }[]\n      }\n      get_admin_staff_feedback_ratings: {
+      get_daily_front_desk_report_data: {\n        Args: { p_clinic_id: string; p_report_date: string }\n        Returns: { [key: string]: any }[]\n      }\n      get_daily_front_desk_financials: {\n        Args: { p_clinic_id: string; p_report_date: string }\n        Returns: { [key: string]: any }[]\n      }\n      open_daily_front_desk_report: {\n        Args: { p_clinic_id: string; p_report_date: string }\n        Returns: { [key: string]: any }[]\n      }\n      save_daily_front_desk_report: {\n        Args: { p_report_id: string; p_report_date: string; p_opening_cash?: number; p_report_notes?: string }\n        Returns: { [key: string]: any }[]\n      }\n      save_daily_front_desk_report_item: {\n        Args: { [key: string]: any }\n        Returns: { [key: string]: any }[]\n      }\n      save_daily_front_desk_activity: {\n        Args: { [key: string]: any }\n        Returns: { [key: string]: any }[]\n      }\n      save_daily_front_desk_expense: {\n        Args: { [key: string]: any }\n        Returns: { [key: string]: any }[]\n      }\n      submit_daily_front_desk_report: {\n        Args: { p_report_id: string }\n        Returns: { [key: string]: any }[]\n      }\n      mark_daily_front_desk_report_emailed: {\n        Args: { p_report_id: string }\n        Returns: { [key: string]: any }[]\n      }\n      get_own_staff_feedback_rating: {
+        Args: { p_clinic_id: string }
+        Returns: {
+          rating: number
+          rating_count: number
+        }[]
+      }
+      get_admin_staff_feedback_ratings: {
         Args: { p_clinic_id: string }
         Returns: {
           anything_else: string
