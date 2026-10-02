@@ -3186,6 +3186,11 @@ shadow-sm
       OD {v.iop_od || "—"} mmHg
       {" | "}
       OS {v.iop_os || "—"} mmHg
+      {v.iop_time ? (
+        <span className="ml-2 text-xs font-normal text-muted-foreground">
+          · Tonometer time {String(v.iop_time).slice(0, 5)}
+        </span>
+      ) : null}
     </p>
   )}
 
