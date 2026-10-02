@@ -1435,6 +1435,11 @@ if (
       return;
     }
 
+    if (role !== "doctor" && role !== "admin" && role !== "super_admin" && !isReceptionist) {
+      toast.error("You are not authorized to dispense items.");
+      return;
+    }
+
     try {
       const { data, error } = await apiClient.rpc(
         "mark_visit_item_dispensed",
