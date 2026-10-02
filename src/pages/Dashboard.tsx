@@ -203,122 +203,22 @@ export default function Dashboard() {
     let cancelled = false;
 
     const loadOwnStaffRating = async () => {
-      if (!effectiveClinicId || !user?.id || roleLoading) {
-        if (!effectiveClinicId || !user?.id) {
-          setStaffRating(null);
-          setStaffRatingCount(0);
-        }
-        return;
-      }
-
-      if (isAdmin || isSuperAdmin) {
+      if (!effectiveClinicId || !user?.id) return;
+      const { data, error } = await apiClient.rpc("get_own_staff_feedback_rating", {
+        p_clinic_id: effectiveClinicId,
+      });
+      if (cancelled) return;
+      if (error) {
+        console.error("Failed to load staff rating:", error);
         setStaffRating(null);
         setStaffRatingCount(0);
         return;
       }
-
-      if (isDoctor) {
-        const { data: visitRows, error: visitError } = await apiClient
-          .from("visits")
-          .select("id")
-          .eq("clinic_id", effectiveClinicId)
-          .eq("doctor_id", user.id);
-
-        if (cancelled) return;
-
-        if (visitError) {
-          console.error("Failed to load doctor visits for rating:", visitError);
-          setStaffRating(null);
-          setStaffRatingCount(0);
-          return;
-        }
-
-        const visitIds = (visitRows || []).map((row: any) => row.id);
-        if (!visitIds.length) {
-          setStaffRating(null);
-          setStaffRatingCount(0);
-          return;
-        }
-
-        const { data: ratingsData, error: ratingError } = await apiClient
-          .from("feedback_responses")
-          .select("doctor_professionalism_rating")
-          .eq("clinic_id", effectiveClinicId)
-          .in("visit_id", visitIds)
-          .not("doctor_professionalism_rating", "is", null);
-
-        if (cancelled) return;
-
-        if (ratingError) {
-          console.error("Failed to load doctor ratings:", ratingError);
-          setStaffRating(null);
-          setStaffRatingCount(0);
-          return;
-        }
-
-        const ratings = (ratingsData || [])
-          .map((row: any) => Number(row.doctor_professionalism_rating))
-          .filter((rating: number) => Number.isFinite(rating));
-
-        setStaffRatingCount(ratings.length);
-        setStaffRating(
-          ratings.length
-            ? Number((ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length).toFixed(1))
-            : null
-        );
-        return;
-      }
-
-      if (isReceptionist) {
-        const { data: visitRows, error: visitError } = await apiClient
-          .from("visits")
-          .select("id")
-          .eq("clinic_id", effectiveClinicId)
-          .eq("registered_by", user.id);
-
-        if (cancelled) return;
-
-        if (visitError) {
-          console.error("Failed to load receptionist visits for rating:", visitError);
-          setStaffRating(null);
-          setStaffRatingCount(0);
-          return;
-        }
-
-        const visitIds = (visitRows || []).map((row: any) => row.id);
-        if (!visitIds.length) {
-          setStaffRating(null);
-          setStaffRatingCount(0);
-          return;
-        }
-
-        const { data: ratingsData, error: ratingError } = await apiClient
-          .from("feedback_responses")
-          .select("front_desk_rating")
-          .eq("clinic_id", effectiveClinicId)
-          .in("visit_id", visitIds)
-          .not("front_desk_rating", "is", null);
-
-        if (cancelled) return;
-
-        if (ratingError) {
-          console.error("Failed to load receptionist rating:", ratingError);
-          setStaffRating(null);
-          setStaffRatingCount(0);
-          return;
-        }
-
-        const ratings = (ratingsData || [])
-          .map((row: any) => Number(row.front_desk_rating))
-          .filter((rating: number) => Number.isFinite(rating));
-
-        setStaffRatingCount(ratings.length);
-        setStaffRating(
-          ratings.length
-            ? Number((ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length).toFixed(1))
-            : null
-        );
-      }
+      const row = Array.isArray(data) ? data[0] : data;
+      const count = Number(row?.rating_count || 0);
+      const rating = row?.rating == null ? null : Number(row.rating);
+      setStaffRatingCount(Number.isFinite(count) ? count : 0);
+      setStaffRating(Number.isFinite(rating as number) ? rating : null);
     };
 
     void loadOwnStaffRating();
