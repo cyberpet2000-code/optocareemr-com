@@ -27,6 +27,20 @@ export default async function handler(req, res) {
   }
 
   const secret = process.env.PAYSTACK_SECRET_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL || `https://${process.env.VITE_SUPABASE_PROJECT_ID || "avogfzqizuusqzjivhqj"}.supabase.co`;
+  const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
+  const authHeader = req.headers.authorization || "";
+  if (!authHeader.startsWith("Bearer ") || !supabaseKey) {
+    return json(res, { ok: false, error: "Authentication required." }, 401);
+  }
+  try {
+    const authResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { apikey: supabaseKey, Authorization: authHeader },
+    });
+    if (!authResponse.ok) return json(res, { ok: false, error: "Invalid or expired session." }, 401);
+  } catch {
+    return json(res, { ok: false, error: "Authentication service unavailable." }, 503);
+  }
   if (!secret) {
     return json(res, {
       ok: false,
@@ -47,10 +61,7 @@ export default async function handler(req, res) {
   const email = String(body?.email || "").trim();
   const amount = Number(body?.amount);
   const plan = typeof body?.plan === "string" ? body.plan.trim() : "";
-  const callbackUrl =
-    typeof body?.callback_url === "string" && body.callback_url.trim()
-      ? body.callback_url.trim()
-      : `${process.env.APP_URL || ""}/paystack/callback`;
+  const callbackUrl = `${process.env.APP_URL || ""}/paystack/callback`;
 
   if (!validEmail(email)) return json(res, { ok: false, error: "A valid customer email is required." }, 400);
   if (!Number.isInteger(amount) || amount <= 0) return json(res, { ok: false, error: "Amount must be an integer in the smallest currency unit." }, 400);
