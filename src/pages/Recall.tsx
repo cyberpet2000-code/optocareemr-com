@@ -96,9 +96,11 @@ export default function Recall() {
   }, [rows, search]);
 
   const markContacted = async (row: RecallRow, status: "message_sent" | "called" | "appointment_booked") => {
-    const { error } = await apiClient.from("patient_recalls").update({
-      contact_status: status, contacted_at: new Date().toISOString(),
-    }).eq("id", row.id).eq("clinic_id", cid);
+    const { error } = await apiClient.rpc("mark_patient_recall_contacted", {
+      p_clinic_id: cid,
+      p_recall_id: row.id,
+      p_contact_status: status,
+    });
     if (error) { toast.error(error.message); return; }
     setRows(prev => prev.map(r => r.id === row.id ? { ...r, contact_status: status, contacted_at: new Date().toISOString() } : r));
   };
