@@ -193,8 +193,9 @@ export default function Appointments() {
       .select("id, appointment_id, reminder_type, due_at, scheduled_for, status, sent_at, channel")
       .eq("clinic_id", cid)
       .in("status", ["due", "pending", "sent"])
-      .gte("scheduled_for", new Date().toISOString())
-      .order("due_at", { ascending: true });
+      // Keep due reminders in the inbox. Filtering scheduled_for >= now would
+      // hide the exact reminders the front desk needs to act on.
+      .order("scheduled_for", { ascending: false });
 
     if (reminderError) {
       console.warn("Failed to load appointment reminders:", reminderError);
@@ -758,7 +759,7 @@ export default function Appointments() {
                   <p className="text-xs text-muted-foreground mt-1">{a.appointment_date}{a.reason ? " • " + a.reason : ""}{a.is_outreach && a.lead_phone ? " • " + a.lead_phone : ""}</p>
                   <div className="mt-2 flex items-center gap-1.5 flex-wrap">
                     {(["24h", "2h"] as const).map((type) => {
-                      const reminder = reminders.find((r: any) => r.appointment_id === a.id && r.reminder_type === type && r.scheduled_for?.startsWith(a.appointment_date));
+                      const reminder = reminders.find((r: any) => r.appointment_id === a.id && r.reminder_type === type);
                       if (!reminder) return null;
                       const label = type === "24h" ? "24h" : "2h";
                       if (reminder.status === "sent" || reminder.sent_at) return <span key={type} className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-success/10 text-success"><Bell size={11} /> {label} sent</span>;
