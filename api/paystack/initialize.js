@@ -58,7 +58,48 @@ export default async function handler(req, res) {
     }
   }
 
-  const email = String(body?.email || "").trim();
+  let authenticatedUser = null;
+  try {
+    const authResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { apikey: supabaseKey, Authorization: authHeader },
+    });
+    if (!authResponse.ok) {
+      return json(res, { ok: false, error: "Invalid or expired session." }, 401);
+    }
+    authenticatedUser = await authResponse.json();
+  } catch {
+    return json(res, { ok: false, error: "Authentication service unavailable." }, 503);
+  }
+
+  if (!authenticatedUser?.id) {
+    return json(res, { ok: false, error: "Invalid or expired session." }, 401);
+  }
+
+  let authenticatedClinicId = null;
+  try {
+    const profileResponse = await fetch(
+      `${supabaseUrl}/rest/v1/profiles?select=active_clinic_id,clinic_id&id=eq.${encodeURIComponent(authenticatedUser.id)}&limit=1`,
+      {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: authHeader,
+          Accept: "application/json",
+        },
+      },
+    );
+    const profiles = await profileResponse.json().catch(() => []);
+    authenticatedClinicId = Array.isArray(profiles)
+      ? profiles[0]?.active_clinic_id || profiles[0]?.clinic_id || null
+      : null;
+  } catch {
+    return json(res, { ok: false, error: "Unable to resolve the active clinic." }, 503);
+  }
+
+  if (!authenticatedClinicId) {
+    return json(res, { ok: false, error: "No active clinic is associated with this session." }, 403);
+  }
+
+  const email = String(body?.email || authenticatedUser.email || "").trim();
   const amount = Number(body?.amount);
   const plan = typeof body?.plan === "string" ? body.plan.trim() : "";
   const callbackUrl = `${process.env.APP_URL || ""}/paystack/callback`;
