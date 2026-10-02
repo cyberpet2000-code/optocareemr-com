@@ -255,7 +255,9 @@ export function AppRoutes() {
   }, [location.pathname]);
 
   const isLegalRoute = location.pathname === "/legal" || location.pathname.startsWith("/legal/");
+  const isGrowthRoute = location.pathname === "/growth";
   const isPublicRoute =
+  isGrowthRoute ||
   isLegalRoute ||
   location.pathname.startsWith("/feedback/") ||
   ["/login", "/reset-password", "/accept-invite", "/signup", "/no-access"].includes(location.pathname);
@@ -272,6 +274,7 @@ export function AppRoutes() {
   return isPublicRoute ? (
     <Suspense fallback={<FullScreenLoader />}>
     <Routes>
+      <Route path="/growth" element={<PageErrorBoundary pageName="OptoCare Growth"><GoogleGrowth /></PageErrorBoundary>} />
       <Route path="/login" element={<Login />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
