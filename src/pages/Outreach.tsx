@@ -665,7 +665,7 @@ export default function Outreach() {
     const base = q
       ? recipients.filter(r => [r.full_name || "", r.phone, r.normalized_phone].some(v => v.toLowerCase().includes(q)))
       : recipients;
-    return base.slice(0, 300);
+    return base;
   }, [recipients, recipientSearch]);
 
   const removableRecipients = visibleQueueRecipients.filter(r => r.status === "ready" || r.status === "opened");
@@ -794,14 +794,12 @@ export default function Outreach() {
     if (!effectiveClinicId || !selected || r.patient_id) return;
     const { data: existing } = await apiClient.from("outreach_leads").select("*").eq("clinic_id", effectiveClinicId).eq("normalized_phone", r.normalized_phone).limit(1).maybeSingle();
     if (existing?.id) {
-      const { data: clinicCampaigns } = await apiClient.from("outreach_campaigns").select("id").eq("clinic_id", effectiveClinicId);
-      const campaignIds = (clinicCampaigns || []).map((campaign: { id: string }) => campaign.id);
-      if (campaignIds.length) {
-        await apiClient.from("outreach_recipients").update({ lead_id: existing.id })
-          .in("campaign_id", campaignIds)
-          .eq("normalized_phone", r.normalized_phone);
-      }
-      setRecipients(prev => prev.map(item => item.normalized_phone === r.normalized_phone ? { ...item, lead_id: existing.id } : item));
+      await apiClient
+        .from("outreach_recipients")
+        .update({ lead_id: existing.id })
+        .eq("id", r.id)
+        .eq("campaign_id", selected.id);
+      setRecipients(prev => prev.map(item => item.id === r.id ? { ...item, lead_id: existing.id } : item));
       setLeads(prev => prev.some(l => l.id === existing.id) ? prev : [existing as Lead, ...prev]);
       setLeadFilter("all");
       setTab("leads");
@@ -819,14 +817,12 @@ export default function Outreach() {
       status: "new",
     }).select("*").single();
     if (data) {
-      const { data: clinicCampaigns } = await apiClient.from("outreach_campaigns").select("id").eq("clinic_id", effectiveClinicId);
-      const campaignIds = (clinicCampaigns || []).map((campaign: { id: string }) => campaign.id);
-      if (campaignIds.length) {
-        await apiClient.from("outreach_recipients").update({ lead_id: data.id })
-          .in("campaign_id", campaignIds)
-          .eq("normalized_phone", r.normalized_phone);
-      }
-      setRecipients(prev => prev.map(item => item.normalized_phone === r.normalized_phone ? { ...item, lead_id: data.id } : item));
+      await apiClient
+        .from("outreach_recipients")
+        .update({ lead_id: data.id })
+        .eq("id", r.id)
+        .eq("campaign_id", selected.id);
+      setRecipients(prev => prev.map(item => item.id === r.id ? { ...item, lead_id: data.id } : item));
       setLeads(prev => [data as Lead, ...prev]);
     }
   };
