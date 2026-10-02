@@ -45,6 +45,7 @@ interface PatientRow {
   hmo_name?: string;
   last_visit?: string | null;
   hmo_verification_status?: string | null;
+  hmo_verified_at?: string | null;
   balance?: number;
   visitSummary: PatientVisitSummary;
   billingSummary: PatientBillingSummary;
@@ -62,6 +63,8 @@ interface PatientRow {
   hmoClaimResponseStatus?: string | null;
   hmoClaimResponseAt?: string | null;
   hmoClaimResponseRemarks?: string | null;
+  outOfPocketPaid?: number;
+  outOfPocketDue?: number;
 }
 
 
@@ -231,10 +234,39 @@ export default function PatientList() {
           hmoClaimResponseStatus: p.hmo_claim_response_status || "Pending",
           hmoClaimResponseAt: p.hmo_claim_response_at || null,
           hmoClaimResponseRemarks: p.hmo_claim_response_remarks || null,
+          outOfPocketPaid: 0,
+          outOfPocketDue: Number(p.patient_payable || 0),
           visitSummary: { visitCount: Number(p.visit_count || 0), lastVisit: p.last_visit || null },
           billingSummary: { paymentStatus: p.payment_status || "No billing", outstandingBalance: Number(p.outstanding_balance || 0) },
           feedbackStatus: "none",
         }));
+        if (canViewPayments && mapped.length > 0) {
+          const hmoPatientIds = mapped.filter(p => p.payment_type === "hmo").map(p => p.id);
+          if (hmoPatientIds.length > 0) {
+            const { data: bills } = await apiClient
+              .from("billing")
+              .select("id, patient_id, patient_payable")
+              .eq("clinic_id", cid)
+              .in("patient_id", hmoPatientIds);
+            const billingIds = (bills || []).map((b: any) => b.id);
+            const { data: paymentRows } = billingIds.length > 0
+              ? await apiClient.from("payments").select("billing_id, amount, method").eq("clinic_id", cid).in("billing_id", billingIds)
+              : { data: [] };
+            const billMap = new Map<string, any>((bills || []).map((b: any) => [b.id, b]));
+            const oopByPatient = new Map<string, number>();
+            (paymentRows || []).forEach((payment: any) => {
+              const bill = billMap.get(payment.billing_id);
+              if (!bill?.patient_id) return;
+              if (String(payment.method || "").trim().toLowerCase() === "hmo") return;
+              oopByPatient.set(bill.patient_id, (oopByPatient.get(bill.patient_id) || 0) + Number(payment.amount || 0));
+            });
+            mapped.forEach(p => {
+              const paid = oopByPatient.get(p.id) || 0;
+              p.outOfPocketPaid = paid;
+              p.outOfPocketDue = Math.max(0, Number(p.patientPayable || 0) - paid);
+            });
+          }
+        }
         setPatients(mapped);
         setLoadError(null);
         setLoading(false);
@@ -355,9 +387,15 @@ export default function PatientList() {
   {isHmo ? (
     <>
       <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[11px] font-semibold text-foreground">HMO Verification:</span>
+        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${String(p.hmo_verification_status || "pending").toLowerCase() === "verified" ? "bg-green-100 text-green-700" : String(p.hmo_verification_status || "").toLowerCase() === "rejected" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
+          {String(p.hmo_verification_status || "pending").toLowerCase() === "verified" ? "Verified" : String(p.hmo_verification_status || "pending").replace("_", " ")}
+        </span>
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[11px] font-semibold text-foreground">HMO Request:</span>
         <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${String(p.hmoRequestStatus || "Not sent").toLowerCase() === "approved" ? "bg-green-100 text-green-700" : ["rejected","query"].includes(String(p.hmoRequestStatus || "").toLowerCase()) ? "bg-red-100 text-red-700" : p.hmoRequestSent ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground"}`}>
-          {p.hmoRequestStatus || "Not sent"}
+          {p.hmoRequestSent && String(p.hmoRequestStatus || "").toLowerCase() === "not sent" ? "Sent" : (p.hmoRequestStatus || (p.hmoRequestSent ? "Sent" : "Not sent"))}
         </span>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
@@ -368,6 +406,17 @@ export default function PatientList() {
       </div>
       {Number(p.hmoClaimAmount || 0) > 0 && <div className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">Amount to Claim:</span> ₦{Number(p.hmoClaimAmount || 0).toLocaleString()}</div>}
       {Number(p.patientPayable || 0) > 0 && <div className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">Patient Co-pay:</span> ₦{Number(p.patientPayable || 0).toLocaleString()}</div>}
+      {canViewPayments && (
+        <div className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">Out-of-pocket:</span>{" "}
+          {Number(p.patientPayable || 0) <= 0
+            ? "Not required"
+            : Number(p.outOfPocketPaid || 0) > 0
+              ? Number(p.outOfPocketDue || 0) <= 0
+                ? `Paid ₦${Number(p.outOfPocketPaid || 0).toLocaleString()}`
+                : `Part-paid ₦${Number(p.outOfPocketPaid || 0).toLocaleString()} · Due ₦${Number(p.outOfPocketDue || 0).toLocaleString()}`
+              : `Not paid · Due ₦${Number(p.outOfPocketDue || p.patientPayable || 0).toLocaleString()}`}
+        </div>
+      )}
     </>
   ) : (
     <div className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">Payment:</span> {p.billingSummary?.paymentStatus === "Paid" ? "Paid" : Number(p.balance || 0) > 0 ? `Due ₦${Number(p.balance || 0).toLocaleString()}` : "No billing"}</div>
