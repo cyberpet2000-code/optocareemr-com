@@ -116,6 +116,8 @@ export default async function handler(req, res) {
   const metadata = {
     source: "optocare-paystack-project",
     ...(body?.metadata && typeof body.metadata === "object" ? body.metadata : {}),
+    clinic_id: authenticatedClinicId,
+    user_id: authenticatedUser.id,
   };
 
   const payload = {
