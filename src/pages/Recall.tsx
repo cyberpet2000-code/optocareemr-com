@@ -23,10 +23,11 @@ type RecallRow = {
   status: string;
 };
 
-const statusLabel = (row: RecallRow) => {
-  const today = new Date();
+const statusLabel = (row: RecallRow, nowMs: number) => {
   const due = new Date(row.due_date + "T00:00:00");
-  const days = Math.ceil((due.getTime() - new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()) / 86400000);
+  const now = new Date(nowMs);
+  now.setHours(0, 0, 0, 0);
+  const days = Math.ceil((due.getTime() - now.getTime()) / 86400000);
   if (days < 0) return { text: `Overdue by ${Math.abs(days)}d`, tone: "bg-red-100 text-red-700" };
   if (days === 0) return { text: "Due today", tone: "bg-amber-100 text-amber-700" };
   if (days === 1) return { text: "Due tomorrow", tone: "bg-amber-100 text-amber-700" };
@@ -40,6 +41,7 @@ export default function Recall() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [windowDays, setWindowDays] = useState(30);
+  const [recallNow, setRecallNow] = useState(() => Date.now());
 
   const load = useCallback(async () => {
     if (!cid) return;
@@ -138,7 +140,7 @@ export default function Recall() {
     {loading ? <div className="rounded-2xl border bg-card p-10 text-center text-sm text-muted-foreground">Loading live recall list…</div> :
       filtered.length === 0 ? <div className="rounded-2xl border bg-card p-10 text-center"><CheckCircle2 className="mx-auto h-8 w-8 text-muted-foreground/50" /><p className="mt-2 font-medium">No patients due in this window</p><p className="text-sm text-muted-foreground mt-1">The list updates from the current recall records.</p></div> :
       <div className="space-y-2">{filtered.map(row => {
-        const st=statusLabel(row); const wa=normalizeWhatsAppNumber(row.phone);
+        const st=statusLabel(row, recallNow); const wa=normalizeWhatsAppNumber(row.phone);
         return <div key={row.id} className="rounded-2xl border bg-card p-4 flex flex-col md:flex-row md:items-center gap-3">
           <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><Link to={`/patient/${row.patient_id}`} className="font-semibold hover:text-primary">{row.patient_name}</Link>{row.patient_number && <span className="text-[10px] font-mono bg-primary/10 text-primary rounded px-1.5 py-0.5">{row.patient_number}</span>}<span className={`text-[10px] font-semibold rounded-full px-2 py-1 ${st.tone}`}>{st.text}</span></div><div className="mt-1 text-xs text-muted-foreground flex flex-wrap gap-2"><span>Recall: {row.recall_interval_months} months</span><span>•</span><span>Due {new Date(row.due_date+"T00:00:00").toLocaleDateString("en-GB")}</span>{row.phone && <><span>•</span><span>{row.phone}</span></>}</div><div className="mt-2 text-[11px]">{row.contact_status === "message_sent" ? "WhatsApp message sent" : row.contact_status === "called" ? "Called" : row.contact_status === "appointment_booked" ? "Appointment booked" : "Not contacted"}</div></div>
           <div className="flex items-center gap-2 flex-wrap">
