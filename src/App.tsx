@@ -46,6 +46,7 @@ const LegalSubscription = lazy(() => import("./pages/legal/SubscriptionRefund"))
 const LegalContact = lazy(() => import("./pages/legal/Contact"));
 const PatientFeedback = lazy(() => import("./pages/PatientFeedback"));
 const Notifications = lazy(() => import("./pages/Notifications"));
+const Recall = lazy(() => import("./pages/Recall"));
 const Expenses = lazy(() => import("./pages/Expenses"));
 const InventoryAudit = lazy(() => import("./pages/InventoryAudit"));
 const AccountSettings = lazy(() => import("./pages/AccountSettings"));
@@ -310,6 +311,7 @@ export function AppRoutes() {
           <Route path="/super-admin/users" element={<SuperAdminOnly><PageErrorBoundary pageName="User Management"><AdminRoles embedded /></PageErrorBoundary></SuperAdminOnly>} />
 
           <Route path="/notifications" element={<PageErrorBoundary pageName="Notifications"><Notifications /></PageErrorBoundary>} />
+          <Route path="/recall" element={<PageErrorBoundary pageName="Patient Recall"><Recall /></PageErrorBoundary>} />
           <Route path="/outreach" element={<PageErrorBoundary pageName="Campaigns & Leads"><Outreach /></PageErrorBoundary>} />
           <Route path="/dashboard" element={<PageErrorBoundary pageName="Dashboard"><Dashboard /></PageErrorBoundary>} />
           <Route path="/visits" element={<PageErrorBoundary pageName="Visits"><Visits /></PageErrorBoundary>} />
