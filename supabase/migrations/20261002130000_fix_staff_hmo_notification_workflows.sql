@@ -165,6 +165,7 @@ begin
       where rq.id=fr.feedback_request_id and rq.requested_by_user_id is not null
     ))
   order by submitted_at desc;
+end;
 $function$;
 
 create or replace function public.notify_patient_registered()
