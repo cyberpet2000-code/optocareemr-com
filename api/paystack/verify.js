@@ -15,6 +15,20 @@ export default async function handler(req, res) {
   }
 
   const secret = process.env.PAYSTACK_SECRET_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL || `https://${process.env.VITE_SUPABASE_PROJECT_ID || "avogfzqizuusqzjivhqj"}.supabase.co`;
+  const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
+  const authHeader = req.headers.authorization || "";
+  if (!authHeader.startsWith("Bearer ") || !supabaseKey) {
+    return json(res, { ok: false, error: "Authentication required." }, 401);
+  }
+  try {
+    const authResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { apikey: supabaseKey, Authorization: authHeader },
+    });
+    if (!authResponse.ok) return json(res, { ok: false, error: "Invalid or expired session." }, 401);
+  } catch {
+    return json(res, { ok: false, error: "Authentication service unavailable." }, 503);
+  }
   if (!secret) {
     return json(res, { ok: false, code: "paystack_not_configured", error: "Paystack is not configured." }, 503);
   }
