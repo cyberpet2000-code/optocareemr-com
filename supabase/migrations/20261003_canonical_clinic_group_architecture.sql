@@ -66,6 +66,9 @@ using (is_active = true or public.is_super_admin(auth.uid()));
 -- The existing parent_clinic_id hierarchy is canonical.
 -- A clinic is an HQ when it has no parent and type='organization'.
 -- A branch is a child clinic with parent_clinic_id set.
+create unique index if not exists ux_user_clinic_memberships_user_clinic
+  on public.user_clinic_memberships(user_id,clinic_id);
+
 create index if not exists idx_clinics_parent_clinic_id
   on public.clinics(parent_clinic_id);
 
