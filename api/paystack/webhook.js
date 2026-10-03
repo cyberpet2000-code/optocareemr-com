@@ -145,12 +145,11 @@ async function updateSubscriptionFromEvent(event) {
 
   if (!clinicId) return;
 
-  const plan =
-    metadata?.plan_code ||
-    metadata?.plan ||
-    data.plan?.plan_code ||
-    data.plan?.name ||
-    null;
+  const { getCanonicalPlanFromPaystackCode } = await import("./commercial-plans.js");
+  const paystackPlanCode = data.plan?.plan_code || metadata?.paystack_plan_code || null;
+  const canonical = getCanonicalPlanFromPaystackCode(paystackPlanCode);
+  const plan = canonical?.plan || null;
+  if (!plan && (event.event === "subscription.create" || event.event === "charge.success")) return;
 
   let status = null;
   if (event.event === "charge.success" || event.event === "subscription.create") status = "active";
