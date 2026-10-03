@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import {
   Activity,
   ArrowLeft,
+  Bell,
   ArrowRight,
   CalendarDays,
   CheckCircle2,
@@ -11,6 +12,9 @@ import {
   Glasses,
   LayoutDashboard,
   Menu,
+  Mail,
+  Copy,
+  LogOut,
   Package,
   Search,
   ShieldCheck,
