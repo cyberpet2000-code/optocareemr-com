@@ -151,7 +151,7 @@ async function updateSubscriptionFromEvent(event) {
   const paystackPlanCode = data.plan?.plan_code || metadata?.paystack_plan_code || null;
   const canonical = getCanonicalPlanFromPaystackCode(paystackPlanCode);
   const plan = canonical?.plan || null;
-  if (!plan && (event.event === "subscription.create" || event.event === "charge.success")) return;
+  if (!plan && (event.event === "subscription.create" || event.event === "charge.success" || event.event === "invoice.payment_failed")) return;
 
   let status = null;
   if (event.event === "charge.success" || event.event === "subscription.create") status = "active";
