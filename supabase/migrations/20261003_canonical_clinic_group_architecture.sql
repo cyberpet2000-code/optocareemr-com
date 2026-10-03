@@ -111,6 +111,14 @@ begin
   or exists (
     select 1
     from public.clinic_user_roles r
+    join public.clinics child on child.id=candidate
+    where r.user_id=uid
+      and r.clinic_id=coalesce(child.parent_clinic_id,child.id)
+      and r.role='admin'::public.app_role
+  )
+  or exists (
+    select 1
+    from public.clinic_user_roles r
     where r.user_id = uid
       and r.clinic_id = candidate
   )
@@ -165,6 +173,14 @@ begin
       where m.user_id=uid and m.clinic_id=p_clinic_id and coalesce(m.is_active,true)=true
     )
     or exists (
+      select 1
+      from public.clinic_user_roles r
+      join public.clinics child on child.id=p_clinic_id
+      where r.user_id=uid
+        and r.clinic_id=coalesce(child.parent_clinic_id,child.id)
+        and r.role='admin'::public.app_role
+    )
+    or exists (
       select 1 from public.clinic_user_roles r
       where r.user_id=uid and r.clinic_id=p_clinic_id
     )
@@ -187,6 +203,19 @@ begin
   ) then
     raise exception 'Clinic is not active';
   end if;
+
+  -- Group/HQ administrators inherit access to their child locations.
+  insert into public.user_clinic_memberships(user_id,clinic_id,is_active)
+  select uid,p_clinic_id,true
+  where exists (
+    select 1
+    from public.clinic_user_roles r
+    join public.clinics child on child.id=p_clinic_id
+    where r.user_id=uid
+      and r.clinic_id=coalesce(child.parent_clinic_id,child.id)
+      and r.role='admin'::public.app_role
+  )
+  on conflict do nothing;
 
   update public.profiles
   set active_clinic_id=p_clinic_id
