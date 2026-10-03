@@ -117,6 +117,7 @@ export default function ClinicSidebar() {
         { to: "/reports/monthly", label: "Monthly Reports", icon: FileBarChart },
         { to: "/inventory/audit", label: "Inventory Audit", icon: ClipboardList },
         ...(isAdmin ? [{ to: "/settings/clinic", label: "Clinic Settings", icon: Building2 }] : []),
+        ...(isAdmin ? [{ to: "/settings/group", label: "Clinic Group & Locations", icon: Building2 }] : []),
         { to: "/settings/account", label: "Account", icon: UserCog },
         ...(isAdmin ? [{ to: "/admin/roles", label: "Manage Roles", icon: ShieldCheck }] : []),
       ],
