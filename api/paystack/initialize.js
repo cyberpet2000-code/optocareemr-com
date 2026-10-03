@@ -142,6 +142,7 @@ export default async function handler(req, res) {
     optocare_plan: commercialPlan.plan,
     plan_key: planKey,
     cadence: commercialPlan.cadence,
+    paystack_plan_code: plan,
   };
 
   const payload = {
