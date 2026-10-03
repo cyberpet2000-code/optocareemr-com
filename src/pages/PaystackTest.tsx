@@ -8,8 +8,7 @@ import { initializePaystackCheckout } from "@/lib/paystack";
 
 export default function PaystackTest() {
   const [email, setEmail] = useState("");
-  const [amount, setAmount] = useState("1000");
-  const [plan, setPlan] = useState("");
+  const [plan, setPlan] = useState("starter_monthly");
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -19,7 +18,6 @@ export default function PaystackTest() {
     try {
       const result = await initializePaystackCheckout({
         email,
-        amountNaira: Number(amount),
         plan: plan || undefined,
       });
 
@@ -55,12 +53,15 @@ export default function PaystackTest() {
               <Input id="paystack-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div>
-              <Label htmlFor="paystack-amount">Amount (₦)</Label>
-              <Input id="paystack-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
-            </div>
-            <div>
-              <Label htmlFor="paystack-plan">Plan code (optional)</Label>
-              <Input id="paystack-plan" value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="PLN_..." />
+              <Label htmlFor="paystack-plan">OptoCare plan</Label>
+              <select id="paystack-plan" className="w-full rounded-md border bg-background px-3 py-2 text-sm" value={plan} onChange={(e) => setPlan(e.target.value)}>
+                <option value="starter_monthly">Starter — ₦10,000/month</option>
+                <option value="starter_annual">Starter — ₦100,000/year</option>
+                <option value="professional_monthly">Professional — ₦18,000/month</option>
+                <option value="professional_annual">Professional — ₦180,000/year</option>
+                <option value="clinic_monthly">Clinic — ₦30,000/month</option>
+                <option value="clinic_annual">Clinic — ₦300,000/year</option>
+              </select>
             </div>
             {message && <p className="text-sm text-destructive">{message}</p>}
             <Button className="w-full" onClick={startPayment} disabled={working}>
