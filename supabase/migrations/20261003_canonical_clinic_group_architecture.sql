@@ -34,7 +34,7 @@ insert into public.subscription_plan_catalog
 values
 ('starter','Starter',10000,100000,0,3,1,false,true,true,true,true,'basic','limited'),
 ('professional','Professional',18000,180000,0,10,5,true,true,true,true,true,'advanced','limited'),
-('clinic','Clinic',30000,300000,3,25,null,true,true,true,true,true,'multi_clinic','limited'),
+('clinic','Clinic',30000,300000,2,25,null,true,true,true,true,true,'multi_clinic','limited'),
 ('network','Network',0,0,-1,null,null,true,true,true,true,true,'multi_clinic','custom')
 on conflict (plan_code) do update set
   display_name=excluded.display_name,
