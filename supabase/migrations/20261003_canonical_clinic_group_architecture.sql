@@ -509,6 +509,146 @@ revoke all on public.branches from anon, authenticated;
 revoke all on public.branch_feature_flags from anon, authenticated;
 
 -- Keep legacy plan feature helper aligned with the new commercial plans.
+-- Branch entitlement helpers run with controlled privileges so RLS cannot
+-- make trigger-time subscription checks fail or become bypassable.
+create or replace function public.can_add_branch(org_id uuid)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $function$
+declare
+  branch_count integer;
+  branch_limit_value integer;
+begin
+  if org_id is null then
+    return false;
+  end if;
+
+  select count(*) into branch_count
+  from public.clinics
+  where parent_clinic_id = org_id;
+
+  select coalesce(pc.branch_limit,0)
+    into branch_limit_value
+  from public.clinic_subscriptions s
+  left join public.subscription_plan_catalog pc
+    on pc.plan_code = lower(s.plan)
+  where s.clinic_id = org_id
+    and s.status in ('active','trialing')
+  order by s.created_at desc
+  limit 1;
+
+  if branch_limit_value = -1 then
+    return true;
+  end if;
+
+  return coalesce(branch_count,0) < coalesce(branch_limit_value,0);
+end;
+$function$;
+
+create or replace function public.enforce_branch_limits(p_org_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $function$
+declare
+  branch_limit_value integer;
+begin
+  select coalesce(pc.branch_limit,0)
+    into branch_limit_value
+  from public.clinic_subscriptions s
+  left join public.subscription_plan_catalog pc
+    on pc.plan_code = lower(s.plan)
+  where s.clinic_id = p_org_id
+    and s.status in ('active','trialing')
+  order by s.created_at desc
+  limit 1;
+
+  if branch_limit_value = -1 then
+    update public.clinics
+       set is_active = true, updated_at = now()
+     where parent_clinic_id = p_org_id;
+    return;
+  end if;
+
+  update public.clinics
+     set is_active = true, updated_at = now()
+   where id in (
+     select id
+     from public.clinics
+     where parent_clinic_id = p_org_id
+     order by created_at asc
+     limit greatest(coalesce(branch_limit_value,0),0)
+   );
+
+  update public.clinics
+     set is_active = false, updated_at = now()
+   where parent_clinic_id = p_org_id
+     and id not in (
+       select id
+       from public.clinics
+       where parent_clinic_id = p_org_id
+       order by created_at asc
+       limit greatest(coalesce(branch_limit_value,0),0)
+     );
+end;
+$function$;
+
+create or replace function public.freeze_extra_branches(p_org_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $function$
+declare
+  branch_limit_value integer;
+begin
+  select coalesce(pc.branch_limit,0)
+    into branch_limit_value
+  from public.clinic_subscriptions s
+  left join public.subscription_plan_catalog pc
+    on pc.plan_code = lower(s.plan)
+  where s.clinic_id = p_org_id
+    and s.status in ('active','trialing')
+  order by s.created_at desc
+  limit 1;
+
+  if branch_limit_value = -1 then
+    return;
+  end if;
+
+  update public.clinics
+     set is_active = false, updated_at = now()
+   where parent_clinic_id = p_org_id
+     and id not in (
+       select id
+       from public.clinics
+       where parent_clinic_id = p_org_id
+       order by created_at asc
+       limit greatest(coalesce(branch_limit_value,0),0)
+     );
+end;
+$function$;
+
+create or replace function public.prevent_excess_branches()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $function$
+begin
+  if new.type = 'branch' and new.parent_clinic_id is not null
+     and not public.can_add_branch(new.parent_clinic_id) then
+    raise exception 'Branch limit exceeded. Upgrade your OptoCare plan.';
+  end if;
+
+  return new;
+end;
+$function$;
+
 -- Subscription lifecycle controls must only be callable through trusted paths.
 revoke all on function public.current_clinic_id() from public, anon;
 grant execute on function public.current_clinic_id() to authenticated;
