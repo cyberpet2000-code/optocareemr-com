@@ -72,6 +72,16 @@ create index if not exists idx_clinics_parent_clinic_id
 create index if not exists idx_clinics_parent_active
   on public.clinics(parent_clinic_id,is_active);
 
+create index if not exists idx_clinic_subscriptions_active_clinic
+  on public.clinic_subscriptions(clinic_id,status,created_at desc);
+
+alter table public.clinic_subscriptions
+  drop constraint if exists clinic_subscriptions_plan_check;
+
+alter table public.clinic_subscriptions
+  add constraint clinic_subscriptions_plan_check
+  check (plan is null or lower(plan) in ('trial','starter','professional','clinic','network'));
+
 -- Resolve the selected tenant, never merely the legacy profiles.clinic_id.
 create or replace function public.current_clinic_id()
 returns uuid
@@ -431,11 +441,12 @@ begin
     raise exception 'An active Clinic subscription is required';
   end if;
 
-  select coalesce(pc.branch_limit,s.branch_limit,0)
+  select coalesce(pc.branch_limit,0)
     into plan_limit
   from public.clinic_subscriptions s
-  left join public.subscription_plan_catalog pc on pc.plan_code=s.plan
+  left join public.subscription_plan_catalog pc on pc.plan_code=lower(s.plan)
   where s.clinic_id=group_id
+    and s.status in ('active','trialing')
   order by s.created_at desc
   limit 1;
 
@@ -448,6 +459,10 @@ begin
   ) >= plan_limit then
     raise exception 'Clinic branch limit reached. Upgrade your plan to add another clinic.';
   end if;
+
+  update public.clinics
+     set type='organization', updated_at=now()
+   where id=group_id and parent_clinic_id is null;
 
   insert into public.clinics (
     name,type,parent_clinic_id,phone,email,is_active,subscription_status,setup_completed
@@ -482,6 +497,46 @@ revoke all on public.branches from anon, authenticated;
 revoke all on public.branch_feature_flags from anon, authenticated;
 
 -- Keep legacy plan feature helper aligned with the new commercial plans.
+-- Subscription lifecycle controls must only be callable through trusted paths.
+revoke all on function public.current_clinic_id() from public, anon;
+grant execute on function public.current_clinic_id() to authenticated;
+
+revoke all on function public.get_active_clinic_id() from public, anon;
+grant execute on function public.get_active_clinic_id() to authenticated;
+
+-- Keep direct access to internal branch-limit helpers closed to anonymous clients.
+revoke all on function public.can_add_branch(uuid) from public, anon;
+grant execute on function public.can_add_branch(uuid) to authenticated;
+
+revoke all on function public.enforce_branch_limits(uuid) from public, anon;
+grant execute on function public.enforce_branch_limits(uuid) to authenticated;
+
+revoke all on function public.freeze_extra_branches(uuid) from public, anon;
+grant execute on function public.freeze_extra_branches(uuid) to authenticated;
+
+-- Align subscription updates with the canonical group model.
+create or replace function public.handle_subscription_update()
+returns trigger
+language plpgsql
+set search_path = public, pg_temp
+as $function$
+begin
+  perform public.enforce_branch_limits(new.clinic_id);
+
+  if lower(coalesce(new.plan,'')) in ('clinic','network')
+     and new.status in ('active','trialing') then
+    update public.clinics
+       set type='organization', updated_at=now()
+     where id=new.clinic_id and parent_clinic_id is null;
+  end if;
+
+  return new;
+end;
+$function$;
+
+revoke all on function public.handle_subscription_update() from public, anon;
+grant execute on function public.handle_subscription_update() to authenticated;
+
 create or replace function public.get_plan_features(plan text)
 returns table(billing boolean,hmo boolean,pharmacy boolean,inventory boolean,appointments boolean)
 language plpgsql
