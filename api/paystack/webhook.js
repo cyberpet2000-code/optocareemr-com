@@ -146,6 +146,7 @@ async function updateSubscriptionFromEvent(event) {
   if (!clinicId) return;
 
   const plan =
+    metadata?.plan_code ||
     metadata?.plan ||
     data.plan?.plan_code ||
     data.plan?.name ||
