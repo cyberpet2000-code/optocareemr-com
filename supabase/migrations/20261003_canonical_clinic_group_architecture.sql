@@ -358,7 +358,11 @@ as $function$
   select
     g.clinic_id,
     g.group_id,
-    coalesce(nullif(s.plan,''),'starter') as plan_code,
+    case
+      when s.plan is not null and nullif(s.plan,'') is not null then lower(s.plan)
+      when c.subscription_status='trial' then 'trial'
+      else 'starter'
+    end as plan_code,
     pc.monthly_amount_ngn,
     pc.annual_amount_ngn,
     pc.branch_limit,
@@ -372,9 +376,14 @@ as $function$
     pc.analytics_level,
     pc.ai_allowance
   from grouped g
+  join public.clinics c on c.id=g.clinic_id
   left join sub s on s.clinic_id=g.group_id and s.rn=1
   left join public.subscription_plan_catalog pc
-    on pc.plan_code=coalesce(nullif(s.plan,''),'starter')
+    on pc.plan_code=case
+      when s.plan is not null and nullif(s.plan,'') is not null then lower(s.plan)
+      when c.subscription_status='trial' then 'trial'
+      else 'starter'
+    end
   where public.is_super_admin(auth.uid())
      or g.clinic_id=public.current_clinic_id()
      or g.group_id=public.current_clinic_id()
