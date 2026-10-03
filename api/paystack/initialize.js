@@ -92,14 +92,22 @@ export default async function handler(req, res) {
   }
 
   const email = String(body?.email || authenticatedUser.email || "").trim();
-  const amount = Number(body?.amount);
-  const plan = typeof body?.plan === "string" ? body.plan.trim() : "";
+  const planKey = typeof body?.plan_key === "string" ? body.plan_key.trim() : "";
   const callbackUrl = `${process.env.APP_URL || ""}/paystack/callback`;
 
   if (!validEmail(email)) return json(res, { ok: false, error: "A valid customer email is required." }, 400);
-  if (!Number.isInteger(amount) || amount <= 0) return json(res, { ok: false, error: "Amount must be an integer in the smallest currency unit." }, 400);
+  if (!planKey) return json(res, { ok: false, error: "A valid OptoCare plan is required." }, 400);
 
-  if (plan) {
+  const { getCommercialPlan, getExpectedPaystackPlanCode } = await import("./commercial-plans.js");
+  const commercialPlan = getCommercialPlan(planKey);
+  const expectedPaystackPlanCode = getExpectedPaystackPlanCode(planKey);
+  if (!commercialPlan || !expectedPaystackPlanCode) {
+    return json(res, { ok: false, code: "plan_not_configured", error: "This OptoCare plan is not configured for Paystack yet." }, 503);
+  }
+  const amount = commercialPlan.amountNaira * 100;
+  const plan = expectedPaystackPlanCode;
+
+  {
     try {
       const planResponse = await fetch(`https://api.paystack.co/plan/${encodeURIComponent(plan)}`, {
         headers: { Authorization: `Bearer ${secret}` },
@@ -108,6 +116,9 @@ export default async function handler(req, res) {
       const remotePlan = planData?.data;
       if (!planResponse.ok || !planData?.status || !remotePlan?.plan_code) {
         return json(res, { ok: false, code: "invalid_paystack_plan", error: "The selected Paystack plan could not be verified." }, 400);
+      }
+      if (Number(remotePlan.amount) !== amount) {
+        return json(res, { ok: false, code: "plan_amount_mismatch", error: "The Paystack plan amount does not match the OptoCare price." }, 409);
       }
       if (remotePlan.currency && String(remotePlan.currency).toUpperCase() !== "NGN") {
         return json(res, { ok: false, code: "unsupported_plan_currency", error: "Only NGN subscription plans are supported." }, 400);
@@ -126,15 +137,17 @@ export default async function handler(req, res) {
 
   const metadata = {
     source: "optocare-paystack-project",
-    ...(body?.metadata && typeof body.metadata === "object" ? body.metadata : {}),
     clinic_id: authenticatedClinicId,
     user_id: authenticatedUser.id,
+    optocare_plan: commercialPlan.plan,
+    plan_key: planKey,
+    cadence: commercialPlan.cadence,
   };
 
   const payload = {
     email,
     amount: String(amount),
-    currency: String(body?.currency || "NGN"),
+    currency: "NGN",
     reference,
     callback_url: callbackUrl,
     metadata,
