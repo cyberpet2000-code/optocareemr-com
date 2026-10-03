@@ -50,6 +50,44 @@ async function recordWebhookEvent(event) {
   });
 }
 
+async function recordTransactionFromEvent(event) {
+  const { url, serviceKey } = supabaseConfig();
+  if (!serviceKey || event.event !== "charge.success") return;
+
+  const data = event.data || {};
+  const metadata =
+    typeof data.metadata === "string"
+      ? (() => { try { return JSON.parse(data.metadata); } catch { return {}; } })()
+      : (data.metadata && typeof data.metadata === "object" ? data.metadata : {});
+  const clinicId = metadata?.clinic_id || null;
+  const reference = data.reference || null;
+  if (!clinicId || !reference) return;
+
+  await fetch(`${url}/rest/v1/paystack_transactions?on_conflict=reference`, {
+    method: "POST",
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates,return=minimal",
+    },
+    body: JSON.stringify({
+      clinic_id: clinicId,
+      reference,
+      paystack_transaction_id: data.id || null,
+      plan_code: data.plan?.plan_code || metadata?.plan || null,
+      amount: Number(data.amount || 0),
+      currency: data.currency || "NGN",
+      status: data.status || "success",
+      customer_code: data.customer?.customer_code || null,
+      paid_at: data.paid_at || null,
+      metadata,
+      payload: data,
+      updated_at: new Date().toISOString(),
+    }),
+  });
+}
+
 async function updateRefundFromEvent(event) {
   const { url, serviceKey } = supabaseConfig();
   if (!serviceKey || !event.event?.startsWith("refund.")) return;
@@ -67,9 +105,11 @@ async function updateRefundFromEvent(event) {
     },
     body: JSON.stringify({
       refund_reference: data.refund_reference || null,
+      refund_id: data.id ? Number(data.id) : null,
       amount: Number(data.amount || 0) || undefined,
       currency: data.currency || "NGN",
       status,
+      payload: data,
       updated_at: new Date().toISOString(),
     }),
   });
@@ -171,6 +211,7 @@ export default async function handler(req, res) {
 
     const event = JSON.parse(raw);
     await recordWebhookEvent(event);
+    await recordTransactionFromEvent(event);
     await updateRefundFromEvent(event);
     await updateSubscriptionFromEvent(event);
 
