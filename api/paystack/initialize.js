@@ -33,14 +33,6 @@ export default async function handler(req, res) {
   if (!authHeader.startsWith("Bearer ") || !supabaseKey) {
     return json(res, { ok: false, error: "Authentication required." }, 401);
   }
-  try {
-    const authResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: { apikey: supabaseKey, Authorization: authHeader },
-    });
-    if (!authResponse.ok) return json(res, { ok: false, error: "Invalid or expired session." }, 401);
-  } catch {
-    return json(res, { ok: false, error: "Authentication service unavailable." }, 503);
-  }
   if (!secret) {
     return json(res, {
       ok: false,
