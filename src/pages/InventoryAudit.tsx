@@ -26,6 +26,7 @@ export default function InventoryAudit() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const filtered = rows;
 
   const load = useCallback(async () => {
     if (!effectiveClinicId) return;
