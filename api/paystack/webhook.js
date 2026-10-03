@@ -159,27 +159,30 @@ async function updateSubscriptionFromEvent(event) {
 
   if (!status) return;
 
+  const existing = await fetch(`${url}/rest/v1/clinic_subscriptions?select=start_date,end_date,paystack_customer_id,paystack_subscription_id&clinic_id=eq.${encodeURIComponent(clinicId)}&limit=1`, {
+    headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, Accept: "application/json" },
+  });
+  const existingRows = await existing.json().catch(() => []);
+  const existingSubscription = Array.isArray(existingRows) ? existingRows[0] || {} : {};
+
   const row = {
     clinic_id: clinicId,
-    plan,
+    plan: plan || existingSubscription.plan || null,
     status,
-    paystack_customer_id: data.customer?.customer_code || null,
+    paystack_customer_id: data.customer?.customer_code || existingSubscription.paystack_customer_id || null,
     paystack_subscription_id:
       data.subscription_code ||
       data.subscription?.subscription_code ||
       data.subscription?.code ||
+      existingSubscription.paystack_subscription_id ||
       null,
-    end_date: data.next_payment_date || null,
+    end_date: data.next_payment_date || existingSubscription.end_date || null,
   };
 
   // Preserve the original subscription start date. Recurring charge events must not reset it.
-  let existingStartDate = null;
-  const existing = await fetch(`${url}/rest/v1/clinic_subscriptions?select=start_date&clinic_id=eq.${encodeURIComponent(clinicId)}&limit=1`, {
-    headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, Accept: "application/json" },
-  });
-  const existingRows = await existing.json().catch(() => []);
-  existingStartDate = Array.isArray(existingRows) ? existingRows[0]?.start_date || null : null;
-  if (!existingStartDate) row.start_date = data.created_at || data.paid_at || new Date().toISOString();
+  if (!existingSubscription.start_date) {
+    row.start_date = data.created_at || data.paid_at || new Date().toISOString();
+  }
 
   await fetch(`${url}/rest/v1/clinic_subscriptions?on_conflict=clinic_id`, {
     method: "POST",
@@ -191,7 +194,7 @@ async function updateSubscriptionFromEvent(event) {
     },
     body: JSON.stringify(row),
   });
-}
+
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
