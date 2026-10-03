@@ -70,6 +70,8 @@ export default async function handler(req, res) {
     }
 
     const transaction = data.data || {};
+    const { getCanonicalPlanFromPaystackCode } = await import("./commercial-plans.js");
+    const canonical = getCanonicalPlanFromPaystackCode(transaction.plan?.plan_code || null);
     const metadata = typeof transaction.metadata === "string"
       ? (() => { try { return JSON.parse(transaction.metadata); } catch { return {}; } })()
       : (transaction.metadata && typeof transaction.metadata === "object" ? transaction.metadata : {});
@@ -79,6 +81,9 @@ export default async function handler(req, res) {
     if (transaction.status === "success" && metadata?.clinic_id !== clinicId) {
       return json(res, { ok: false, error: "Transaction ownership could not be verified." }, 403);
     }
+    if (transaction.status === "success" && !canonical) {
+      return json(res, { ok: false, code: "unrecognized_plan", error: "The payment uses an unrecognized OptoCare plan." }, 409);
+    }
     return json(res, {
       ok: true,
       status: transaction.status || "unknown",
@@ -87,7 +92,7 @@ export default async function handler(req, res) {
       currency: transaction.currency || null,
       paid_at: transaction.paid_at || null,
       customer_code: transaction.customer?.customer_code || null,
-      plan_code: transaction.plan?.plan_code || null,
+      plan_code: canonical?.plan || null,
     });
   } catch {
     return json(res, { ok: false, code: "paystack_network_error", error: "Could not reach Paystack." }, 502);
