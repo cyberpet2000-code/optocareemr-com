@@ -5,7 +5,6 @@ export type PaystackInitializeInput = {
   amountNaira: number;
   plan?: string;
   reference?: string;
-  clinicId?: string;
   channels?: string[];
 };
 
@@ -39,7 +38,6 @@ export async function initializePaystackCheckout(
       reference: input.reference,
       channels: input.channels,
       metadata: {
-        clinic_id: input.clinicId || undefined,
         plan: input.plan || undefined,
       },
     }),
