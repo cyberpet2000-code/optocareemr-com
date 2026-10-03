@@ -62,6 +62,8 @@ async function recordTransactionFromEvent(event) {
   const clinicId = metadata?.clinic_id || null;
   const reference = data.reference || null;
   if (!clinicId || !reference) return;
+  const { getCanonicalPlanFromPaystackCode } = await import("./commercial-plans.js");
+  const canonical = getCanonicalPlanFromPaystackCode(data.plan?.plan_code || metadata?.paystack_plan_code || null);
 
   await fetch(`${url}/rest/v1/paystack_transactions?on_conflict=reference`, {
     method: "POST",
@@ -75,7 +77,7 @@ async function recordTransactionFromEvent(event) {
       clinic_id: clinicId,
       reference,
       paystack_transaction_id: data.id || null,
-      plan_code: data.plan?.plan_code || metadata?.plan || null,
+      plan_code: canonical?.plan || null,
       amount: Number(data.amount || 0),
       currency: data.currency || "NGN",
       status: data.status || "success",
