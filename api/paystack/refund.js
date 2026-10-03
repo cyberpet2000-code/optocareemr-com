@@ -115,14 +115,14 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           clinic_id: clinicId,
           transaction_reference: transactionReference,
-          refund_reference: refund.id ? String(refund.id) : null,
+          refund_id: refund.id ? Number(refund.id) : null,
+          refund_reference: refund.refund_reference || null,
           amount: refundAmount,
           currency: refund.currency || "NGN",
           status: refund.status || "pending",
-          reason,
           customer_note: customerNote,
           merchant_note: merchantNote,
-          initiated_by: user.id,
+          payload: refund,
         }),
       });
     }
