@@ -1,14 +1,26 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
 Allow: /
+
+# Public acquisition and legal pages are crawlable.
+Allow: /growth
+Allow: /legal
+
+# Keep authenticated/private application areas out of search indexes.
+Disallow: /dashboard
+Disallow: /visits
+Disallow: /patients
+Disallow: /patient/
+Disallow: /appointments
+Disallow: /inventory
+Disallow: /billing
+Disallow: /admin/
+Disallow: /finance/
+Disallow: /settings/
+Disallow: /reports/
+Disallow: /super-admin/
+Disallow: /onboarding
+Disallow: /select-clinic
+Disallow: /paystack-test
+Disallow: /paystack/callback
+
+Sitemap: https://optocareemr.com/sitemap.xml
