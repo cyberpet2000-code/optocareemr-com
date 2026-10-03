@@ -2,7 +2,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type PaystackInitializeInput = {
   email: string;
-  amountNaira: number;
   plan?: string;
   reference?: string;
   channels?: string[];
