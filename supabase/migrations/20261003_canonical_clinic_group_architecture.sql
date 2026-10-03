@@ -32,6 +32,7 @@ create table if not exists public.subscription_plan_catalog (
 insert into public.subscription_plan_catalog
 (plan_code,display_name,monthly_amount_ngn,annual_amount_ngn,branch_limit,staff_limit,provider_limit,hmo_enabled,inventory_enabled,billing_enabled,offline_enabled,optical_enabled,analytics_level,ai_allowance)
 values
+('trial','Professional Trial',0,0,0,10,5,true,true,true,true,true,'advanced','limited'),
 ('starter','Starter',10000,100000,0,3,1,false,true,true,true,true,'basic','limited'),
 ('professional','Professional',18000,180000,0,10,5,true,true,true,true,true,'advanced','limited'),
 ('clinic','Clinic',30000,300000,2,25,null,true,true,true,true,true,'multi_clinic','limited'),
