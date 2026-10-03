@@ -106,6 +106,25 @@ export default async function handler(req, res) {
 
   if (!validEmail(email)) return json(res, { ok: false, error: "A valid customer email is required." }, 400);
   if (!Number.isInteger(amount) || amount <= 0) return json(res, { ok: false, error: "Amount must be an integer in the smallest currency unit." }, 400);
+
+  if (plan) {
+    try {
+      const planResponse = await fetch(`https://api.paystack.co/plan/${encodeURIComponent(plan)}`, {
+        headers: { Authorization: `Bearer ${secret}` },
+      });
+      const planData = await planResponse.json().catch(() => ({}));
+      const remotePlan = planData?.data;
+      if (!planResponse.ok || !planData?.status || !remotePlan?.plan_code) {
+        return json(res, { ok: false, code: "invalid_paystack_plan", error: "The selected Paystack plan could not be verified." }, 400);
+      }
+      if (remotePlan.currency && String(remotePlan.currency).toUpperCase() !== "NGN") {
+        return json(res, { ok: false, code: "unsupported_plan_currency", error: "Only NGN subscription plans are supported." }, 400);
+      }
+    } catch {
+      return json(res, { ok: false, code: "paystack_plan_lookup_failed", error: "Unable to verify the selected Paystack plan." }, 502);
+    }
+  }
+
   if (!callbackUrl.startsWith("http://") && !callbackUrl.startsWith("https://")) {
     return json(res, { ok: false, error: "A valid callback URL is required." }, 400);
   }
