@@ -47,7 +47,7 @@ export default function InventoryAudit() {
     setHasMore(result.length > 50);
     setPage(0);
     setLoading(false);
-  }, [effectiveClinicId, reason]);
+  }, [effectiveClinicId, reason, search]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 250);
