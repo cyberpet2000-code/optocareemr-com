@@ -1,6 +1,8 @@
 User-agent: *
 Allow: /growth
 Allow: /legal
+Disallow: /demo
+Disallow: /demo/
 Disallow: /dashboard
 Disallow: /visits
 Disallow: /patients
