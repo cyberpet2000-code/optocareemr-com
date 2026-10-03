@@ -10,7 +10,6 @@ export default function PaystackTest() {
   const [email, setEmail] = useState("");
   const [amount, setAmount] = useState("1000");
   const [plan, setPlan] = useState("");
-  const [clinicId, setClinicId] = useState("");
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -22,7 +21,6 @@ export default function PaystackTest() {
         email,
         amountNaira: Number(amount),
         plan: plan || undefined,
-        clinicId: clinicId || undefined,
       });
 
       if (!result.ok) {
@@ -63,10 +61,6 @@ export default function PaystackTest() {
             <div>
               <Label htmlFor="paystack-plan">Plan code (optional)</Label>
               <Input id="paystack-plan" value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="PLN_..." />
-            </div>
-            <div>
-              <Label htmlFor="paystack-clinic">Clinic ID (optional)</Label>
-              <Input id="paystack-clinic" value={clinicId} onChange={(e) => setClinicId(e.target.value)} placeholder="UUID" />
             </div>
             {message && <p className="text-sm text-destructive">{message}</p>}
             <Button className="w-full" onClick={startPayment} disabled={working}>
