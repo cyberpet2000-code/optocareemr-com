@@ -257,7 +257,20 @@ as $function$
   from public.clinics c
   join ctx on coalesce(c.parent_clinic_id,c.id)=ctx.group_id
   where public.is_super_admin(auth.uid())
-     or public.has_role(auth.uid(),'admin'::public.app_role)
+     or exists (
+       select 1
+       from public.clinic_user_roles r
+       where r.user_id=auth.uid()
+         and r.clinic_id=ctx.group_id
+         and r.role='admin'::public.app_role
+     )
+     or exists (
+       select 1
+       from public.clinic_users cu
+       where cu.user_id=auth.uid()
+         and cu.clinic_id=ctx.group_id
+         and cu.role='admin'
+     )
   order by (c.parent_clinic_id is null) desc,c.created_at asc;
 $function$;
 
@@ -388,9 +401,26 @@ begin
 
   if not (
     public.is_super_admin(uid)
-    or public.has_role(uid,'admin'::public.app_role)
+    or exists (
+      select 1
+      from public.clinic_user_roles r
+      where r.user_id=uid
+        and r.clinic_id=group_id
+        and r.role='admin'::public.app_role
+    )
+    or exists (
+      select 1
+      from public.user_clinic_memberships m
+      where m.user_id=uid
+        and m.clinic_id=group_id
+        and coalesce(m.is_active,true)=true
+        and exists (
+          select 1 from public.clinic_users cu
+          where cu.user_id=uid and cu.clinic_id=group_id and cu.role='admin'
+        )
+    )
   ) then
-    raise exception 'Only clinic administrators can create branches';
+    raise exception 'Only HQ administrators can create branches';
   end if;
 
   if not exists (
