@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { apiClient } from "@/lib/apiClient";
-import { assertClinicAccess } from "@/lib/route-access";
 import { checkClinicSubscription } from "@/lib/diag/healthChecks";
 import { safeSupabaseStorage, setKnownSupabaseSession } from "@/lib/supabase-auth";
 import { secureOfflineGet, secureOfflineSave, secureOfflineClearKey } from "@/lib/secureOfflineStore";
@@ -1100,13 +1099,15 @@ completedLoadKeyRef.current = loadKey;
       return true;
     }
 
-    // Super admins are platform-level users and may enter any clinic.
-    // Do not require a clinic membership row for them; that defeats the
-    // purpose of the Super Admin Clinics "Enter Clinic" action.
-    if (clinicId && userRef.current && !isSuperAdminUser) {
-      const grantedRole = await assertClinicAccess(apiClient as any, userRef.current.id, clinicId);
-      if (!grantedRole) {
-        throw new Error("You do not have access to this clinic.");
+    // Enforce the tenant switch server-side so RLS/security-definer functions
+    // and the client workspace always agree on the active clinic. This also
+    // supports the HQ-admin -> child-branch inheritance model.
+    if (clinicId) {
+      const { error } = await (apiClient as any).rpc("set_active_clinic", {
+        p_clinic_id: clinicId,
+      });
+      if (error) {
+        throw new Error(error.message || "You do not have access to this clinic.");
       }
     }
 
