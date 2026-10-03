@@ -228,6 +228,41 @@ $function$;
 revoke all on function public.set_active_clinic(uuid) from public, anon;
 grant execute on function public.set_active_clinic(uuid) to authenticated;
 
+
+-- HQ/branch management context for administrators. This avoids exposing child
+-- clinic rows through broad table SELECT policies.
+create or replace function public.get_clinic_group_context()
+returns table (
+  id uuid,
+  name text,
+  type text,
+  parent_clinic_id uuid,
+  is_active boolean,
+  setup_completed boolean,
+  phone text,
+  email text
+)
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $function$
+  with ctx as (
+    select coalesce(c.parent_clinic_id,c.id) as group_id
+    from public.clinics c
+    where c.id=public.current_clinic_id()
+  )
+  select c.id,c.name,c.type,c.parent_clinic_id,c.is_active,c.setup_completed,c.phone,c.email
+  from public.clinics c
+  join ctx on coalesce(c.parent_clinic_id,c.id)=ctx.group_id
+  where public.is_super_admin(auth.uid())
+     or public.has_role(auth.uid(),'admin'::public.app_role)
+  order by (c.parent_clinic_id is null) desc,c.created_at asc;
+$function$;
+
+revoke all on function public.get_clinic_group_context() from public, anon;
+grant execute on function public.get_clinic_group_context() to authenticated;
+
 -- Return the HQ for a branch, or the clinic itself when it is already an HQ.
 create or replace function public.get_clinic_group_id(p_clinic_id uuid default null)
 returns uuid
