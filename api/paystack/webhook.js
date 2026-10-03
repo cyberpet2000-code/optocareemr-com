@@ -50,6 +50,31 @@ async function recordWebhookEvent(event) {
   });
 }
 
+async function updateRefundFromEvent(event) {
+  const { url, serviceKey } = supabaseConfig();
+  if (!serviceKey || !event.event?.startsWith("refund.")) return;
+  const data = event.data || {};
+  const transactionReference = data.transaction_reference || data.transaction?.reference || null;
+  if (!transactionReference) return;
+  const status = event.event.replace("refund.", "");
+  await fetch(`${url}/rest/v1/paystack_refunds?transaction_reference=eq.${encodeURIComponent(transactionReference)}`, {
+    method: "PATCH",
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify({
+      refund_reference: data.refund_reference || null,
+      amount: Number(data.amount || 0) || undefined,
+      currency: data.currency || "NGN",
+      status,
+      updated_at: new Date().toISOString(),
+    }),
+  });
+}
+
 async function updateSubscriptionFromEvent(event) {
   const { url, serviceKey } = supabaseConfig();
   if (!serviceKey) return;
@@ -104,9 +129,17 @@ async function updateSubscriptionFromEvent(event) {
       data.subscription?.subscription_code ||
       data.subscription?.code ||
       null,
-    start_date: data.created_at || data.paid_at || null,
     end_date: data.next_payment_date || null,
   };
+
+  // Preserve the original subscription start date. Recurring charge events must not reset it.
+  let existingStartDate = null;
+  const existing = await fetch(`${url}/rest/v1/clinic_subscriptions?select=start_date&clinic_id=eq.${encodeURIComponent(clinicId)}&limit=1`, {
+    headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, Accept: "application/json" },
+  });
+  const existingRows = await existing.json().catch(() => []);
+  existingStartDate = Array.isArray(existingRows) ? existingRows[0]?.start_date || null : null;
+  if (!existingStartDate) row.start_date = data.created_at || data.paid_at || new Date().toISOString();
 
   await fetch(`${url}/rest/v1/clinic_subscriptions?on_conflict=clinic_id`, {
     method: "POST",
@@ -138,6 +171,7 @@ export default async function handler(req, res) {
 
     const event = JSON.parse(raw);
     await recordWebhookEvent(event);
+    await updateRefundFromEvent(event);
     await updateSubscriptionFromEvent(event);
 
     // Acknowledge quickly so Paystack does not retry the event unnecessarily.
