@@ -61,10 +61,16 @@ export async function initializePaystackCheckout(
 }
 
 export async function verifyPaystackTransaction(reference: string) {
-  const response = await fetch(
-    `/api/paystack/verify?reference=${encodeURIComponent(reference)}`,
-    { cache: "no-store" },
-  );
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) {
+    throw new Error("Please sign in before verifying payment.");
+  }
+
+  const response = await fetch(`/api/paystack/verify?reference=${encodeURIComponent(reference)}`, {
+    cache: "no-store",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
   const body = await response.json().catch(() => ({}));
   if (!response.ok || !body?.ok) {
     throw new Error(body?.error || "Unable to verify payment.");
