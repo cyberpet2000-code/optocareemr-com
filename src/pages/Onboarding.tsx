@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { CheckCircle2, ArrowRight, Eye, Stethoscope, Pill, FlaskConical, Sparkles, MapPin, MessageCircle } from "lucide-react";
+import { CheckCircle2, ArrowRight, Eye, Stethoscope, Pill, FlaskConical, Sparkles, MapPin, MessageCircle, Building2, ShieldCheck } from "lucide-react";
 
 const CLINIC_TYPES = [
   { id: "eye_clinic", label: "Eye Clinic", desc: "Refraction, glaucoma, cataract", icon: Eye },
@@ -33,9 +33,18 @@ export default function Onboarding() {
   const [clinicTagline, setClinicTagline] = useState("");
   const [clinicWhatsapp, setClinicWhatsapp] = useState("");
   const [busy, setBusy] = useState(false);
+  const [entitlement, setEntitlement] = useState<any>(null);
   const isSetupCompleted = clinic?.setup_completed === true;
   const clinicName = clinic?.name ?? "";
   const welcomeName = useMemo(() => profile?.full_name ? `, ${profile.full_name}` : "", [profile?.full_name]);
+
+  useEffect(() => {
+    if (!clinic?.id) return;
+    (apiClient as any).rpc("get_clinic_entitlement", { p_clinic_id: clinic.id })
+      .then((result: any) => {
+        if (!result.error) setEntitlement(result.data?.[0] || null);
+      });
+  }, [clinic?.id]);
 
   useEffect(() => {
     if (roleLoading || loading) return;
@@ -109,12 +118,20 @@ export default function Onboarding() {
 
   const saveModules = async () => {
     setBusy(true);
+    const allowed = {
+      billing: entitlement?.billing_enabled !== false,
+      hmo: entitlement?.hmo_enabled === true,
+      pharmacy: true,
+      appointments: true,
+    };
+    const nextModules = { ...modules, ...allowed };
+    setModules(nextModules);
     const { error } = await apiClient.from("clinic_feature_flags").upsert({
       clinic_id: clinic.id,
-      billing_enabled: modules.billing,
-      hmo_enabled: modules.hmo,
-      pharmacy_enabled: modules.pharmacy,
-      appointments_enabled: modules.appointments,
+      billing_enabled: nextModules.billing,
+      hmo_enabled: nextModules.hmo,
+      pharmacy_enabled: nextModules.pharmacy,
+      appointments_enabled: nextModules.appointments,
       inventory_enabled: true,
     } as any, { onConflict: "clinic_id" } as any);
     setBusy(false);
@@ -255,11 +272,21 @@ export default function Onboarding() {
 
           {step === 3 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold">Enable modules</h2>
+              <h2 className="text-xl font-bold">Configure your workspace</h2>
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
+                <div className="flex items-center gap-2 font-semibold"><ShieldCheck size={16} /> {entitlement?.plan_code === "trial" ? "Professional trial" : (entitlement?.plan_code || "Current plan")}</div>
+                <p className="text-muted-foreground mt-1">OptoCare enables only the features included in your plan. You can change plans later without rebuilding your clinic.</p>
+              </div>
+              {(entitlement?.plan_code === "clinic" || entitlement?.plan_code === "network") && (
+                <div className="rounded-xl border p-4 bg-muted/20 flex gap-3">
+                  <Building2 size={20} className="text-primary mt-0.5" />
+                  <div><div className="font-semibold">Multi-clinic ready</div><p className="text-xs text-muted-foreground mt-1">This primary clinic can manage additional locations from Clinic Group & Locations after setup.</p></div>
+                </div>
+              )}
               {(["billing", "hmo", "pharmacy", "appointments"] as const).map(k => (
                 <div key={k} className="flex items-center justify-between rounded-xl border p-3">
                   <div className="capitalize font-medium">{k}</div>
-                  <Switch checked={modules[k]} onCheckedChange={(v) => setModules(m => ({ ...m, [k]: v }))} />
+                  <Switch checked={modules[k]} disabled={(k === "hmo" && entitlement?.hmo_enabled !== true) || (k === "billing" && entitlement?.billing_enabled === false)} onCheckedChange={(v) => setModules(m => ({ ...m, [k]: v }))} />
                 </div>
               ))}
               <div className="flex gap-2">
@@ -311,7 +338,7 @@ export default function Onboarding() {
                 Click below to complete setup for <strong>{clinic.name}</strong>. This saves your configuration and unlocks the dashboard.
               </p>
               <Button onClick={finish} disabled={busy} size="lg" className="w-full sm:w-auto">
-                {busy ? "Creating clinic..." : "Finish Setup & Create Clinic"}
+                {busy ? "Finishing setup..." : "Finish Setup"}
               </Button>
               <div>
                 <Button variant="ghost" onClick={back} disabled={busy}>Back</Button>
